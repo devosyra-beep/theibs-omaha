@@ -1,0 +1,27 @@
+# Pacotes e executáveis gerados
+THEIBS/
+THEIBS-Windows/
+THEIBS-*-Windows*/
+.release-check/
+*.zip
+*.exe
+
+# Evidências e manifests locais com caminhos da máquina
+validacao/
+release-manifest.json
+codigo-fonte/release-manifest.json
+
+# Dados locais do usuário e do treino
+codigo-fonte/data/
+*.jsonl
+workspace.json
+llm-config.json
+
+# Dependências, segredos e arquivos temporários
+node_modules/
+.env
+.env.*
+!.env.example
+*.log
+*.tmp
+

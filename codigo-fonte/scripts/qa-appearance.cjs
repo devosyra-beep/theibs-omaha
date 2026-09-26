@@ -1,0 +1,38 @@
+'use strict';
+const fs=require('node:fs'),path=require('node:path'),os=require('node:os'),assert=require('node:assert/strict');
+const {chromium,_electron}=require('playwright');
+(async()=>{
+ const temp=fs.mkdtempSync(path.join(os.tmpdir(),'theibs-appearance-'));process.env.THEIBS_DATA_PATH=path.join(temp,'events.jsonl');process.env.THEIBS_WORKSPACE_PATH=path.join(temp,'workspace.json');
+ const native=process.argv.includes('--electron'),version=require('../package.json').version,out=path.resolve(__dirname,'../../validacao/appearance-v'+version);fs.mkdirSync(out,{recursive:true});
+ const saved={schemaVersion:1,keyboard:{count:6,selected:0,slots:['AE','KO','KC','QP','TE','8C','2E','3C','4O','5P','9E']},fields:{players:'6',potBeforeAction:'12',amountToCall:'4',effectiveStack:'100',samples:'500',seed:'42','auto-analysis':false},ui:{deck:'cores',felt:'roxo',view:'analyze',cardDisplayVersion:2},snapshots:[]};
+ fs.writeFileSync(process.env.THEIBS_WORKSPACE_PATH,JSON.stringify({revision:1,workspace:saved}));
+ const report={version,environment:native?'PACKAGED_ELECTRON':'EDGE_HTTP',checks:[],layouts:[],errors:[]};let server,browser,electron,page;
+ try{
+  if(native){const env={...process.env};delete env.ELECTRON_RUN_AS_NODE;electron=await _electron.launch({executablePath:process.env.THEIBS_EXECUTABLE||path.resolve(__dirname,'../../THEIBS/THEIBS.exe'),args:['--user-data-dir='+path.join(temp,'profile')],env});page=await electron.firstWindow();}
+  else{({server}=require('../server'));await new Promise(r=>server.listen(0,'127.0.0.1',r));browser=await chromium.launch({headless:true,channel:'msedge'});page=await browser.newPage();await page.goto(`http://127.0.0.1:${server.address().port}`);}
+  page.setDefaultTimeout(15000);page.on('pageerror',e=>report.errors.push(e.message));page.on('dialog',d=>d.accept());await page.waitForFunction(()=>Boolean(window.theibsApp));await page.evaluate(()=>theibsApp.ready);
+  assert.equal(await page.locator('#players').inputValue(),'5');assert.equal(await page.locator('#opponent-count option').count(),4);assert.match(await page.locator('#opponent-total').innerText(),/4 adversários = 5 jogadores/);
+  assert.deepEqual(await page.evaluate(()=>theibsCardKeyboard.state.slots),saved.keyboard.slots);
+  await page.locator('button[data-felt="preto"]').click();await page.evaluate(()=>theibsApp.flushSave());await page.waitForFunction(()=>!theibsApp.getState().saveBusy&&!theibsApp.getState().saveDirty);await page.reload();await page.waitForFunction(()=>Boolean(window.theibsApp));await page.evaluate(()=>theibsApp.ready);assert.equal(await page.evaluate(()=>document.body.dataset.felt),'preto');report.checks.push('Black felt persists and existing PLO6 draft is corrected to four opponents without changing cards');
+  await page.locator('#quick-analyze').click();await page.waitForFunction(()=>theibsApp.getState().lastAnalysis?.data.status==='OK');assert.equal(await page.evaluate(()=>theibsApp.getState().lastAnalysis.data.equity.opponents),4);
+  const face=await page.locator('#hero-slots .playing-card').evaluateAll(cards=>cards.map(c=>({background:getComputedStyle(c).backgroundColor,color:getComputedStyle(c).color,rank:getComputedStyle(c.querySelector('.face-rank')).display,corners:getComputedStyle(c.querySelector('.corner')).display,pip:getComputedStyle(c.querySelector('.pip')).display,label:c.getAttribute('aria-label')})));
+  assert.equal(new Set(face.map(c=>c.background)).size,4);assert.ok(face.every(c=>c.color==='rgb(255, 255, 255)'&&c.rank==='flex'&&c.corners==='none'&&c.pip==='none'&&c.label));report.faces=face;report.checks.push('All four suits use solid colored backgrounds, white rank only, and accessible suit names');
+  const inspect=async(stage)=>{
+   for(const [width,height]of [[1440,900],[1366,768],[1024,660]]){
+    await page.setViewportSize({width,height});const m=await page.evaluate(()=>{
+     const active=document.querySelector(document.body.dataset.view==='train'?'#training-table':'#analyze-workspace .table-surface');
+     const rect=el=>{const r=el.getBoundingClientRect();return {x:r.x,y:r.y,right:r.right,bottom:r.bottom};};
+     return {width:innerWidth,height:innerHeight,scrollWidth:document.documentElement.scrollWidth,scrollHeight:document.documentElement.scrollHeight,hero:[...active.querySelectorAll('.hero-cards .playing-card')].map(rect),board:[...active.querySelectorAll('.board-cards .playing-card')].map(rect),panels:[...document.querySelectorAll(document.body.dataset.view==='train'?'#train-workspace .context-rail>.panel,#training-actions':'#analyze-workspace .context-rail>.panel,.card-keyboard')].filter(e=>e.getClientRects().length).map(rect)};
+    });report.layouts.push({stage,...m});assert.ok(m.scrollWidth<=width&&m.scrollHeight<=height,`page overflow ${stage} ${width}`);assert.ok(m.hero.every(c=>c.x>=0&&c.right<=width),`card overflow ${stage} ${width}`);if(m.board.length)assert.ok(Math.max(...m.board.map(c=>c.bottom))+1<=Math.min(...m.hero.map(c=>c.y)),`board overlaps hand ${stage} ${width}`);assert.ok(m.panels.every(p=>p.bottom<=height+1&&p.right<=width+1),`panel overflow ${stage} ${width}`);await page.screenshot({path:path.join(out,`${native?'electron':'edge'}-${stage}-${width}.png`)});
+   }
+  };
+  await inspect('analysis');
+  await page.locator('button[data-deck="classico"]').click();assert.equal(await page.locator('#hero-slots .face-rank').first().isVisible(),false);assert.equal(await page.locator('#hero-slots .pip').first().isVisible(),true);await page.locator('button[data-deck="cores"]').click();report.checks.push('Classic deck still works');
+  await page.locator('#variant-select').selectOption('5');assert.equal(await page.locator('#players').inputValue(),'6');assert.equal(await page.locator('#opponent-count option').count(),5);await page.locator('#opponent-count').selectOption('2');assert.equal(await page.locator('#players').inputValue(),'3');await page.locator('#variant-select').selectOption('6');assert.equal(await page.locator('#players').inputValue(),'5');report.checks.push('Variant switch selects PLO5 versus five, PLO6 versus four; fewer active opponents can still be selected');
+  await page.locator('.nav-tab[data-view="train"]').click();await page.locator('#open-training-settings').click();await page.locator('#training-street').selectOption('FLOP');await page.locator('#training-settings-dialog [data-close-dialog]').click();await page.locator('#training-start').click();await page.waitForFunction(()=>theibsApp.getState().trainingSession&&!theibsApp.getState().trainingBusy);await inspect('training');
+  const session=await page.evaluate(()=>theibsApp.getState().trainingSession);await page.locator(`[data-action="${session.legalActions.includes('CHECK')?'CHECK':'CALL'}"]`).click();await page.waitForFunction(()=>!theibsApp.getState().trainingBusy);await inspect('feedback');report.checks.push('Analysis, training and feedback fit three desktop sizes with separated hero and board cards');
+  await page.evaluate(()=>theibsApp.flushSave());assert.deepEqual(report.errors,[]);report.status='PASS';
+ }catch(error){report.status='FAIL';report.failure=error.stack;if(page)await page.screenshot({path:path.join(out,'failure.png')}).catch(()=>{});throw error;}
+ finally{fs.writeFileSync(path.join(out,`${native?'electron':'edge'}-report.json`),JSON.stringify(report,null,2));if(browser)await browser.close();if(electron){try{await electron.evaluate(({app})=>app.exit(0));}catch{}await electron.close();}if(server)await new Promise(r=>server.close(r));}
+ console.log(JSON.stringify({status:report.status,checks:report.checks},null,2));
+})().catch(e=>{console.error(e);process.exitCode=1;});
