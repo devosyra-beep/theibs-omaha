@@ -620,7 +620,11 @@ body[data-view=train] #training-feedback>.feedback-action { display:block; margi
 body[data-view=analyze] .card-keyboard .keyboard-heading #clear { width:36px; height:36px; padding:7px!important; }
 body[data-view=analyze] .context-rail { grid-template-rows:auto auto; align-content:start; }
 body[data-view=analyze] #ev-summary,body[data-view=analyze] .insight-panel { min-height:150px; }
-.nuts-badge { justify-self:center; padding:14px 16px 20px; font-family:Impact,'Arial Black',sans-serif; font-size:clamp(58px,5.4vw,84px); font-weight:900; font-style:italic; line-height:1; letter-spacing:.055em; color:#ffe397; transform:rotate(-7deg) skew(-7deg); -webkit-text-stroke:1px #fff1c2; text-shadow:3px 4px 0 #b38330,5px 7px 0 #6f451f,0 0 25px #f0cc7426; user-select:none; }
+.nuts-badge { justify-self:center; display:inline-flex; align-items:center; gap:9px; margin:12px 0 5px; padding:7px 12px; border:1px solid #f59e0b66; border-radius:7px; background:#18150a; color:#fbbf24; box-shadow:0 0 15px #f59e0b26; font:900 13px/1 var(--font-mono); letter-spacing:.2em; user-select:none; }
+.nuts-dot { width:8px; height:8px; flex:none; border-radius:50%; background:#fbbf24; box-shadow:0 0 9px #fbbf24aa; animation:nuts-pulse 1.8s ease-in-out infinite; }
+.nuts-label { transform:translateY(.5px); }
+@keyframes nuts-pulse { 50% { opacity:.4; transform:scale(.78); } }
+@media(prefers-reduced-motion:reduce) { .nuts-dot { animation:none; } }
 .nuts-badge[hidden] { display:none!important; }
 body[data-view=analyze] #ev-value,body[data-view=analyze] #hero-equity { font-size:clamp(56px,4.5vw,72px); }
 @media(min-width:1000px) {

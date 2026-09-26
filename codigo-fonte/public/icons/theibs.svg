@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">THEIBS</title>
+  <rect width="512" height="512" rx="112" fill="#09090b"/>
+  <rect x="18" y="18" width="476" height="476" rx="96" fill="none" stroke="#f3c969" stroke-width="12"/>
+  <path fill="#f3c969" d="M256 68 200 150l-75 65-40 60 7 60 43 45 55 5 40-25-15 45-40 40h162l-40-40-15-45 40 25 55-5 43-45 7-60-40-60-75-65-56-82Z"/>
+  <path d="m256 69-1 291M126 216l129 119m131-119L257 335" fill="none" stroke="#09090b" stroke-opacity=".32" stroke-width="13" stroke-linejoin="round"/>
+</svg>

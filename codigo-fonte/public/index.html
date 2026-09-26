@@ -3,13 +3,28 @@
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'">
-  <meta name="color-scheme" content="dark"><title>THEIBS 0.9.1 · Laboratório Omaha</title>
-  <link rel="icon" href="data:,"><link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href="/dashboard.css"><link rel="stylesheet" href="/multiway.css">
+  <meta name="color-scheme" content="dark"><meta name="theme-color" content="#09090b"><title>THEIBS 0.10.0 · Laboratório Omaha</title>
+  <meta name="application-name" content="THEIBS"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/svg+xml" href="/icons/theibs.svg"><link rel="apple-touch-icon" href="/icons/theibs-192.png"><link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href="/dashboard.css"><link rel="stylesheet" href="/multiway.css">
 </head>
 <body data-felt="roxo" data-deck="cores">
-<div class="app-shell">
+<section id="login-screen" class="login-screen" hidden aria-labelledby="login-title">
+  <div class="login-card-wrap">
+    <div class="login-brand"><img src="/icons/theibs.svg" alt=""><h1 id="login-title">THEIBS</h1><p>LABORATÓRIO OMAHA</p></div>
+    <div class="login-card">
+      <h2>Entrar com sua conta</h2>
+      <button id="auth-google" type="button" class="auth-button auth-google" disabled aria-describedby="auth-status"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47c-.29 1.48-1.14 2.73-2.4 3.58v3h3.86c2.26-2.09 3.56-5.17 3.56-8.82z"/><path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.86-3c-1.08.72-2.45 1.16-4.07 1.16-3.13 0-5.78-2.11-6.73-4.96H1.29v3.09C3.26 21.3 7.31 24 12 24z"/><path fill="#FBBC05" d="M5.27 14.29c-.25-.72-.38-1.49-.38-2.29s.14-1.57.38-2.29V6.62H1.29C.47 8.24 0 10.06 0 12s.47 3.76 1.29 5.38l3.98-3.09z"/><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.62l3.98 3.09C6.22 6.86 8.87 4.75 12 4.75z"/></svg><span>Continuar com Google</span></button>
+      <button id="auth-apple" type="button" class="auth-button auth-apple" disabled aria-describedby="auth-status"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.05 20.28c-.98.95-2.05.86-3.08.35-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8.85-.16 2.22-.9 3.46-.77 1.11.09 2.03.53 2.87 1.24-2.79 1.76-2.36 5.33.68 6.47-.72 1.9-1.66 3.75-3.09 5.23zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg><span>Continuar com Apple</span></button>
+      <div class="login-divider"><span>modo atual</span></div>
+      <button id="auth-local" type="button" class="auth-button auth-local">Continuar neste dispositivo</button>
+      <p id="auth-status" class="login-status">Google e Apple serão ativados quando o projeto Supabase for conectado.</p>
+    </div>
+    <span class="login-version">THEIBS 0.10.0 · WEBAPP LOCAL</span>
+  </div>
+</section>
+<div class="app-shell" id="app-shell">
   <aside class="primary-rail">
-    <div class="brand"><span class="brand-mark">♠</span><div><strong>THEIBS</strong><small>LABORATÓRIO OMAHA</small></div></div>
+    <div class="brand"><img class="brand-mark" src="/icons/theibs.svg" alt=""><div><strong>THEIBS</strong><small>LABORATÓRIO OMAHA</small></div></div>
     <nav class="main-nav" aria-label="Áreas do Theibs">
       <button type="button" class="nav-tab active" data-view="analyze" aria-current="page"><span class="nav-icon">◇</span><span>Analisar</span><small>01</small></button>
       <button type="button" class="nav-tab" data-view="train"><span class="nav-icon">◎</span><span>Treinar</span><small>02</small></button>
@@ -21,7 +36,7 @@
     <div class="rail-bottom"><button id="open-help" type="button" class="text-button">? &nbsp; Teclas e ajuda <kbd>F1</kbd></button><span class="micro" id="save-status" role="status">Carregando rascunho…</span><span class="micro">Estudo local · sem conexão a mesas</span></div>
   </aside>
   <div class="content-shell">
-    <header class="topbar"><div class="breadcrumb"><span>THEIBS</span><span>/</span><strong id="view-title">Análise da mão</strong></div><div class="top-actions"><span class="engine-status" id="engine-status"><i></i>Motor local</span><button id="new-hand" type="button" class="ghost-button">+ Nova mão</button></div></header>
+    <header class="topbar"><div class="breadcrumb"><span>THEIBS</span><span>/</span><strong id="view-title">Análise da mão</strong></div><div class="top-actions"><span class="engine-status" id="engine-status"><i></i>Motor local</span><button id="open-auth" type="button" class="icon-button" aria-label="Conta e acesso" title="Conta e acesso">♙</button><button id="new-hand" type="button" class="ghost-button">+ Nova mão</button></div></header>
     <main class="workspace">
       <section id="analyze-workspace">
         <form id="analysis-form" class="study-layout" novalidate>
@@ -81,5 +96,5 @@
 </div>
 <dialog id="help-dialog"><div class="dialog-head"><div><p class="eyebrow">THEIBS · ENTRADA RÁPIDA</p><h2>Das teclas para a mesa.</h2></div><button type="button" id="close-help" class="ghost-button" aria-label="Fechar ajuda">×</button></div><p>Digite o valor e o naipe, sem Enter: <kbd>A</kbd><kbd>E</kbd> coloca A de espadas. <kbd>D</kbd>, <kbd>T</kbd> e <kbd>10</kbd> são o dez. Maiúsculas e minúsculas funcionam.</p><div class="help-suits"><span>♠ <b>E</b> Espadas</span><span>♥ <b>C</b> Copas</span><span>♦ <b>O</b> Ouros</span><span>♣ <b>P</b> Paus</span></div><dl class="shortcut-list"><dt>Clique na carta da mesa</dt><dd>Seleciona uma posição para corrigir.</dd><dt>Backspace / Ctrl+Z</dt><dd>Cancela o valor pendente ou desfaz a última alteração.</dd><dt>Delete</dt><dd>Remove apenas a posição selecionada.</dd><dt>← / →</dt><dd>Navega pelas posições.</dd><dt>Ctrl+1 / 2 / 3 / 4</dt><dd>Mão / flop / turn / river.</dd><dt>Ctrl+C / Ctrl+V</dt><dd>Copia ou cola a sequência em português, fora dos campos de texto.</dd><dt>Ctrl+S</dt><dd>Exporta JSON da entrada, inclusive parcial.</dd><dt>Esc</dt><dd>Cancela um valor ou fecha esta ajuda.</dd></dl><p class="micro">Os atalhos de cartas só atuam em Analisar. Não capturam texto dos campos, não acionam apostas e não monitoram outras janelas. O Tab mantém a navegação acessível entre controles.</p><p class="micro">Omaha de 4/5/6 cartas usa sempre exatamente 2 privadas e 3 comunitárias. O catálogo inicial de ranges é PLO5; todas as variantes admitem o modelo-base de mãos aleatórias. Ollama é opcional e não há pesos de modelo incluídos.</p></dialog>
 <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
-<script src="/card-model.js"></script><script src="/essence-ui.js"></script><script src="/card-keyboard.js"></script><script src="/dashboard.js"></script><script src="/focus-ui.js"></script><script src="/multiway-ui.js"></script><script src="/app.js"></script><script src="/assistant-ui.js"></script>
+<script src="/pwa.js"></script><script src="/auth-ui.js"></script><script src="/card-model.js"></script><script src="/essence-ui.js"></script><script src="/card-keyboard.js"></script><script src="/dashboard.js"></script><script src="/focus-ui.js"></script><script src="/multiway-ui.js"></script><script src="/app.js"></script><script src="/assistant-ui.js"></script>
 </body></html>

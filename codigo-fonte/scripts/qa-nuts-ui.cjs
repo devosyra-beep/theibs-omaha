@@ -84,7 +84,7 @@ const { chromium, _electron } = require('playwright');
       const screenshot = path.join(out, `${mode}-nuts-${width}.png`);
       await page.screenshot({ path: screenshot });
       assert.equal(metrics.visible, true);
-      assert.ok(metrics.fontSize >= 40, `NUTS text too small at ${width}`);
+      assert.ok(metrics.fontSize >= 12, `NUTS text too small at ${width}`);
       assert.ok(metrics.scrollWidth <= width && metrics.scrollHeight <= height, `Document overflow at ${width}`);
       assert.ok(metrics.badge.x >= 0 && metrics.badge.right <= width && metrics.badge.bottom <= height, `NUTS outside viewport at ${width}`);
       assert.ok(metrics.textBounds.y >= metrics.equity.bottom - 1, `NUTS text overlaps equity at ${width}`);

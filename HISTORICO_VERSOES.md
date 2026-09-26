@@ -1,3 +1,9 @@
+## 0.10.0 — 26/09/2026
+
+Base da WebApp/PWA local sem Chromium empacotado: manifest instalável, service worker restrito aos arquivos estáticos, ícones 192/512 e maskable, iniciador Windows de dois cliques e armazenamento persistente em `%LOCALAPPDATA%\THEIBS`. O motor Node, os workers numéricos, o histórico e o Ollama permanecem locais; rotas `/api/` nunca entram no cache offline.
+
+Nova identidade com espada geométrica facetada em dourado e tipografia limpa. O destaque NUTS abandona o estilo 3D e passa a usar um HUD compacto preto e dourado, com pulso desativado quando o sistema solicita movimento reduzido. A tela de acesso Google/Apple foi adicionada como preparação visual e pode ser aberta pelo botão de conta. Como nenhum projeto Supabase ou credencial OAuth foi fornecido, os provedores ficam explicitamente desativados e o modo local continua funcional; não há login simulado.
+
 ## 0.9.1 — 26/09/2026
 
 Shift sozinho inicia uma nova mão em Analisar ao soltar a tecla, sem confirmação: limpa privadas, board, EV, equity e NUTS. No Multiway, reinicia ações e blinds mantendo jogadores, posição e stack inicial. Não atua em campos de texto, diálogos, Treinar ou durante atualização da rodada. Shift+letra, Shift+Tab, modificadores, cliques, repetição e perda de foco não disparam limpeza. Ajuda e tooltips dos botões informam o atalho. Fórmulas e modelos permanecem na base validada 0.9.0.

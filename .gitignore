@@ -4,6 +4,8 @@ THEIBS-Windows/
 THEIBS-*-Windows*/
 .release-check/
 *.zip
+codigo-fonte/.release-webapp/
+THEIBS-WebApp-*/
 *.exe
 
 # Evidências e manifests locais com caminhos da máquina
@@ -24,4 +26,3 @@ node_modules/
 !.env.example
 *.log
 *.tmp
-

@@ -101,9 +101,16 @@ function serveStatic(request, response) {
   }
   fs.readFile(filePath, (error, data) => {
     if (error) { response.writeHead(404); response.end('Not found'); return; }
-    const contentType = filePath.endsWith('.css') ? 'text/css; charset=utf-8'
-      : filePath.endsWith('.js') ? 'text/javascript; charset=utf-8'
-        : 'text/html; charset=utf-8';
+    const extension = path.extname(filePath).toLowerCase();
+    const contentType = ({
+      '.css': 'text/css; charset=utf-8',
+      '.js': 'text/javascript; charset=utf-8',
+      '.json': 'application/json; charset=utf-8',
+      '.webmanifest': 'application/manifest+json; charset=utf-8',
+      '.svg': 'image/svg+xml',
+      '.png': 'image/png',
+      '.ico': 'image/x-icon'
+    })[extension] || 'text/html; charset=utf-8';
     response.writeHead(200, { 'Content-Type': contentType, 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' });
     response.end(data);
   });

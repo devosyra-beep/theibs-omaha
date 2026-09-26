@@ -545,7 +545,7 @@ function renderResult(data, street) {
         if(workspace.multiway?.enabled){multiwaySimple=workspace.multiwaySimple||null;await runMultiway(()=>postJson('/api/multiway/state',{multiway:workspace.multiway}));}
         updateTableContext(); updateBoardHelp(); renderStreetCards();
         try {
-          if (workspace.lastAnalysis?.data?.engineBuild === '0.9.1' && workspace.lastAnalysis.signature === JSON.stringify(buildAnalysisPayload())) {
+          if (workspace.lastAnalysis?.data?.engineBuild === '0.10.0' && workspace.lastAnalysis.signature === JSON.stringify(buildAnalysisPayload())) {
             lastAnalysis = workspace.lastAnalysis; renderResult(lastAnalysis.data, lastAnalysis.street); quickAction(lastAnalysis.data);
             renderCharts(snapshots.find((item) => item.street === lastAnalysis.street && !item.stale));
           }
@@ -685,7 +685,7 @@ function renderResult(data, street) {
   });
   window.addEventListener('beforeunload', (event) => { if (saveDirty || saveBusy) { event.preventDefault(); event.returnValue = ''; } });
   const setupHost=document.createElement('section');setupHost.id='multiway-setup';$('#settings-dialog .dialog-content').prepend(setupHost);
-  const nutsBadge=document.createElement('div');nutsBadge.id='nuts-badge';nutsBadge.className='nuts-badge';nutsBadge.hidden=true;nutsBadge.textContent='NUTS';nutsBadge.setAttribute('role','status');nutsBadge.setAttribute('aria-label','Nuts: melhor mão possível no board atual. Pode empatar.');nutsBadge.title='Melhor mão possível no board atual. Pode empatar; próximas cartas podem mudar a mão.';$('#analyze-workspace .insight-panel').after(nutsBadge);
+  const nutsBadge=document.createElement('div');nutsBadge.id='nuts-badge';nutsBadge.className='nuts-badge';nutsBadge.hidden=true;nutsBadge.innerHTML='<span class="nuts-dot" aria-hidden="true"></span><span class="nuts-label">NUTS</span>';nutsBadge.setAttribute('role','status');nutsBadge.setAttribute('aria-label','Nuts: melhor mão possível no board atual. Pode empatar.');nutsBadge.title='Melhor mão possível no board atual. Pode empatar; próximas cartas podem mudar a mão.';$('#analyze-workspace .insight-panel').after(nutsBadge);
   const controlsHost=document.createElement('section');controlsHost.id='multiway-controls';$('.quick-decision').before(controlsHost);
   window.theibsMultiwayUI.init({getContext:multiwayContext,handlers:{start:startMultiway,act:event=>stepMultiway({type:'ACT',...event}),markFold:event=>stepMultiway({type:'MARK_FOLD',...event}),board:event=>stepMultiway({type:'BOARD',...event}),undo:()=>runMultiway(()=>postJson('/api/multiway/state',{multiway:{...multiway,events:multiway.events.slice(0,-1)}})),exit:exitMultiway}});
   updateTableContext(); renderMultiway();renderStreetCards(); renderCharts(); updateBoardHelp(); renderTrainingSession();

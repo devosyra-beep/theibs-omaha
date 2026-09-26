@@ -1,6 +1,6 @@
 {
   "name": "poker-omaha5-realtime-assistance",
-  "version": "0.9.1",
+  "version": "0.10.0",
   "private": true,
   "description": "Theibs: laboratório Omaha High 4/5/6, interface EssenceDeck e entrada de cartas integrada.",
   "type": "commonjs",
@@ -11,6 +11,8 @@
     "manual": "node src/manual-cli.js",
     "theibs": "node server.js",
     "desktop": "electron .",
+    "webapp": "node webapp.js",
+    "package:webapp": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-webapp.ps1",
     "package:win": "electron-builder --win portable",
     "start": "node server.js",
     "test:ui": "python scripts/test-ui.py",
