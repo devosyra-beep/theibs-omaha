@@ -1,3 +1,7 @@
+## Preparação de hospedagem — 26/09/2026
+
+Blueprint Render Free para URL provisória com landing e motor Node no mesmo serviço. Suporte à porta e URL fornecidas pela hospedagem, health check mínimo e bloqueio de inicialização hospedada sem Google/Supabase configurados. Cobrança exige chaves completas e armazenamento declarado persistente. Prévia gratuita tem histórico efêmero e não inclui habilitação de vendas. Validação local: 182 testes passaram; isso não valida login, pagamento ou desempenho em produção.
+
 ## 0.10.0 — 26/09/2026
 
 Base da WebApp/PWA local sem Chromium empacotado: manifest instalável, service worker restrito aos arquivos estáticos, ícones 192/512 e maskable, iniciador Windows de dois cliques e armazenamento persistente em `%LOCALAPPDATA%\THEIBS`. O motor Node, os workers numéricos, o histórico e o Ollama permanecem locais; rotas `/api/` nunca entram no cache offline.

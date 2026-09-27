@@ -1,5 +1,20 @@
 # THEIBS SaaS — acesso público seguro
 
+## URL provisória no Render
+
+O `render.yaml` na raiz prepara um **Web Service gratuito**, com a landing em `/` e o app em `/app`. Não é necessário comprar domínio. O endereço `https://NOME.onrender.com` só existe depois de criar o serviço; este arquivo não confirma publicação.
+
+1. Entre no Render, conecte somente o repositório privado `devosyra-beep/theibs-omaha` e use **New → Blueprint** com o `render.yaml`. Confira que o plano é **Free**.
+2. Preencha `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` e `SUPABASE_SECRET_KEY` no painel, usando o projeto separado do THEIBS. Aplique a migração e habilite Google Auth nesse projeto.
+3. O servidor usa `PORT` e `RENDER_EXTERNAL_URL` automaticamente. Depois de obter a URL, adicione `https://NOME.onrender.com/app` aos redirects do Supabase e teste o login real.
+4. `/healthz` verifica que o servidor responde. Isso não comprova Google, banco ou pagamentos: confirme esses fluxos separadamente.
+
+O plano Free pausa após inatividade e **perde arquivos de histórico/rascunhos em reinícios ou novos deploys**. Serve para validar a primeira URL; não é a versão comercial pronta. Mãos em andamento ficam na memória e encerram em qualquer reinício, mesmo com disco. A capacidade do motor precisa ser medida no servidor contratado; o benchmark local não comprova 100 mil simulações/s na nuvem.
+
+O blueprint não configura AbacatePay. Antes de cobrar, adicione um disco persistente em um plano compatível, aponte `THEIBS_USER_DATA_ROOT` para ele, confirme que os arquivos sobrevivem a reinícios e defina `THEIBS_STORAGE_PERSISTENT=true`. O servidor bloqueia a inicialização hospedada sem autenticação ou com cobrança configurada sem armazenamento declarado persistente. Não contrate recursos pagos sem confirmar o preço.
+
+O runtime web usa apenas Node, sem instalar Electron/Chromium. O build verifica a sintaxe e inicia `node server.js`. Referências: [Render Node](https://render.com/docs/deploy-node-express-app), [plano gratuito](https://render.com/docs/free), [variáveis do Render](https://render.com/docs/environment-variables).
+
 ## Regra comercial
 
 - Cadastro obrigatório por Supabase Auth.

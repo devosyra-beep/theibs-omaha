@@ -56,6 +56,13 @@ test('API recusa visitante e libera usuário dentro dos três dias', async () =>
   assert.equal(accepted.status, 200); assert.equal(body.access.state, 'TRIAL'); assert.equal(body.access.allowed, true);
 });
 
+test('hosting health check is public and exposes no configuration or user data', async () => {
+  const response = await originalFetch(origin + '/healthz');
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), { status: 'OK' });
+  assert.equal((await originalFetch(origin + '/api/access')).status, 401);
+});
+
 test('sessão e rascunho recebem caminho isolado por usuário', () => {
   const first = userStoragePath({ user: { id: 'user-a' } }, 'workspace.json');
   const second = userStoragePath({ user: { id: 'user-b' } }, 'workspace.json');

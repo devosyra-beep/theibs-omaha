@@ -1,0 +1,33 @@
+# Free functional preview. History files are ephemeral on this plan.
+# Enable payments only after adding persistent storage and validating sandbox.
+services:
+  - type: web
+    name: theibs-preview
+    runtime: node
+    plan: free
+    rootDir: codigo-fonte
+    buildCommand: node --check server.js
+    startCommand: node server.js
+    healthCheckPath: /healthz
+    autoDeployTrigger: off
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
+      - key: THEIBS_AUTH_REQUIRED
+        value: "true"
+      - key: THEIBS_AUTH_GOOGLE_ENABLED
+        value: "true"
+      - key: THEIBS_TRIAL_DAYS
+        value: "3"
+      - key: THEIBS_PLAN_PRICE_BRL
+        value: "250"
+      - key: THEIBS_LIFETIME_EMAILS
+        value: devosyra@gmail.com,ninjadevtester@gmail.com
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_PUBLISHABLE_KEY
+        sync: false
+      - key: SUPABASE_SECRET_KEY
+        sync: false

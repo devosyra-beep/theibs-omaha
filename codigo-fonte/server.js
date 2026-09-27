@@ -13,17 +13,14 @@ const analyzeInWorker = require('./src/analysis-worker');
 const multiway = require('./src/multiway-session');
 const authService = require('./src/supabase-service');
 const billing = require('./src/abacatepay');
+const { publicOrigin, runtimeConfig, validateDeployment } = require('./src/hosting-config');
 
 const root = __dirname;
 const publicDir = path.join(root, 'public');
-const port = Number(process.env.THEIBS_PORT || 4173);
+const port = runtimeConfig().port;
 const sessions = new Map();
 const sessionOwners = new Map();
 const sessionBusy = new WeakSet();
-
-function publicOrigin() {
-  try { return new URL(String(process.env.THEIBS_PUBLIC_ORIGIN || '')).origin; } catch { return null; }
-}
 
 function allowedRequestHost(host) {
   const currentPort = server.address()?.port;
@@ -183,6 +180,7 @@ const server = http.createServer(async (request, response) => {
   const route = requestUrl.pathname;
   if (!allowedRequestHost(host)) return json(response, 403, { status: 'ERROR', reason: 'Host não permitido.' });
   if (!allowedRequestOrigin(request.headers.origin, host)) return json(response, 403, { status: 'ERROR', reason: 'Origem não permitida.' });
+  if (request.method === 'GET' && route === '/healthz') return json(response, 200, { status: 'OK' });
   if (request.method === 'POST' && !(request.headers['content-type'] || '').toLowerCase().startsWith('application/json')) return json(response, 415, { status: 'ERROR', reason: 'Use application/json.' });
   if (request.method === 'GET' && route === '/api/public-config') {
     try { return json(response, 200, { status: 'OK', auth: authService.publicConfig() }); }
@@ -381,8 +379,17 @@ if (require.main === module) server.on('error', (error) => {
   console.error(error.code === 'EADDRINUSE' ? `A porta ${port} já está em uso. Feche a outra instância ou configure THEIBS_PORT.` : error.message);
   process.exitCode = 1;
 });
-if (require.main === module) server.listen(port, process.env.THEIBS_HOST || '127.0.0.1', () => {
-  console.log(`THEIBS disponível em ${publicOrigin() || `http://127.0.0.1:${port}`}`);
-});
+if (require.main === module) {
+  try {
+    const runtime = validateDeployment();
+    if (runtime.origin) process.env.THEIBS_PUBLIC_ORIGIN = runtime.origin;
+    server.listen(runtime.port, runtime.host, () => {
+      console.log(`THEIBS disponível em ${runtime.origin || `http://127.0.0.1:${runtime.port}`}`);
+    });
+  } catch (error) {
+    console.error(`THEIBS startup blocked: ${error.message}`);
+    process.exitCode = 1;
+  }
+}
 
 module.exports = { server, buildInput, userStoragePath };
