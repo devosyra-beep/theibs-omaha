@@ -1,8 +1,8 @@
 'use strict';
 
-const CACHE = 'theibs-shell-v0.12.2-persona-landing';
+const CACHE = 'theibs-shell-v0.12.2-scroll-nav';
 const SHELL = [
-  '/', '/landing.html', '/landing.css', '/landing-assets/theibs-logo.png', '/landing-assets/osyra-studio.svg',
+  '/', '/landing.html', '/landing.css', '/landing.js', '/landing-assets/theibs-logo.png', '/landing-assets/osyra-studio.svg',
   '/landing-assets/theibs-app.png', '/landing-assets/theibs-training.png', '/app', '/styles.css', '/dashboard.css', '/multiway.css', '/pwa.js', '/auth-ui.js',
   '/card-model.js', '/essence-ui.js', '/card-keyboard.js', '/dashboard.js',
   '/focus-ui.js', '/multiway-ui.js', '/app.js', '/assistant-ui.js',

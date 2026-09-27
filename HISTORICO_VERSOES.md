@@ -1,3 +1,9 @@
+## Landing: navegação e compra única — 27/09/2026
+
+Barra da landing recolhe ao descer e reaparece ao subir, com transição curta, tolerância a pequenos movimentos e preservação de foco pelo teclado. Permanece visível no início da página e respeita movimento reduzido. Script local com listener passivo e atualização por frame; cache PWA renovado.
+
+Terceira seção apresenta R$ 250,00, pagamento único e acesso permanente, mantendo o visual escuro/dourado e os textos em inglês. CTA aponta para a tela de acesso existente; nenhuma configuração de cobrança foi alterada. Validação visual local em desktop e 390 px: rolagem nas duas direções, foco pelo teclado, preço sem overflow, link de acesso e sintaxe JavaScript.
+
 ## Landing Persona e Osyra Studio — 27/09/2026
 
 Landing atualizada a partir do ZIP `poker-persona-main`: abertura em carvão/dourado, seis recursos e rodapé com símbolo vetorial e nome Osyra Studio. O primeiro preview usa o print real do treinador enviado pelo usuário. Layout adaptado para HTML/CSS estáticos, sem instalar dependências do projeto Lovable. Botões preservam `/app?login=1`; autenticação, preço e motor não foram alterados. Cache PWA atualizado.
