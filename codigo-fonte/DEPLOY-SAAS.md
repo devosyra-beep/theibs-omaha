@@ -2,7 +2,7 @@
 
 ## URL provisória no Render
 
-O `render.yaml` na raiz prepara um **Web Service gratuito**, com a landing em `/` e o app em `/app`. Não é necessário comprar domínio. O endereço `https://NOME.onrender.com` só existe depois de criar o serviço; este arquivo não confirma publicação.
+O `render.yaml` na raiz prepara um **Web Service gratuito**, com a landing em `/` e o app em `/app`. Serviço publicado e verificado em **https://theibs-omaha.onrender.com**. Não foi contratado plano pago nem domínio.
 
 1. Entre no Render, conecte somente o repositório privado `devosyra-beep/theibs-omaha` e use **New → Blueprint** com o `render.yaml`. Confira que o plano é **Free**.
 2. Preencha `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` e `SUPABASE_SECRET_KEY` no painel, usando o projeto separado do THEIBS. Aplique a migração e habilite Google Auth nesse projeto.
@@ -20,10 +20,14 @@ O runtime web usa apenas Node, sem instalar Electron/Chromium. O build verifica 
 - Repositório privado `devosyra-beep/theibs-omaha`, branch `main`, recebeu a versão 0.12.2 e a preparação Render no commit `5e963e4`.
 - **LIVE:** projeto Supabase `theibs-omaha`, organização THEIBS, referência `kevcwoeqgdwvfsvdpghe`. Tabelas `theibs_entitlements` e `theibs_payment_events` criadas com RLS ativa; consulta anônima via API retorna HTTP 401 para ambas. A leitura entre usuários autenticados ainda precisa de validação real.
 - **LIVE:** Google Cloud tem projeto `theibs` e cliente `THEIBS Web - Supabase` criado, com callback `https://kevcwoeqgdwvfsvdpghe.supabase.co/auth/v1/callback`. O usuário prefere preencher as credenciais diretamente nos painéis. Não salvar segredos neste repositório.
-- **PREPARADO:** formulário Render com Node, raiz `codigo-fonte`, plano Free, comandos `node --check server.js` / `node server.js`, `/healthz` e variáveis públicas. **Serviço ainda não publicado**; aguardando preenchimento das duas chaves Supabase pelo usuário, ativação do provedor Google e teste real de login.
+- **LIVE:** Render `theibs-omaha`, serviço `srv-das7of8jo6nc73aisi6g`, Node Free (0.1 CPU / 512 MB), raiz `codigo-fonte`, comandos `node --check server.js` / `node server.js`, `/healthz`, auto-deploy desativado. Chaves preenchidas pelo usuário nos campos protegidos; prefixos conferidos sem revelar valores. Runtime não instala Electron/Chromium.
+- **LIVE:** landing `/` → login `/app?login=1` → Google → laboratório `/app`. `devosyra@gmail.com` autenticado e reconhecido como acesso vitalício. Logout e reentrada verificados. `/healthz` retorna OK; `/api/access` sem sessão retorna 401; configuração pública exige login e contém somente a chave publicável. `ninjadevtester@gmail.com` está configurado para acesso vitalício, mas não teve login real testado nesta sessão.
+- **LIVE:** Supabase Google habilitado, Site URL e redirect exato `https://theibs-omaha.onrender.com/app`. Google ainda está em Testing, com branding comercial pendente; a requisição pede somente `email profile`. A [exceção oficial para login básico](https://support.google.com/cloud/answer/15549945) dispensa lista de testadores e expiração de sete dias nesses escopos; não foi solicitado acesso a Gmail, Drive ou outros dados.
+- **LIVE:** correção do flash no commit `c0fa305`: HTML inicia com laboratório `hidden inert`; a tela de acesso aparece antes de qualquer resposta da API. Sessão autorizada libera a interface. Cache PWA renovado.
+- **LIVE:** primeira pergunta ao treinador no Render excedeu o prazo local de 8 segundos. Commit `2553d18` amplia somente o prazo do treino no Render para 60 segundos, mantendo as 256 simulações por alternativa e rejeitando resultados incompletos. Deploy confirmado como Live. Nova mão PLO5 e pergunta ao treinador concluíram: leitura em inglês, Fold EV 0.00, Raise to 4 EV -0.60 e aviso de faixas sobrepostas. Essa é uma validação funcional, não um benchmark; o plano gratuito ainda é lento para esse cálculo. Evidência: `validacao/public-training-verified.png`.
 - **LIVE:** AbacatePay consultado na loja Osyra, em Sandbox; busca por THEIBS sem produto encontrado. A ativação de produção solicita validação documental. Não há checkout THEIBS validado nem cobrança habilitada no servidor.
 - **LIVE:** Security Advisor sem erros, com dois avisos na função de automação `public.rls_auto_enable()` por permissão de execução. Revisar/restringir essa função antes de liberar a versão comercial. A função não foi criada pela migração THEIBS.
-- **LOCAL:** 182 testes automatizados passaram; esse resultado não comprova OAuth/pagamento em produção nem desempenho do motor na nuvem.
+- **LOCAL:** 187 testes automatizados passaram após as proteções de chaves, tela inicial e prazo do worker (`validacao/hosting-final-tests.txt`). Não equivalem a homologação de pagamentos, isolamento entre dois usuários reais ou benchmark de 100 mil simulações/s na nuvem.
 
 ## Regra comercial
 
