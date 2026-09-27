@@ -81,6 +81,7 @@
 
     function show() {
       screen.hidden = false;
+      app.hidden = true;
       app.setAttribute('inert', '');
       document.body.style.overflow = 'hidden';
       const target = session ? (access?.allowed ? close : (subscribe.hidden ? refresh : subscribe)) : google;
@@ -89,6 +90,7 @@
     function hide() {
       if (config?.required && !access?.allowed) return;
       screen.hidden = true;
+      app.hidden = false;
       app.removeAttribute('inert');
       document.body.style.overflow = '';
       open.focus();
@@ -157,6 +159,8 @@
       const token = session?.access_token;
       saveSession(null); access = null;
       signout.disabled = true; headerSignout.disabled = true;
+      screen.hidden = false;
+      app.hidden = true;
       app.setAttribute('inert', '');
       status.textContent = 'Signing out…';
       try {
@@ -193,7 +197,7 @@
       }
     } catch (error) {
       config ||= { required: true, providers: {}, billingEnabled: false };
-      status.textContent = error.message; render(); show();
+      render(); status.textContent = error.message; show();
     }
   });
 })();

@@ -1,5 +1,7 @@
 ## Preparação de hospedagem — 26/09/2026
 
+Eliminado o flash do laboratório antes do login: HTML inicia com mesa oculta e inativa; somente acesso autorizado ou modo local confirmado revela a interface. Logout oculta imediatamente e falhas mantêm a tela bloqueada. Cache PWA renovado. Validação direcionada: 18 testes passaram, incluindo configuração lenta, sessão aguardando confirmação, acesso expirado, falha de rede e modo local.
+
 Proteção adicional contra configuração incorreta: chave pública exige prefixo `sb_publishable_` e chave do servidor exige `sb_secret_`. A configuração pública e a inicialização bloqueiam chaves trocadas, inclusive JWT legado de service role. Validação local direcionada: 14 testes de autenticação, hospedagem e cobrança passaram.
 
 Blueprint Render Free para URL provisória com landing e motor Node no mesmo serviço. Suporte à porta e URL fornecidas pela hospedagem, health check mínimo e bloqueio de inicialização hospedada sem Google/Supabase configurados. Cobrança exige chaves completas e armazenamento declarado persistente. Prévia gratuita tem histórico efêmero e não inclui habilitação de vendas. Validação local: 182 testes passaram; isso não valida login, pagamento ou desempenho em produção.
