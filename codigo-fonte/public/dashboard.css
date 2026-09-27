@@ -23,6 +23,12 @@ body:not([data-view=analyze]) .dashboard-tools>button:not(#open-engine) { displa
 .dashboard-dialog .ghost-button,.dashboard-dialog .primary-button { font-size:14px; }
 .dashboard-dialog .checkbox-label { display:flex; flex-direction:row; align-items:center; gap:10px; }
 .dashboard-dialog .form-actions { padding:0; }
+.settings-visuals { display:grid; gap:12px; padding:14px; border:1px solid var(--border); border-radius:10px; }
+.settings-visuals h3 { margin:0; font-size:16px; }
+.settings-visuals .variant-section,.settings-visuals .appearance-section { display:grid; gap:10px; }
+.settings-visuals #open-help { justify-self:start; }
+.dashboard-dialog .card-keyboard { border:1px solid var(--border); border-radius:10px; padding:10px 12px; }
+.rail-bottom { display:none!important; }
 .dashboard-dialog fieldset { border:1px solid var(--border); border-radius:10px; padding:14px; display:grid; gap:8px; }
 .dashboard-tools,.size-presets { display:flex; gap:8px; }
 .error-message,.negative { color:var(--bad); }
@@ -101,7 +107,7 @@ body:not([data-view=analyze]) .dashboard-tools>button:not(#open-engine) { displa
   body:is([data-view=analyze],[data-view=train]) .table-surface .table-center { padding:0; justify-content:flex-start; }
   body:is([data-view=analyze],[data-view=train]) .table-center>.eyebrow { display:none; }
   body:is([data-view=analyze],[data-view=train]) .table-center .pot-value { position:absolute; top:7px; left:18px; font-size:19px; margin:0; }
-  body:is([data-view=analyze],[data-view=train]) .table-center .pot-value::before { content:'Pote '; font:12px var(--font-sans); color:var(--muted); }
+  body:is([data-view=analyze],[data-view=train]) .table-center .pot-value::before { content:'Pot '; font:12px var(--font-sans); color:var(--muted); }
   body:is([data-view=analyze],[data-view=train]) .analysis-seats { display:none; }
   body:is([data-view=analyze],[data-view=train]) .table-surface .board-cards { margin-top:36px; gap:8px; }
   body:is([data-view=analyze],[data-view=train]) .table-surface .board-cards .playing-card { width:clamp(40px,8.7cqw,60px); height:clamp(52px,7.8vh,76px); }
@@ -416,7 +422,7 @@ button[data-felt=azul]::before { background:#3769af; } button[data-felt=preto]::
  body[data-view=analyze] .table-surface .hero-cards { --hand-card-width:min(80px,13cqw,9vh); gap:8px; }
  body[data-view=analyze] .table-surface .hero-cards:has(> :nth-child(6)) { --hand-card-width:min(78px,11cqw,9vh); }
  body[data-view=analyze] .table-surface .hero-seat { display:flex; font:600 12px/1.2 var(--font-sans); padding:3px 9px; }
- body[data-view=analyze] #table-stack::before { content:'Efetivo '; color:var(--muted); font-weight:400; }
+ body[data-view=analyze] #table-stack::before { content:'Effective '; color:var(--muted); font-weight:400; }
  body[data-view=analyze] .table-meta { top:auto; bottom:26px; right:8px; }
  body[data-view=analyze] .table-meta #table-card-count { display:none; }
  body[data-view=analyze] .table-column { grid-template-rows:42px minmax(190px,1fr) 50px 204px; }

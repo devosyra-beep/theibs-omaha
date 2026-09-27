@@ -32,7 +32,7 @@ test('coach snapshot preserves supplied position, range origin and uncertainty w
   assert.equal(snap.position, 'SB');
   assert.equal(snap.modeledOpponentCount, 2);
   assert.equal(snap.rangeModel, 'PROVIDED_HANDS_OR_RANGES');
-  assert.doesNotMatch(snap.uncertainty, /mãos aleatórias/i);
+  assert.doesNotMatch(snap.uncertainty, /random hands/i);
   assert.equal(snap.leadership.status, 'OVERLAPPING');
   assert.deepEqual(snap.ev.RAISE.conditionalEvEnvelope, [1.5, 2.4]);
   assert.equal(snap.villainCards, undefined);
@@ -45,20 +45,20 @@ test('snapshot does not trust aggregate completeness when one action has no fini
   const snap = snapshotForCoach(d, session());
   assert.equal(snap.comparisonComplete, false);
   assert.deepEqual(snap.missingLegalActions, ['RAISE']);
-  assert.match(fallbackAnswer(snap, 'Qual ação?'), /Comparação parcial/);
+  assert.match(fallbackAnswer(snap, 'Qual ação?'), /Partial comparison/);
 });
 
 test('coach distinguishes overlapping ranges, ties and separated conditional comparisons', () => {
   const overlapping = coachSummary(snapshotForCoach(fixture('OVERLAPPING'), session()), 'Qual o EV?');
-  assert.match(overlapping.headline, /Sem vantagem clara/);
-  assert.match(overlapping.details.join(' '), /faixas.*sobrepõem/);
-  assert.match(overlapping.details.join(' '), /inconclusiva/);
-  assert.match(overlapping.details.join(' '), /não é um erro comprovado/);
+  assert.match(overlapping.headline, /No clear advantage/);
+  assert.match(overlapping.details.join(' '), /ranges overlap/);
+  assert.match(overlapping.details.join(' '), /inconclusive/);
+  assert.match(overlapping.details.join(' '), /not a proven error/);
   const tied = coachSummary(snapshotForCoach(fixture('TIED'), session()), 'Qual ação?');
-  assert.match(tied.headline, /empataram/);
+  assert.match(tied.headline, /tied/);
   const separated = coachSummary(snapshotForCoach(fixture('SEPARATED'), session()), 'Qual ação?');
-  assert.match(separated.details.join(' '), /sob as mesmas hipóteses e tamanhos/);
-  assert.match(separated.details.join(' '), /não comprova uma estratégia ótima/);
+  assert.match(separated.details.join(' '), /under the supplied ranges, assumptions and sizes/);
+  assert.match(separated.details.join(' '), /does not prove an optimal strategy/);
 });
 
 test('learning questions explain memory and local calculation before discussing cards', async () => {
@@ -67,9 +67,9 @@ test('learning questions explain memory and local calculation before discussing 
   assert.equal(reply.provider, 'none');
   assert.equal(reply.explanationSource, 'LOCAL_COMPUTED_FACTS');
   assert.equal(reply.automaticTraining, false);
-  assert.match(reply.answer, /não treina pesos/);
-  assert.match(reply.answer, /Você treina suas decisões/);
-  assert.match(reply.answer, /não substitui os cálculos/);
+  assert.match(reply.answer, /does not train weights/);
+  assert.match(reply.answer, /You train your decisions/);
+  assert.match(reply.answer, /does not replace calculations/);
 });
 
 test('IA status is factual local text, and strategy is not mistaken for the word IA', async (t) => {
@@ -79,18 +79,18 @@ test('IA status is factual local text, and strategy is not mistaken for the word
   const reply = await answerDoubt(snap, 'Qual IA está ativa?', { THEIBS_LLM_PROVIDER: 'ollama', THEIBS_LLM_MODEL: 'configured-model' });
   assert.equal(fetches, 0);
   assert.equal(reply.provider, 'none');
-  assert.match(reply.summary.details.join(' '), /configurado no Ollama/);
-  assert.match(reply.summary.details.join(' '), /não confirma sua disponibilidade/);
-  assert.doesNotMatch(fallbackAnswer(snap, 'Qual é a estratégia?'), /histórico guarda decisões/);
+  assert.match(reply.summary.details.join(' '), /configured in Ollama/);
+  assert.match(reply.summary.details.join(' '), /does not confirm availability/);
+  assert.doesNotMatch(fallbackAnswer(snap, 'Qual é a estratégia?'), /history supports review/);
 });
 
 test('table explanation identifies only recorded positions and treats card backs as unknown hands', () => {
   const snap = snapshotForCoach(fixture(), session());
   const reply = coachSummary(snap, 'Quantos adversários são essas cartas fechadas?');
-  assert.match(reply.points.join(' '), /considera 2 adversários/);
-  assert.match(reply.points.join(' '), /mãos desconhecidas/);
-  assert.match(reply.details.join(' '), /posição do herói é SB/);
-  assert.match(reply.details.join(' '), /posições dos adversários.*quando fornecidas/);
+  assert.match(reply.points.join(' '), /includes 2 opponents/);
+  assert.match(reply.points.join(' '), /unknown hands/);
+  assert.match(reply.details.join(' '), /hero position is SB/);
+  assert.match(reply.details.join(' '), /opponent positions.*when provided/);
 });
 
 test('complete but uncertain comparisons get no EV-loss grade', () => {

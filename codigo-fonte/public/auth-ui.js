@@ -104,15 +104,15 @@
       headerSignout.hidden = !loggedIn;
       refresh.hidden = !loggedIn || access?.allowed;
       subscribe.hidden = !loggedIn || !config.billingEnabled || ['LIFETIME', 'ACTIVE'].includes(access?.state);
-      heading.textContent = loggedIn ? 'Conta e acesso' : 'Entrar com sua conta';
-      if (!config.required) status.textContent = 'Modo local: seus dados ficam neste dispositivo.';
-      else if (!loggedIn && !config.providers.google) status.textContent = 'Login Google ainda não configurado.';
-      else if (!loggedIn) status.textContent = 'Entre com Google para continuar.';
-      else if (access?.state === 'TRIAL') status.textContent = `${access.user?.email || ''} · ${access.daysRemaining} dia(s) grátis restante(s).`;
-      else if (access?.state === 'LIFETIME') status.textContent = `${access.user?.email || ''} · acesso vitalício.`;
-      else if (access?.state === 'ACTIVE') status.textContent = `${access.user?.email || ''} · acesso permanente liberado.`;
-      else status.textContent = access?.reason || 'Confirme seu acesso para continuar.';
-      open.title = access?.state === 'TRIAL' ? `Teste grátis: ${access.daysRemaining} dia(s)` : 'Conta e acesso';
+      heading.textContent = loggedIn ? 'Account & access' : 'Sign in to your account';
+      if (!config.required) status.textContent = 'Local mode: your data stays on this device.';
+      else if (!loggedIn && !config.providers.google) status.textContent = 'Google sign-in is not configured yet.';
+      else if (!loggedIn) status.textContent = 'Sign in with Google to continue.';
+      else if (access?.state === 'TRIAL') status.textContent = `${access.user?.email || ''} · ${access.daysRemaining} free day(s) remaining.`;
+      else if (access?.state === 'LIFETIME') status.textContent = `${access.user?.email || ''} · lifetime access.`;
+      else if (access?.state === 'ACTIVE') status.textContent = `${access.user?.email || ''} · permanent access enabled.`;
+      else status.textContent = access?.reason || 'Confirm your access to continue.';
+      open.title = access?.state === 'TRIAL' ? `Free trial: ${access.daysRemaining} day(s)` : 'Account & access';
     }
     async function readAccess() {
       await refreshSession(config);
@@ -120,7 +120,7 @@
       const response = await nativeFetch('/api/access', { headers: { Authorization: `Bearer ${session.access_token}` } });
       if (response.status === 401) { saveSession(null); return null; }
       const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.reason || 'Acesso indisponível.');
+      if (!response.ok) throw new Error(data.reason || 'Access unavailable.');
       return data.access;
     }
     async function checkAndRender() {
@@ -134,17 +134,17 @@
     close.addEventListener('click', hide);
     google.addEventListener('click', () => location.assign(providerUrl('google')));
     refresh.addEventListener('click', async () => {
-      refresh.disabled = true; status.textContent = 'Confirmando pagamento…';
+      refresh.disabled = true; status.textContent = 'Confirming payment…';
       try { await checkAndRender(); } catch (error) { status.textContent = error.message; }
       finally { refresh.disabled = false; }
     });
     subscribe.addEventListener('click', async () => {
-      subscribe.disabled = true; status.textContent = 'Abrindo pagamento seguro…';
+      subscribe.disabled = true; status.textContent = 'Opening secure checkout…';
       try {
         const response = await nativeFetch('/api/billing/checkout', { method: 'POST', headers: {
           Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' }, body: '{}' });
         const data = await response.json().catch(() => ({}));
-        if (!response.ok || !data.checkout?.url) throw new Error(data.reason || 'Pagamento indisponível.');
+        if (!response.ok || !data.checkout?.url) throw new Error(data.reason || 'Payment unavailable.');
         location.assign(data.checkout.url);
       } catch (error) { status.textContent = error.message; subscribe.disabled = false; }
     });
@@ -160,7 +160,7 @@
     try {
       const response = await nativeFetch('/api/public-config');
       const payload = await response.json();
-      if (!response.ok || !payload.auth) throw new Error(payload.reason || 'Configuração de acesso indisponível.');
+      if (!response.ok || !payload.auth) throw new Error(payload.reason || 'Access configuration unavailable.');
       config = payload.auth;
       if (!config.required) {
         access = { allowed: true, state: 'LOCAL' }; render();
@@ -173,7 +173,7 @@
       await checkAndRender();
       if (new URLSearchParams(location.search).get('login') === '1' && access?.allowed) show();
       if (new URLSearchParams(location.search).get('billing') === 'success' && !access?.allowed) {
-        status.textContent = 'Pagamento concluído. Clique em “Atualizar acesso” após a confirmação.';
+        status.textContent = 'Payment complete. Click “Refresh access” after confirmation.';
       }
     } catch (error) {
       config ||= { required: true, providers: {}, billingEnabled: false };

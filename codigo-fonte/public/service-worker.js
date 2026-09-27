@@ -1,8 +1,8 @@
 'use strict';
 
-const CACHE = 'theibs-shell-v0.12.0';
+const CACHE = 'theibs-shell-v0.12.1';
 const SHELL = [
-  '/', '/landing.html', '/landing.css', '/landing-assets/theibs-logo.png',
+  '/', '/landing.html', '/landing.css', '/landing-assets/theibs-logo.png', '/landing-assets/osyra-studio.svg',
   '/landing-assets/theibs-app.png', '/app', '/styles.css', '/dashboard.css', '/multiway.css', '/pwa.js', '/auth-ui.js',
   '/card-model.js', '/essence-ui.js', '/card-keyboard.js', '/dashboard.js',
   '/focus-ui.js', '/multiway-ui.js', '/app.js', '/assistant-ui.js',

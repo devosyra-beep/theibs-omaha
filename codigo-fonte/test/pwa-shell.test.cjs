@@ -20,23 +20,25 @@ test('landing, PWA shell, Google login and icons are served with correct media t
   t.after(() => new Promise(resolve => server.close(resolve)));
   const origin = `http://127.0.0.1:${server.address().port}`;
 
-  const [landing, page, manifestResponse, worker, svg, png, landingImage] = await Promise.all([
+  const [landing, page, manifestResponse, worker, svg, png, landingImage, dashboard, multiway] = await Promise.all([
     fetch(origin + '/').then(response => response.text()),
     fetch(origin + '/app').then(response => response.text()),
     fetch(origin + '/manifest.webmanifest'),
     fetch(origin + '/service-worker.js'),
     fetch(origin + '/icons/theibs.svg'),
     fetch(origin + '/icons/theibs-192.png'),
-    fetch(origin + '/landing-assets/theibs-app.png')
+    fetch(origin + '/landing-assets/theibs-app.png'),
+    fetch(origin + '/dashboard.js').then(response => response.text()),
+    fetch(origin + '/multiway-ui.js').then(response => response.text())
   ]);
   assert.match(landing, /Train poker like a/);
   assert.match(landing, /href="\/app\?login=1"/);
   assert.match(landing, /landing-assets\/theibs-app\.png/);
   assert.match(page, /id="login-screen"/);
-  assert.match(page, /Continuar com Google/);
-  assert.match(page, /id="header-signout"[^>]*>Sair</);
-  assert.doesNotMatch(page, /Continuar com Apple/);
-  assert.doesNotMatch(page, /Continuar neste dispositivo/);
+  assert.match(page, /Continue with Google/);
+  assert.match(page, /id="header-signout"[^>]*>Sign out</);
+  assert.doesNotMatch(page, /Continue with Apple/);
+  assert.doesNotMatch(page, /Continue on this device/);
   assert.match(page, /rel="manifest"/);
   assert.equal(manifestResponse.headers.get('content-type'), 'application/manifest+json; charset=utf-8');
   const manifest = await manifestResponse.json();
@@ -47,4 +49,10 @@ test('landing, PWA shell, Google login and icons are served with correct media t
   assert.equal(svg.headers.get('content-type'), 'image/svg+xml');
   assert.equal(png.headers.get('content-type'), 'image/png');
   assert.equal(landingImage.headers.get('content-type'), 'image/png');
+  assert.match(dashboard, /data-close-dialog commandfor="\$\{id\}" command="close"/);
+  assert.match(dashboard, /data-dialog-target="#settings-dialog" commandfor="settings-dialog" command="show-modal"/);
+  assert.doesNotMatch(dashboard, /openCardsSettings|addEventListener\('focusin'/);
+  assert.match(multiway, /id: 'leave', key: 'm', code: 'KeyM'/);
+  assert.match(multiway, /id: 'call', key: ',', code: 'Comma'/);
+  assert.match(multiway, /id: 'aggressive', key: ';', code: 'Semicolon'/);
 });

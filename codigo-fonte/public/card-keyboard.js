@@ -28,7 +28,7 @@
     const focusedSlot = focus?.dataset?.slot, focusedCard = focus?.dataset?.card;
     const slot = (index) => window.EssenceUI.cardMarkup(state.slots[index], {
       slot: index, selected: state.selected === index,
-      label: index < state.count ? `Carta privada ${index + 1}` : `Carta comunitária ${index - state.count + 1}`,
+      label: index < state.count ? `Hole card ${index + 1}` : `Community card ${index - state.count + 1}`,
       emptyLabel: index < state.count ? String(index + 1) : ['F', 'F', 'F', 'T', 'R'][index - state.count]
     });
     heroSlots.innerHTML = Array.from({ length: state.count }, (_, i) => slot(i)).join('');
@@ -45,16 +45,16 @@
     $('#analysis-variant').textContent = `PLO${state.count} HIGH`;
     $('#variant-warning').className='micro variant-status';
     $('#variant-warning').textContent=`PLO${state.count} ativo · regras e equity habilitadas.`;
-    $('#hero-help').textContent = `${state.count} cartas · C = copas, P = paus.`;
+    $('#hero-help').textContent = `${state.count} cards · C = hearts, P = clubs.`;
     const cards = state.cards();
-    $('#table-card-count').textContent = `${cards.hero.length}/${state.count} privadas · ${cards.board.length}/5 board`;
-    const target = state.selected < state.count ? `sua carta ${state.selected + 1}` : `board ${state.selected - state.count + 1}`;
+    $('#table-card-count').textContent = `${cards.hero.length}/${state.count} hole · ${cards.board.length}/5 board`;
+    const target = state.selected < state.count ? `your card ${state.selected + 1}` : `board ${state.selected - state.count + 1}`;
     const selectedCard = state.slots[state.selected];
     const selectedSuit = selectedCard && CARD_SUITS.find((suit) => suit.code === selectedCard[1]);
     $('#selected-card-label').textContent = selectedCard
-      ? `Selecionada: ${selectedCard[0] === 'T' ? '10' : selectedCard[0]} de ${selectedSuit.name.toLowerCase()} ${selectedSuit.symbol} · ${target}`
-      : `Próxima carta: ${target} · digite valor + naipe`;
-    if (!message) announce(manualInvalid ? 'Corrija a entrada de texto antes de continuar.' : pendingTen ? '10: digite 0, depois o naipe.' : pendingRank ? `${pendingRank === 'T' ? '10' : pendingRank} → escolha E, C, O ou P.` : `Selecionado: ${target}.`, manualInvalid);
+      ? `Selected: ${selectedCard[0] === 'T' ? '10' : selectedCard[0]} of ${selectedSuit.name.toLowerCase()} ${selectedSuit.symbol} · ${target}`
+      : `Next card: ${target} · type rank + suit`;
+    if (!message) announce(manualInvalid ? 'Fix the text entry before continuing.' : pendingTen ? '10: type 0, then the suit.' : pendingRank ? `${pendingRank === 'T' ? '10' : pendingRank} → choose E, C, O or P.` : `Selected: ${target}.`, manualInvalid);
     if (focusedSlot !== undefined) document.querySelector(`[data-slot="${state.selected}"]`)?.focus({ preventScroll: true });
     else if (focusedCard !== undefined) document.querySelector(`[data-card="${focusedCard}"]:not(:disabled)`)?.focus({ preventScroll: true });
   }
@@ -78,11 +78,11 @@
   }
   function select(index) { if(document.body.dataset.multiway==='on')index=Math.min(index,state.count-1);if (state.select(index)) { clearPending(); render(); } }
   function assign(card) {
-    if (manualInvalid) { announce('Corrija as cartas no campo de texto antes de usar o baralho.', true); return; }
+    if (manualInvalid) { announce('Fix the cards in the text field before using the deck.', true); return; }
     if (state.assign(card)) writeInputs('keyboard'); else announce(state.error, true);
   }
   function paste(text) {
-    if (manualInvalid) { announce('Corrija a entrada de texto antes de colar.', true); return false; }
+    if (manualInvalid) { announce('Fix the text entry before pasting.', true); return false; }
     if (!state.paste(text)) { announce(state.error, true); return false; }
     writeInputs('paste'); return true;
   }
@@ -91,16 +91,16 @@
     if (state.undo()) writeInputs('undo');
   }
   async function copy() {
-    try { if (manualInvalid) throw new Error('Corrija o texto antes de copiar.'); const text = state.compactText(); await navigator.clipboard.writeText(text); announce('Sequência copiada em português (E/C/O/P).'); }
-    catch (error) { announce(error.message || 'Não foi possível copiar. Use os campos de texto.', true); }
+    try { if (manualInvalid) throw new Error('Fix the text before copying.'); const text = state.compactText(); await navigator.clipboard.writeText(text); announce('E/C/O/P sequence copied.'); }
+    catch (error) { announce(error.message || 'Could not copy. Use the text fields.', true); }
   }
   function exportDraft() {
-    if (manualInvalid) { announce('Corrija o texto antes de exportar. O rascunho inválido permanece salvo localmente.', true); return; }
+    if (manualInvalid) { announce('Fix the text before exporting. The invalid draft remains saved locally.', true); return; }
     const blob = new Blob([JSON.stringify(state.exportDraft(), null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob), anchor = document.createElement('a');
     anchor.href = url; anchor.download = `THEIBS-PLO${state.count}-entrada.json`; anchor.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
-    announce('JSON exportado. Contém a entrada de cartas, não um histórico de decisões.');
+    announce('JSON exported. It contains card input, not decision history.');
   }
   for (const root of [heroSlots, boardSlots]) root.addEventListener('click', (event) => {
     const target = event.target.closest('[data-slot]'); if (target) select(Number(target.dataset.slot));
@@ -117,9 +117,9 @@
   }
   $('#variant-select').addEventListener('change', (event) => {
     const count = Number(event.target.value);
-    if (manualInvalid && !window.confirm('Há texto inválido ainda não aplicado. Mudar a variante descartará esse texto e manterá as cartas válidas anteriores. Continuar?')) { event.target.value = String(state.count); return; }
+    if (manualInvalid && !window.confirm('There is invalid text that has not been applied. Changing the variant will discard it and keep the previous valid cards. Continue?')) { event.target.value = String(state.count); return; }
     if (!state.setCount(count)) {
-      if (state.error.includes('redução') && window.confirm('A mudança removerá cartas privadas excedentes. O board será preservado e você poderá desfazer. Continuar?')) state.setCount(count, true);
+      if (state.error.includes('reduction') && window.confirm('This change will remove excess hole cards. The board will be preserved and you can undo. Continue?')) state.setCount(count, true);
       else { event.target.value = String(state.count); announce(state.error, true); return; }
     }
     writeInputs('variant');
@@ -164,12 +164,12 @@
     restoreManualDraft(draft) {
       if (!draft || draft.invalid !== true || typeof draft.hero !== 'string' || typeof draft.board !== 'string') return;
       heroInput.value = draft.hero; boardInput.value = draft.board; manualInvalid = true; clearPending();
-      announce('Rascunho de texto restaurado. Corrija as cartas inválidas antes de analisar.', true); render(); changed('manual-restore');
+      announce('Text draft restored. Fix invalid cards before analyzing.', true); render(); changed('manual-restore');
     },
     reset() { state.reset(); writeInputs('reset'); },
     restore(snapshot) { if (!state.restore(snapshot)) return false; state.undoStack = []; writeInputs('restore'); return true; },
     cardsForSubmit() { return manualInvalid || !state.validation().valid ? null : state.cards(); },
-    canonicalForSubmit() { if (manualInvalid) throw new Error('Corrija as cartas no campo de texto.'); return state.canonicalCards(); },
+    canonicalForSubmit() { if (manualInvalid) throw new Error('Fix the cards in the text field.'); return state.canonicalCards(); },
     isManualInvalid() { return manualInvalid; },
     error() { return manualInvalid ? status.textContent : state.validation().reason; },
     announce

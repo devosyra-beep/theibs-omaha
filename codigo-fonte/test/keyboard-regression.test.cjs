@@ -36,8 +36,8 @@ test('mixed aliases work in compact text, separators and suit symbols', () => {
 });
 
 test('aliases cannot bypass duplicate checks and failed paste is atomic', () => {
-  assert.throws(() => parsePortugueseCards('DE TE'), /duplicada/);
-  assert.throws(() => parsePortugueseCards('DP 10P'), /duplicada/);
+  assert.throws(() => parsePortugueseCards('DE TE'), /Duplicate card/);
+  assert.throws(() => parsePortugueseCards('DP 10P'), /Duplicate card/);
   const state = new CardKeyboardState();
   state.assign('DE');
   const before = state.snapshot();

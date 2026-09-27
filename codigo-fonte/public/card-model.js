@@ -7,10 +7,10 @@
   'use strict';
   const CARD_RANKS = 'AKQJT98765432';
   const CARD_SUITS = Object.freeze([
-    { code: 'E', name: 'Espadas', symbol: '♠', canonical: 's' },
-    { code: 'C', name: 'Copas', symbol: '♥', canonical: 'h' },
-    { code: 'O', name: 'Ouros', symbol: '♦', canonical: 'd' },
-    { code: 'P', name: 'Paus', symbol: '♣', canonical: 'c' }
+    { code: 'E', name: 'Spades', symbol: '♠', canonical: 's' },
+    { code: 'C', name: 'Hearts', symbol: '♥', canonical: 'h' },
+    { code: 'O', name: 'Diamonds', symbol: '♦', canonical: 'd' },
+    { code: 'P', name: 'Clubs', symbol: '♣', canonical: 'c' }
   ]);
   const PT_TO_ENGINE = { E: 's', C: 'h', O: 'd', P: 'c' };
   const ENGINE_TO_PT = { s: 'E', h: 'C', d: 'O', c: 'P' };
@@ -32,7 +32,7 @@
   }
   function portugueseCard(token) {
     const text = String(token || '').trim().replace(/^10|^D/i, 'T').replace(/[♠♥♦♣]/g, (s) => SYMBOL_TO_PT[s]).toUpperCase();
-    if (!/^[2-9TJQKA][ECOP]$/.test(text)) throw new Error(`Carta inválida: ${token}. Use valor + E, C, O ou P.`);
+    if (!/^[2-9TJQKA][ECOP]$/.test(text)) throw new Error(`Invalid card: ${token}. Use rank + E, C, O or P.`);
     return text;
   }
   function parsePortugueseCards(text) {
@@ -44,7 +44,7 @@
       result.push(portugueseCard(compact.slice(i, i + length)));
       i += length;
     }
-    if (new Set(result).size !== result.length) throw new Error('Carta duplicada no texto informado.');
+    if (new Set(result).size !== result.length) throw new Error('Duplicate card in the entered text.');
     return result;
   }
   function toCanonical(token) {
@@ -53,7 +53,7 @@
   }
   function fromCanonical(token) {
     const card = String(token || '').replace(/^10/, 'T');
-    if (!/^[2-9TJQKA][shdc]$/i.test(card)) throw new Error(`Carta canônica inválida: ${token}.`);
+    if (!/^[2-9TJQKA][shdc]$/i.test(card)) throw new Error(`Invalid canonical card: ${token}.`);
     return card[0].toUpperCase() + ENGINE_TO_PT[card[1].toLowerCase()];
   }
   function validCount(count) { return Number.isInteger(count) && [4, 5, 6].includes(count); }
@@ -63,7 +63,7 @@
 
   class CardKeyboardState {
     constructor(count = 5) {
-      if (!validCount(count)) throw new Error('Omaha aceita 4, 5 ou 6 cartas privadas.');
+      if (!validCount(count)) throw new Error('Omaha accepts 4, 5 or 6 hole cards.');
       this.count = count;
       this.slots = Array(count + 5).fill(null);
       this.selected = 0;
@@ -77,17 +77,17 @@
     }
     fail(message) { this.error = message; return false; }
     restore(snapshot) {
-      if (!snapshot || !validCount(snapshot.count) || !Array.isArray(snapshot.slots) || snapshot.slots.length !== snapshot.count + 5) return this.fail('Rascunho de cartas inválido.');
+      if (!snapshot || !validCount(snapshot.count) || !Array.isArray(snapshot.slots) || snapshot.slots.length !== snapshot.count + 5) return this.fail('Invalid card draft.');
       const cards = snapshot.slots.map((c) => c === null ? null : normalizedCompat(c));
-      if (cards.some((c, i) => snapshot.slots[i] !== null && !c) || new Set(cards.filter(Boolean)).size !== cards.filter(Boolean).length) return this.fail('Rascunho com cartas inválidas ou duplicadas.');
-      if (!Number.isInteger(snapshot.selected) || snapshot.selected < 0 || snapshot.selected >= cards.length) return this.fail('Posição inválida no rascunho.');
+      if (cards.some((c, i) => snapshot.slots[i] !== null && !c) || new Set(cards.filter(Boolean)).size !== cards.filter(Boolean).length) return this.fail('Draft contains invalid or duplicate cards.');
+      if (!Number.isInteger(snapshot.selected) || snapshot.selected < 0 || snapshot.selected >= cards.length) return this.fail('Invalid position in draft.');
       this.count = snapshot.count; this.slots = cards; this.selected = snapshot.selected; this.error = '';
       return true;
     }
     setCards(hero, board, remember = false) {
-      if (!Array.isArray(hero) || !Array.isArray(board) || hero.length > this.count || board.length > 5) return this.fail(`Use até ${this.count} privadas e 5 comunitárias.`);
+      if (!Array.isArray(hero) || !Array.isArray(board) || hero.length > this.count || board.length > 5) return this.fail(`Use up to ${this.count} hole cards and 5 community cards.`);
       const cards = [...hero, ...board].map(normalizedCompat);
-      if (cards.some((c) => !c) || new Set(cards).size !== cards.length) return this.fail('Carta inválida ou duplicada entre mão e board.');
+      if (cards.some((c) => !c) || new Set(cards).size !== cards.length) return this.fail('Invalid or duplicate card between hand and board.');
       if (remember) this.remember();
       this.slots = [...cards.slice(0, hero.length), ...Array(this.count - hero.length).fill(null), ...cards.slice(hero.length), ...Array(5 - board.length).fill(null)];
       this.selected = this.slots.indexOf(null);
@@ -100,9 +100,9 @@
       this.selected = index; this.error = ''; return true;
     }
     setCount(count, allowDiscard = false) {
-      if (!validCount(count)) return this.fail('Quantidade de cartas inválida.');
+      if (!validCount(count)) return this.fail('Invalid card count.');
       if (count === this.count) return true;
-      if (count < this.count && this.slots.slice(count, this.count).some(Boolean) && !allowDiscard) return this.fail('A redução removeria cartas privadas. Confirme antes de continuar.');
+      if (count < this.count && this.slots.slice(count, this.count).some(Boolean) && !allowDiscard) return this.fail('The reduction would remove hole cards. Confirm before continuing.');
       this.remember();
       const hero = this.slots.slice(0, Math.min(count, this.count));
       const board = this.slots.slice(this.count);
@@ -113,8 +113,8 @@
     }
     assign(token, remember = true) {
       const card = normalizedCompat(token);
-      if (!card) return this.fail('Carta inválida. Use valor e naipe em português.');
-      if (this.slots.some((c, i) => c === card && i !== this.selected)) return this.fail(`${card} já está em uso em outra posição.`);
+      if (!card) return this.fail('Invalid card. Use rank and E/C/O/P suit notation.');
+      if (this.slots.some((c, i) => c === card && i !== this.selected)) return this.fail(`${card} is already used in another position.`);
       if (this.slots[this.selected] !== card && remember) this.remember();
       this.slots[this.selected] = card;
       const next = this.slots.findIndex((c, i) => c === null && i > this.selected);
@@ -127,12 +127,12 @@
     paste(text) {
       let cards;
       try { cards = parsePortugueseCards(text); } catch (error) { return this.fail(error.message); }
-      if (!cards.length) return this.fail('Nenhuma carta para colar.');
+      if (!cards.length) return this.fail('No cards to paste.');
       const available = this.slots.filter((c) => !c).length + (this.slots[this.selected] ? 1 : 0);
-      if (cards.length > available) return this.fail('O texto tem mais cartas do que as posições disponíveis. Nada foi alterado.');
+      if (cards.length > available) return this.fail('The text has more cards than the available slots. Nothing changed.');
       const candidate = new CardKeyboardState(this.count);
       candidate.restore(this.snapshot());
-      for (const card of cards) if (!candidate.assign(card, false)) return this.fail(candidate.error + ' Nada foi alterado.');
+      for (const card of cards) if (!candidate.assign(card, false)) return this.fail(candidate.error + ' Nothing changed.');
       this.remember(); this.restore(candidate.snapshot()); return true;
     }
     removeSelected() {
@@ -150,10 +150,10 @@
     cards() { return { hero: this.slots.slice(0, this.count).filter(Boolean), board: this.slots.slice(this.count).filter(Boolean) }; }
     validation() {
       const hero = this.slots.slice(0, this.count), board = this.slots.slice(this.count);
-      if (hero.some((c) => !c)) return { valid: false, reason: `Complete as ${this.count} cartas privadas.` };
+      if (hero.some((c) => !c)) return { valid: false, reason: `Complete all ${this.count} hole cards.` };
       const n = board.filter(Boolean).length;
-      if (board.slice(0, n).some((c) => !c) || board.slice(n).some(Boolean)) return { valid: false, reason: 'Há uma lacuna no board. Corrija a posição vazia sem deslocar as demais cartas.' };
-      if (![0, 3, 4, 5].includes(n)) return { valid: false, reason: 'Complete o flop: o board precisa ter 0, 3, 4 ou 5 cartas.' };
+      if (board.slice(0, n).some((c) => !c) || board.slice(n).some(Boolean)) return { valid: false, reason: 'There is a gap on the board. Fill the empty position without shifting the other cards.' };
+      if (![0, 3, 4, 5].includes(n)) return { valid: false, reason: 'Complete the flop: the board must have 0, 3, 4 or 5 cards.' };
       return { valid: true, street: ({ 0: 'PREFLOP', 3: 'FLOP', 4: 'TURN', 5: 'RIVER' })[n] };
     }
     canonicalCards() {

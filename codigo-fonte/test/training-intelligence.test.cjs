@@ -17,7 +17,7 @@ test('a single suited ace blocks a nut flush but cannot form a flush',()=>{
 test('flush draw counts unseen cards once and labels them as improvement, not clean outs',()=>{
  const x=describeHand(['As','Ks','2c','3d'],['Qs','8s','4h']);
  assert.equal(x.nextCard.flushCards.length,9);assert.equal(x.nextCard.unseenCards,45);
- assert.equal(x.nextCard.drawCards.length,new Set(x.nextCard.drawCards).size);assert.ok(x.limitations[0].includes('não são outs limpos'));
+ assert.equal(x.nextCard.drawCards.length,new Set(x.nextCard.drawCards).size);assert.ok(x.limitations[0].includes('not clean outs'));
 });
 test('public training never reveals the opponent hand before showdown',()=>{
  const s=createSession({seed:123});assert.equal(publicSession(s).opponentCards,undefined);
@@ -37,8 +37,8 @@ test('coach specifically answers blockers and draws; check EV shares analysis pr
  const s=createSession({targetStreet:'FLOP',seed:42});const result=decide(trainingInput(s));
  assert.equal(result.status,'OK');assert.equal(result.ev.actions.CHECK.status,'MODELED');
  const snap=snapshotForCoach(result,s),block=await answerDoubt(snap,'Quais blockers tenho?',{}),draw=await answerDoubt(snap,'Quais outs tenho?',{});
- assert.match(block.answer,/bloqueador|retira esse ás/);assert.match(draw.answer,/próxima carta/);assert.notEqual(block.answer,draw.answer);assert.equal(block.provider,'none');
- assert.match((await answerDoubt(snap,'Qual seu filme favorito?',{})).answer,/não tenho uma análise específica/);
+ assert.match(block.answer,/blocker|removes that ace/);assert.match(draw.answer,/next card/);assert.notEqual(block.answer,draw.answer);assert.equal(block.provider,'none');
+ assert.match((await answerDoubt(snap,'Qual seu filme favorito?',{})).answer,/do not have a specific analysis/);
 });
 test('deterministic policies preserve chips, action order, and terminate all variants',()=>{
  const seen=new Set();let raises=0;
@@ -65,5 +65,5 @@ test('opponent tendencies do not mix policy generations',()=>{
 test('unconfigured Llama falls back to computed facts without an external endpoint',async()=>{
  const s=createSession({seed:13});const d=decide(trainingInput(s));
  const answer=await answerDoubt(snapshotForCoach(d,s),'Qual mão tenho?',{THEIBS_LLM_PROVIDER:'ollama',THEIBS_LLM_MODEL:'example',THEIBS_LLM_URL:'https://invalid.example'});
- assert.equal(answer.provider,'none');assert.equal(answer.fallback,true);assert.match(answer.answer,/Pré-flop/);
+ assert.equal(answer.provider,'none');assert.equal(answer.fallback,true);assert.match(answer.answer,/Preflop/);
 });

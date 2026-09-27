@@ -1,9 +1,9 @@
 {
   "id": "/",
-  "name": "THEIBS · Laboratório Omaha",
+  "name": "THEIBS · Omaha Lab",
   "short_name": "THEIBS",
-  "description": "Análise e treino local de Omaha High PLO4, PLO5 e PLO6.",
-  "lang": "pt-BR",
+  "description": "Omaha High PLO4, PLO5 and PLO6 analysis and training.",
+  "lang": "en",
   "start_url": "/app",
   "scope": "/",
   "display": "standalone",

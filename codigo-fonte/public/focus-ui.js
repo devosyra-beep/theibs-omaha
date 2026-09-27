@@ -18,51 +18,46 @@
   const svg=name=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${paths[name]}</svg>`;
   function iconButton(button,icon,label){button.classList.add('icon-button');button.innerHTML=svg(icon);button.title=label;button.setAttribute('aria-label',label);}
 
-  for(const [id,icon,label]of [['open-settings','settings','Configurar mesa'],['open-analysis','calculation','Ver cálculo'],['open-engine','assistant','Assistente'],['new-hand','plus','Nova mão']])iconButton($('#'+id),icon,label);
-  iconButton($('#clear'),'trash','Limpar cartas');
+  for(const [id,icon,label]of [['open-settings','settings','Configure table'],['open-analysis','calculation','View calculation'],['open-engine','assistant','Assistant'],['new-hand','plus','New hand']])iconButton($('#'+id),icon,label);
+  iconButton($('#clear'),'trash','Clear cards');
   $('#open-card-picker').insertAdjacentHTML('afterbegin',svg('cards'));
 
   const rail=$('.primary-rail');rail.id='primary-rail';
   const header=document.createElement('div');header.className='rail-header';
   const toggle=document.createElement('button');toggle.id='sidebar-toggle';toggle.type='button';toggle.className='ghost-button';toggle.setAttribute('aria-controls','primary-rail');
   header.append($('.brand'),toggle);rail.prepend(header);
-  for(const [view,icon,label]of [['analyze','cards','Analisar'],['train','target','Treinar'],['history','history','Histórico']]){
+  for(const [view,icon,label]of [['analyze','cards','Analyze'],['train','target','Train'],['history','history','History']]){
     const button=$(`.nav-tab[data-view="${view}"]`);button.innerHTML=svg(icon)+`<span class="nav-label">${label}</span>`;button.title=label;button.setAttribute('aria-label',label);
   }
-  const compactVariant=document.createElement('button');compactVariant.id='compact-variant';compactVariant.type='button';compactVariant.className='icon-button';compactVariant.innerHTML=svg('cards')+'<span class="variant-count"></span>';
-  $('.main-nav').after(compactVariant);
   function restore(collapsed=true){
     document.body.dataset.sidebar=collapsed===false?'expanded':'collapsed';
-    iconButton(toggle,collapsed===false?'panel':'expand',collapsed===false?'Recolher menu':'Expandir menu');toggle.setAttribute('aria-expanded',String(collapsed===false));
-    const count=$('#variant-select').value;compactVariant.querySelector('span').textContent=count;compactVariant.title=`PLO${count} · alterar variante`;compactVariant.setAttribute('aria-label',compactVariant.title);
+    iconButton(toggle,collapsed===false?'panel':'expand',collapsed===false?'Collapse menu':'Expand menu');toggle.setAttribute('aria-expanded',String(collapsed===false));
   }
   function change(collapsed){restore(collapsed);document.dispatchEvent(new CustomEvent('theibs:layout-preference'));}
   toggle.onclick=()=>change(document.body.dataset.sidebar!=='collapsed');
-  compactVariant.onclick=()=>{change(false);$('#variant-select').focus();};
-  $('#variant-select').addEventListener('change',()=>restore(document.body.dataset.sidebar==='collapsed'));
-  const help=$('#open-help');help.innerHTML=svg('help')+'<span class="nav-label">Teclas e ajuda</span>';help.title='Teclas e ajuda · F1';help.setAttribute('aria-label',help.title);
+  const help=$('#open-help');help.innerHTML=svg('help')+'<span class="nav-label">Keyboard & help</span>';help.title='Keyboard & help · F1';help.setAttribute('aria-label',help.title);
   const localNote=$('.rail-bottom>.micro:not(#save-status)');$('#help-dialog').append(localNote);
   const saveIndicator=document.createElement('span');saveIndicator.className='save-indicator';saveIndicator.setAttribute('role','img');$('#save-status').before(saveIndicator);
-  const reflectSave=()=>{const text=$('#save-status').textContent;saveIndicator.title=text;saveIndicator.setAttribute('aria-label',text);saveIndicator.dataset.state=/não salvo|indisponível/.test(text)?'error':/pendente|Salvando/.test(text)?'pending':'saved';};
+  const reflectSave=()=>{const text=$('#save-status').textContent;saveIndicator.title=text;saveIndicator.setAttribute('aria-label',text);saveIndicator.dataset.state=/unsaved|unavailable/.test(text)?'error':/pending|Saving/.test(text)?'pending':'saved';};
   new MutationObserver(reflectSave).observe($('#save-status'),{childList:true,characterData:true,subtree:true});reflectSave();
 
   // The main canvas holds metrics; explanations remain in the existing dialog.
   const calculation=$('#analysis-dialog .dialog-content');
-  const overview=document.createElement('section');overview.className='calculation-overview';overview.innerHTML='<h3>Sobre este cálculo</h3>';
+  const overview=document.createElement('section');overview.className='calculation-overview';overview.innerHTML='<h3>About this calculation</h3>';
   overview.append($('#quick-action-note'),$('#ev-unit'),$('#hero-method'));calculation.prepend(overview);
   overview.after($('#ev-premises'),$('#hand-facts'));
   $('#ev-premises').append($('#ev-alternatives'));$('#ev-alternatives').hidden=true; // Full action table already exists in the result.
   $('#hand-facts').after($('#open-raise-model'));
-  const timeline=document.createElement('details');timeline.id='calculation-timeline';timeline.innerHTML='<summary>Equity por rodada</summary>';$('.timeline-card').before(timeline);timeline.append($('.timeline-card'));
+  const timeline=document.createElement('details');timeline.id='calculation-timeline';timeline.innerHTML='<summary>Equity by street</summary>';$('.timeline-card').before(timeline);timeline.append($('.timeline-card'));
   const openCalculation=()=>{const dialog=$('#analysis-dialog');dialog.showModal();dialog.scrollTop=0;};$('#open-analysis').onclick=openCalculation;
   const compare=$('#open-raise-model');compare.addEventListener('click',()=>$('#analysis-dialog').close(),true);
-  const actionInfo=document.createElement('button');actionInfo.id='action-info';actionInfo.type='button';iconButton(actionInfo,'info','Sobre a comparação');$('#quick-action').after(actionInfo);
+  const actionInfo=document.createElement('button');actionInfo.id='action-info';actionInfo.type='button';iconButton(actionInfo,'info','About the comparison');$('#quick-action').after(actionInfo);
   actionInfo.onclick=openCalculation;
-  const reflectNote=()=>{actionInfo.title=$('#quick-action-note').textContent;actionInfo.setAttribute('aria-label','Ver cálculo: '+actionInfo.title);$('#quick-action').title='Ação com maior EV entre as opções calculadas. Veja as premissas no cálculo.';};
+  const reflectNote=()=>{actionInfo.title=$('#quick-action-note').textContent;actionInfo.setAttribute('aria-label','View calculation: '+actionInfo.title);$('#quick-action').title='Highest-EV action among calculated options. Review the assumptions in the calculation.';};
   new MutationObserver(reflectNote).observe($('#quick-action-note'),{childList:true,subtree:true,characterData:true});reflectNote();
   // Coverage mismatches keep a visible signal instead of silently hiding them.
-  const warning=$('#ev-critical-warning'),coverage=document.createElement('button');coverage.id='ev-coverage-info';coverage.type='button';iconButton(coverage,'info','Conferir adversários calculados');coverage.hidden=true;$('#ev-summary .ev-topline').append(coverage);overview.append(warning);
-  const reflectWarning=()=>{coverage.hidden=warning.hidden;coverage.title=warning.textContent;coverage.setAttribute('aria-label',warning.textContent||'Conferir adversários calculados');};
+  const warning=$('#ev-critical-warning'),coverage=document.createElement('button');coverage.id='ev-coverage-info';coverage.type='button';iconButton(coverage,'info','Check calculated opponents');coverage.hidden=true;$('#ev-summary .ev-topline').append(coverage);overview.append(warning);
+  const reflectWarning=()=>{coverage.hidden=warning.hidden;coverage.title=warning.textContent;coverage.setAttribute('aria-label',warning.textContent||'Check calculated opponents');};
   new MutationObserver(reflectWarning).observe(warning,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden']});reflectWarning();
   coverage.onclick=openCalculation;
   window.theibsFocusUI={restore};restore();

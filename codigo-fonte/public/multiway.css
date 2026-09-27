@@ -69,15 +69,14 @@ body[data-multiway=on] .mw-allin-seat .opponent-name { color:#a5ccff; }
  body[data-view=analyze][data-multiway=on] .card-picker .card-key { padding:0; font-size:18px; }
  body[data-view=analyze][data-multiway=on] .card-keyboard { position:relative; }
  body[data-view=analyze][data-multiway=on] .card-picker .picker-tools { position:absolute; top:16px; right:59px; margin:0; }
- body[data-view=analyze][data-multiway=on] .table-column { grid-template-rows:42px minmax(180px,1fr) auto 50px auto; }
+ body[data-view=analyze][data-multiway=on] .table-column { grid-template-rows:42px minmax(180px,1fr) auto 50px; }
  body[data-view=analyze][data-multiway=on] .analysis-context-bar { grid-row:1; }
  body[data-view=analyze][data-multiway=on] .table-surface { grid-row:2; }
  body[data-view=analyze][data-multiway=on] #multiway-controls { grid-row:3; }
  body[data-view=analyze][data-multiway=on] .table-column>.quick-decision { grid-row:4; }
- body[data-view=analyze][data-multiway=on] .card-keyboard { grid-row:5; }
 }
 @media(min-width:1000px) and (max-height:720px) {
- body[data-view=analyze][data-multiway=on] .table-column { grid-template-rows:38px minmax(170px,1fr) auto 42px auto; }
+ body[data-view=analyze][data-multiway=on] .table-column { grid-template-rows:38px minmax(170px,1fr) auto 42px; }
  .multiway-controls { padding:6px 8px; }
 }
 @media(max-width:1100px) {
@@ -93,3 +92,5 @@ body[data-multiway=on] .mw-allin-seat .opponent-name { color:#a5ccff; }
  .mw-action-row>[data-mw-action] { flex-basis:28%; }
  .mw-config-grid { grid-template-columns:1fr; }
 }
+
+.mw-action-row>[data-mw-action].is-key-active { border-color:#f6d36f; background:#f6d36f24; box-shadow:0 0 0 2px #f6d36f24; transform:translateY(1px); }

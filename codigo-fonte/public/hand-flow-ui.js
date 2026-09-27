@@ -2,12 +2,12 @@
   'use strict';
   const $=s=>document.querySelector(s), cards=window.theibsCardKeyboard, esc=window.EssenceUI.esc;
   const positions={2:['SB','BB'],3:['SB','BB','BTN'],4:['SB','BB','CO','BTN'],5:['SB','BB','HJ','CO','BTN'],6:['SB','BB','UTG','HJ','CO','BTN'],7:['SB','BB','UTG','LJ','HJ','CO','BTN'],8:['SB','BB','UTG','UTG1','LJ','HJ','CO','BTN'],9:['SB','BB','UTG','UTG1','UTG2','LJ','HJ','CO','BTN'],10:['SB','BB','UTG','UTG1','UTG2','UTG3','LJ','HJ','CO','BTN']};
-  const names={FOLD:'saiu',CHECK:'check',CALL:'pagou',BET:'apostou',RAISE:'aumentou',SB:'small blind',BB:'big blind',RETURN:'recebeu de volta',BOARD:'board',SHOWDOWN:'showdown'};
+  const names={FOLD:'folded',CHECK:'check',CALL:'called',BET:'bet',RAISE:'raised',SB:'small blind',BB:'big blind',RETURN:'was refunded',BOARD:'board',SHOWDOWN:'showdown'};
   const money=n=>Number(n).toLocaleString('pt-BR',{maximumFractionDigits:2});
   let descriptor=null,state=null,busy=false,syncing=false;
   async function request(path,body) {
     const response=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-    const data=await response.json();if(!response.ok)throw Error(data.reason||'Não foi possível registrar a ação.');return data;
+    const data=await response.json();if(!response.ok)throw Error(data.reason||'Could not record the action.');return data;
   }
   const signal=()=>document.dispatchEvent(new CustomEvent('theibs:flow-changed'));
   function note(text,error=false) {$('#flow-note').textContent=text;$('#flow-note').classList.toggle('error-message',error);}
@@ -16,44 +16,44 @@
     $('#opponent-seat-label').classList.toggle('hidden',!state);
     for(const id of ['position','players','potBeforeAction','amountToCall','effectiveStack','variant-select'])$('#'+id).disabled=Boolean(state);
     $('#flow-undo').disabled=busy||!descriptor?.events.length||Boolean(descriptor?.archived);
-    $('#flow-start').disabled=busy;$('#flow-start').textContent=state?'Nova mão':'Iniciar mão';
+    $('#flow-start').disabled=busy;$('#flow-start').textContent=state?'New hand':'Start hand';
     if(!state) {
-      $('#flow-turn').textContent='Acompanhe a mão, ação por ação';
-      $('#flow-actions').innerHTML='<button id="flow-start-inline" type="button" class="primary-button">Iniciar acompanhamento</button>';
+      $('#flow-turn').textContent='Follow the hand action by action';
+      $('#flow-actions').innerHTML='<button id="flow-start-inline" type="button" class="primary-button">Start tracking</button>';
       $('#flow-start-inline').onclick=openSetup;
-      $('#flow-player-list').innerHTML='<p class="micro">Inicie o acompanhamento para registrar a vez de cada jogador, stacks e folds.</p>';
-      $('#flow-log').innerHTML='<p class="micro">Nenhuma ação registrada.</p>';note('Blinds, calls, checks e apostas atualizam o pote automaticamente.');return;
+      $('#flow-player-list').innerHTML='<p class="micro">Start tracking to record each player turn, stacks and folds.</p>';
+      $('#flow-log').innerHTML='<p class="micro">No actions recorded.</p>';note('Blinds, calls, checks and bets update the pot automatically.');return;
     }
     const hero=state.players[state.heroId];
     const selectedOpponent=$('#opponentSeat').value;
-    $('#opponentSeat').innerHTML=state.players.filter(p=>!p.hero).map(p=>`<option value="${p.id}">${esc(p.name)} · ${p.position}${p.folded?' · saiu':''}</option>`).join('');
+    $('#opponentSeat').innerHTML=state.players.filter(p=>!p.hero).map(p=>`<option value="${p.id}">${esc(p.name)} · ${p.position}${p.folded?' · folded':''}</option>`).join('');
     if(selectedOpponent!==''&&state.players.some(p=>!p.hero&&String(p.id)===selectedOpponent))$('#opponentSeat').value=selectedOpponent;
     $('#position').value=hero.position;$('#players').value=Math.max(2,state.activePlayers);
     $('#potBeforeAction').value=state.pot;$('#amountToCall').value=state.heroToCall;$('#effectiveStack').value=hero.stack;
-    $('#flow-player-list').innerHTML=state.players.map(p=>`<div class="flow-player ${p.id===state.actor?'is-acting':''} ${p.folded?'is-folded':''}"><span><b>${esc(p.name)}</b><small>${esc(p.position)} · ${p.folded?'Fold':p.stack===0?'All-in':p.id===state.actor?'Vez de agir':names[p.lastAction]||'Na mão'}</small></span><strong>${money(p.stack)}</strong></div>`).join('');
+    $('#flow-player-list').innerHTML=state.players.map(p=>`<div class="flow-player ${p.id===state.actor?'is-acting':''} ${p.folded?'is-folded':''}"><span><b>${esc(p.name)}</b><small>${esc(p.position)} · ${p.folded?'Fold':p.stack===0?'All-in':p.id===state.actor?'To act':names[p.lastAction]||'In hand'}</small></span><strong>${money(p.stack)}</strong></div>`).join('');
     $('#flow-log').innerHTML=state.log.slice(-4).map(item=>`<div class="flow-event"><span>${esc(item.street)}</span><b>${esc(eventText(item))}</b></div>`).join('');
     if(state.phase==='BETTING') {
-      const actor=state.players[state.actor];$('#flow-turn').textContent=actor.hero?'Sua vez de agir':`Registrar ação: ${actor.name} · ${actor.position}`;
-      $('#flow-actions').innerHTML=state.legal.actions.map(action=>`<button type="button" data-flow-action="${action}" class="flow-action action-${action.toLowerCase()}" ${busy?'disabled':''}>${({FOLD:'Fold / saiu',CHECK:'Check',CALL:`Pagou ${money(state.legal.toCall)}`,BET:'Apostou',RAISE:'Aumentou'})[action]}${action==='FOLD'&&actor.hero?'<kbd>F</kbd>':''}</button>`).join('');
-      note(actor.hero?'F = seu Fold. As outras ações são registradas pelos botões.':'Informe somente a ação que esse adversário realizou.');
+      const actor=state.players[state.actor];$('#flow-turn').textContent=actor.hero?'Your turn':`Record action: ${actor.name} · ${actor.position}`;
+      $('#flow-actions').innerHTML=state.legal.actions.map(action=>`<button type="button" data-flow-action="${action}" class="flow-action action-${action.toLowerCase()}" ${busy?'disabled':''}>${({FOLD:'Fold / folded',CHECK:'Check',CALL:`Call ${money(state.legal.toCall)}`,BET:'Bet',RAISE:'Raise'})[action]}${action==='FOLD'&&actor.hero?'<kbd>F</kbd>':''}</button>`).join('');
+      note(actor.hero?'F = your Fold. Record other actions using the buttons.':'Enter only the action this opponent took.');
     } else if(state.phase==='WAIT_BOARD') {
-      $('#flow-turn').textContent=`Rodada fechada · informe o ${state.nextStreet.toLowerCase()}`;
-      $('#flow-actions').innerHTML='<button id="flow-select-board" type="button" class="primary-button">Selecionar próxima carta do board</button>';
+      $('#flow-turn').textContent=`Street complete · enter the ${state.nextStreet.toLowerCase()}`;
+      $('#flow-actions').innerHTML='<button id="flow-select-board" type="button" class="primary-button">Select the next board card</button>';
       $('#flow-select-board').onclick=()=>{cards.select(cards.state.count+state.board.length);document.querySelector(`[data-slot="${cards.state.selected}"]`).focus();};
-      note('Insira as cartas usando valor + naipe ou o baralho abaixo.');
+      note('Enter cards using rank + suit or the deck below.');
     } else if(state.phase==='SHOWDOWN') {
-      $('#flow-turn').textContent='Showdown · informe quem ganhou';$('#flow-actions').innerHTML='<button id="flow-settle" type="button" class="primary-button">Registrar resultado</button>';
-      $('#flow-settle').onclick=openResult;note(state.pots.length>1?'Os potes laterais têm elegibilidade própria.':'Selecione mais de um vencedor se houve empate.');
+      $('#flow-turn').textContent='Showdown · enter the winner';$('#flow-actions').innerHTML='<button id="flow-settle" type="button" class="primary-button">Record result</button>';
+      $('#flow-settle').onclick=openResult;note(state.pots.length>1?'Side pots have their own eligibility.':'Select more than one winner for to tie.');
     } else {
-      $('#flow-turn').textContent='Mão encerrada';$('#flow-actions').innerHTML=`<button id="flow-save" type="button" class="primary-button" ${descriptor.archived?'disabled':''}>${descriptor.archived?'Mão salva':'Salvar mão no histórico'}</button>`;
+      $('#flow-turn').textContent='Hand complete';$('#flow-actions').innerHTML=`<button id="flow-save" type="button" class="primary-button" ${descriptor.archived?'disabled':''}>${descriptor.archived?'Hand saved':'Save hand to history'}</button>`;
       $('#flow-save').onclick=()=>archive().catch(error=>note(error.message,true));
       const net=hero.stack-Number(descriptor.config.stacks?.[hero.id]??descriptor.config.startingStack);
-      note(`Seu saldo nesta mão: ${net>0?'+':''}${money(net)} fichas. ${state.result.reason==='ALL_FOLDED'?'Os demais jogadores saíram.':'Resultado informado no showdown.'}`);
+      note(`Your result this hand: ${net>0?'+':''}${money(net)} chips. ${state.result.reason==='ALL_FOLDED'?'The other players folded.':'Result entered at showdown.'}`);
     }
   }
   function eventText(item) {
     if(item.action==='BOARD')return item.cards.map(window.TheibsCards.fromCanonical).join(' ');
-    if(item.action==='SHOWDOWN')return 'Resultado registrado';
+    if(item.action==='SHOWDOWN')return 'Result recorded';
     const p=state.players[item.actor];return `${p.name} · ${names[item.action]||item.action}${item.amount?' '+money(item.amount):''}${item.allIn?' · all-in':''}`;
   }
   function syncBoard() {
@@ -95,11 +95,11 @@
   $('#flow-confirm-start').onclick=async()=>{
     try {
       if(busy)return;
-      if(descriptor&&state.phase!=='FINISHED'&&!window.confirm('Iniciar outra mão e descartar o acompanhamento atual?'))return;
+      if(descriptor&&state.phase!=='FINISHED'&&!window.confirm('Start another hand and discard current tracking?'))return;
       if(descriptor&&state.phase==='FINISHED')await archive();
-      if(cards.state.cards().board.length&&!window.confirm('A nova mão manterá suas cartas privadas e limpará o board. Continuar?'))return;
+      if(cards.state.cards().board.length&&!window.confirm('The new hand will keep your hole cards and clear the board. Continue?'))return;
       const hero=cards.state.cards().hero;
-      if(hero.length&&hero.length!==cards.state.count)throw Error('Complete ou limpe as cartas privadas antes de iniciar.');
+      if(hero.length&&hero.length!==cards.state.count)throw Error('Complete or clear the hole cards before starting.');
       const config={id:crypto.randomUUID(),variant:`PLO${cards.state.count}_HIGH`,playerCount:Number($('#flow-count').value),heroPosition:$('#flow-position').value,startingStack:Number($('#flow-stack').value),smallBlind:Number($('#flow-sb').value),bigBlind:Number($('#flow-bb').value),heroCards:hero.map(window.TheibsCards.toCanonical)};
       config.stacks=[...document.querySelectorAll('[data-flow-stack]')].map(input=>input.value===''?config.startingStack:Number(input.value));
       await change({config,events:[]},true);$('#flow-setup-dialog').close();
@@ -114,7 +114,7 @@
     const action=button.dataset.flowAction;
     if(['BET','RAISE'].includes(action)) {
       $('#flow-size').value=state.legal.minTo;$('#flow-size').min=state.legal.minTo;$('#flow-size').max=state.legal.maxTo;
-      $('#flow-size-help').textContent=`Já investiu ${money(state.legal.totalThisStreet)}. Total permitido: ${money(state.legal.minTo)} a ${money(state.legal.maxTo)} fichas.`;
+      $('#flow-size-help').textContent=`Already committed ${money(state.legal.totalThisStreet)}. Allowed total: ${money(state.legal.minTo)} to ${money(state.legal.maxTo)} chips.`;
       $('#flow-size-dialog').dataset.action=action;$('#flow-size-error').textContent='';$('#flow-size-dialog').showModal();return;
     }
     try{await record({type:'ACT',actor:state.actor,action});}catch(error){note(error.message,true);}
@@ -126,11 +126,11 @@
     catch(error){$('#flow-size-error').textContent=error.message;}
   };
   $('#flow-show-log').onclick=()=>{
-    $('#flow-log-dialog .dialog-content').innerHTML=state?state.log.map(item=>`<div class="flow-event"><span>${esc(item.street)}</span><b>${esc(eventText(item))}</b></div>`).join(''):'Nenhuma ação registrada.';
+    $('#flow-log-dialog .dialog-content').innerHTML=state?state.log.map(item=>`<div class="flow-event"><span>${esc(item.street)}</span><b>${esc(eventText(item))}</b></div>`).join(''):'No actions recorded.';
     $('#flow-log-dialog').showModal();
   };
   function openResult() {
-    $('#flow-result-dialog .dialog-content').innerHTML=state.pots.map((pot,i)=>`<fieldset><legend>${i?'Pote lateral '+i:'Pote principal'} · ${money(pot.amount)} fichas</legend>${pot.eligible.map(id=>`<label class="checkbox-label"><input type="checkbox" data-pot="${i}" value="${id}">${esc(state.players[id].name)} · ${state.players[id].position}</label>`).join('')}</fieldset>`).join('')+'<label>Rake efetivamente retirado do pote<input id="flow-result-rake" type="number" min="0" step="0.01" value="0"></label><button id="flow-confirm-result" type="button" class="primary-button">Confirmar resultado</button><p id="flow-result-error" class="error-message"></p>';
+    $('#flow-result-dialog .dialog-content').innerHTML=state.pots.map((pot,i)=>`<fieldset><legend>${i?'Side pot '+i:'Main pot'} · ${money(pot.amount)} chips</legend>${pot.eligible.map(id=>`<label class="checkbox-label"><input type="checkbox" data-pot="${i}" value="${id}">${esc(state.players[id].name)} · ${state.players[id].position}</label>`).join('')}</fieldset>`).join('')+'<label>Rake actually removed from the pot<input id="flow-result-rake" type="number" min="0" step="0.01" value="0"></label><button id="flow-confirm-result" type="button" class="primary-button">Confirm result</button><p id="flow-result-error" class="error-message"></p>';
     $('#flow-confirm-result').onclick=async()=>{
       try{const winners=state.pots.map((_,i)=>[...document.querySelectorAll(`[data-pot="${i}"]:checked`)].map(el=>Number(el.value)));
         await record({type:'SETTLE',winners,rake:Number($('#flow-result-rake').value)});$('#flow-result-dialog').close();}
@@ -159,13 +159,13 @@
     clear(){descriptor=null;state=null;render();signal();},
     analysisContext(payload){
       if(!state)return payload;
-      if(busy)throw Error('Registrando ação.');
-      if(state.heroFolded)throw Error('Você saiu desta mão. Continue registrando os adversários ou inicie outra.');
-      if(state.phase==='FINISHED')throw Error('Mão encerrada. Inicie outra mão para calcular.');
-      if(state.phase!=='BETTING')throw Error(state.phase==='WAIT_BOARD'?`Aguardando cartas do ${state.nextStreet.toLowerCase()}.`:'Aguardando o resultado do showdown.');
-      if(JSON.stringify(payload.board)!==JSON.stringify(state.board))throw Error('O board deve corresponder à rodada atual. Termine as ações antes de abrir novas cartas.');
-      if(state.hasSidePots)throw Error('Há potes laterais: o EV desta decisão ainda não está modelado. A contagem de fichas continua disponível.');
-      if((payload.opponentHand||payload.opponentRange)&&state.players[Number($('#opponentSeat').value)]?.folded)throw Error('O adversário da mão/range informado saiu. Remova essa entrada ou escolha outro jogador nas configurações.');
+      if(busy)throw Error('Recording action.');
+      if(state.heroFolded)throw Error('You folded this hand. Continue recording opponents or start another hand.');
+      if(state.phase==='FINISHED')throw Error('Hand complete. Start another hand to calculate.');
+      if(state.phase!=='BETTING')throw Error(state.phase==='WAIT_BOARD'?`Waiting for ${state.nextStreet.toLowerCase()}.`:'Waiting for showdown result.');
+      if(JSON.stringify(payload.board)!==JSON.stringify(state.board))throw Error('The board must match the current street. Finish the actions before dealing new cards.');
+      if(state.hasSidePots)throw Error('There are side pots: EV for this decision is not modeled yet. Chip tracking remains available.');
+      if((payload.opponentHand||payload.opponentRange)&&state.players[Number($('#opponentSeat').value)]?.folded)throw Error('The opponent for the entered hand/range folded. Remove that input or choose another player in settings.');
       const hero=state.players[state.heroId];
       return {...payload,players:state.activePlayers,potBeforeAction:state.pot,amountToCall:state.heroToCall,effectiveStack:hero.stack,position:hero.position,
         actionHistory:state.log, ...(state.actor===state.heroId?{availableActions:state.legal.actions.filter(action=>action!=='FOLD'||state.heroToCall>0)}:{})};
