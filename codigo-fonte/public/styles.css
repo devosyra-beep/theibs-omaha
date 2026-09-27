@@ -19,6 +19,7 @@
   --font-card: "Fraunces", Georgia, serif;
 }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html,body { margin: 0; min-height: 100%; }
 body { background: var(--background); color: var(--foreground); font: 13px/1.55 var(--font-sans); }
 button, input, textarea, select { font: inherit; }
@@ -116,6 +117,9 @@ strong { font-weight: 550; }
 .auth-google:hover:not(:disabled) { background:#f3f4f6; }
 .auth-apple { background:#1e2029; border-color:#3a3d48; color:#fff; }
 .auth-local { color:#f3c969; border-color:#f3c96955; background:#18150a; }
+.auth-subscribe { color:#16130a; border-color:#f3c969; background:#f3c969; }
+.auth-subscribe:hover:not(:disabled) { background:#ffda7c; }.auth-refresh { color:#fff; background:#242732; }
+.auth-signout { align-self:center; margin-top:-3px; }
 .login-divider { display:flex; align-items:center; gap:10px; color:#666a76; font:8px var(--font-mono); letter-spacing:.16em; text-transform:uppercase; }
 .login-divider::before,.login-divider::after { content:""; height:1px; flex:1; background:#2a2c35; }
 .login-status { min-height:32px; margin:2px 0 0; color:#777b87; text-align:center; font-size:10px; line-height:1.55; }

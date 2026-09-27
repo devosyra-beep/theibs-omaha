@@ -10,8 +10,8 @@ $stageFull = [IO.Path]::GetFullPath($stageRoot)
 if (-not $stageFull.StartsWith($projectFull, [StringComparison]::OrdinalIgnoreCase)) { throw 'Diretório temporário fora do projeto.' }
 if (Test-Path -LiteralPath $stageRoot) { Remove-Item -LiteralPath $stageRoot -Recurse -Force }
 New-Item -ItemType Directory -Path $stage | Out-Null
-foreach ($directory in @('public', 'src', 'data')) { Copy-Item -LiteralPath (Join-Path $project $directory) -Destination $stage -Recurse }
-foreach ($file in @('server.js', 'webapp.js', 'package.json', 'Iniciar-THEIBS-WebApp.cmd', 'LEIA-ME-WEBAPP.md')) {
+foreach ($directory in @('public', 'src', 'data', 'supabase')) { Copy-Item -LiteralPath (Join-Path $project $directory) -Destination $stage -Recurse }
+foreach ($file in @('server.js', 'webapp.js', 'package.json', 'Iniciar-THEIBS-WebApp.cmd', 'LEIA-ME-WEBAPP.md', 'DEPLOY-SAAS.md', '.env.example')) {
   Copy-Item -LiteralPath (Join-Path $project $file) -Destination $stage
 }
 if (Test-Path -LiteralPath $zip) { Remove-Item -LiteralPath $zip -Force }

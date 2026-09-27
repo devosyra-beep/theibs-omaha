@@ -1,6 +1,6 @@
 'use strict';
 
-const CACHE = 'theibs-shell-v0.10.0';
+const CACHE = 'theibs-shell-v0.11.0';
 const SHELL = [
   '/', '/styles.css', '/dashboard.css', '/multiway.css', '/pwa.js', '/auth-ui.js',
   '/card-model.js', '/essence-ui.js', '/card-keyboard.js', '/dashboard.js',

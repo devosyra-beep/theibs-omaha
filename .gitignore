@@ -5,6 +5,7 @@ THEIBS-*-Windows*/
 .release-check/
 *.zip
 codigo-fonte/.release-webapp/
+codigo-fonte/.theibs-users/
 THEIBS-WebApp-*/
 *.exe
 
