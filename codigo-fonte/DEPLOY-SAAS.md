@@ -15,6 +15,16 @@ O blueprint não configura AbacatePay. Antes de cobrar, adicione um disco persis
 
 O runtime web usa apenas Node, sem instalar Electron/Chromium. O build verifica a sintaxe e inicia `node server.js`. Referências: [Render Node](https://render.com/docs/deploy-node-express-app), [plano gratuito](https://render.com/docs/free), [variáveis do Render](https://render.com/docs/environment-variables).
 
+## Estado verificado em 26/09/2026
+
+- Repositório privado `devosyra-beep/theibs-omaha`, branch `main`, recebeu a versão 0.12.2 e a preparação Render no commit `5e963e4`.
+- **LIVE:** projeto Supabase `theibs-omaha`, organização THEIBS, referência `kevcwoeqgdwvfsvdpghe`. Tabelas `theibs_entitlements` e `theibs_payment_events` criadas com RLS ativa; consulta anônima via API retorna HTTP 401 para ambas. A leitura entre usuários autenticados ainda precisa de validação real.
+- **LIVE:** Google Cloud tem projeto `theibs` e cliente `THEIBS Web - Supabase` criado, com callback `https://kevcwoeqgdwvfsvdpghe.supabase.co/auth/v1/callback`. O usuário prefere preencher as credenciais diretamente nos painéis. Não salvar segredos neste repositório.
+- **PREPARADO:** formulário Render com Node, raiz `codigo-fonte`, plano Free, comandos `node --check server.js` / `node server.js`, `/healthz` e variáveis públicas. **Serviço ainda não publicado**; aguardando preenchimento das duas chaves Supabase pelo usuário, ativação do provedor Google e teste real de login.
+- **LIVE:** AbacatePay consultado na loja Osyra, em Sandbox; busca por THEIBS sem produto encontrado. A ativação de produção solicita validação documental. Não há checkout THEIBS validado nem cobrança habilitada no servidor.
+- **LIVE:** Security Advisor sem erros, com dois avisos na função de automação `public.rls_auto_enable()` por permissão de execução. Revisar/restringir essa função antes de liberar a versão comercial. A função não foi criada pela migração THEIBS.
+- **LOCAL:** 182 testes automatizados passaram; esse resultado não comprova OAuth/pagamento em produção nem desempenho do motor na nuvem.
+
 ## Regra comercial
 
 - Cadastro obrigatório por Supabase Auth.
