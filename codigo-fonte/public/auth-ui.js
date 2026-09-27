@@ -68,10 +68,8 @@
     const status = document.getElementById('auth-status');
     const heading = document.getElementById('auth-heading');
     const open = document.getElementById('open-auth');
-    const local = document.getElementById('auth-local');
-    const localDivider = document.getElementById('auth-local-divider');
     const google = document.getElementById('auth-google');
-    const apple = document.getElementById('auth-apple');
+    const close = document.getElementById('auth-close');
     const subscribe = document.getElementById('auth-subscribe');
     const refresh = document.getElementById('auth-refresh');
     const signout = document.getElementById('auth-signout');
@@ -82,7 +80,7 @@
       screen.hidden = false;
       app.setAttribute('inert', '');
       document.body.style.overflow = 'hidden';
-      const target = session ? (access?.allowed ? local : (subscribe.hidden ? refresh : subscribe)) : (google.hidden ? apple : google);
+      const target = session ? (access?.allowed ? close : (subscribe.hidden ? refresh : subscribe)) : google;
       if (!target.hidden) target.focus();
     }
     function hide() {
@@ -93,27 +91,25 @@
       open.focus();
     }
     function providerUrl(provider) {
-      const redirectTo = `${location.origin}${location.pathname}`;
+      const redirectTo = `${location.origin}/app`;
       return `${config.supabaseUrl}/auth/v1/authorize?provider=${encodeURIComponent(provider)}&redirect_to=${encodeURIComponent(redirectTo)}`;
     }
     function render() {
       const loggedIn = Boolean(session?.access_token);
       google.hidden = loggedIn || !config.providers.google;
-      apple.hidden = loggedIn || !config.providers.apple;
-      google.disabled = !config.providers.google; apple.disabled = !config.providers.apple;
-      local.hidden = config.required && (!access?.allowed || !loggedIn);
-      localDivider.hidden = config.required;
+      google.disabled = !config.providers.google;
+      close.hidden = !loggedIn || !access?.allowed;
       signout.hidden = !loggedIn;
       refresh.hidden = !loggedIn || access?.allowed;
       subscribe.hidden = !loggedIn || !config.billingEnabled || ['LIFETIME', 'ACTIVE'].includes(access?.state);
       heading.textContent = loggedIn ? 'Conta e acesso' : 'Entrar com sua conta';
       if (!config.required) status.textContent = 'Modo local: seus dados ficam neste dispositivo.';
-      else if (!loggedIn) status.textContent = 'Entre para continuar.';
+      else if (!loggedIn && !config.providers.google) status.textContent = 'Login Google ainda não configurado.';
+      else if (!loggedIn) status.textContent = 'Entre com Google para continuar.';
       else if (access?.state === 'TRIAL') status.textContent = `${access.user?.email || ''} · ${access.daysRemaining} dia(s) grátis restante(s).`;
       else if (access?.state === 'LIFETIME') status.textContent = `${access.user?.email || ''} · acesso vitalício.`;
       else if (access?.state === 'ACTIVE') status.textContent = `${access.user?.email || ''} · acesso permanente liberado.`;
       else status.textContent = access?.reason || 'Confirme seu acesso para continuar.';
-      local.textContent = config.required ? 'Voltar ao THEIBS' : 'Continuar neste dispositivo';
       open.title = access?.state === 'TRIAL' ? `Teste grátis: ${access.daysRemaining} dia(s)` : 'Conta e acesso';
     }
     async function readAccess() {
@@ -133,9 +129,8 @@
     }
 
     open.addEventListener('click', () => { render(); show(); });
-    local.addEventListener('click', () => { hide(); if (!config.required) releaseApp(); });
+    close.addEventListener('click', hide);
     google.addEventListener('click', () => location.assign(providerUrl('google')));
-    apple.addEventListener('click', () => location.assign(providerUrl('apple')));
     refresh.addEventListener('click', async () => {
       refresh.disabled = true; status.textContent = 'Confirmando pagamento…';
       try { await checkAndRender(); } catch (error) { status.textContent = error.message; }
@@ -165,11 +160,14 @@
       config = payload.auth;
       if (!config.required) {
         access = { allowed: true, state: 'LOCAL' }; render();
-        if (new URLSearchParams(location.search).get('login') === '1') show(); else hide();
+        open.hidden = true;
+        hide();
         releaseApp(); return;
       }
+      open.hidden = false;
       saveSession(sessionFromHash() || loadSession());
       await checkAndRender();
+      if (new URLSearchParams(location.search).get('login') === '1' && access?.allowed) show();
       if (new URLSearchParams(location.search).get('billing') === 'success' && !access?.allowed) {
         status.textContent = 'Pagamento concluído. Clique em “Atualizar acesso” após a confirmação.';
       }

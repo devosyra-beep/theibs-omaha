@@ -14,8 +14,7 @@ function settings(env = process.env) {
     trialDays: Math.max(1, Number(env.THEIBS_TRIAL_DAYS || 3) || 3),
     lifetimeEmails: String(env.THEIBS_LIFETIME_EMAILS || 'devosyra@gmail.com,ninjadevtester@gmail.com'),
     lifetimeUserIds: String(env.THEIBS_LIFETIME_USER_IDS || ''),
-    googleEnabled: isTrue(env.THEIBS_AUTH_GOOGLE_ENABLED),
-    appleEnabled: isTrue(env.THEIBS_AUTH_APPLE_ENABLED)
+    googleEnabled: isTrue(env.THEIBS_AUTH_GOOGLE_ENABLED)
   };
 }
 
@@ -33,7 +32,7 @@ function publicConfig(env = process.env) {
     required: config.required,
     supabaseUrl: config.required ? config.url : null,
     supabasePublishableKey: config.required ? config.publishableKey : null,
-    providers: { google: config.required && config.googleEnabled, apple: config.required && config.appleEnabled },
+    providers: { google: config.required && config.googleEnabled },
     trialDays: config.trialDays,
     billingEnabled: config.required && Boolean(env.ABACATEPAY_API_KEY && env.ABACATEPAY_PRODUCT_ID),
     planPriceBrl: Number(env.THEIBS_PLAN_PRICE_BRL || 250)

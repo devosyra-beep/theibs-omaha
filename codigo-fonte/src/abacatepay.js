@@ -28,7 +28,7 @@ async function createPaymentCheckout(user, env = process.env, fetchImpl = fetch)
     headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json', Accept: 'application/json' },
     body: JSON.stringify({
       items: [{ id: productId, quantity: 1 }], methods: ['PIX', 'CARD'], externalId: `theibs:${user.id}`,
-      completionUrl: `${origin}/?billing=success`, returnUrl: `${origin}/?billing=cancelled`,
+      completionUrl: `${origin}/app?billing=success`, returnUrl: `${origin}/app?billing=cancelled`,
       metadata: { userId: user.id, email: user.email || null, product: 'THEIBS', license: 'LIFETIME' }
     }), signal: AbortSignal.timeout(15000)
   });

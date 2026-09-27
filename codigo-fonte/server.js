@@ -128,7 +128,8 @@ function serveStatic(request, response) {
   let requested;
   try { requested = decodeURIComponent(new URL(request.url, 'http://127.0.0.1').pathname); }
   catch { response.writeHead(400); response.end('Invalid URL'); return; }
-  if (requested === '/') requested = '/index.html';
+  if (requested === '/') requested = '/landing.html';
+  if (requested === '/app' || requested === '/app/') requested = '/index.html';
   const filePath = path.resolve(publicDir, `.${requested}`);
   if (!filePath.startsWith(publicDir + path.sep)) {
     response.writeHead(403); response.end('Forbidden'); return;

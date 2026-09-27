@@ -10,9 +10,9 @@
 
 ## Serviços
 
-1. Hospede este servidor Node em um serviço com processo persistente e HTTPS.
+1. Hospede este servidor Node em um serviço com processo persistente e HTTPS. A raiz `/` publica a landing page e `/app` contém o laboratório autenticado.
 2. Crie um projeto Supabase separado do OSYRA e aplique `supabase/migrations/202609260001_theibs_access.sql`.
-3. Ative Google e, quando houver conta Apple Developer, Apple Auth. Cadastre a URL pública na allow list de redirects.
+3. Ative Google Auth. Cadastre `https://SEU_DOMINIO/app` na allow list de redirects do Supabase.
 4. Na AbacatePay, crie um produto avulso de 25000 centavos, sem ciclo, e informe o ID em `ABACATEPAY_PRODUCT_ID`.
 5. Cadastre o webhook HTTPS:
    `https://SEU_DOMINIO/api/billing/webhook?webhookSecret=SEU_SECRET`

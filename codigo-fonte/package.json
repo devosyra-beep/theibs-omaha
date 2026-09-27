@@ -1,6 +1,6 @@
 {
   "name": "poker-omaha5-realtime-assistance",
-  "version": "0.11.0",
+  "version": "0.12.0",
   "private": true,
   "description": "Theibs: laboratório Omaha High 4/5/6, interface EssenceDeck e entrada de cartas integrada.",
   "type": "commonjs",

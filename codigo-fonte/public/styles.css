@@ -115,8 +115,7 @@ strong { font-weight: 550; }
 .auth-button svg { width:17px; height:17px; flex:none; }
 .auth-google { background:#fff; border-color:#fff; color:#17181d; }
 .auth-google:hover:not(:disabled) { background:#f3f4f6; }
-.auth-apple { background:#1e2029; border-color:#3a3d48; color:#fff; }
-.auth-local { color:#f3c969; border-color:#f3c96955; background:#18150a; }
+.auth-close { color:#f3c969; border-color:#f3c96955; background:#18150a; }
 .auth-subscribe { color:#16130a; border-color:#f3c969; background:#f3c969; }
 .auth-subscribe:hover:not(:disabled) { background:#ffda7c; }.auth-refresh { color:#fff; background:#242732; }
 .auth-signout { align-self:center; margin-top:-3px; }

@@ -44,4 +44,6 @@ test('checkout de pagamento único mantém API key no servidor e referencia o us
   assert.equal(body.externalId, 'theibs:user-1'); assert.equal(body.metadata.userId, 'user-1');
   assert.deepEqual(body.methods, ['PIX', 'CARD']);
   assert.equal(body.metadata.license, 'LIFETIME');
+  assert.equal(body.completionUrl, 'https://theibs.example/app?billing=success');
+  assert.equal(body.returnUrl, 'https://theibs.example/app?billing=cancelled');
 });
