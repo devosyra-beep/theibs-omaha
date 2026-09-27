@@ -30,7 +30,6 @@ a:focus-visible { outline: 3px solid var(--gold); outline-offset: 5px; }
 .button { display: inline-flex; align-items: center; justify-content: center; gap: 16px; border-radius: 100px; background: var(--gold); color: #17130b; font-weight: 650; transition: background .15s ease; }
 .button:hover { background: #f6db9f; }
 .button span { font-size: 20px; line-height: 1; }
-.header-cta { min-height: 44px; padding: 10px 24px; font-size: 14px; }
 .hero { position: relative; isolation: isolate; padding-block: 94px 104px; }
 .hero::before { content: ""; position: absolute; z-index: -1; inset: 0; background: radial-gradient(ellipse at 25% 0, #e2bd6809, transparent 65%), linear-gradient(#e2bd6805 1px, transparent 1px), linear-gradient(90deg, #e2bd6805 1px, transparent 1px); background-size: auto, 40px 40px, 40px 40px; mask-image: linear-gradient(#000, #0008 70%, transparent); }
 .hero-inner { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); align-items: center; gap: 54px; }
@@ -97,8 +96,6 @@ h1 em { color: var(--gold); font-family: "Playfair Display", Georgia, serif; fon
   .brand img { width: 32px; height: 32px; }
   .brand strong { font-size: 16px; }
   .brand small { font-size: 8px; }
-  .header-cta { padding-inline: 14px; font-size: 12px; gap: 8px; }
-  .header-cta span { font-size: 16px; }
   .hero { padding-block: 46px 44px; }
   .hero-inner { gap: 36px; }
   h1 { font-size: clamp(39px, 10.7vw, 56px); }

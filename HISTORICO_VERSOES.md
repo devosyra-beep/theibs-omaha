@@ -1,5 +1,7 @@
 ## Landing: navegação e compra única — 27/09/2026
 
+Removido o botão de login da barra de navegação a pedido do usuário. Mantidos os acessos na abertura e na seção de preço.
+
 Barra da landing recolhe ao descer e reaparece ao subir, com transição curta, tolerância a pequenos movimentos e preservação de foco pelo teclado. Permanece visível no início da página e respeita movimento reduzido. Script local com listener passivo e atualização por frame; cache PWA renovado.
 
 Terceira seção apresenta R$ 250,00, pagamento único e acesso permanente, mantendo o visual escuro/dourado e os textos em inglês. CTA aponta para a tela de acesso existente; nenhuma configuração de cobrança foi alterada. Validação visual local em desktop e 390 px: rolagem nas duas direções, foco pelo teclado, preço sem overflow, link de acesso e sintaxe JavaScript.
