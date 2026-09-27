@@ -34,6 +34,7 @@ test('landing, PWA shell, Google login and icons are served with correct media t
   assert.match(landing, /landing-assets\/theibs-app\.png/);
   assert.match(page, /id="login-screen"/);
   assert.match(page, /Continuar com Google/);
+  assert.match(page, /id="header-signout"[^>]*>Sair</);
   assert.doesNotMatch(page, /Continuar com Apple/);
   assert.doesNotMatch(page, /Continuar neste dispositivo/);
   assert.match(page, /rel="manifest"/);

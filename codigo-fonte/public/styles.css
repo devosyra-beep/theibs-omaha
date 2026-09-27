@@ -119,6 +119,7 @@ strong { font-weight: 550; }
 .auth-subscribe { color:#16130a; border-color:#f3c969; background:#f3c969; }
 .auth-subscribe:hover:not(:disabled) { background:#ffda7c; }.auth-refresh { color:#fff; background:#242732; }
 .auth-signout { align-self:center; margin-top:-3px; }
+.header-signout { color:var(--muted); padding-inline:12px; }
 .login-divider { display:flex; align-items:center; gap:10px; color:#666a76; font:8px var(--font-mono); letter-spacing:.16em; text-transform:uppercase; }
 .login-divider::before,.login-divider::after { content:""; height:1px; flex:1; background:#2a2c35; }
 .login-status { min-height:32px; margin:2px 0 0; color:#777b87; text-align:center; font-size:10px; line-height:1.55; }

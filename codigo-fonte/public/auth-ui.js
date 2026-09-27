@@ -73,6 +73,7 @@
     const subscribe = document.getElementById('auth-subscribe');
     const refresh = document.getElementById('auth-refresh');
     const signout = document.getElementById('auth-signout');
+    const headerSignout = document.getElementById('header-signout');
     let config;
     let access = null;
 
@@ -100,6 +101,7 @@
       google.disabled = !config.providers.google;
       close.hidden = !loggedIn || !access?.allowed;
       signout.hidden = !loggedIn;
+      headerSignout.hidden = !loggedIn;
       refresh.hidden = !loggedIn || access?.allowed;
       subscribe.hidden = !loggedIn || !config.billingEnabled || ['LIFETIME', 'ACTIVE'].includes(access?.state);
       heading.textContent = loggedIn ? 'Conta e acesso' : 'Entrar com sua conta';
@@ -146,12 +148,14 @@
         location.assign(data.checkout.url);
       } catch (error) { status.textContent = error.message; subscribe.disabled = false; }
     });
-    signout.addEventListener('click', async () => {
+    async function signOut() {
       if (session?.access_token && config?.supabaseUrl) nativeFetch(`${config.supabaseUrl}/auth/v1/logout`, {
         method: 'POST', headers: { apikey: config.supabasePublishableKey, Authorization: `Bearer ${session.access_token}` }
       }).catch(() => {});
       saveSession(null); access = null; render(); show();
-    });
+    }
+    signout.addEventListener('click', signOut);
+    headerSignout.addEventListener('click', signOut);
 
     try {
       const response = await nativeFetch('/api/public-config');
