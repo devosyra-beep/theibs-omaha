@@ -28,7 +28,7 @@ function sizeCandidates(state) {
 }
 
 function publicConfig(config) {
-  if (!config || Number(config.playerCount) !== 2 || config.heroPosition !== 'BTN') throw Error('O avaliador de treino exige heads-up com o herói no botão.');
+  if (!config || Number(config.playerCount) !== 2 || config.heroPosition !== 'BTN') throw Error('Training evaluation requires heads-up play with you on the button.');
   const result = { variant: config.variant, playerCount: 2, heroPosition: 'BTN',
     startingStack: config.startingStack, smallBlind: config.smallBlind, bigBlind: config.bigBlind,
     heroCards: cardCodes(normalizeCards(config.heroCards)) };
@@ -41,7 +41,7 @@ function publicEvents(events) {
   if (!Array.isArray(events)) throw Error('Histórico público ausente.');
   return events.map(event => {
     if (event.type === 'BOARD') return { type: 'BOARD', cards: cardCodes(normalizeCards(event.cards)) };
-    if (event.type !== 'ACT') throw Error('O histórico de avaliação deve terminar antes do resultado da mão.');
+    if (event.type !== 'ACT') throw Error('Evaluation history must end before the hand result.');
     return { type: 'ACT', actor: event.actor, action: String(event.action).toUpperCase(),
       ...(['BET', 'RAISE'].includes(String(event.action).toUpperCase()) ? { to: Number(event.to) } : {}) };
   });
@@ -57,11 +57,11 @@ function trainingEvaluationInput(session, options = {}) {
 function normalizeInput(input) {
   const config = publicConfig(input.config), events = publicEvents(input.events);
   const opponentStyle = String(input.opponentStyle || 'MIXED').toUpperCase();
-  if (!['PASSIVE', 'MIXED', 'AGGRESSIVE'].includes(opponentStyle)) throw Error('Política adversária inválida.');
+  if (!['PASSIVE', 'MIXED', 'AGGRESSIVE'].includes(opponentStyle)) throw Error('Invalid opponent policy.');
   const samples = Number(input.samples ?? 256);
-  if (!Number.isInteger(samples) || samples < 32 || samples > 2048) throw Error('Use entre 32 e 2048 rollouts por opção.');
+  if (!Number.isInteger(samples) || samples < 32 || samples > 2048) throw Error('Use between 32 and 2048 rollouts per option.');
   const state = replay(config, events);
-  if (state.phase !== 'BETTING' || state.actor !== 0) throw Error('A avaliação exige uma decisão pendente do herói.');
+  if (state.phase !== 'BETTING' || state.actor !== 0) throw Error('Evaluation requires your pending decision.');
   const actions = state.legal.actions.filter(action => action !== 'FOLD' || state.legal.toCall > 0);
   const candidates = actions.filter(action => !['BET', 'RAISE'].includes(action)).map(action => ({ optionId: action, action, size: null }));
   candidates.push(...sizeCandidates(state));
@@ -75,7 +75,7 @@ function normalizeInput(input) {
     }
   }
   const chosenAction = input.chosenAction ? String(input.chosenAction).toUpperCase() : null;
-  if (chosenAction && !actions.includes(chosenAction)) throw Error('Ação escolhida ilegal.');
+  if (chosenAction && !actions.includes(chosenAction)) throw Error('The selected action is not legal.');
   if (['BET', 'RAISE'].includes(chosenAction) && input.chosenSize == null) throw Error('Informe o tamanho da aposta escolhida.');
   const chosenOptionId = chosenAction ? optionId(chosenAction, input.chosenSize) : null;
   const fingerprint = createHash('sha256').update('THEIBS_POLICY_ROLLOUT_V1\n' + JSON.stringify({ config, events, opponentStyle })).digest('hex');
@@ -135,7 +135,7 @@ function rollout(context, candidate, world, policy = chooseOpponent) {
     state = replay(config, simulationEvents);
   }
   // Never silently grade a truncated tree as a completed hand.
-  throw Error('O rollout excedeu o limite de ações; nenhuma avaliação parcial foi utilizada.');
+  throw Error('The rollout exceeded the action limit; no partial evaluation was used.');
 }
 
 function moments() { return { n: 0, mean: 0, m2: 0 }; }
@@ -197,11 +197,11 @@ function evaluateTraining(input) {
   const leadership = candidateLeadership(results);
   const recommended = results.find(item => item.optionId === leadership.pointLeader);
   const assumptions = [
-    'Mãos adversárias uniformes entre cartas não vistas no estado atual; o range não é condicionado às ações passadas.',
-    `Adversário segue ${POLICY} (${context.opponentStyle}); após a primeira ação, o herói segue a mesma heurística MIXED.`,
-    'Rollouts incluem fold, call, bet, reraise e apostas até o fim da mão, sem rake.',
-    'Tamanhos comparados são uma grade finita e o tamanho escolhido; não são todos os sizings possíveis nem uma solução GTO.',
-    'Faixas simultâneas de 95% cobrem somente amostragem sob políticas fixas; não validam a política ou o range.'
+    'Opponent hands are sampled uniformly from unseen cards; ranges are not conditioned on past actions.',
+    `The opponent follows ${POLICY} (${context.opponentStyle}); after your first action, your decisions follow the MIXED heuristic.`,
+    'Rollouts include folds, calls, bets and reraises through the end of the hand, without rake.',
+    'Compared sizes are a finite set plus your chosen size; they do not cover every possible size or establish a GTO solution.',
+    'Simultaneous 95% intervals cover sampling under fixed policies only; they do not validate the policy or range.'
   ];
   const actionEV = Object.fromEntries(ACTIONS.map(action => {
     const ranked = results.filter(item => item.action === action).sort((a, b) => b.ev - a.ev), best = ranked[0];
@@ -232,7 +232,7 @@ function evaluateTraining(input) {
     leadership.status === 'SEPARATED' ? 'EV_LEADER_SEPARATED_WITHIN_BOUNDS' : leadership.status === 'TIED' ? 'MODELED_EV_TIE' : 'EV_LEADERSHIP_OVERLAP'];
   baseline.optimalityScope = 'FINITE_SIZE_GRID_FIXED_CONTINUATION_POLICY';
   baseline.assumptions = assumptions;
-  baseline.warnings = ['Referência contra a política simulada e range uniforme; não é uma estratégia ótima validada.'];
+  baseline.warnings = ['Reference against a simulated policy and uniform range; optimal strategy has not been validated.'];
   const trainingEvaluation = { model: MODEL, policy: { opponent: POLICY, opponentStyle: context.opponentStyle,
     heroContinuation: `${POLICY}_MIXED` }, rangeAssumption: RANGE,
     candidates: results, recommendedOptionId: recommended.optionId, chosenOptionId: context.chosenOptionId,
@@ -248,7 +248,7 @@ function evaluateTraining(input) {
     confidence: baseline.confidence, equity, potMath, ev,
     strategy: { baseline, finalAction: recommended.action, finalSource: 'TRAINING_POLICY_ROLLOUT', confidence: baseline.confidence, warnings: baseline.warnings, conflicts: [] },
     trainingEvaluation, legalActions: actions, handInsights: describeHand(config.heroCards, state.board),
-    reason: `${recommended.action}${recommended.size != null ? ` até ${recommended.size}` : ''} tem o maior EV estimado na grade contra a política simulada. ${leadership.status === 'SEPARATED' ? 'As faixas amostrais estão separadas.' : 'A diferença entre alternativas ainda é inconclusiva.'}`,
+    reason: `${recommended.action}${recommended.size != null ? ` to ${recommended.size}` : ''} has the highest estimated EV among tested sizes against the simulated policy. ${leadership.status === 'SEPARATED' ? 'The sample intervals are separated.' : 'The difference between alternatives is still inconclusive.'}`,
     assumptions, warnings: baseline.warnings };
 }
 

@@ -39,6 +39,10 @@ test('doubt, chosen custom raise, feedback and history preserve the same numeric
     doubt = await post('doubt', { sessionId: session.id, revision: session.revision, size: 4.25, question: 'Por que aumentar?' });
   } finally { pool.training = original; }
   assert.equal(doubt.httpStatus, 200, doubt.reason);
+  // Check the response actually sent to the browser, including expanded premises.
+  const coachText = JSON.stringify(doubt.answer.summary);
+  assert.match(coachText, /Raise|raise/);
+  assert.doesNotMatch(coachText, /[ãõç]|Pré-flop|Desistir|Pagar custa|Adversário|Tamanhos comparados/);
   assert.deepEqual(Object.keys(forwarded).sort(), ['chosenSize', 'config', 'events', 'opponentStyle', 'samples']);
   assert.equal(forwarded.seed, undefined);
   assert.equal(forwarded.villainCards, undefined);

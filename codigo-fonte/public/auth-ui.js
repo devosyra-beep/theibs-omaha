@@ -4,6 +4,7 @@
   const STORAGE_KEY = 'theibs.auth.session.v1';
   const nativeFetch = window.fetch.bind(window);
   let session = null;
+  let signedOut = false;
   let resolveReady;
   let readyResolved = false;
   window.theibsAuthReady = new Promise(resolve => { resolveReady = resolve; });
@@ -24,6 +25,7 @@
       !['/api/public-config', '/api/status', '/api/billing/webhook'].includes(url.pathname);
     if (!protectedApi) return nativeFetch(input, init);
     await window.theibsAuthReady;
+    if (signedOut) throw new Error('You have signed out. Sign in again to continue.');
     const headers = new Headers(init.headers || (typeof input !== 'string' ? input.headers : undefined));
     if (session?.access_token) headers.set('Authorization', `Bearer ${session.access_token}`);
     return nativeFetch(input, { ...init, headers });
@@ -101,7 +103,8 @@
       google.disabled = !config.providers.google;
       close.hidden = !loggedIn || !access?.allowed;
       signout.hidden = !loggedIn;
-      headerSignout.hidden = !loggedIn;
+      headerSignout.hidden = false;
+      headerSignout.title = config.required ? 'Sign out of this device' : 'Leave the local lab';
       refresh.hidden = !loggedIn || access?.allowed;
       subscribe.hidden = !loggedIn || !config.billingEnabled || ['LIFETIME', 'ACTIVE'].includes(access?.state);
       heading.textContent = loggedIn ? 'Account & access' : 'Sign in to your account';
@@ -149,10 +152,23 @@
       } catch (error) { status.textContent = error.message; subscribe.disabled = false; }
     });
     async function signOut() {
-      if (session?.access_token && config?.supabaseUrl) nativeFetch(`${config.supabaseUrl}/auth/v1/logout`, {
-        method: 'POST', headers: { apikey: config.supabasePublishableKey, Authorization: `Bearer ${session.access_token}` }
-      }).catch(() => {});
-      saveSession(null); access = null; render(); show();
+      if (signedOut) return;
+      signedOut = true;
+      const token = session?.access_token;
+      saveSession(null); access = null;
+      signout.disabled = true; headerSignout.disabled = true;
+      app.setAttribute('inert', '');
+      status.textContent = 'Signing out…';
+      try {
+        if (token && config?.supabaseUrl) await nativeFetch(`${config.supabaseUrl}/auth/v1/logout?scope=local`, {
+          method: 'POST', headers: { apikey: config.supabasePublishableKey, Authorization: `Bearer ${token}` },
+          signal: AbortSignal.timeout(5000)
+        });
+      } catch { /* Local credentials are already cleared, including when offline. */ }
+      finally {
+        saveSession(null);
+        location.replace(config?.required ? '/app?login=1' : '/');
+      }
     }
     signout.addEventListener('click', signOut);
     headerSignout.addEventListener('click', signOut);

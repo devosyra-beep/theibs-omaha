@@ -258,7 +258,7 @@ const server = http.createServer(async (request, response) => {
         if (analysis.status !== 'OK') return json(response, 200, analysis);
         const context = snapshotForCoach(analysis);
         if (analysis.observedState) { context.observedState = analysis.observedState; context.observedSource = analysis.observedSource; }
-        const question = String(payload.question || 'Explique esta mão.').slice(0, 500);
+        const question = String(payload.question || 'Explain this hand.').slice(0, 500);
         const historyPath = userStoragePath(auth, 'training-events.jsonl');
         const similarCases = similarDecisions(readEvents(historyPath), context);
         const answer = await answerDoubt(context, question, process.env, similarCases);
@@ -283,18 +283,18 @@ const server = http.createServer(async (request, response) => {
       }
       if (route === '/api/training/act' || route === '/api/training/doubt' || route === '/api/training/review') {
         const session = sessions.get(String(payload.sessionId || ''));
-        if (!session || !ownerMatches(auth, payload.sessionId)) return json(response, 404, { status: 'ERROR', reason: 'Sessão não encontrada; inicie novo treino.' });
+        if (!session || !ownerMatches(auth, payload.sessionId)) return json(response, 404, { status: 'ERROR', reason: 'Session not found. Start a new training hand.' });
         if (route === '/api/training/review') {
           return json(response, 200, { status: 'OK', session: publicSession(session), decisions: session.decisions });
         }
-        if (session.finished) return json(response, 400, { status: 'ERROR', reason: 'Mão encerrada; inicie outra.' });
+        if (session.finished) return json(response, 400, { status: 'ERROR', reason: 'This hand has ended. Start another hand.' });
         if (route === '/api/training/doubt' && session.mode === 'CHALLENGE') {
-          return json(response, 200, { status: 'LOCKED', reason: 'No modo desafio, a resposta aparece depois da sua decisão.' });
+          return json(response, 200, { status: 'LOCKED', reason: 'In challenge mode, the explanation appears after your decision.' });
         }
         if (payload.revision !== undefined && (!Number.isInteger(payload.revision) || payload.revision !== session.events.length)) {
-          return json(response, 409, { status: 'ERROR', reason: 'A mão mudou; atualize a decisão antes de agir.', session: publicSession(session) });
+          return json(response, 409, { status: 'ERROR', reason: 'The hand changed. Refresh the decision before acting.', session: publicSession(session) });
         }
-        if (sessionBusy.has(session)) return json(response, 409, { status: 'ERROR', reason: 'Esta decisão já está sendo analisada. Aguarde a resposta.' });
+        if (sessionBusy.has(session)) return json(response, 409, { status: 'ERROR', reason: 'This decision is already being analyzed. Wait for the result.' });
         sessionBusy.add(session);
         try {
           const isAction = route === '/api/training/act';
@@ -303,14 +303,14 @@ const server = http.createServer(async (request, response) => {
           const evaluated = await evaluateSession(session, { size: payload.size, response });
           const { analysis, cacheHit } = evaluated;
           if (response.destroyed) return;
-          if (sessions.get(session.id) !== session) return json(response, 409, { status: 'ERROR', reason: 'A sessão mudou durante a análise; abra o treino atual.' });
+          if (sessions.get(session.id) !== session) return json(response, 409, { status: 'ERROR', reason: 'The session changed during analysis. Open the current training hand.' });
           const quality = isAction ? decisionQuality(analysis, chosenAction, payload.size) : null;
           if (quality) analysis.trainingEvaluation.chosenOptionId = quality.chosenOptionId || null;
           const snapshot = snapshotForCoach(analysis, session);
           snapshot.trainingEvaluation = analysis.trainingEvaluation;
           snapshot.evaluationPerformance = { ...analysis.performance, cacheHit };
           if (!isAction) {
-            const question = String(payload.question || 'Por que essa ação?').slice(0, 500);
+            const question = String(payload.question || 'Why this action?').slice(0, 500);
             const historyPath = userStoragePath(auth, 'training-events.jsonl');
             const similarCases = similarDecisions(readEvents(historyPath), snapshot);
             const answer = await answerDoubt(snapshot, question, process.env, similarCases);
@@ -340,7 +340,7 @@ const server = http.createServer(async (request, response) => {
           return json(response, 200, { status: 'OK', session: publicSession(nextSession), feedback: {
             chosenAction, chosenSize, chosenOptionId: quality.chosenOptionId || null,
             recommendedAction: snapshot.recommendation, recommendedSize: quality.recommendedSize ?? null, quality, summary,
-            note: 'Comparação entre os tamanhos avaliados e as políticas do exercício; sem referência externa de estratégia ótima.',
+            note: 'Comparison of tested sizes under the exercise policies; no external optimal-strategy reference.',
             context: snapshot
           } });
         } finally { sessionBusy.delete(session); }

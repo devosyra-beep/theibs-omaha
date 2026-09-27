@@ -27,11 +27,12 @@ test('landing, PWA shell, Google login and icons are served with correct media t
     fetch(origin + '/service-worker.js'),
     fetch(origin + '/icons/theibs.svg'),
     fetch(origin + '/icons/theibs-192.png'),
-    fetch(origin + '/landing-assets/theibs-app.png'),
+    fetch(origin + '/landing-assets/theibs-training.png'),
     fetch(origin + '/dashboard.js').then(response => response.text()),
     fetch(origin + '/multiway-ui.js').then(response => response.text())
   ]);
-  assert.match(landing, /Train poker like a/);
+  assert.match(landing, /Poker training/);
+  assert.match(landing, /Built for accessibility/);
   assert.match(landing, /href="\/app\?login=1"/);
   assert.match(landing, /landing-assets\/theibs-app\.png/);
   assert.match(page, /id="login-screen"/);

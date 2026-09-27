@@ -466,7 +466,7 @@ function renderResult(data, street) {
     try {
       const data = await postJson('/api/training/doubt', { sessionId: trainingSession.id, revision:trainingSession.revision, question: value('training-question'),...(trainingSession.legalActions.some(action=>['BET','RAISE'].includes(action))?{size:Number(value('training-size'))}:{}) });
       if(data.status==='LOCKED')target.textContent=data.reason;else renderCoachAnswer(target,data.answer,data.context);
-      if (data.answer) $('#coach-provider').textContent = data.answer.provider === 'ollama' ? 'Llama · fatos calculados' : 'Treinador local';
+      if (data.answer) $('#coach-provider').textContent = data.answer.provider === 'ollama' ? 'Llama · calculated facts' : 'Local coach';
     } catch (error) { target.textContent = error.message; }
     finally { setTrainingBusy(false); }
   }

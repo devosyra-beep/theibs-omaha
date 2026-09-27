@@ -11,7 +11,7 @@ const MAX_SIZES_PER_STATE = 4;
 // Validate against the ledger without advancing the actual hidden deal or
 // mutating the session. This also rejects fractional cents and illegal all-ins.
 function validateChoice(session, action, size) {
-  if (!legalDecision(session).actions.includes(action)) throw Error('Ação ilegal para o estado atual.');
+  if (!legalDecision(session).actions.includes(action)) throw Error('This action is not legal in the current state.');
   const aggressive = ['BET', 'RAISE'].includes(action);
   replay(session.config, [...session.events, { type: 'ACT', actor: 0, action,
     ...(aggressive ? { to: size } : {}) }]);
@@ -33,8 +33,8 @@ async function evaluateSession(session, { size, response } = {}) {
   if (!entries) { entries = new Map(); cache.set(session, entries); }
   if (entries.has(key)) return { analysis: structuredClone(entries.get(key)), cacheHit: true, comparisonSize: chosenSize };
   const analysis = await analyzeInWorker.training(input, response);
-  if (analysis?.status !== 'OK') throw Error(analysis?.reason || 'A avaliação do treino não foi concluída.');
-  if (!analysis.trainingEvaluation?.candidates?.length) throw Error('A avaliação do treino não trouxe alternativas verificáveis.');
+  if (analysis?.status !== 'OK') throw Error(analysis?.reason || 'Training evaluation did not finish.');
+  if (!analysis.trainingEvaluation?.candidates?.length) throw Error('Training evaluation did not return verifiable alternatives.');
   analysis.trainingEvaluation.evaluationId = key;
   if (entries.size >= MAX_SIZES_PER_STATE) entries.delete(entries.keys().next().value);
   entries.set(key, structuredClone(analysis));

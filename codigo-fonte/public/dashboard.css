@@ -591,6 +591,15 @@ body[data-view=train] #training-feedback>.feedback-action { display:block; margi
 }
 
 /* Focused canvas: compact navigation and explanations inside the calculation. */
+.studio-footer { margin-top:auto; padding:16px 0 4px; }
+.studio-signature { display:flex; align-items:center; justify-content:center; gap:10px; color:#dedad0; }
+.studio-signature img { display:block; width:36px; height:auto; flex:none; }
+.studio-signature span { font:19px/1.2 Georgia,"Times New Roman",serif; white-space:nowrap; }
+.login-studio { margin-top:24px; }
+.header-signout { display:inline-flex; align-items:center; gap:7px; min-height:40px; white-space:nowrap; }
+body[data-sidebar=collapsed] .studio-footer span { display:none; }
+body[data-sidebar=collapsed] .studio-footer img { width:30px; }
+@media(max-width:999px) { .studio-footer { margin-top:0; padding:0; } .studio-footer span { display:none; } .studio-footer img { width:26px; } }
 .icon-button { display:inline-flex; align-items:center; justify-content:center; flex:none; width:40px; height:40px; padding:8px!important; border-radius:9px; }
 .icon-button svg,.nav-tab svg,#open-help svg,#open-card-picker svg { width:21px; height:21px; flex:none; }
 .topbar .top-actions,.topbar .dashboard-tools { gap:8px; }
