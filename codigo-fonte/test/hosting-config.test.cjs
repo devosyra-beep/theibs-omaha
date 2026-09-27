@@ -4,6 +4,7 @@ const assert = require('node:assert/strict');
 const { spawnSync } = require('node:child_process');
 const path = require('node:path');
 const { runtimeConfig, validateDeployment } = require('../src/hosting-config');
+const { publicConfig } = require('../src/supabase-service');
 
 const hosted = {
   RENDER: 'true', RENDER_EXTERNAL_URL: 'https://theibs-test.onrender.com', PORT: '10000',
@@ -40,6 +41,18 @@ test('free preview cannot enable payments with incomplete configuration or ephem
   assert.throws(() => validateDeployment(billing), /persistent user storage/);
   assert.throws(() => validateDeployment({ ...billing, THEIBS_USER_DATA_ROOT: '/data/users' }), /persistent user storage/);
   assert.equal(validateDeployment({ ...billing, THEIBS_USER_DATA_ROOT: '/data/users', THEIBS_STORAGE_PERSISTENT: 'true' }).hosted, true);
+});
+
+test('misplaced privileged keys cannot reach the public config or start a hosted server', () => {
+  const legacyServiceKey = ['eyJhbGciOiJIUzI1NiJ9', Buffer.from(JSON.stringify({ role: 'service_role' })).toString('base64url'), 'test'].join('.');
+  for (const key of ['sb_secret_private', legacyServiceKey, 'unknown-key']) {
+    const env = { ...hosted, SUPABASE_PUBLISHABLE_KEY: key };
+    assert.throws(() => publicConfig(env), /sb_publishable_/);
+    assert.throws(() => validateDeployment(env), /sb_publishable_/);
+  }
+  assert.throws(() => validateDeployment({ ...hosted, SUPABASE_SECRET_KEY: hosted.SUPABASE_PUBLISHABLE_KEY }), /sb_secret_/);
+  assert.equal(publicConfig(hosted).supabasePublishableKey, hosted.SUPABASE_PUBLISHABLE_KEY);
+  assert.equal(JSON.stringify(publicConfig(hosted)).includes(hosted.SUPABASE_SECRET_KEY), false);
 });
 
 test('the real entrypoint exits before listening when hosted authentication is disabled', () => {

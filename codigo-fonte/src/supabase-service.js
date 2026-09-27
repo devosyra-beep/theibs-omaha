@@ -22,7 +22,15 @@ function validateSettings(config, { admin = false } = {}) {
   if (!config.required) return;
   if (!/^https:\/\/[^/]+\.supabase\.(co|net)$/.test(config.url)) throw new Error('SUPABASE_URL inválida ou ausente.');
   if (!config.publishableKey) throw new Error('SUPABASE_PUBLISHABLE_KEY ausente.');
+  // Only publishable keys may reach publicConfig and the browser. Reject a
+  // misplaced server secret (including legacy service-role JWTs) before use.
+  if (!/^sb_publishable_[A-Za-z0-9_-]+$/.test(config.publishableKey)) {
+    throw new Error('SUPABASE_PUBLISHABLE_KEY must be a publishable key starting with sb_publishable_.');
+  }
   if (admin && !config.secretKey) throw new Error('SUPABASE_SECRET_KEY ausente no servidor.');
+  if (admin && !/^sb_secret_[A-Za-z0-9_-]+$/.test(config.secretKey)) {
+    throw new Error('SUPABASE_SECRET_KEY must be a server key starting with sb_secret_.');
+  }
 }
 
 function publicConfig(env = process.env) {
