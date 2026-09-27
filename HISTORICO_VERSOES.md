@@ -1,3 +1,9 @@
+## Landing Persona e Osyra Studio — 27/09/2026
+
+Landing atualizada a partir do ZIP `poker-persona-main`: abertura em carvão/dourado, seis recursos e rodapé com símbolo vetorial e nome Osyra Studio. O primeiro preview usa o print real do treinador enviado pelo usuário. Layout adaptado para HTML/CSS estáticos, sem instalar dependências do projeto Lovable. Botões preservam `/app?login=1`; autenticação, preço e motor não foram alterados. Cache PWA atualizado.
+
+Validação local: inspeção visual desktop e celular (390 px), imagens carregadas sem overflow horizontal, recursos HTTP 200, destinos dos CTAs conferidos e sintaxe do service worker válida. Local opera sem autenticação obrigatória; validação do login hospedado é separada.
+
 ## Preparação de hospedagem — 26/09/2026
 
 Teste LIVE no Render Free identificou timeout no treinador. Prazo do worker de treino ampliado de 8 para 60 segundos somente no Render; mantém as 256 simulações por alternativa e rejeita resultados incompletos. Mensagens do worker em inglês. Onze testes de pool passaram localmente; desempenho online deve ser validado separadamente.

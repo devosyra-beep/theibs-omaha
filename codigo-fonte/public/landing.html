@@ -4,66 +4,87 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; img-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
-  <meta name="theme-color" content="#111217">
-  <meta name="description" content="Poker practice, made more accessible. Train Omaha at your own pace with clear cards, keyboard controls and guided explanations.">
+  <meta name="theme-color" content="#101012">
+  <meta name="description" content="Poker training for everyone. Clear cards, keyboard controls and guided explanations to practice Omaha at your own pace. By Osyra Studio.">
   <meta property="og:title" content="THEIBS — Omaha Lab">
-  <meta property="og:description" content="An accessibility-focused Omaha training tool for everyone who loves poker.">
-  <meta property="og:image" content="/landing-assets/theibs-training.png">
+  <meta property="og:description" content="Poker practice for everyone. Practice Omaha at your own pace, with clear cards and guided explanations.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="https://theibs-omaha.onrender.com/landing-assets/theibs-training.png">
+  <meta name="twitter:card" content="summary_large_image">
   <title>THEIBS — Omaha Lab</title>
-  <link rel="icon" type="image/svg+xml" href="/icons/theibs.svg">
+  <link rel="icon" href="/icons/theibs.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/landing.css">
 </head>
 <body>
+  <a class="skip-link" href="#main">Skip to content</a>
   <header class="site-header">
-    <a class="landing-logo" href="#top" aria-label="THEIBS home"><img src="/landing-assets/theibs-logo.png" alt="THEIBS"></a>
-    <nav aria-label="Landing navigation"><a href="#features">Features</a><a href="#faq">FAQ</a></nav>
-    <a class="button button-small" href="/app?login=1">Sign in with Google <span>→</span></a>
+    <nav class="container header-inner" aria-label="Main navigation">
+      <a class="brand" href="#top" aria-label="THEIBS home">
+        <img src="/icons/theibs.svg" alt="" width="42" height="42">
+        <span><strong>THEIBS</strong><small>Omaha Lab</small></span>
+      </a>
+      <a class="button header-cta" href="/app?login=1">Sign in with Google <span aria-hidden="true">→</span></a>
+    </nav>
   </header>
-
-  <main>
-    <section class="hero grid-glow" id="top">
-      <div class="hero-copy">
-        <span class="pill"><i></i> Poker practice for everyone</span>
-        <h1>Poker training.<br><em>More accessible.</em></h1>
-        <p>For everyone who loves poker. THEIBS brings clear cards, keyboard controls and guided explanations together so you can practice Omaha at your own pace.</p>
-        <div class="hero-actions"><a class="button" href="/app?login=1">Start with Google <span>→</span></a><small>PLO4 · PLO5 · PLO6</small></div>
-      </div>
-      <div class="product-shot">
-        <img src="/landing-assets/theibs-training.png" alt="THEIBS training table with large color-coded cards, Fold, Call and Raise controls, and a coach panel" width="1349" height="827" fetchpriority="high">
-      </div>
-    </section>
-
-    <section class="features" id="features" aria-label="THEIBS features">
-      <article><span class="feature-icon">◇</span><h2>Hand analysis</h2><p>Run any Omaha hand and see EV and equity computed street by street.</p></article>
-      <article><span class="feature-icon">◎</span><h2>Practice at your pace</h2><p>Try decisions against simulated opponents, ask the coach and review what each choice means.</p></article>
-      <article><span class="feature-icon">↺</span><h2>History</h2><p>Every hand is archived. Review patterns and level up your game.</p></article>
-      <article><span class="feature-icon">▰</span><h2>PLO4 · PLO5 · PLO6</h2><p>Full Omaha variant coverage with configurable table felts.</p></article>
-      <article><span class="feature-icon">↗</span><h2>EV &amp; Equity</h2><p>Expected profit and equity, presented clearly for every decision.</p></article>
-      <article><span class="feature-icon">⌨</span><h2>Built for accessibility</h2><p>Large, readable cards and keyboard or mouse controls make practice easier to navigate. Choose the way you play and learn.</p></article>
-    </section>
-
-    <section class="showcase">
-      <div class="showcase-inner">
-        <img src="/landing-assets/theibs-app.png" alt="THEIBS analysis table">
-        <div><h2>The table becomes <em>math</em>.</h2><p>Set your hand, opponents and community cards. THEIBS computes call EV and equity and keeps every hand in history.</p><ul><li>Preflop → River timeline</li><li>Up to 5 opponents</li><li>PLO4 · PLO5 · PLO6</li></ul></div>
+  <main id="main">
+    <section class="hero" id="top" aria-labelledby="hero-title">
+      <div class="container hero-inner">
+        <div class="hero-copy">
+          <p class="eyebrow"><span aria-hidden="true"></span>Poker practice for everyone</p>
+          <h1 id="hero-title">Poker training.<br><em>More effective.</em></h1>
+          <p class="intro">Clear cards, keyboard controls and guided explanations — to practice Omaha at your own pace.</p>
+          <div class="hero-actions">
+            <a class="button primary-cta" href="/app?login=1">Start with Google <span aria-hidden="true">→</span></a>
+            <ul class="variants" aria-label="Supported Omaha variants"><li>PLO4</li><li>PLO5</li><li>PLO6</li></ul>
+          </div>
+        </div>
+        <div class="trainer-preview">
+          <img src="/landing-assets/theibs-training.png" alt="THEIBS practice and review: a purple Omaha table, large four-color cards, Fold, Call and Raise controls, and the coach's explanation." width="1916" height="896" fetchpriority="high">
+        </div>
       </div>
     </section>
-
-    <section class="pricing grid-glow" id="price">
-      <h2>One-time <em>R$ 250.00</em></h2>
-      <p>No subscription, no auto-renewal. Pay once and keep full access to the Omaha lab.</p>
-      <div class="price-card"><ul><li>Hand analysis — PLO4, PLO5 &amp; PLO6</li><li>Train mode with EV &amp; equity feedback</li><li>Full hand history archive</li><li>Instant access after payment</li></ul><a class="button" href="/app?login=1">Get access <span>→</span></a></div>
-    </section>
-
-    <section class="faq" id="faq">
-      <h2>FAQ</h2>
-      <details><summary>Who is THEIBS for?<span>+</span></summary><p>Anyone who loves poker and wants a more accessible way to practice Omaha. Clear visuals, keyboard controls and guided explanations help you study at your own pace, whether you are learning the rules or exploring decisions.</p></details>
-      <details><summary>Is it a one-time payment?<span>+</span></summary><p>Yes. R$ 250.00 once — no subscription and no auto-renewal.</p></details>
-      <details><summary>Which Omaha variants are supported?<span>+</span></summary><p>PLO4, PLO5 and PLO6, with configurable felts and street-by-street analysis.</p></details>
-      <details><summary>Do I need to install anything?<span>+</span></summary><p>No. THEIBS runs in the browser. Sign in with Google and open the lab.</p></details>
+    <section class="features container" aria-label="Tools for your practice">
+      <article class="feature">
+        <span class="feature-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 9 9-9 9-9-9Z"/></svg></span>
+        <h2>Hand analysis</h2>
+        <p>Explore an Omaha hand and compare calculated EV and equity, street by street.</p>
+      </article>
+      <article class="feature">
+        <span class="feature-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3"/></svg></span>
+        <h2>Practice at your pace</h2>
+        <p>Try decisions against simulated opponents, ask the coach and review what each choice means.</p>
+      </article>
+      <article class="feature">
+        <span class="feature-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11a9 9 0 1 1 3 8M3 4v7h7m2-4v5l3 2"/></svg></span>
+        <h2>History</h2>
+        <p>Revisit your recorded hands and decisions. Find patterns and give your next practice session a focus.</p>
+      </article>
+      <article class="feature">
+        <span class="feature-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M9 10v10"/></svg></span>
+        <h2>PLO4 · PLO5 · PLO6</h2>
+        <p>Choose your Omaha variant, card colors and table felt. Make the table feel like yours.</p>
+      </article>
+      <article class="feature">
+        <span class="feature-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 17 6-6 4 4 8-10m-6 0h6v6"/></svg></span>
+        <h2>EV &amp; Equity</h2>
+        <p>Expected profit and equity, presented clearly — with the calculation and its assumptions a click away.</p>
+      </article>
+      <article class="feature">
+        <span class="feature-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M6 9h.01M10 9h.01M14 9h.01M18 9h.01M6 12h.01M10 12h.01M14 12h.01M18 12h.01M7 15h10"/></svg></span>
+        <h2>Built for accessibility</h2>
+        <p>Large, readable cards and keyboard or mouse controls make practice easier to navigate. Choose the way you play and learn.</p>
+      </article>
     </section>
   </main>
-
-  <footer><div class="studio-signature" aria-label="Osyra Studio"><img src="/landing-assets/osyra-studio.svg" alt="" width="40" height="34"><span>Osyra Studio</span></div><p>Poker practice, made more accessible.</p><p>© 2026 Osyra Studio</p></footer>
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div class="studio-signature">
+        <img src="/landing-assets/osyra-studio.svg" alt="" width="48" height="41">
+        <span>Osyra Studio</span>
+      </div>
+      <p>Poker practice, made more accessible.</p>
+      <small>© 2026 Osyra Studio</small>
+    </div>
+  </footer>
 </body>
 </html>
