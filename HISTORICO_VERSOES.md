@@ -1,5 +1,7 @@
 ## Preparação de hospedagem — 26/09/2026
 
+Teste LIVE no Render Free identificou timeout no treinador. Prazo do worker de treino ampliado de 8 para 60 segundos somente no Render; mantém as 256 simulações por alternativa e rejeita resultados incompletos. Mensagens do worker em inglês. Onze testes de pool passaram localmente; desempenho online deve ser validado separadamente.
+
 Eliminado o flash do laboratório antes do login: HTML inicia com mesa oculta e inativa; somente acesso autorizado ou modo local confirmado revela a interface. Logout oculta imediatamente e falhas mantêm a tela bloqueada. Cache PWA renovado. Validação direcionada: 18 testes passaram, incluindo configuração lenta, sessão aguardando confirmação, acesso expirado, falha de rede e modo local.
 
 Proteção adicional contra configuração incorreta: chave pública exige prefixo `sb_publishable_` e chave do servidor exige `sb_secret_`. A configuração pública e a inicialização bloqueiam chaves trocadas, inclusive JWT legado de service role. Validação local direcionada: 14 testes de autenticação, hospedagem e cobrança passaram.

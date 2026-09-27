@@ -17,7 +17,9 @@ if (!isMainThread) {
     }
   });
 } else {
-  function createAnalysisPool({ maxWorkers = 2, workerFile = __filename, fixedTimeoutMs = 90000, adaptiveTimeoutMs = 3000, trainingTimeoutMs = 8000 } = {}) {
+  // Render Free has a fractional CPU. Keep the complete fixed sample budget,
+  // but allow its worker more wall time; the HTTP/UI thread stays responsive.
+  function createAnalysisPool({ maxWorkers = 2, workerFile = __filename, fixedTimeoutMs = 90000, adaptiveTimeoutMs = 3000, trainingTimeoutMs = process.env.RENDER === 'true' ? 60000 : 8000 } = {}) {
     const slots = new Set(), terminations = new Set();
     let sequence = 0, closed = false;
 
@@ -64,17 +66,17 @@ if (!isMainThread) {
       });
       slot.worker.on('error', error => { if (!slot.retired) finish(slot, error, null, true); });
       slot.worker.on('exit', code => {
-        if (!slot.retired) finish(slot, Error(`Motor encerrou antes do resultado (${code}).`), null, true);
+        if (!slot.retired) finish(slot, Error(`The engine stopped before returning a result (${code}).`), null, true);
       });
       slot.worker.unref();
       return slot;
     }
 
     function analyze(input, response, kind = 'ANALYSIS') {
-      if (closed) return Promise.reject(Error('Motor encerrado.'));
-      if (response?.destroyed && !response.writableEnded) return Promise.reject(Error('Cálculo cancelado.'));
+      if (closed) return Promise.reject(Error('The engine is closed.'));
+      if (response?.destroyed && !response.writableEnded) return Promise.reject(Error('Calculation cancelled.'));
       let slot = [...slots].find(candidate => !candidate.job && !candidate.retired);
-      if (!slot && slots.size >= maxWorkers) return Promise.reject(Error('Motor ocupado. Aguarde o cálculo em andamento.'));
+      if (!slot && slots.size >= maxWorkers) return Promise.reject(Error('The engine is busy. Wait for the current calculation.'));
       const started = performance.now();
       try { if (!slot) slot = createSlot(); }
       catch (error) { return Promise.reject(error); }
@@ -82,8 +84,8 @@ if (!isMainThread) {
         const job = { id: ++sequence, started, resolve, reject, response, kind, workerReused: slot.completedJobs > 0 };
         slot.job = job;
         slot.worker.ref();
-        job.cancel = () => { if (!response.writableEnded) finish(slot, Error('Cálculo cancelado.'), null, true); };
-        job.timer = setTimeout(() => finish(slot, Error('O cálculo excedeu o limite de tempo; não foi concluído. Tente menos amostras ou simplifique os ranges.'), null, true), kind === 'TRAINING' ? trainingTimeoutMs : input?.samplingMode === 'ADAPTIVE' ? adaptiveTimeoutMs : fixedTimeoutMs);
+        job.cancel = () => { if (!response.writableEnded) finish(slot, Error('Calculation cancelled.'), null, true); };
+        job.timer = setTimeout(() => finish(slot, Error('Calculation timed out. No incomplete result was used. Try again when the server is less busy.'), null, true), kind === 'TRAINING' ? trainingTimeoutMs : input?.samplingMode === 'ADAPTIVE' ? adaptiveTimeoutMs : fixedTimeoutMs);
         response?.on?.('close', job.cancel);
         try { slot.worker.postMessage({ id: job.id, input, kind }); }
         catch (error) { finish(slot, error, null, true); }
@@ -94,7 +96,7 @@ if (!isMainThread) {
     // close explicitly for deterministic teardown; new requests are then rejected.
     analyze.close = async () => {
       closed = true;
-      for (const slot of [...slots]) finish(slot, Error('Motor encerrado.'), null, true);
+      for (const slot of [...slots]) finish(slot, Error('The engine is closed.'), null, true);
       await Promise.all([...terminations]);
     };
     analyze.stats = () => ({ workers: slots.size, busy: [...slots].filter(slot => slot.job).length, closed });

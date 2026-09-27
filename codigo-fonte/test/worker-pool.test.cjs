@@ -32,32 +32,32 @@ test('Fixed and adaptive throughput uses actual completed samples and declared m
 test('At most two workers run and overlapping replies stay with the correct request',async t=>{
  const pool=createAnalysisPool({workerFile:fixture});t.after(()=>pool.close());
  const a=pool({key:'slow',delay:70}),b=pool({key:'fast',delay:10});
- await assert.rejects(pool({key:'third'}),/ocupado/);assert.equal(pool.stats().busy,2);
+ await assert.rejects(pool({key:'third'}),/busy/);assert.equal(pool.stats().busy,2);
  assert.equal((await b).key,'fast');assert.equal((await a).key,'slow');assert.deepEqual(pool.stats(),{workers:2,busy:0,closed:false});
 });
 
 test('Client cancellation retires only its worker and cannot leak a late reply',async t=>{
  const pool=createAnalysisPool({workerFile:fixture});t.after(()=>pool.close());const r=response();
- const a=pool({key:'cancelled',delay:100},r),rejected=assert.rejects(a,/cancelado/),b=pool({key:'survivor',delay:10});
+ const a=pool({key:'cancelled',delay:100},r),rejected=assert.rejects(a,/cancelled/),b=pool({key:'survivor',delay:10});
  r.emit('close');await rejected;assert.equal((await b).key,'survivor');assert.equal(r.listenerCount('close'),0);
  const next=await pool({key:'after'});assert.equal(next.key,'after');assert.equal(next.performance.workerReused,true);assert.equal(pool.stats().workers,1);
 });
 
 test('Timeout destroys the busy worker and a later request starts cleanly',async t=>{
  const pool=createAnalysisPool({workerFile:fixture,fixedTimeoutMs:500});t.after(()=>pool.close());const r=response();
- await assert.rejects(pool({delay:3000},r),/excedeu/);assert.equal(r.listenerCount('close'),0);assert.equal(pool.stats().workers,0);
+ await assert.rejects(pool({delay:3000},r),/timed out/);assert.equal(r.listenerCount('close'),0);assert.equal(pool.stats().workers,0);
  const next=await pool({key:'recovered'});assert.equal(next.key,'recovered');assert.equal(next.performance.workerReused,false);
 });
 
 test('Completed HTTP responses do not cancel computation; disconnected clients never start one',async t=>{
  const pool=createAnalysisPool({workerFile:fixture});t.after(()=>pool.close());const r=response();
  r.writableEnded=true;const result=pool({key:'ended',delay:5},r);r.emit('close');assert.equal((await result).key,'ended');
- const disconnected=response();disconnected.destroyed=true;await assert.rejects(pool({},disconnected),/cancelado/);assert.equal(pool.stats().busy,0);
+ const disconnected=response();disconnected.destroyed=true;await assert.rejects(pool({},disconnected),/cancelled/);assert.equal(pool.stats().busy,0);
 });
 
 test('Worker crashes/exits and clone errors retire broken instances without poisoning pool',async t=>{
  const pool=createAnalysisPool({workerFile:fixture});t.after(()=>pool.close());
- await assert.rejects(pool({exit:true}),/encerrou/);assert.equal(pool.stats().workers,0);
+ await assert.rejects(pool({exit:true}),/stopped/);assert.equal(pool.stats().workers,0);
  await assert.rejects(pool({throw:true}),/fixture crash/);assert.equal(pool.stats().workers,0);
  await assert.rejects(pool({invalid:()=>{}}),/clone/i);assert.equal(pool.stats().workers,0);
  assert.equal((await pool({key:'ok'})).key,'ok');
@@ -71,8 +71,8 @@ test('Input calculation errors keep a healthy worker; exact results never advert
 });
 
 test('Explicit close rejects active and future requests and releases every worker',async()=>{
- const pool=createAnalysisPool({workerFile:fixture}),pending=pool({delay:1000}),rejected=assert.rejects(pending,/encerrado/);
- await pool.close();await rejected;assert.deepEqual(pool.stats(),{workers:0,busy:0,closed:true});await assert.rejects(pool({}),/encerrado/);await pool.close();
+ const pool=createAnalysisPool({workerFile:fixture}),pending=pool({delay:1000}),rejected=assert.rejects(pending,/closed/);
+ await pool.close();await rejected;assert.deepEqual(pool.stats(),{workers:0,busy:0,closed:true});await assert.rejects(pool({}),/closed/);await pool.close();
 });
 
 test('An idle persistent pool does not keep a Node process alive',()=>{
@@ -82,7 +82,7 @@ test('An idle persistent pool does not keep a Node process alive',()=>{
 
 test('Training jobs have a separate deadline and never label tree rollouts as showdown throughput',async t=>{
  const pool=createAnalysisPool({workerFile:fixture,trainingTimeoutMs:500,fixedTimeoutMs:5000});t.after(()=>pool.close());
- await assert.rejects(pool.training({delay:1000}),/excedeu/);
+ await assert.rejects(pool.training({delay:1000}),/timed out/);
  const result=await pool.training({totalSamples:2500});
  assert.equal(result.performance.measurementScope,'TRAINING_WORKER_REQUEST_WALL_TIME');
  assert.equal(result.performance.monteCarloSamples,null);assert.equal(result.performance.simulationsPerSecond,null);
