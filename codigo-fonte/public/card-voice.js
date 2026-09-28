@@ -54,6 +54,7 @@
     return thousands*1000+chunk(rest);
   }
   function parseChips(text, locale = 'pt-BR') {
+    if(!['pt-BR','en-US'].includes(locale))throw Error('Escolha Português ou English.');
     const input=String(text||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/(?<=[a-z])-(?=[a-z])/g,' ').replace(/\s+/g,' ').trim();
     const en=locale==='en-US', separator=en?'.':',';
     if(new RegExp(`^\\d{1,6}(?:\\${separator}\\d{1,2})?$`).test(input))return Number(input.replace(',','.'));
@@ -68,35 +69,72 @@
     if(!Number.isInteger(whole)||whole<0||whole>999999)throw Error('Valor fora do intervalo de entrada.');
     return (whole*100+cents)/100;
   }
-  function parseAction(text,locale) {
-    const en=locale==='en-US';
-    // Preserve decimal punctuation before normalizing card-list separators.
-    let input=String(text||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/,(?!\d)|(?<!\d),/g,' ').replace(/[;:!?]/g,' ').replace(/\s+/g,' ').trim().replace(/\.$/,'');
-    const actorMatch=input.match(en?/^(hero|i|opponent\s+\S+)\s+(.+)$/:/^(eu|heroi|(?:adversario|oponente)\s+\S+)\s+(.+)$/);
-    if(!actorMatch)return null;
-    let actor;
-    if((en?['hero','i']:['eu','heroi']).includes(actorMatch[1]))actor={kind:'hero'};
-    else{
-      const ordinal=actorMatch[1].split(' ').at(-1), values=en?NUMBER_EN:NUMBER_PT;
-      const number=/^[1-9]$/.test(ordinal)?Number(ordinal):values[ordinal];
-      if(!Number.isInteger(number)||number<1||number>9)throw Error('Identifique o adversário pelo número mostrado em ADV.');
-      actor={kind:'opponent',number};
+  const actionText = text => String(text||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/,(?!\d)|(?<!\d),/g,' ').replace(/[;:!?]/g,' ').replace(/\s+/g,' ').trim().replace(/\.$/,'');
+  const actionNames = en => en ? {fold:'FOLD',folds:'FOLD',check:'CHECK',checks:'CHECK',call:'CALL',calls:'CALL',bet:'BET',bets:'BET',raise:'RAISE',raises:'RAISE'}
+    : {fold:'FOLD',desistir:'FOLD',desisto:'FOLD',desiste:'FOLD',desistiu:'FOLD',check:'CHECK',passar:'CHECK',passo:'CHECK',passa:'CHECK',passou:'CHECK',call:'CALL',pagar:'CALL',pago:'CALL',paga:'CALL',pagou:'CALL',bet:'BET',apostar:'BET',aposto:'BET',aposta:'BET',apostou:'BET',raise:'RAISE',aumentar:'RAISE',aumento:'RAISE',aumenta:'RAISE',aumentou:'RAISE'};
+  const allInPhrase = (text,en) => (en ? /^(?:(?:go|goes|am|is) )?all[ -]in$/ : /^(?:(?:vou|vai|foi)(?: de)? )?all[ -]in$/).test(text);
+  function opponentNumber(word,locale) {
+    const value=/^[1-9]$/.test(word)?Number(word):(locale==='en-US'?NUMBER_EN:NUMBER_PT)[word];
+    return Number.isInteger(value)&&value>=1&&value<=9?value:null;
+  }
+  function readAction(text,locale) {
+    const en=locale==='en-US',input=actionText(text),names=actionNames(en);
+    let actor=null,actorText='',opponentMissing=false,phrase=input;
+    const hero=input.match(en?/^(hero|i)(?:\s+|$)/:/^(eu|heroi)(?:\s+|$)/);
+    const opponent=input.match(en?/^(opponent)(?:\s+|$)/:/^(adversario|oponente)(?:\s+|$)/);
+    if(hero){actor={kind:'hero'};actorText=hero[1];phrase=input.slice(hero[0].length);}
+    else if(opponent){
+      const rest=input.slice(opponent[0].length),word=rest.split(' ')[0],number=opponentNumber(word,locale);
+      if(number!==null){actor={kind:'opponent',number};actorText=opponent[1]+' '+word;phrase=rest.slice(word.length).trim();}
+      else if(!rest||Object.hasOwn(names,word)||allInPhrase(rest,en)){opponentMissing=true;actorText=opponent[1];phrase=rest;}
+      else throw Error('Identifique o adversário pelo número mostrado em ADV.');
     }
-    const phrase=actorMatch[2];
-    const names=en?{fold:'FOLD',folds:'FOLD',check:'CHECK',checks:'CHECK',call:'CALL',calls:'CALL',bet:'BET',bets:'BET',raise:'RAISE',raises:'RAISE'}
-      :{fold:'FOLD',desistir:'FOLD',desisto:'FOLD',desiste:'FOLD',desistiu:'FOLD',check:'CHECK',passar:'CHECK',passo:'CHECK',passa:'CHECK',passou:'CHECK',call:'CALL',pagar:'CALL',pago:'CALL',paga:'CALL',pagou:'CALL',bet:'BET',apostar:'BET',aposto:'BET',aposta:'BET',apostou:'BET',raise:'RAISE',aumentar:'RAISE',aumento:'RAISE',aumenta:'RAISE',aumentou:'RAISE'};
-    const first=phrase.split(' ')[0],action=names[first];if(!action)throw Error('Diga uma ação: fold, check, call, bet ou raise.');
-    let rest=phrase.slice(first.length).trim();
+    if(!hero&&!opponent&&!Object.hasOwn(names,phrase.split(' ')[0])&&!allInPhrase(phrase,en))return null;
+    const draft={actor,actorText,opponentMissing,action:null,actionWord:'',basis:null,rawValue:'',unitText:'',unit:'chips'};
+    if(!phrase)return draft;
+    if(allInPhrase(phrase,en))return {...draft,action:'ALL_IN',actionWord:phrase};
+    const first=phrase.split(' ')[0],action=Object.hasOwn(names,first)?names[first]:null;
+    if(!action)throw Error('Diga uma ação: fold, check, call, bet, raise ou all-in.');
+    let rest=phrase.slice(first.length).trim();Object.assign(draft,{action,actionWord:first});
     if(['FOLD','CHECK','CALL'].includes(action)){
       if(rest)throw Error(action==='CALL'?(en?'Say call without a value; the amount comes from the table.':'Diga pagar/call sem valor; o preço vem da mesa.'):'Fold/check não aceitam valor ou outra ação na mesma frase.');
-      return {type:'action',actor,action};
+      return draft;
     }
-    const to=en?'to ':'para ';
-    if(action==='RAISE'&&!rest.startsWith(to))throw Error(en?'Say raise to the total, not an increment.':'Diga aumenta para o total, não o incremento.');
-    if(rest.startsWith(to))rest=rest.slice(to.length);
-    rest=rest.replace(en?/ chips?$/:/ fichas?$/,'');
-    if(!rest)throw Error('Diga o valor da aposta.');
-    return {type:'action',actor,action,to:parseChips(rest,locale)};
+    const basis=rest.match(en?/^(to|by)(?:\s+|$)/:/^(para|em)(?:\s+|$)/);
+    if(basis){draft.basis=['to','para'].includes(basis[1])?'to':'by';rest=rest.slice(basis[0].length);}
+    if(action==='BET'&&draft.basis==='by')throw Error('Bet aceita um valor total; incremento exige raise/aumentar em.');
+    if(action==='BET')draft.basis='to';
+    const unit=rest.match(/(?:^|\s)(chips?|fichas?|bbs?|big blinds?)$/);
+    if(unit){draft.unitText=unit[1];draft.unit=/^(?:bb|big blind)/.test(unit[1])?'bb':'chips';rest=rest.slice(0,unit.index).trim();}
+    draft.rawValue=rest;
+    if(rest){
+      try{draft.value=parseChips(rest,locale);}
+      catch(error){
+        const words=rest.split(' '),known=en?{...NUMBER_EN,and:0,hundred:0,thousand:0,point:0}:{...NUMBER_PT,...HUNDREDS_PT,e:0,mil:0,virgula:0};
+        if(words.every(word=>Object.hasOwn(known,word))&&(en?/\b(?:and|point)$/.test(rest):/\b(?:e|virgula|cento)$/.test(rest)))draft.amountTail=true;
+        else throw error;
+      }
+    }
+    return draft;
+  }
+  function missingActionField(draft) {
+    if(draft.opponentMissing)return 'opponentNumber';
+    if(!draft.actor)return 'actor';
+    if(!draft.action)return 'action';
+    if(draft.action==='RAISE'&&!draft.basis)return 'raiseBasis';
+    if(['BET','RAISE'].includes(draft.action)&&draft.value===undefined)return draft.amountTail?'amountTail':'amount';
+    return null;
+  }
+  function parseAction(text,locale) {
+    const draft=readAction(text,locale);if(!draft)return null;
+    const missing=missingActionField(draft);
+    if(missing)throw Error(clarificationPrompt(missing,locale));
+    const command={type:'action',actor:draft.actor,action:draft.action};
+    if(['BET','RAISE'].includes(draft.action)){
+      command[draft.basis==='by'?'by':'to']=draft.value;
+      if(draft.unit==='bb')command.unit='bb';
+    }
+    return command;
   }
   function resolveAction(command,state) {
     if(command?.type!=='action'||!state||state.phase!=='BETTING')throw Error('Ações por voz exigem uma rodada de apostas ativa no Multiway.');
@@ -106,13 +144,34 @@
     if(!player)throw Error('Esse jogador não existe nesta mesa.');
     if(player.folded||player.allIn)throw Error('Esse jogador não pode agir neste estado.');
     if(player.id!==state.actor)throw Error('Não é a vez desse jogador. Nada foi registrado.');
-    if(!state.legal?.actions?.includes(command.action))throw Error('A ação não é legal neste estado da mesa.');
-    if(['BET','RAISE'].includes(command.action)){
+    const money=value=>Number.isFinite(value)&&value>=0&&Math.abs(value*100-Math.round(value*100))<=1e-7;
+    let action=command.action,to=command.to;
+    if(action==='ALL_IN'){
+      if(command.to!==undefined||command.by!==undefined||command.unit!==undefined)throw Error('All-in usa somente o stack observado, sem valor ou unidade adicional.');
+      if(!money(player.stack)||player.stack<=0||!money(player.streetPaid))throw Error('Stack/contribuição do jogador indisponíveis para all-in.');
+      if(state.legal?.actions?.includes('CALL')&&money(state.legal.toCall)&&Math.abs(state.legal.toCall-player.stack)<1e-9)action='CALL';
+      else{
+        if(!money(state.currentBet))throw Error('Aposta atual indisponível para all-in.');
+        action=state.currentBet>0?'RAISE':'BET';to=Math.round((player.streetPaid+player.stack)*100)/100;
+      }
+    } else if(command.by!==undefined){
+      if(action!=='RAISE'||command.to!==undefined||!money(state.currentBet)||!money(command.by)||command.by<=0)throw Error('Incremento inválido ou aposta atual indisponível.');
+      to=command.by;
+    }
+    if(command.unit!==undefined&&!['chips','bb'].includes(command.unit))throw Error('Unidade inválida: use fichas/chips ou BB.');
+    if(command.unit==='bb'){
+      if(!['BET','RAISE'].includes(action)||!money(state.bigBlind)||state.bigBlind<=0||!money(to))throw Error('Big blind ou valor indisponível para conversão.');
+      to*=state.bigBlind;
+    }
+    if(command.by!==undefined)to+=state.currentBet;
+    if(!state.legal?.actions?.includes(action))throw Error('A ação não é legal neste estado da mesa.');
+    if(['BET','RAISE'].includes(action)){
       if(!Number.isFinite(state.legal.minTo)||!Number.isFinite(state.legal.maxTo))throw Error('Limites legais da aposta indisponíveis.');
-      if(!Number.isFinite(command.to)||command.to<state.legal.minTo-1e-9||command.to>state.legal.maxTo+1e-9)throw Error(`Use total entre ${state.legal.minTo} e ${state.legal.maxTo}.`);
-      if(Math.abs(command.to*100-Math.round(command.to*100))>1e-7)throw Error('Use no máximo duas casas decimais.');
-    } else if(command.to!==undefined)throw Error('Essa ação não aceita valor.');
-    return {actor:player.id,action:command.action,...(['BET','RAISE'].includes(command.action)?{to:command.to}:{})};
+      if(!Number.isFinite(to)||to<state.legal.minTo-1e-9||to>state.legal.maxTo+1e-9)throw Error(`Use total entre ${state.legal.minTo} e ${state.legal.maxTo} fichas nesta street.`);
+      if(!money(to))throw Error('Use no máximo duas casas decimais de fichas.');
+      to=Math.round(to*100)/100;
+    } else if(command.to!==undefined||command.by!==undefined||command.unit!==undefined)throw Error('Essa ação não aceita valor ou unidade.');
+    return {actor:player.id,action,...(['BET','RAISE'].includes(action)?{to}:{})};
   }
   function cardsFrom(text, locale) {
     const english = locale === 'en-US', ranks = english ? EN_RANKS : RANKS, suits = english ? EN_SUITS : SUITS;
@@ -120,10 +179,10 @@
     let i = 0;
     while (i < words.length) {
       if (cards.length && words[i] === (english ? 'and' : 'e')) i++;
-      const rank = ranks[words[i++]];
+      const rankWord = words[i++], rank = Object.hasOwn(ranks,rankWord) ? ranks[rankWord] : null;
       if (!rank) throw Error('Valor da carta não reconhecido. Diga, por exemplo, ás de espadas.');
       if (words[i] === (english ? 'of' : 'de')) i++;
-      const suit = suits[words[i++]];
+      const suitWord = words[i++], suit = Object.hasOwn(suits,suitWord) ? suits[suitWord] : null;
       if (!suit) throw Error('Naipe ausente ou ambíguo. Use espadas, copas, ouros ou paus.');
       cards.push(rank + suit);
     }
@@ -161,6 +220,91 @@
     }
     return { type: 'cards', target: 'selected', cards: cardsFrom(input, locale) };
   }
+  function clarificationPrompt(missing,locale) {
+    const prompts=locale==='en-US'?{
+      actor:'Who acted? Say hero or opponent and its ADV number.',opponentNumber:'Which opponent? Say its ADV number.',
+      action:'Which action: fold, check, call, bet, raise or all-in?',raiseBasis:'Raise to a total or by an increment? Say to or by, then the value if missing.',
+      amount:'What is the amount? Use chips or explicit BB.',amountTail:'Finish the amount after the words already spoken.',
+      suit:'Which suit: spades, hearts, diamonds or clubs?',rank:'Which card rank: ace, two through ten, jack, queen or king?'
+    }:{
+      actor:'Quem agiu? Diga eu ou adversário e o número ADV.',opponentNumber:'Qual adversário? Diga o número ADV.',
+      action:'Qual ação: fold, check, call, bet, raise ou all-in?',raiseBasis:'Aumentar para o total ou em um incremento? Diga para ou em e o valor, se faltar.',
+      amount:'Qual o valor? Use fichas ou BB explícito.',amountTail:'Complete o valor depois das palavras já ditas.',
+      suit:'Qual o naipe: espadas, copas, ouros ou paus?',rank:'Qual o valor da carta: ás, dois a dez, valete, dama ou rei?'
+    };
+    return prompts[missing];
+  }
+  function cardGap(text,locale) {
+    const en=locale==='en-US',ranks=en?EN_RANKS:RANKS,suits=en?EN_SUITS:SUITS,targets=en?EN_TARGETS:TARGETS;
+    let body=normalize(text),prefix='';
+    for(const name of Object.keys(targets))if(body.startsWith(name+' ')){prefix=name;body=body.slice(name.length+1);break;}
+    const connector=en?'of':'de',suitOnly=body.startsWith(connector+' ')?body.slice(connector.length+1):body;
+    if(Object.hasOwn(suits,suitOnly))return {missing:'rank',prefix,suit:suitOnly};
+    const words=body.split(' ');let i=0,count=0;
+    while(i<words.length){
+      if(count&&words[i]===(en?'and':'e'))i++;
+      if(!Object.hasOwn(ranks,words[i++]))return null;
+      if(words[i]===connector)i++;
+      if(i===words.length)return {missing:'suit'};
+      if(!Object.hasOwn(suits,words[i++]))return null;
+      count++;
+    }
+    return null;
+  }
+  // A clarification contains only its explicit source and the missing field.
+  // Its lifetime/context and one-time application remain the caller's job.
+  function getClarification(text,locale='pt-BR') {
+    if(!['pt-BR','en-US'].includes(locale)||typeof text!=='string'||!text.trim()||text.length>800)return null;
+    try{parse(text,locale);return null;}catch{}
+    try{
+      const draft=readAction(text,locale),missing=draft?missingActionField(draft):cardGap(text,locale)?.missing;
+      return missing?Object.freeze({kind:'voice-clarification',version:1,locale,missing,prompt:clarificationPrompt(missing,locale),source:text.trim()}):null;
+    }catch{return null;}
+  }
+  function completeClarification(pending,text,locale=pending?.locale) {
+    const failure=message=>({command:null,clarification:pending||null,error:message});
+    if(!pending||pending.kind!=='voice-clarification'||pending.version!==1||typeof pending.source!=='string')return failure('Esclarecimento inválido. Dite o comando novamente.');
+    if(locale!==pending.locale)return failure('O idioma mudou. Dite o comando novamente.');
+    const verified=getClarification(pending.source,locale);
+    if(!verified||verified.missing!==pending.missing)return failure('Esclarecimento inválido ou já completo. Dite o comando novamente.');
+    if(typeof text!=='string'||!text.trim()||text.length>800)return failure(clarificationPrompt(pending.missing,locale));
+    const en=locale==='en-US',reply=actionText(text);
+    if(reply===(en?'cancel':'cancelar'))return {command:{type:'cancel'},clarification:null,error:null};
+    try{
+      const draft=readAction(pending.source,locale);let combined;
+      const actorPrefix=draft?`${draft.actorText} ${draft.actionWord}`.trim():'';
+      const basisWord=draft?.basis?(en?draft.basis:draft.basis==='to'?'para':'em'):'';
+      if(pending.missing==='actor'){
+        const actor=readAction(reply,locale);
+        if(!actor?.actor||actor.action||actor.opponentMissing)throw Error(clarificationPrompt('actor',locale));
+        combined=reply+' '+pending.source;
+      }else if(pending.missing==='opponentNumber'){
+        if(opponentNumber(reply,locale)===null)throw Error(clarificationPrompt('opponentNumber',locale));
+        combined=pending.source.replace(en?/^opponent\b/i:/^(?:advers[aá]rio|oponente)\b/i,match=>match+' '+reply);
+      }else if(pending.missing==='action')combined=pending.source+' '+reply;
+      else if(pending.missing==='raiseBasis'){
+        const basis=reply.match(en?/^(to|by)(?:\s+|$)/:/^(para|em)(?:\s+|$)/);
+        if(!basis)throw Error(clarificationPrompt('raiseBasis',locale));
+        if(draft.rawValue&&reply.slice(basis[0].length).trim())throw Error(en?'The value is already known; say only to or by.':'O valor já foi informado; diga somente para ou em.');
+        combined=[actorPrefix,reply,draft.rawValue,draft.unitText].filter(Boolean).join(' ');
+      }else if(pending.missing==='amount'||pending.missing==='amountTail'){
+        combined=[actorPrefix,basisWord,pending.missing==='amountTail'?draft.rawValue:'',reply,draft.unitText].filter(Boolean).join(' ');
+      }else if(pending.missing==='suit'){
+        const suit=normalize(text).replace(en?/^of /:/^de /,'');
+        if(!Object.hasOwn(en?EN_SUITS:SUITS,suit))throw Error(clarificationPrompt('suit',locale));
+        combined=pending.source+' '+suit;
+      }else if(pending.missing==='rank'){
+        const rank=normalize(text),gap=cardGap(pending.source,locale);
+        if(!Object.hasOwn(en?EN_RANKS:RANKS,rank))throw Error(clarificationPrompt('rank',locale));
+        combined=[gap.prefix,rank,en?'of':'de',gap.suit].filter(Boolean).join(' ');
+      }else throw Error('Esclarecimento inválido.');
+      try{return {command:parse(combined,locale),clarification:null,error:null};}
+      catch(error){
+        const clarification=getClarification(combined,locale);
+        return clarification?{command:null,clarification,error:null}:failure(error.message);
+      }
+    }catch(error){return failure(error.message);}
+  }
   const token = context => JSON.stringify(context);
   class RecognitionSession {
     constructor() { this.generation = 0; this.cancel(); }
@@ -197,9 +341,9 @@
     preview() { return [...this.segments].sort((a, b) => a[0] - b[0]).map(([, s]) => s.text).join(', '); }
     hasPending() { return [...this.segments.keys()].some(index => index >= this.cursor); }
     pendingPreview() { return [...this.segments].filter(([index]) => index >= this.cursor).sort((a, b) => a[0] - b[0]).map(([, s]) => s.text).join(', '); }
-    prepareReady(id, context) { return this.prepare(id, context, false); }
-    finish(id, context) { return this.prepare(id, context, true); }
-    prepare(id, context, finishing) {
+    prepareReady(id, context, parseCommand = parse) { return this.prepare(id, context, false, parseCommand); }
+    finish(id, context, parseCommand = parse) { return this.prepare(id, context, true, parseCommand); }
+    prepare(id, context, finishing, parseCommand = parse) {
       if (id !== this.id || this.phase !== 'listening') return null;
       if (token(context) !== this.context) { this.reject('O contexto mudou. Nenhuma entrada pendente foi aplicada.'); return null; }
       if (this.error) return null;
@@ -219,7 +363,7 @@
       const pending = segments.slice(this.cursor);
       if (pending.some(([, s]) => !s.text.trim())) { this.reject('O serviço do navegador devolveu texto vazio. Confira idioma, microfone e disponibilidade do serviço; nenhum lote foi aplicado.'); return null; }
       try {
-        this.proposal = parse(pending.map(([, s]) => s.text).join(', '), context.locale);
+        this.proposal = parseCommand(pending.map(([, s]) => s.text).join(', '), context.locale);
         this.proposalEnd = segments.length; this.phase = 'review'; return this.proposal;
       } catch (error) { this.reject(error.message); return null; }
     }
@@ -235,5 +379,5 @@
     }
     cancel() { this.id = null; this.phase = 'cancelled'; this.segments = new Map(); this.proposal = null; this.cursor = 0; this.proposalEnd = null; this.resultCount = null; }
   }
-  return { RANKS, SUITS, EN_RANKS, EN_SUITS, normalize, parse, parseChips, resolveAction, RecognitionSession, qualityGate: Object.freeze({ acoustic: 'NOT_EXECUTED', autoApply: true, rule: 'FINAL_VALIDATED_ONLY' }) };
+  return { RANKS, SUITS, EN_RANKS, EN_SUITS, normalize, parse, parseChips, resolveAction, getClarification, completeClarification, RecognitionSession, qualityGate: Object.freeze({ acoustic: 'NOT_EXECUTED', autoApply: true, rule: 'FINAL_VALIDATED_ONLY' }) };
 });

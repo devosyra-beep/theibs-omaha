@@ -244,8 +244,9 @@
       enabled: view.enabled, busy: busy(), phase: view.state?.phase, nextStreet: view.state?.nextStreet,
       board: [...(view.state?.board || [])],
       actionState: view.state ? { phase:view.state.phase, actor:view.state.actor, heroId:view.state.heroId,
+        currentBet:view.state.currentBet, bigBlind:view.state.bigBlind,
         legal:{...view.state.legal,actions:[...(view.state.legal?.actions||[])]},
-        players:view.state.players.map(item=>({id:item.id,hero:item.hero,name:item.name,position:item.position,folded:item.folded,allIn:item.allIn,streetPaid:item.streetPaid})) } : null };
+        players:view.state.players.map(item=>({id:item.id,hero:item.hero,name:item.name,position:item.position,folded:item.folded,allIn:item.allIn,streetPaid:item.streetPaid,stack:item.stack})) } : null };
   }
   async function commitVoiceBoard({ addedCards, expectedToken }) {
     const current = voiceContext();

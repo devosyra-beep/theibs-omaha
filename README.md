@@ -1,12 +1,24 @@
 # THEIBS — laboratório Omaha
 
-Versão do código: **0.14.4**. Análise e treino de Omaha High PLO4, PLO5 e PLO6, com equity, EV condicionado às premissas, coach, entrada de cartas e histórico.
+Versão do código: **0.14.5**. Análise e treino de Omaha High PLO4, PLO5 e PLO6, com equity, EV condicionado às premissas, coach, entrada de cartas e histórico.
 
 ## Produto e validação
 
 A única entrega ao jogador é a **webapp hospedada**, acessada pelo navegador. Não exige aplicativo instalado, Node.js, Electron, Ollama nem serviço no computador do jogador. A voz é capturada no navegador com permissão explícita; cálculo, coach e persistência usam a API hospedada.
 
-Os comandos de Node.js nos relatórios são ferramentas de desenvolvimento e QA do mesmo código antes da publicação. `LOCAL_EXECUTED` identifica o ambiente de teste, não uma segunda versão do produto. A versão 0.14.2 foi publicada; o registro da atualização atual e sua verificação online ficam em PUBLICACAO-0.14.4.md quando concluídos. A configuração de hospedagem está em `render.yaml` e `codigo-fonte/DEPLOY-SAAS.md`.
+Os comandos de Node.js nos relatórios são ferramentas de desenvolvimento e QA do mesmo código antes da publicação. `LOCAL_EXECUTED` identifica o ambiente de teste, não uma segunda versão do produto. A versão anterior publicada é 0.14.4; o registro da atualização atual e sua verificação online ficam em PUBLICACAO-0.14.5.md quando concluídos. A configuração de hospedagem está em `render.yaml` e `codigo-fonte/DEPLOY-SAAS.md`.
+
+## O que mudou em 0.14.5
+
+A voz distingue preparação, captura real, processamento e retomada. **Ouvindo** só aparece depois de o navegador confirmar a captura de áudio. O modo de frase completa mantém a escuta através de pausas; uma frase já aplicada não força um novo encerramento. No modo rápido, aguarde o indicador Ouvindo antes de dizer a próxima carta. O limiar de 220 ms e a exigência de final verdadeiro permanecem.
+
+Quando uma frase final está incompleta de forma identificável, a voz pede apenas o dado ausente, como naipe ou valor. O complemento vale por até 15 segundos no mesmo contexto; não substitui informações já ditas. Teclado, cancelamento, nova mão ou mudança de sessão invalidam a solicitação. Há também **Desfazer última entrada** no próprio painel.
+
+No Multiway, **raise to / aumentar para** significa total da street; **raise by / aumentar em** significa incremento sobre a maior aposta atual. BB explícito usa o big blind da mesa. All-in só é registrado quando o stack e os limites legais permitem, sem reduzir silenciosamente o valor ao limite do pote. Isso registra uma ação observada e não amplia a cobertura matemática do estudo de EV.
+
+**Teste voluntário da sua voz** oferece frases PT/EN em estado simulado, sem alterar a mão real. Requer início e consentimento explícitos, usa uma captura por vez e exporta resultados agregados somente quando solicitado. O THEIBS não grava áudio nem persiste transcrições. Corpus de frases, testes controlados e avaliação acústica humana são evidências distintas: os testes automatizados não demonstram as metas humanas de precisão e latência.
+
+Método e resultados em `RELATORIO-QUALIDADE-VOZ-0.14.5.md`; publicação em `PUBLICACAO-0.14.5.md` depois de confirmada online.
 
 ## O que mudou em 0.14.4
 
@@ -59,10 +71,11 @@ A ferramenta não é solver GTO, não demonstrou lucro contra jogadores reais e 
 
 ## Evidências e continuidade
 
+- [Qualidade da voz 0.14.5](RELATORIO-QUALIDADE-VOZ-0.14.5.md): continuidade, interpretação, testes e limites da avaliação acústica.
 - [Entrega 0.14.2](RELATORIO-CONTINUAR-0.14.2.md): indicador do CALL atual, casos reais do motor e validação.
 - [Entrega 0.14.1](RELATORIO-VALIDACAO-0.14.1.md): resultados econômicos, voz, tempos e pendências anteriores.
 - [Relatório anterior](RELATORIO-VALIDACAO-0.13.0.md): baseline histórico preservado.
 - [Protocolo de benefício estratégico e aprendizagem](PROTOCOLO-BENEFICIO-ESTRATEGICO.md): o que falta para testar vantagem e aprendizagem de forma independente.
 - [Histórico](HISTORICO_VERSOES.md) e [método](METODO-VALIDACAO-E-APRENDIZAGEM.md).
 
-Os testes desta entrega usaram arquivos temporários, sem alterar histórico/configuração pessoal. Os testes usam loopback e arquivos temporários; o produto usa hospedagem e autenticação. Produção, login, cobrança, modelos reais e novo pacote Electron não foram homologados nesta rodada. Nenhuma publicação foi feita.
+Os testes de desenvolvimento usam loopback e arquivos temporários; o produto usa hospedagem e autenticação. A comprovação da publicação fica em seu registro separado. A validação técnica e sintética não comprova reconhecimento humano, cobrança, lucro ou aprendizagem.

@@ -7,19 +7,19 @@
   if (!host) return;
   const voice = window.TheibsCardVoice, fast = window.TheibsCardVoiceFast, keyboard = window.theibsCardKeyboard, session = new voice.RecognitionSession();
   const panel = document.createElement('section'); panel.id = 'card-voice'; panel.setAttribute('aria-label', 'Cartas e ações observadas por voz');
-  panel.innerHTML = `<div class="voice-heading"><strong>Cartas e ações por voz</strong><span id="voice-mode-badge" class="voice-badge">Aplicação automática</span></div>
+  panel.innerHTML = `<div class="voice-heading"><strong>Cartas e ações por voz</strong><span id="voice-capture-state" class="voice-badge" aria-live="polite">Pronto para iniciar</span><span id="voice-mode-badge" class="voice-badge">Aplicação automática</span></div>
     <div class="voice-options"><label>Idioma / Language<select id="voice-language"><option value="pt-BR">Português (Brasil)</option><option value="en-US">English (US)</option></select></label>
     <label>Reconhecimento<select id="voice-processing"><option value="browser">Serviço do navegador</option><option value="device">Somente neste dispositivo</option></select></label>
     <label>Ritmo da fala<select id="voice-pace"><option value="fast">Rápido · uma carta por vez</option><option value="batch">Frase completa · cartas em sequência</option></select></label></div>
     <label class="voice-consent"><input id="voice-auto-apply" type="checkbox" checked> Aplicar ao reconhecer e avançar para a próxima carta</label>
     <p id="voice-privacy" class="voice-help">O serviço de voz do navegador pode enviar áudio ao provedor do navegador. Destino e retenção dependem dele. O THEIBS não grava áudio nem salva transcrições.</p>
     <label class="voice-consent"><input id="voice-consent" type="checkbox"> Permito o serviço de voz do navegador para esta página, inclusive processamento remoto.</label>
-    <div class="voice-actions"><button id="voice-hold" type="button">Segure para falar</button><button id="voice-toggle" type="button" aria-pressed="false" title="Alt+V">Iniciar fala · Alt+V</button><button id="voice-cancel" type="button" disabled>Cancelar</button></div>
+    <div class="voice-actions"><button id="voice-hold" type="button">Segure para falar</button><button id="voice-toggle" type="button" aria-pressed="false" title="Alt+V">Iniciar fala · Alt+V</button><button id="voice-cancel" type="button" disabled>Cancelar</button><button id="voice-undo" type="button" disabled>Desfazer última entrada</button></div>
     <p id="voice-status" role="status" aria-live="polite">Escolha o idioma. Diga valor e naipe; o teclado continua disponível.</p>
     <div id="voice-review" hidden><p class="voice-help">Confira a frase e o destino antes de aplicar:</p><output id="voice-transcript"></output><strong id="voice-proposal"></strong><button id="voice-apply" type="button">Aplicar lote conferido</button></div>
-    <p class="voice-help">No modo rápido, diga uma carta e aguarde ela entrar antes da próxima. Pode abreviar: “oito paus” / “eight clubs”. Para ditar várias cartas sem interrupção, escolha Frase completa. Apostas sempre aguardam a frase inteira; diga “desfazer” para corrigir. Desmarque a aplicação automática se preferir conferir cada lote. Ex.: “minhas cartas, ás de espadas, dez de copas” / “my cards, ace of spades, ten of hearts”.</p>
+    <p class="voice-help">No modo rápido, diga uma carta e aguarde o indicador Ouvindo antes da próxima. Pode abreviar: “oito paus” / “eight clubs”. Para ditar várias cartas sem interrupção, escolha Frase completa. Apostas sempre aguardam a frase inteira; diga “desfazer” para corrigir. Desmarque a aplicação automática se preferir conferir cada lote. Ex.: “minhas cartas, ás de espadas, dez de copas” / “my cards, ace of spades, ten of hearts”.</p>
     <p class="voice-help">No Multiway, registre uma ação observada por vez: “eu pago”, “adversário um aumenta para seis”, “hero call”, “opponent one raises to six”. O ator precisa estar na vez. Raise é o total na street; nenhuma aposta é enviada a uma mesa externa.</p>
-    <details><summary>Comandos e números</summary><p class="voice-help">PT: ás, dois, três, quatro, cinco, seis, sete, oito, nove, dez, valete, dama/rainha, rei + espadas/copas/ouros/paus. EN: ace, two, three, four, five, six, seven, eight, nine, ten, jack, queen, king + spades/hearts/diamonds/clubs. Números 2–10 também são aceitos; “to”, “for”, “ate” e um/one não são cartas.</p><p class="voice-help">Destinos: minhas cartas/my cards, flop, turn, river, board. Selecionar carta três/select card three; corrigir carta três para dama de ouros/correct card three to queen of diamonds; remover carta selecionada/remove selected card; desfazer/undo; cancelar/cancel. Sem destino, use o slot selecionado; um lote não atravessa sua street.</p><p class="voice-help">Ações Multiway: eu/herói ou adversário/oponente N; em inglês hero/I ou opponent N (N é o número ADV. da mesa). Desistir/fold; passar/check; pagar/call sem valor (o preço vem da mesa); apostar/bet com valor; aumentar para/raise to com total. Valores sem separador de milhar: 2,50 ou dois vírgula cinquenta em PT; 2.50 ou two point five em EN. Aceita números por extenso até 999999,99; não interpreta incrementos, all-in ou várias ações na mesma frase.</p></details>`;
+    <details><summary>Comandos e números</summary><p class="voice-help">PT: ás, dois, três, quatro, cinco, seis, sete, oito, nove, dez, valete, dama/rainha, rei + espadas/copas/ouros/paus. EN: ace, two, three, four, five, six, seven, eight, nine, ten, jack, queen, king + spades/hearts/diamonds/clubs. Números 2–10 também são aceitos; “to”, “for”, “ate” e um/one não são cartas.</p><p class="voice-help">Destinos: minhas cartas/my cards, flop, turn, river, board. Selecionar carta três/select card three; corrigir carta três para dama de ouros/correct card three to queen of diamonds; remover carta selecionada/remove selected card; desfazer/undo; cancelar/cancel. Sem destino, use o slot selecionado; um lote não atravessa sua street.</p><p class="voice-help">Ações Multiway: eu/herói ou adversário/oponente N; em inglês hero/I ou opponent N (N é o número ADV. da mesa). Desistir/fold; passar/check; pagar/call sem valor (o preço vem da mesa); apostar/bet com valor; aumentar para/raise to com total. Valores sem separador de milhar: 2,50 ou dois vírgula cinquenta em PT; 2.50 ou two point five em EN. Aceita números por extenso até 999999,99; Aceita “aumenta para” (total), “aumenta em” (incremento sobre a maior aposta), “raise to/by”, fichas/chips e BB explícito. All-in usa o stack disponível somente quando a ação é legal. Uma ação por frase; se faltar um dado, diga apenas o complemento solicitado.</p></details>`;
   // The existing deck lives in Settings. Voice needs the visible Analyze
   // canvas, where the normal keyboard path and slot selection remain active.
   const disclosure = document.createElement('details'); disclosure.id = 'card-voice-disclosure';
@@ -28,12 +28,28 @@
   const $ = id => panel.querySelector('#' + id), status = $('voice-status'), review = $('voice-review');
   let run = null, committing = false, timer = null, monitor = null, restartTimer = null, sample = null, lastLedgerUndo = null;
   let captureHold = false;
+  let clarification = null, clarificationTimer = null;
+  const nativeCaptures = new Set(), diagnostics = [];
   let wantListening = false, operationEpoch = 0, lastApplied = '', restartContext = null;
   const autoApply = () => $('voice-auto-apply').checked;
   const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   const availableDevices = new Map();
   let lastAudioEndedAt = null;
   const metrics = []; // Timing only; no text, audio, cards, identities, or persistence.
+  function trace(current, event, extra = {}) {
+    diagnostics.push({ event, at: performance.now(), capture: current?.id ?? null, ...extra });
+    if (diagnostics.length > 300) diagnostics.shift();
+  }
+  const audioReady = () => Boolean(run?.audioActive && !run.closing && !committing);
+  function captureState() {
+    if (committing) return 'applying';
+    if (run?.closing) return 'finalizing';
+    if (audioReady()) return clarification ? 'clarifying' : 'listening';
+    if (run?.audioEnded) return 'processing';
+    if (run) return 'starting';
+    if (wantListening) return 'restarting';
+    return session.phase === 'review' ? 'review' : 'idle';
+  }
   function say(text, error = false) { status.textContent = text; status.classList.toggle('voice-error', error); }
   function active() {
     return window.isSecureContext && !document.hidden && navigator.onLine !== false &&
@@ -54,14 +70,17 @@
     $('voice-mode-badge').textContent = autoApply() ? 'Aplicação automática' : 'Revisão do lote';
     $('voice-toggle').textContent = listening ? 'Parar fala · Alt+V' : 'Iniciar fala · Alt+V';
     $('voice-toggle').setAttribute('aria-pressed', String(listening));
-    $('voice-cancel').disabled = !pending() && !committing; panel.classList.toggle('is-listening', listening);
+    $('voice-cancel').disabled = !pending() && !committing; panel.classList.toggle('is-listening', audioReady());
+    const phase = captureState(); panel.dataset.captureState = phase;
+    $('voice-capture-state').textContent = ({ idle:'Pronto para iniciar', starting:'Preparando microfone', listening:'● Ouvindo', clarifying:'● Ouvindo complemento', processing:'Processando · aguarde', finalizing:'Concluindo · aguarde', restarting:'Retomando · aguarde', applying:'Aplicando · aguarde', review:'Confira a entrada' })[phase];
     $('voice-hold').disabled = committing || !Recognition || !window.isSecureContext;
     $('voice-toggle').disabled = (committing && !listening) || !Recognition || !window.isSecureContext;
+    $('voice-undo').disabled = committing || (!keyboard.state.undoStack.length && !lastLedgerUndo);
   }
   // An interim may request a final result, but it never mutates the table.
   const endpoint = new fast.FastEndpoint({ delayMs: 220, onReady: ({key, contextKey}) => {
     const current = run;
-    if (!current || current.closing || current.hold || committing || !wantListening ||
+    if (!current || current.closing || current.hold || committing || clarification || !wantListening ||
       !current.automatic || $('voice-pace').value !== 'fast' || current.resultKey !== key ||
       JSON.stringify(context()) !== contextKey || contextKey !== session.context) return;
     const command = fast.candidate(session.pendingPreview(), $('voice-language').value);
@@ -71,13 +90,13 @@
   }});
   function requestFinal(current, reason) {
     if (run !== current || current.cancelled || current.closing) return;
-    endpoint.clear(); current.closing = true; current.stopRequestedAt = performance.now(); current.stopReason = reason;
+    endpoint.clear(); current.closing = true; current.stopRequestedAt = performance.now(); current.stopReason = reason; trace(current,'stop-request',{reason}); controls();
     if (reason === 'VALID_CARD_STABLE') say('Concluindo a carta… aguarde ela entrar antes de falar a próxima.');
     try { current.recognition.stop(); } catch { cancel('Não foi possível concluir a fala. Tente novamente.'); }
   }
   function updateEndpoint(current) {
     let command = null;
-    if (current.automatic && !current.hold && !current.closing && $('voice-pace').value === 'fast' && wantListening) {
+    if (current.automatic && !current.hold && !current.closing && !clarification && $('voice-pace').value === 'fast' && wantListening) {
       command = fast.candidate(session.pendingPreview(), $('voice-language').value);
       try { if (command) validate(command, context()); } catch { command = null; }
     }
@@ -88,9 +107,55 @@
   function armIdleTimer() { clearTimeout(timer); timer = setTimeout(() => cancel('Microfone encerrado após uma pausa. As entradas já aplicadas foram mantidas.'), 20000); }
   function cancel(message) {
     const old = run; run = null; wantListening = false; captureHold = false; operationEpoch++; session.cancel(); clearTimers(); review.hidden = true;
+    clearTimeout(clarificationTimer); clarificationTimer = null; clarification = null;
     $('voice-transcript').textContent = ''; $('voice-proposal').textContent = '';
     if (old) { old.cancelled = true; try { old.recognition?.abort(); } catch {} }
     controls(); if (message) say(message);
+  }
+  async function waitForNativeRelease() {
+    if (!nativeCaptures.size) return;
+    let timeout;
+    try {
+      await Promise.race([Promise.all([...nativeCaptures].map(item => item.released)), new Promise((_, reject) => {
+        timeout = setTimeout(() => reject(Error('O microfone ainda está encerrando. Aguarde e tente novamente.')), 3000);
+      })]);
+    } finally { clearTimeout(timeout); }
+  }
+  async function releaseCaptureForEvaluation() {
+    if (committing) throw Error('Aguarde a entrada terminar de ser aplicada.');
+    cancel('Voz da mesa encerrada para avaliação.');
+    await waitForNativeRelease();
+  }
+  function parseFinal(text, locale) {
+    if (clarification) {
+      if (performance.now() >= clarification.expiresAt || JSON.stringify(context()) !== clarification.contextKey) throw Error('O pedido de complemento expirou. Diga o comando completo.');
+      const result = voice.completeClarification(clarification.request, text, locale);
+      if (result.command) return result.command;
+      return { type:'clarify', clarification: result.clarification || clarification.request, error: result.error };
+    }
+    try { return voice.parse(text, locale); }
+    catch (error) {
+      const request = voice.getClarification(text, locale);
+      if (request) return { type:'clarify', clarification:request };
+      throw error;
+    }
+  }
+  function askForComplement(current, captured, proposal) {
+    if (!['suit','rank'].includes(proposal.clarification.missing) && !captured.multiway?.enabled) { cancel('Ative o Multiway para registrar ações observadas.'); return; }
+    if (!wantListening) { cancel(`${proposal.clarification.prompt} Inicie a fala e diga o comando completo.`); return; }
+    if (!session.take(captured)) { cancel('A entrada mudou. Dite novamente.'); return; }
+    const request = proposal.clarification;
+    clarification = { request, contextKey:JSON.stringify(captured), expiresAt:performance.now()+15000 };
+    clearTimeout(clarificationTimer);
+    clarificationTimer = setTimeout(() => cancel('O complemento expirou. Inicie a voz e diga o comando completo.'), 15000);
+    trace(current,'clarification-request',{missing:request.missing});
+    if (current && run === current) {
+      current.clarified = true;
+      if (!session.resume(current.id, captured)) { cancel('Diga o comando completo novamente.'); return; }
+      endpoint.clear(); watchContext(); armIdleTimer();
+    } else session.cancel();
+    say(`${proposal.error ? proposal.error+' ' : ''}${request.prompt}${audioReady() ? '' : ' Aguarde o indicador Ouvindo.'}`, Boolean(proposal.error)); controls();
+    if (!run && wantListening) resumeCapture();
   }
   const expectedContext = () => restartTimer ? restartContext : session.context;
   function watchContext() {
@@ -150,6 +215,7 @@
     return { locale: $('voice-language').value, mode: $('voice-processing').value,
       recognitionSessionMs: performance.now() - current.startedAt,
       startupMs: current.listenStartedAt ? current.listenStartedAt - current.startedAt : null,
+      startToAudioMs: current.audioStartedAt ? current.audioStartedAt-current.startedAt : null,
       pace: $('voice-pace').value, endReference: current.stopReason || 'FINAL_RESULT',
       firstResultToFinalMs: current.firstResultAt ? started - current.firstResultAt : null,
       firstValidCardToFinalMs: current.firstValidCardAt ? started - current.firstValidCardAt : null,
@@ -167,22 +233,23 @@
       if (wantListening && unchanged) void start({ resume: true });
       else if (wantListening) cancel('Contexto alterado. Dite novamente.');
     }, $('voice-pace').value === 'fast' ? 0 : 80);
-    controls();
+    controls(); say(clarification ? `${clarification.request.prompt} Retomando microfone…` : 'Retomando microfone… aguarde o indicador Ouvindo.');
   }
   function end(current) {
     if (run !== current || current.cancelled) return;
     run = null; clearTimers();
     if (current.automatic && !session.hasPending() && !session.error) {
-      if (!current.appliedCount) { cancel('Nenhuma frase concluída foi recebida. Tente falar novamente.'); return; }
+      if (!current.appliedCount && !current.clarified) { cancel('Nenhuma frase concluída foi recebida. Tente falar novamente.'); return; }
       session.cancel(); controls();
-      if (wantListening) resumeCapture(); else say(lastApplied || 'Microfone encerrado.');
+      if (wantListening) resumeCapture(); else cancel(lastApplied || 'Microfone encerrado.');
       return;
     }
     const started = performance.now(), captured = context();
-    const proposal = session.finish(current.id, captured);
+    const proposal = session.finish(current.id, captured, current.automatic ? parseFinal : voice.parse);
     sample = timing(current, started); controls();
     if (!proposal) { const error = session.error; cancel(); say(error || 'Fala incompleta. Diga valor e naipe novamente.', true); return; }
     if (proposal.type === 'cancel') { cancel('Fala cancelada. Entradas anteriores mantidas.'); return; }
+    if (proposal.type === 'clarify') { askForComplement(null, captured, proposal); return; }
     try { validate(proposal, captured); }
     catch (error) { cancel(); say(error.message + ' Este lote não foi aplicado.', true); return; }
     if (current.automatic) { void apply({ automatic: true }); return; }
@@ -196,19 +263,29 @@
   }
   async function start({ resume = false, hold = false } = {}) {
     if (run || committing) return;
+    if (window.theibsVoiceEvaluation?.isActive()) { say('Encerre a avaliação de voz antes de ditar para a mesa.', true); return; }
     const requested = resume ? wantListening : true, requestedHold = resume ? captureHold : hold;
+    const savedClarification = resume ? clarification : null;
     disclosure.open = true;
     cancel();
+    if (savedClarification && savedClarification.expiresAt > performance.now() && savedClarification.contextKey === JSON.stringify(context())) {
+      clarification = savedClarification;
+      clarificationTimer = setTimeout(() => cancel('O complemento expirou. Diga o comando completo novamente.'), savedClarification.expiresAt-performance.now());
+    }
+    if (!resume) lastAudioEndedAt = null;
     if (!requested) return;
     wantListening = true; captureHold = requestedHold;
     if (!Recognition || !window.isSecureContext) { cancel(); say('Reconhecimento indisponível neste navegador ou contexto. Use HTTPS e o teclado.', true); return; }
     const captured = context();
     if (!captured.active || captured.invalid) { cancel(); say('A voz está disponível na entrada válida de cartas do Analyze.', true); return; }
     if (captured.processing === 'browser' && !$('voice-consent').checked) { cancel(); say('Autorize o serviço do navegador acima antes de falar.', true); return; }
-    const current = { id: session.begin(captured), startedAt: performance.now(), recognition: null, started: false, cancelled: false, automatic: captured.autoApply, appliedCount: 0, hold: requestedHold, closing: false, resultKey: '', firstResultAt: null, firstValidCardAt: null };
+    const current = { id: session.begin(captured), startedAt: performance.now(), recognition: null, started: false, audioActive:false, cancelled: false, automatic: captured.autoApply, appliedCount: 0, hold: requestedHold, closing: false, resultKey: '', firstResultAt: null, firstValidCardAt: null, resumed:resume };
     run = current; controls(); say('Preparando microfone…'); watchContext();
+    trace(current,'start-request');
     armIdleTimer();
     try {
+      await waitForNativeRelease();
+      if (run !== current || current.cancelled) return;
       if (captured.processing === 'device') {
         if (typeof Recognition.available !== 'function' || !('processLocally' in Recognition.prototype)) throw Error('Reconhecimento no dispositivo não está disponível. Escolha conscientemente outro modo ou use o teclado.');
         const cached = availableDevices.get(captured.locale), fresh = cached && performance.now()-cached.at < 60000;
@@ -224,15 +301,22 @@
       else if ('processLocally' in recognizer) recognizer.processLocally = false;
       recognizer.onstart = () => {
         if (run !== current || current.cancelled || JSON.stringify(context()) !== session.context) { try { recognizer.abort(); } catch {} return; }
-        current.started = true; current.listenStartedAt = performance.now(); say(current.automatic ? '● Microfone ativo. Fale valor e naipe; a carta entra ao concluir a frase.' : '● Microfone ativo. Fale as cartas ou a ação e pare ao terminar.');
+        current.started = true; current.listenStartedAt = performance.now(); trace(current,'service-start'); controls();
       };
-      recognizer.onaudiostart = () => { if (run === current) { current.audioGapMs = lastAudioEndedAt ? performance.now()-lastAudioEndedAt : null; } };
-      recognizer.onaudioend = () => { if (!current.cancelled) lastAudioEndedAt = performance.now(); };
+      recognizer.onaudiostart = () => {
+        if (run !== current || current.cancelled) return;
+        current.audioActive = true; current.audioEnded = false; current.audioStartedAt = performance.now();
+        current.audioGapMs = current.resumed && lastAudioEndedAt !== null ? performance.now()-lastAudioEndedAt : null;
+        trace(current,'audio-start',{restartGapMs:current.audioGapMs}); controls();
+        if (!current.closing) say(clarification ? clarification.request.prompt : current.automatic ? '● Ouvindo. Diga valor e naipe.' : '● Ouvindo. Diga o lote e pare ao terminar.');
+      };
+      recognizer.onaudioend = () => { current.audioActive = false; current.audioEnded = true; if (!current.cancelled) lastAudioEndedAt = performance.now(); trace(current,'audio-end'); if (run === current) controls(); };
       recognizer.onresult = event => {
         if (run !== current || current.cancelled || committing) return;
         const capturedNow = context();
         if (JSON.stringify(capturedNow) !== session.context) { cancel('Contexto alterado durante a fala.'); return; }
         const started = performance.now(); current.firstResultAt ||= started;
+        trace(current,'result',{finalCount:Array.from(event.results).filter(r=>r.isFinal).length,segmentCount:event.results.length});
         current.resultKey = JSON.stringify(Array.from(event.results, r => [r[0].transcript, r.isFinal]));
         session.reconcileResultCount(current.id, event.results.length);
         // Results is cumulative. Inspect every index to catch changed final
@@ -240,14 +324,16 @@
         for (let i = 0; i < event.results.length; i++) session.accept(current.id, i, event.results[i][0].transcript, event.results[i].isFinal);
         if (session.error) { const error = session.error; cancel(); say(error + ' Entradas anteriores mantidas.', true); return; }
         if (current.automatic) {
-          const proposal = session.prepareReady(current.id, capturedNow);
+          const proposal = session.prepareReady(current.id, capturedNow, parseFinal);
           if (session.error) { const error = session.error; cancel(); say(error + ' Este lote não foi aplicado.', true); return; }
           if (proposal?.type === 'cancel') { cancel('Fala cancelada. Entradas anteriores mantidas.'); return; }
+          if (proposal?.type === 'clarify') { askForComplement(current, capturedNow, proposal); return; }
           if (proposal) { endpoint.clear(); sample = timing(current, started); void apply({ automatic: true, current }); current.firstResultAt = null; current.firstValidCardAt = null; }
           else { updateEndpoint(current); if (session.hasPending() && !current.closing) say('Reconhecendo… diga o valor e o naipe.'); }
         } else say(`Ouvindo: ${session.preview() || '…'} — confira o lote ao terminar.`);
       };
       recognizer.onerror = event => {
+        trace(current,'error',{code:['not-allowed','service-not-allowed','audio-capture','no-speech','network','language-not-supported','aborted'].includes(event.error)?event.error:'unknown'});
         if (run !== current) return;
         const errors = { 'not-allowed': 'Permissão de microfone negada ou revogada.', 'service-not-allowed': 'Serviço de reconhecimento não autorizado.',
           'audio-capture': 'Microfone não encontrado ou ocupado.', 'no-speech': 'Nenhuma fala detectada.', network: 'Falha de rede no reconhecimento.',
@@ -257,12 +343,16 @@
       recognizer.onnomatch = () => { if (run === current) { cancel(); say('A fala não foi reconhecida com clareza. Entradas anteriores mantidas.', true); } };
       recognizer.onspeechend = () => {
         current.speechEndedAt = performance.now();
-        // Some providers retain an interim until capture is stopped. Flush at
-        // their speech boundary; never promote interim text to a final result.
-        if (current.automatic && !current.hold && run === current && !committing) requestFinal(current, 'PROVIDER_SPEECHEND');
+        trace(current,'speech-end');
+        // Completed commands need no flush. Batch mode retains continuous
+        // capture through natural pauses; the user can explicitly stop a lot.
+        if (current.automatic && !current.hold && run === current && !committing && session.hasPending() && $('voice-pace').value === 'fast') requestFinal(current, 'PROVIDER_SPEECHEND');
       };
-      recognizer.onend = () => end(current);
-      recognizer.start();
+      recognizer.onspeechstart = () => { trace(current,'speech-start'); current.speechEndedAt = null; };
+      current.released = new Promise(resolve => { current.release = resolve; });
+      recognizer.onend = () => { current.audioActive = false; nativeCaptures.delete(current); current.release(); trace(current,'end'); end(current); };
+      nativeCaptures.add(current);
+      try { recognizer.start(); } catch (error) { nativeCaptures.delete(current); current.release(); throw error; }
     } catch (error) { if (run === current) { cancel(); say(error.message || 'Não foi possível iniciar o reconhecimento.', true); } }
   }
   function stop() {
@@ -272,9 +362,9 @@
     current.stoppedAt ||= performance.now(); say('Encerrando microfone e aguardando a frase final…');
     requestFinal(current, 'USER_STOP');
   }
-  async function apply({ automatic = false, current = null } = {}) {
+  async function apply({ automatic = false, current = null, explicitCommand = null } = {}) {
     if (committing) return;
-    const captured = context(), command = session.take(captured), epoch = operationEpoch;
+    const captured = context(), command = explicitCommand || session.take(captured), epoch = operationEpoch;
     if (!command) { cancel('A entrada mudou. Dite novamente.'); return; }
     committing = true; clearTimers(); $('voice-apply').disabled = true; controls();
     say(automatic ? 'Aplicando a entrada reconhecida…' : 'Aplicando o lote conferido…');
@@ -282,6 +372,7 @@
     let restart = false;
     try {
       validate(command, captured);
+      clearTimeout(clarificationTimer); clarificationTimer = null;
       const board = boardCommand(command, captured), label = describe(command, captured);
       let result;
       if (board) {
@@ -297,9 +388,11 @@
       } else result = keyboard.commitCommand(command, captured.revision);
       if (!result.ok) throw Error(result.error);
       if (epoch !== operationEpoch || !active()) return;
+      clarification = null; clearTimeout(clarificationTimer); clarificationTimer = null;
+      trace(current,'applied');
       if (current) current.appliedCount++;
       const measured = { ...sample, manualReviewMs: automatic ? 0 : sample?.reviewReadyAt ? startAt - sample.reviewReadyAt : null,
-        commitMs: performance.now() - startAt, measurementLayer: 'BROWSER_RUNTIME', acousticGate: 'NOT_EXECUTED', automatic };
+        commitMs: performance.now() - startAt, finalToCommitMs: sample?.finalResultAt ? performance.now()-sample.finalResultAt : null, measurementLayer: 'BROWSER_RUNTIME', acousticGate: 'NOT_EXECUTED', automatic };
       const finalAt = measured.finalResultAt;
       delete measured.reviewReadyAt; delete measured.finalResultAt;
       requestAnimationFrame(() => requestAnimationFrame(() => {
@@ -311,7 +404,7 @@
       review.hidden = true; $('voice-transcript').textContent = ''; $('voice-proposal').textContent = '';
       if (automatic && current && run === current) {
         if (!session.resume(current.id, context())) throw Error('Não foi possível continuar a escuta. As entradas aplicadas foram mantidas.');
-        watchContext(); armIdleTimer(); say(lastApplied);
+        watchContext(); armIdleTimer(); say(lastApplied + (current.closing || !current.audioActive ? ' Aguarde o indicador Ouvindo antes da próxima fala.' : ''));
       } else if (automatic && wantListening) { session.cancel(); restart = true; say(lastApplied); }
       else cancel(lastApplied);
     } catch (error) { cancel(); say(error.message, true); }
@@ -328,6 +421,7 @@
   $('voice-toggle').onclick = () => run || wantListening ? stop() : void start();
   $('voice-cancel').onclick = () => cancel('Fala cancelada. Entradas anteriores mantidas.');
   $('voice-apply').onclick = () => void apply();
+  $('voice-undo').onclick = () => { if (committing) return; cancel(); sample = null; void apply({explicitCommand:{type:'undo'}}); };
   for (const id of ['voice-language', 'voice-processing', 'voice-consent', 'voice-auto-apply', 'voice-pace']) $(id).addEventListener('change', () => {
     cancel('Configuração alterada. Dite novamente.');
     $('voice-consent').parentElement.hidden = $('voice-processing').value === 'device';
@@ -348,6 +442,7 @@
   }, true);
   for (const name of ['theibs:cards-changed', 'theibs:card-selection']) document.addEventListener(name, () => {
     if (pending() && !committing) cancel('A mesa ou seleção mudou. Dite novamente.');
+    controls();
   });
   document.addEventListener('theibs:voice-session-changed', () => { if (pending() || committing) cancel('Sessão expirada ou alterada. Voz cancelada.'); });
   for (const name of ['input', 'change', 'click']) document.addEventListener(name, event => {
@@ -360,7 +455,8 @@
   const observer = new MutationObserver(() => { if (!committing && pending() && JSON.stringify(context()) !== expectedContext()) cancel('Tela ou sessão alterada. Voz cancelada.'); });
   for (const element of [document.querySelector('#analyze-workspace'), document.querySelector('#app-shell'), document.body])
     if (element) observer.observe(element, { attributes: true, attributeFilter: ['class', 'hidden', 'inert', 'data-multiway', 'data-multiway-busy'] });
-  window.theibsCardVoice = { cancel, getStatus: () => ({ phase: session.phase, listening: Boolean(run) || wantListening, committing, autoApply: autoApply(), pace: $('voice-pace').value, finalizing: Boolean(run?.closing), acoustic: 'NOT_EXECUTED' }),
+  window.theibsCardVoice = { cancel, releaseCaptureForEvaluation, getStatus: () => ({ phase: session.phase, listening: Boolean(run) || wantListening, captureState:captureState(), audioReady:audioReady(), needsClarification:Boolean(clarification), committing, autoApply: autoApply(), pace: $('voice-pace').value, finalizing: Boolean(run?.closing), acoustic: 'NOT_EXECUTED' }),
+    getDiagnostics: () => diagnostics.map(row => ({...row})),
     getMetrics: () => metrics.map(row => ({ ...row })), capability: () => ({ secureContext: window.isSecureContext, constructorPresent: Boolean(Recognition),
       functionalRecognition: 'NOT_VERIFIED', acoustic: 'NOT_EXECUTED', localAvailabilityCheck: typeof Recognition?.available === 'function' }) };
   controls();

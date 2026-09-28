@@ -1,3 +1,9 @@
+## 0.14.5 — 28/09/2026 — continuidade, interpretação e avaliação da voz
+
+Estados de captura reais, preservação da escuta em frases completas, encerramento rápido somente quando há entrada pendente e exclusão entre capturas. Esclarecimento contextual com prazo, desfazer no painel, all-in legal, raise por total/incremento e BB explícito. Novos testes de integração e corpus sintético pareado, mantendo falhas nos denominadores.
+
+Avaliação voluntária PT/EN em mesa simulada, com consentimento e exportação agregada, sem áudio/transcrição persistidos. Nenhuma homologação humana é inferida dos testes automatizados. Motor de equity/EV e servidor preservados; metas originais mantidas. Ver RELATORIO-QUALIDADE-VOZ-0.14.5.md e registro de publicação separado.
+
 ## 0.14.4 — 28/09/2026 — conclusão antecipada de cartas por voz
 
 Modo Rápido solicita resultado final após uma carta completa permanecer estável por 220 ms. Cada alteração de texto/finalidade/contexto invalida o candidato; replay idêntico não reinicia o prazo. Nunca promove interim a carta. Frase completa, ações/valores e gesto de segurar ficam fora do encerramento antecipado. O gesto agora sobrevive a reinícios naturais do reconhecedor.
