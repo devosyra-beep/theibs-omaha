@@ -64,12 +64,25 @@ async function authenticateRequest(request, env = process.env, fetchImpl = fetch
   validateSettings(config);
   const token = bearerToken(request);
   if (!token) { const error = new Error('Entre para continuar.'); error.statusCode = 401; throw error; }
-  const response = await fetchImpl(`${config.url}/auth/v1/user`, {
-    headers: { apikey: config.publishableKey, Authorization: `Bearer ${token}`, Accept: 'application/json' },
-    signal: AbortSignal.timeout(10000)
-  });
-  const data = await readJson(response);
-  if (!response.ok || !data?.id) { const error = new Error('Sessão inválida ou expirada.'); error.statusCode = 401; throw error; }
+  const unavailable = () => Object.assign(new Error('O serviço de autenticação está temporariamente indisponível. Tente novamente.'), { statusCode: 503, code: 'AUTH_SERVICE_UNAVAILABLE' });
+  let response;
+  try {
+    response = await fetchImpl(`${config.url}/auth/v1/user`, {
+      headers: { apikey: config.publishableKey, Authorization: `Bearer ${token}`, Accept: 'application/json' },
+      signal: AbortSignal.timeout(10000)
+    });
+  } catch { throw unavailable(); }
+  if (!response.ok) {
+    // An outage/rate limit must not masquerade as a rejected login: the web
+    // client only refreshes/retries on 401. No protected handler has run yet.
+    await response.body?.cancel().catch(() => {});
+    if (response.status === 401) throw Object.assign(new Error('Sessão inválida ou expirada.'), { statusCode: 401, code: 'AUTH_REJECTED' });
+    if (response.status === 403) throw Object.assign(new Error('O serviço de autenticação não permitiu este acesso.'), { statusCode: 403, code: 'AUTH_FORBIDDEN' });
+    throw unavailable();
+  }
+  let data;
+  try { data = await readJson(response); } catch { throw unavailable(); }
+  if (typeof data?.id !== 'string' || !data.id.trim()) throw unavailable();
   return { user: data, token, local: false };
 }
 

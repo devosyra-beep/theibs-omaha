@@ -1,3 +1,35 @@
+## 0.14.2 — 28/09/2026 — leitura do CALL atual no Analyze
+
+Indicador separado da comparação completa de ações: favorável somente se o limite inferior do EV é positivo, desfavorável se o limite superior é negativo, incerto quando a faixa toca zero, CHECK gratuito neutro. Mostra equity necessária, margem e limites válidos do modelo, sem exigir BET/RAISE nem inventar resposta dos adversários. Usa o resultado existente e não acrescenta simulações. Custos ausentes, prévia, cobertura incompleta e bloqueios do Multiway impedem o sinal favorável.
+
+Coach, assinatura da análise e snapshots usam a mesma avaliação. Restauração, invalidação e entrada incompleta foram verificadas no navegador. Relatório: `RELATORIO-CONTINUAR-0.14.2.md`. Webapp validada em ambiente de desenvolvimento, sem publicação; experimento econômico0.14.0 e homologação acústica preservam os limites anteriores.
+
+## 0.14.1 — 27/09/2026 — correções posteriores ao experimento
+
+Correção de resíduo numérico no aporte de CALL, descoberta ao reproduzir 43 abstenções do experimento0.14.0; valores negativos materiais continuam rejeitados. O holdout permanece intacto na versão0.14.0 e o painel identifica que seus resultados não medem a política corrigida. Correção da consolidação de segmentos ASR no Chrome permitiu exemplos sintéticos reais PT/EN; não aprova corpus humano/hospedagem. Mensagens do Analyze distinguem cartas incompletas, hipótese faltante, sinal incerto e falha de sessão. Autenticação web recebe tratamento de expiração/recuperação conforme testes desta rodada.
+
+A pedido do usuário, o modelo de adversários passa a ser opcional e individual: range/taxa só no assento escolhido; demais cartas uniformes e respostas desconhecidas. Remoção, fold e nova mão não transferem hipóteses. Retirado preenchimento coletivo automático de 50%; resultados antigos continuam congelados.
+
+Relatório consolidado: `RELATORIO-VALIDACAO-0.14.1.md`. Produto único webapp hospedada; não foi criado .exe nem publicado em produção.
+
+## 0.14.0 — 27/09/2026 — Analyze web, voz PT/EN e experimento econômico
+
+Melhorias focadas no Analyze web: rake percentual com cap e no-flop-no-drop dentro da decisão; CHECK/RAISE correto do BB após limp; inferência de diferenças no estudo HU de equity comum e diagnósticos de abstenção/equivalência. O BB do ledger governa as unidades Multiway. Coach, API, persistência e painel de retorno por 100 mãos preservam a origem e os limites das estimativas.
+
+Entrada por voz com idiomas pt-BR/en-US, parser determinístico, comandos tipados, lote atômico, revisão de contexto, cancelamento, correção e desfazer. Reconhecimento real ainda não homologado; confirmação por lote permanece ativa. Não há escuta escondida, gravação de uso ou troca silenciosa para nuvem. O teclado segue disponível.
+
+Enumeração exata otimizada sem mudar amostras/resultados. Testes de velocidade locais distinguem microbenchmark, oportunidade de apresentação e tempo completo da API; não demonstram latência da hospedagem. Benchmark de políticas completas com baseline 0.13.0 preservado, ambos os assentos e blocos de 100 mãos; controles de custo zero e rake sintético, com adversários independentes. Resultados e limitações estão em `RELATORIO-VALIDACAO-0.14.0.md` e `validacao/analyze-online-2026-09-27`.
+
+Validação local autorizada; hospedagem posterior. Não foi publicado, instalado modelo/pacote pago nem reconstruído o desktop. PASS técnico não certifica lucro ou aprendizagem humana. As evidências acústicas e econômicas têm status próprios no relatório.
+
+## 0.13.0 — 27/09/2026 — contratos, entrada e validação integrada
+
+Contrato de análise com hashes de entradas/saída, versão, método, custos e status explícito de recomendação. Preview não recomenda; comparação parcial, adversários não cobertos, intervalos sem separação e ajuste heurístico sem validação se abstêm. Aumento informa total da rodada separadamente do custo incremental. Cache limitado por cenário completo e versão.
+
+Entrada de cartas com renderização incremental, preservação de foco e deck; cálculo automático com prévia e etapa final. Snapshots de gráficos rastreáveis e invalidados por mudanças incompatíveis, inclusive texto inválido. Coach local primeiro, enriquecimento opcional cancelável e isolado da trava de ação. Histórico em worker com leitura de casos limitada; resultados ausentes e coortes não são misturados.
+
+Sampler de ranges conjuntos com fallback exato limitado, validação de pesos e distinção entre incompatibilidade e orçamento esgotado. Novos testes e experimentos preservam falhas, protocolo, fonte congelada e dados brutos. Relatório consolidado em `RELATORIO-VALIDACAO-0.13.0.md`; vantagem estratégica e aprendizagem humana seguem sem comprovação externa. Nenhuma implantação ou reconstrução do executável foi feita.
+
 ## Landing: navegação e compra única — 27/09/2026
 
 Removido o botão de login da barra de navegação a pedido do usuário. Mantidos os acessos na abertura e na seção de preço.

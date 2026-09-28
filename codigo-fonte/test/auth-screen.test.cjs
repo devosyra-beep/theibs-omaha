@@ -6,7 +6,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 
 const html = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
-const source = fs.readFileSync(path.join(__dirname, '../public/auth-ui.js'), 'utf8');
+const source = fs.readFileSync(path.join(__dirname, '../public/auth-session.js'), 'utf8') + '\n' + fs.readFileSync(path.join(__dirname, '../public/auth-ui.js'), 'utf8');
 function deferred() { let resolve; const promise = new Promise(r => { resolve = r; }); return { promise, resolve }; }
 function mount(fetch, saved = null) {
   const nodes = new Map();
@@ -23,10 +23,10 @@ function mount(fetch, saved = null) {
   let start;
   const storage = new Map(saved ? [['theibs.auth.session.v1', JSON.stringify(saved)]] : []);
   const window = { fetch, addEventListener: (name, cb) => { if (name === 'DOMContentLoaded') start = cb; } };
-  const document = { getElementById: get, body: { style: {} }, title: 'THEIBS' };
+  const document = { getElementById: get, body: { style: {} }, title: 'THEIBS', dispatchEvent() {} };
   vm.runInNewContext(source, { window, document, localStorage: { getItem: k => storage.get(k), setItem: (k,v) => storage.set(k,v), removeItem: k => storage.delete(k) },
     location: { href: 'https://theibs.example/app', origin: 'https://theibs.example', pathname: '/app', search: '', hash: '', replace() {}, assign() {} },
-    history: { replaceState() {} }, URL, URLSearchParams, Headers, AbortSignal, Date });
+    history: { replaceState() {} }, URL, URLSearchParams, Headers, Request, AbortController, AbortSignal, atob, Date, CustomEvent, clearTimeout, setTimeout: (fn, delay) => setTimeout(fn, delay).unref() });
   return { get, start, window };
 }
 const config = { required: true, providers: { google: true }, billingEnabled: false };

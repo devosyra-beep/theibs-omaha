@@ -1,6 +1,6 @@
 {
   "name": "poker-omaha5-realtime-assistance",
-  "version": "0.12.2",
+  "version": "0.14.2",
   "private": true,
   "description": "THEIBS: Omaha High PLO4, PLO5 and PLO6 analysis and training lab.",
   "type": "commonjs",
@@ -16,7 +16,13 @@
     "package:win": "electron-builder --win portable",
     "start": "node server.js",
     "test:ui": "python scripts/test-ui.py",
-    "test:desktop": "electron scripts/smoke-desktop.js"
+    "test:desktop": "electron scripts/smoke-desktop.js",
+    "test:reliability": "node scripts/qa-reliability.cjs",
+    "test:math": "node scripts/validate-engine.cjs",
+    "benchmark:keyboard": "node scripts/benchmark-keyboard-ui.cjs",
+    "benchmark:interactive": "node scripts/benchmark-interactive.cjs",
+    "validate:policy": "node scripts/evaluate-policy.cjs",
+    "validate:analyze": "node scripts/evaluate-analyze.cjs"
   },
   "build": {
     "appId": "com.theibs.plo5",
@@ -39,7 +45,8 @@
   },
   "devDependencies": {
     "electron": "^39.0.0",
-    "electron-builder": "^26.0.0"
+    "electron-builder": "^26.0.0",
+    "playwright": "1.62.1"
   },
   "packageManager": "pnpm@11.24.0",
   "engines": {

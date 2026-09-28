@@ -102,27 +102,30 @@ function runtimeConfig(env = process.env) {
     baseUrl: env.THEIBS_LLM_URL || env.baseUrl, timeoutMs: env.THEIBS_LLM_TIMEOUT_MS || env.timeoutMs });
   return readConfig(env).config;
 }
-async function chat(config, messages, { format, fetchImpl = fetch, maxTokens = 192 } = {}) {
+async function chat(config, messages, { format, fetchImpl = fetch, maxTokens = 192, signal } = {}) {
   config = validateConfig(config);
+  signal?.throwIfAborted();
   if (config.provider !== 'ollama' || !config.model) throw Error('Escolha e salve um modelo local.');
   if (inferenceBusy) { const error = Error('O modelo local já está respondendo outra pergunta.'); error.code = 'LLM_BUSY'; throw error; }
   inferenceBusy = true;
   const started = performance.now(), key = configKey(config);
+  const combinedSignal = signal ? AbortSignal.any([signal, AbortSignal.timeout(config.timeoutMs)]) : AbortSignal.timeout(config.timeoutMs);
   try {
     const response = await fetchImpl(new URL('/api/chat', config.baseUrl), {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, redirect: 'error',
       body: JSON.stringify({ model: config.model, stream: false, keep_alive: '2m',
         ...(format ? { format } : {}), options: { temperature: .2, num_predict: Math.max(32, Math.min(192, Math.trunc(maxTokens))), num_ctx: 2048, num_thread: 2 }, messages }),
-      signal: AbortSignal.timeout(config.timeoutMs)
+      signal: combinedSignal
     });
     if (!response.ok) throw Error(`Ollama HTTP ${response.status}`);
     const data = await response.json(), answer = String(data?.message?.content || '').trim();
+    combinedSignal.throwIfAborted();
     if (!answer) throw Error('O modelo retornou uma resposta vazia.');
     const inference = { state: 'SUCCEEDED', checkedAt: new Date().toISOString(), elapsedMs: performance.now() - started };
     inferences.set(key, inference);
     return { text: answer.slice(0, 6000), inference };
   } catch (error) {
-    inferences.set(key, { state: 'FAILED', checkedAt: new Date().toISOString(), elapsedMs: performance.now() - started,
+    inferences.set(key, { state: signal?.aborted ? 'CANCELLED' : 'FAILED', checkedAt: new Date().toISOString(), elapsedMs: performance.now() - started,
       reason: error.name === 'TimeoutError' ? `O modelo não concluiu em ${config.timeoutMs / 1000}s; pode estar carregando.` : 'A geração local falhou.' });
     throw error;
   } finally { inferenceBusy = false; }

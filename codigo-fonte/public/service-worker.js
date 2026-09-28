@@ -1,11 +1,12 @@
 'use strict';
 
-const CACHE = 'theibs-shell-v0.12.2-clean-nav';
+const CACHE = 'theibs-shell-v0.14.2-analyze';
 const SHELL = [
   '/', '/landing.html', '/landing.css', '/landing.js', '/landing-assets/theibs-logo.png', '/landing-assets/osyra-studio.svg',
-  '/landing-assets/theibs-app.png', '/landing-assets/theibs-training.png', '/app', '/styles.css', '/dashboard.css', '/multiway.css', '/pwa.js', '/auth-ui.js',
+  '/landing-assets/theibs-app.png', '/landing-assets/theibs-training.png', '/app', '/styles.css', '/dashboard.css', '/multiway.css', '/pwa.js', '/auth-session.js', '/auth-ui.js',
   '/card-model.js', '/essence-ui.js', '/card-keyboard.js', '/dashboard.js',
-  '/focus-ui.js', '/multiway-ui.js', '/app.js', '/assistant-ui.js',
+  '/card-voice.js', '/card-voice-ui.js', '/card-voice.css', '/economic-panel.js', '/economic-panel.css',
+  '/focus-ui.js', '/multiway-ui.js', '/analysis-snapshots.js', '/analyze-feedback.js', '/continuation-view.js', '/opponent-inputs.js', '/app.js', '/assistant-ui.js',
   '/manifest.webmanifest', '/icons/theibs.svg', '/icons/theibs-192.png',
   '/icons/theibs-512.png', '/icons/theibs-maskable-512.png'
 ];

@@ -2,6 +2,26 @@ const { makeDeck, normalizeCards, removeCards, combinations } = require('./cards
 const fast = require('./fast-evaluator');
 const { holeCount } = require('./variants');
 const { normalizeRanges, serializeRange } = require('./range-engine');
+const { enumerateJointRanges, sampleJoint } = require('./joint-range-sampler');
+
+function outcomeRates(winsIncludingTies, ties, samples) {
+  return {
+    // Preserve the historical API meaning; consumers can migrate explicitly.
+    winRate: winsIncludingTies / samples,
+    winRateDefinition: 'WIN_OR_TIE_LEGACY',
+    outrightWinRate: (winsIncludingTies - ties) / samples,
+    tieRate: ties / samples,
+    lossRate: (samples - winsIncludingTies) / samples
+  };
+}
+
+function integerOption(value, fallback, min, max, label) {
+  const raw = value === undefined ? fallback : value;
+  if (!['number', 'string'].includes(typeof raw) || (typeof raw === 'string' && !raw.trim())) throw Error(`${label} deve ser um inteiro entre ${min} e ${max}.`);
+  const number = Number(raw);
+  if (!Number.isSafeInteger(number) || number < min || number > max) throw Error(`${label} deve ser um inteiro entre ${min} e ${max}.`);
+  return number;
+}
 
 class Lcg {
   constructor(seed = 123456789) { this.state = Number(seed) >>> 0; }
@@ -29,6 +49,7 @@ function exactEquity(input) {
   fast.initialize();
   const hero = normalizeCards(input.heroCards, 'hero cards');
   const board = normalizeCards(input.board || [], 'board');
+  if (![0, 3, 4, 5].includes(board.length)) throw new Error('Invalid board length.');
   const opponents = normalizedOpponentHands(input.opponentHands, holeCount(input.variant));
   const known = normalizeCards([...hero, ...opponents.flat(), ...board], 'all known cards');
   if (hero.length !== holeCount(input.variant)) throw new Error('Hero card count does not match variant.');
@@ -36,21 +57,28 @@ function exactEquity(input) {
   const need = 5 - board.length;
   if (need < 0 || need > remaining.length) throw new Error('Invalid board or card state.');
   const runouts = combinations(remaining, need);
+  // Exact enumeration uses the same evaluator and runout order. Prepare the
+  // immutable hole cards once, rather than reparsing/rebuilding them per runout.
+  const heroPairs = fast.preparePairsIds(Uint8Array.from(hero, fast.cardId));
+  const opponentIds = opponents.map(hand => Uint8Array.from(hand, fast.cardId));
+  const boardIds = new Uint8Array(5), boardBuffer = fast.createBoardBuffer();
+  boardIds.set(board.map(fast.cardId));
   let wins = 0;
   let ties = 0;
   let equitySum = 0;
   for (const runout of runouts) {
-    const result = compareShowdown(hero, opponents, [...board, ...runout]);
-    if (result.heroWon) wins += 1;
-    if (result.tie) ties += 1;
-    equitySum += result.share;
+    for (let i = 0; i < runout.length; i++) boardIds[board.length + i] = fast.cardId(runout[i]);
+    fast.prepareBoardIds(boardIds, boardBuffer);
+    const share = fast.showdownShareIds(heroPairs, opponentIds, boardBuffer);
+    if (share > 0) wins += 1;
+    if (share > 0 && share < 1) ties += 1;
+    equitySum += share;
   }
   return {
     method: 'EXACT',
     samples: runouts.length,
     seed: null,
-    winRate: wins / runouts.length,
-    tieRate: ties / runouts.length,
+    ...outcomeRates(wins, ties, runouts.length),
     equity: equitySum / runouts.length,
     confidenceInterval95: null,
     opponents: opponents.length
@@ -76,16 +104,20 @@ function sampleRangeIds(range,rng) {
 
 function monteCarloEquity(input) {
   const started=performance.now();
+  if (input.samplingMode !== undefined && !['FIXED', 'ADAPTIVE'].includes(input.samplingMode)) throw Error('samplingMode deve ser FIXED ou ADAPTIVE.');
   const adaptive=input.samplingMode==='ADAPTIVE';
+  const budget=input.adaptiveBudget ?? {};
+  if (typeof budget !== 'object' || Array.isArray(budget)) throw Error('adaptiveBudget deve ser um objeto.');
+  const maxSamples=integerOption(budget.maxSamples,500000,256,500000,'adaptiveBudget.maxSamples');
+  const timeBudgetMs=integerOption(budget.timeBudgetMs,2000,1,2000,'adaptiveBudget.timeBudgetMs');
   fast.initialize();
   const hero = normalizeCards(input.heroCards, 'hero cards');
   const board = normalizeCards(input.board || [], 'board');
   normalizeCards([...hero, ...board], 'hero and board');
   if (hero.length !== holeCount(input.variant)) throw new Error('Hero card count does not match variant.');
   const ranges = normalizeRanges(input.opponentRanges, holeCount(input.variant));
-  let samples = Number(input.samples ?? 5000);
-  const requestedSamples=adaptive?500000:samples;
-  if (!Number.isInteger(samples) || samples < 1 || samples > 50000) throw new Error('samples must be an integer between 1 and 50000.');
+  let samples = integerOption(input.samples,5000,1,50000,'samples');
+  const requestedSamples=adaptive?maxSamples:samples;
   if(adaptive)samples=requestedSamples;
   let completed=0,stopReason='SAMPLE_LIMIT',sequentialMargin=1;
   const call=Number(input.amountToCall),pot=Number(input.potBeforeAction);
@@ -93,7 +125,7 @@ function monteCarloEquity(input) {
   const threshold=call>0&&Number.isFinite(pot)&&Number.isFinite(rake)&&pot+call-rake>0?call/(pot+call-rake):null;
   if (![0, 3, 4, 5].includes(board.length)) throw new Error('Invalid board length.');
   if (52 - hero.length - ranges.length * holeCount(input.variant) < 5) throw new Error('Too many opponents for this deck.');
-  const seed = Number(input.seed ?? 123456789);
+  const seed = integerOption(input.seed,123456789,0,Number.MAX_SAFE_INTEGER,'seed');
   const rng = new Lcg(seed);
   const count=holeCount(input.variant),heroIds=Uint8Array.from(hero,fast.cardId),boardIds=new Uint8Array(5);
   boardIds.set(board.map(fast.cardId));
@@ -112,11 +144,14 @@ function monteCarloEquity(input) {
   let wins = 0;
   let ties = 0;
   let equitySum = 0;
+  let jointTable=null;
+  const samplerDiagnostics={algorithm:'INDEPENDENT_JOINT_REJECTION_WITH_EXACT_FALLBACK_V1',rejectionAttempts:0,rejectionAccepts:0,fallbackSamples:0,enumerationComplete:null,compatibleJoints:null};
   for (let sample = 0; sample < samples; sample += 1) {
     let accepted=explicit.length===0;
     // Independent weighted draws with collision rejection preserve the joint
     // distribution. Drawing unknown hands first could consume known cards.
-    for(let attempt=0;attempt<2000&&!accepted;attempt++) {
+    for(let attempt=0;attempt<2000&&!accepted&&!jointTable;attempt++) {
+      samplerDiagnostics.rejectionAttempts++;
       blocked.set(baseBlocked);let collision=false;
       // Always draw every range before retrying: preserve independent joint draws,
       // conditional on no shared cards, rather than biasing later opponents.
@@ -125,8 +160,20 @@ function monteCarloEquity(input) {
         for(let c=0;c<hand.length;c++){if(blocked[hand[c]])collision=true;blocked[hand[c]]=1;}
       }
       accepted=!collision;
+      if(accepted)samplerDiagnostics.rejectionAccepts++;
     }
-    if(!accepted) throw Error('Ranges incompatíveis entre si; nenhum sorteio conjunto válido foi encontrado.');
+    if(!accepted) {
+      if(!jointTable) {
+        jointTable=enumerateJointRanges(explicit,baseBlocked);
+        samplerDiagnostics.enumerationComplete=true;
+        samplerDiagnostics.enumerationNodes=jointTable.nodes;
+        samplerDiagnostics.compatibleJoints=jointTable.entries.length;
+      }
+      const joint=sampleJoint(jointTable,rng);
+      blocked.set(baseBlocked);
+      joint.forEach((hand,r)=>{opponents[r]=hand;for(const id of hand)blocked[id]=1;});
+      samplerDiagnostics.fallbackSamples++;
+    }
     if(explicit.length){remainingCount=0;for(let i=0;i<baseDeck.length;i++)if(!blocked[baseDeck[i]])remaining[remainingCount++]=baseDeck[i];}
     else {remaining.set(baseDeck);remainingCount=baseDeck.length;}
     for(let r=0;r<uniformCount;r++)for(let c=0;c<count;c++)opponents[explicit.length+r][c]=draw();
@@ -145,7 +192,7 @@ function monteCarloEquity(input) {
       sequentialMargin=Math.sqrt(Math.log(2*look*(look+1)/.05)/(2*completed));
       if(completed>=2048&&sequentialMargin<=.01){stopReason='PRECISION';break;}
       if(completed>=2048&&threshold!==null&&sequentialMargin<=.025&&Math.abs(equitySum/completed-threshold)>sequentialMargin){stopReason='CALL_EV_SIGN';break;}
-      if(performance.now()-started>=2000){stopReason='TIME_BUDGET';break;}
+      if(performance.now()-started>=timeBudgetMs){stopReason='TIME_BUDGET';break;}
     }
   }
   samples=completed;
@@ -158,18 +205,18 @@ function monteCarloEquity(input) {
     method: 'MONTE_CARLO',
     samples,
     seed,
-    winRate: wins / samples,
-    tieRate: ties / samples,
+    ...outcomeRates(wins, ties, samples),
     equity: estimate,
     confidenceInterval95: [Math.max(0, estimate - margin), Math.min(1, estimate + margin)],
     intervalMethod:adaptive?'HOEFFDING_ALPHA_SPENDING':'HOEFFDING_FIXED_N',
     samplingMode:adaptive?'ADAPTIVE':'FIXED',
+    samplerDiagnostics:{...samplerDiagnostics,acceptanceRate:samplerDiagnostics.rejectionAttempts?samplerDiagnostics.rejectionAccepts/samplerDiagnostics.rejectionAttempts:null},
     elapsedMs,
     simulationsPerSecond:samples*1000/elapsedMs,
     measurementScope:'MONTE_CARLO_ENGINE_WALL_TIME',
     opponents: ranges.length,
     ranges: publicRanges
-    ,...(adaptive?{requestedSamples,stopReason,targetMargin:.01,timeBudgetMs:2000}: {})
+    ,...(adaptive?{requestedSamples,stopReason,targetMargin:.01,timeBudgetMs}: {})
   };
 }
 

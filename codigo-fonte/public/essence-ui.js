@@ -36,7 +36,8 @@
       const angle=Math.PI+(i+1)/(opponents.length+1)*Math.PI;
       const x=50+45*Math.cos(angle),y=57+53*Math.sin(angle);
       const status=p.folded?'Folded':p.allIn?'All-in':state.actor===p.id?'To act':p.lastAction||'';
-      return `<button type="button" class="opponent-place multiway-seat${p.folded?' folded':''}${state.actor===p.id?' acting':''}" style="--seat-x:${x}%;--seat-y:${y}%" data-multiway-player="${p.id}" aria-label="Opponent ${p.position}: ${esc(status)}, stack ${money(p.stack)}">${hiddenCards(holeCount)}<span class="opponent-name">${esc(p.position)} · ${money(p.stack)}</span>${status?`<span class="multiway-seat-status">${esc(({CALL:'Called',CHECK:'Checked',BET:'Bet',RAISE:'Raised',FOLD:'Folded'})[status]||status)}</span>`:''}</button>`;
+      const name=p.name||`Adv. ${state.players.filter(item=>!item.hero).findIndex(item=>item.id===p.id)+1}`;
+      return `<button type="button" class="opponent-place multiway-seat${p.folded?' folded':''}${state.actor===p.id?' acting':''}" style="--seat-x:${x}%;--seat-y:${y}%" data-multiway-player="${p.id}" aria-label="${esc(name)} · ${esc(p.position)}: ${esc(status)}, stack ${money(p.stack)}">${hiddenCards(holeCount)}<span class="opponent-name">${esc(name)} · ${esc(p.position)} · ${money(p.stack)}</span>${status?`<span class="multiway-seat-status">${esc(({CALL:'Called',CHECK:'Checked',BET:'Bet',RAISE:'Raised',FOLD:'Folded'})[status]||status)}</span>`:''}</button>`;
     }).join('');
   }
   window.EssenceUI = { esc, cardMarkup, canonicalCard, money, trainingTable, hiddenCards, opponentSeats, multiwaySeats };

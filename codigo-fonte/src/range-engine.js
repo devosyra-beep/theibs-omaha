@@ -74,6 +74,7 @@ function normalizeProfileValue(value, allowed, field) {
 }
 
 function normalizeWeight(value, index) {
+  if (!['number', 'string'].includes(typeof value) || (typeof value === 'string' && !value.trim())) throw new Error(`Peso inválido no índice ${index}.`);
   const weight = Number(value);
   if (!Number.isFinite(weight) || weight < 0) throw new Error(`Peso inválido no índice ${index}.`);
   return weight;
@@ -96,15 +97,17 @@ function normalizeRange(range, index = 0, count = 5) {
     if (normalized.length !== count) throw new Error(`Cada mão de um range PLO${count} deve conter ${count} cartas.`);
     return normalized;
   });
+  if (range.weights !== undefined && !Array.isArray(range.weights)) throw new Error('weights deve ser um array.');
   const weights = range.weights === undefined
     ? hands.map(() => 1)
     : range.weights.map((weight, weightIndex) => normalizeWeight(weight, weightIndex));
   if (weights.length !== hands.length) throw new Error('weights deve ter o mesmo tamanho de hands.');
   const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
-  if (totalWeight <= 0) throw new Error('A soma dos pesos do range deve ser maior que zero.');
+  if (!Number.isFinite(totalWeight) || totalWeight <= 0) throw new Error('A soma dos pesos do range deve ser finita e maior que zero.');
   const position = range.position == null ? null : normalizeProfileValue(range.position, POSITIONS, 'Posição do range');
   const action = range.action == null ? null : normalizeProfileValue(range.action, ACTIONS, 'Ação do range');
   const normalizedWeights = weights.map((weight) => weight / totalWeight);
+  if (weights.some((weight, i) => weight > 0 && normalizedWeights[i] === 0)) throw new Error('Pesos excedem a precisão numérica; reescale ou simplifique o range.');
   return {
     id: String(range.id || `range-${index + 1}`),
     version: String(range.version || RANGE_VERSION),

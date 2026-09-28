@@ -4,9 +4,11 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const { createSession, publicSession, applyAction } = require('./src/training-simulator');
 const { evaluateSession, validateChoice } = require('./src/training-analysis');
-const { snapshotForCoach, answerDoubt, prepareScenario, coachSummary } = require('./src/coach');
+const { snapshotForCoach, answerDoubt, localCoachAnswer, enrichCoachAnswer, prepareScenario, coachSummary } = require('./src/coach');
 const llama = require('./src/llama-config');
-const { appendEvent, appendEvents, readEvents, decisionQuality, summarize, similarDecisions, opponentTendencies } = require('./src/training-store');
+const { appendEvent, appendEvents, readEvents, decisionQuality, summarize, similarDecisions, opponentTendencies, outcomeTimeline, readEventPage } = require('./src/training-store');
+const { historyOverview, closeHistoryService } = require('./src/history-service');
+const { fingerprint, attachAnalysisContract } = require('./src/analysis-contract');
 const { importHands } = require('./src/hand-importer');
 const { readWorkspace, saveWorkspace } = require('./src/workspace-store');
 const analyzeInWorker = require('./src/analysis-worker');
@@ -14,6 +16,8 @@ const multiway = require('./src/multiway-session');
 const authService = require('./src/supabase-service');
 const billing = require('./src/abacatepay');
 const { publicOrigin, runtimeConfig, validateDeployment } = require('./src/hosting-config');
+const { experimentReport } = require('./src/analysis-experiment-report');
+const { prepareOpponentOverrides } = require('./src/opponent-overrides');
 
 const root = __dirname;
 const publicDir = path.join(root, 'public');
@@ -21,6 +25,25 @@ const port = runtimeConfig().port;
 const sessions = new Map();
 const sessionOwners = new Map();
 const sessionBusy = new WeakSet();
+const manualCache = new Map(), coachTickets = new Map();
+const CACHE_TTL_MS = 60000, TICKET_TTL_MS = 120000;
+function putBounded(map, key, value, limit = 100) {
+  const now = Date.now();
+  for (const [id, item] of map) if (item.expires <= now) map.delete(id);
+  map.delete(key);
+  while (map.size >= limit) map.delete(map.keys().next().value);
+  map.set(key, value);
+}
+function localFirstAnswer(context, question, similarCases, auth, session) {
+  let enabled = false;
+  try { enabled = llama.readConfig().config.provider === 'ollama'; } catch { /* Local facts remain available with a broken optional config. */ }
+  const answer = localCoachAnswer(context, question, { languageModelConfigured: enabled, similarCases });
+  if (!enabled) return { answer, enrichment: null };
+  const ticket = crypto.randomUUID(), expires = Date.now() + TICKET_TTL_MS;
+  putBounded(coachTickets, ticket, { owner: auth.user.id, context: structuredClone(context), question,
+    similarCases: structuredClone(similarCases), expires, sessionId: session?.id, revision: session?.events.length });
+  return { answer, enrichment: { ticket, expiresAt: new Date(expires).toISOString(), analysisId: context.analysisId || null } };
+}
 
 function allowedRequestHost(host) {
   const currentPort = server.address()?.port;
@@ -80,6 +103,10 @@ function buildInput(payload) {
     foldEquity: parseOptionalNumber(payload.foldEquity),
     continuationEquity: parseOptionalNumber(payload.continuationEquity),
     rake: parseOptionalNumber(payload.rake),
+    rakeSchedule: payload.rakeSchedule,
+    selectionInference: payload.selectionInference,
+    practicalEquivalenceBB: parseOptionalNumber(payload.practicalEquivalenceBB),
+    bigBlind: parseOptionalNumber(payload.bigBlind),
     assumeNoRake: payload.assumeNoRake === true,
     futureStreetModel: payload.futureStreetModel,
     opponentProfile: payload.opponentProfile,
@@ -89,7 +116,7 @@ function buildInput(payload) {
     opponentSeatIds: payload.opponentSeatIds,
     actionResponseModels: payload.actionResponseModels,
     aggressionStudy: payload.aggressionStudy,
-    heroContribution: parseOptionalNumber(payload.heroContribution),
+    heroContribution: parseOptionalNumber(payload.heroContribution ?? payload.aggressionStudy?.heroContribution),
     minRaiseTo: parseOptionalNumber(payload.minRaiseTo),
     minBet: parseOptionalNumber(payload.minBet),
     maxRaiseTo: parseOptionalNumber(payload.maxRaiseTo),
@@ -101,9 +128,14 @@ function buildInput(payload) {
     actionHistory: payload.actionHistory,
     availableActions: Number(payload.amountToCall || 0)
       ? ['FOLD', 'CALL', 'RAISE']
-      : ['CHECK', 'BET']
+      : Number(payload.heroContribution ?? payload.aggressionStudy?.heroContribution ?? 0) > 0 ? ['CHECK', 'RAISE'] : ['CHECK', 'BET']
   };
   if (Array.isArray(payload.availableActions)) input.availableActions = input.availableActions.filter(action=>['FOLD','CALL','CHECK','BET','RAISE'].includes(action) && payload.availableActions.includes(action));
+  if (Object.hasOwn(payload,'opponentOverrides')) {
+    input.opponentOverrides=payload.opponentOverrides;
+    input.opponentStudyAccepted=payload.opponentStudyAccepted===true;
+    input.opponentContributions=payload.opponentContributions;
+  }
   const opponentHand = parseCards(payload.opponentHand);
   const rangeHands = String(payload.opponentRange || '')
     .split(/\n|\|/)
@@ -148,12 +180,36 @@ function serveStatic(request, response) {
   });
 }
 
-async function analyzeManual(payload, response) {
-  const input = buildInput(payload);
-  if (payload.multiway?.enabled !== true) return analyzeInWorker(input, response);
-  const prepared = multiway.prepareAnalysis(payload.multiway, input);
-  if (!prepared.available) return multiway.blockedResult(prepared);
-  return multiway.guardResult(await analyzeInWorker(prepared.input, response), prepared);
+async function analyzeManual(payload, response, owner = 'local') {
+  const started = performance.now(), input = buildInput(payload);
+  const preview = payload.analysisPhase === 'PREVIEW';
+  const prepared = payload.multiway?.enabled === true ? multiway.prepareAnalysis(payload.multiway, input) : null;
+  if (prepared && !prepared.available) return attachAnalysisContract(multiway.blockedResult(prepared), { ...prepared.input, multiway: payload.multiway });
+  const computeInput = { ...(prepared?.input || prepareOpponentOverrides(input)) };
+  if (preview) {
+    if(!Number.isInteger(computeInput.samples)||computeInput.samples<1||computeInput.samples>50000)throw Error('samples must be an integer between 1 and 50000.');
+    computeInput.samplingMode = 'FIXED';
+    computeInput.samples = Math.min(512, Number.isInteger(computeInput.samples) && computeInput.samples > 0 ? computeInput.samples : 512);
+    // Preserve the complete study model; its own budget remains authoritative.
+  }
+  const key = fingerprint({ owner, build: require('./package.json').version, input: computeInput, multiway: payload.multiway, preview });
+  const cached = manualCache.get(key);
+  if (cached && cached.expires > Date.now()) {
+    const result = structuredClone(cached.result);
+    result.performance = { ...result.performance, cacheHit: true, cacheAgeMs: Date.now() - cached.createdAt,
+      cachedCalculationMs: result.performance?.requestElapsedMs ?? null,
+      requestElapsedMs: performance.now() - started, monteCarloSamples: 0, simulationsPerSecond: null };
+    return result;
+  }
+  let result = await analyzeInWorker(computeInput, response);
+  if (prepared) result = multiway.guardResult(result, prepared);
+  result.analysisStage = preview ? 'PROVISIONAL' : 'FINAL';
+  // Build the public assessment only after street guards and the final/preview
+  // stage are known; an unguarded worker result cannot supply a green signal.
+  result = attachAnalysisContract(result, prepared ? { ...computeInput, multiway: payload.multiway } : computeInput);
+  result.performance = { ...result.performance, cacheHit: false };
+  if (result.status === 'OK' && !response.destroyed) putBounded(manualCache, key, { result: structuredClone(result), createdAt: Date.now(), expires: Date.now() + CACHE_TTL_MS });
+  return result;
 }
 
 function collectBody(request) {
@@ -231,6 +287,11 @@ const server = http.createServer(async (request, response) => {
     } catch (error) { return json(response, error.statusCode || 503, { status: 'ERROR', reason: error.message }); }
   }
 
+  if (request.method === 'GET' && route === '/api/analysis/experiments') {
+    try { return json(response, 200, experimentReport()); }
+    catch { return json(response, 500, { status: 'ERROR', reason: 'Economic evidence unavailable.' }); }
+  }
+
   if (request.method === 'GET' && route === '/api/llm/config') {
     try { return json(response, 200, { status: 'OK', ...llama.publicState() }); }
     catch (error) { return json(response, 400, { status: 'ERROR', reason: error.message }); }
@@ -251,21 +312,39 @@ const server = http.createServer(async (request, response) => {
       if (route === '/api/llm/check') return json(response, 200, { status: 'OK', ...await llama.checkAvailability() });
       if (route === '/api/llm/start') return json(response, 200, { status: 'OK', ...await llama.startLocalServer() });
       if (route === '/api/analysis/prepare') return json(response, 200, await prepareScenario(payload.question, payload.context || payload.input || {}));
+      if (route === '/api/coach/enrich') {
+        const ticket = coachTickets.get(String(payload.ticket || ''));
+        if (!ticket || ticket.expires <= Date.now() || ticket.owner !== auth.user.id) return json(response, 410, { status: 'ERROR', reason: 'This explanation expired. Ask again.' });
+        const current = () => !ticket.sessionId || (sessions.get(ticket.sessionId)?.events.length === ticket.revision && ownerMatches(auth, ticket.sessionId));
+        if (!current()) return json(response, 409, { status: 'ERROR', reason: 'The hand changed. Ask about the current decision.' });
+        coachTickets.delete(String(payload.ticket));
+        const controller = new AbortController();
+        const cancel = () => { if (!response.writableEnded) controller.abort(); };
+        response.once('close', cancel);
+        try {
+          const answer = await enrichCoachAnswer(ticket.context, ticket.question, process.env, ticket.similarCases, { signal: controller.signal });
+          if (!current()) return json(response, 409, { status: 'ERROR', reason: 'The hand changed while explaining it.' });
+          return json(response, 200, { status: 'OK', answer, context: ticket.context, analysisId: ticket.context.analysisId || null });
+        } finally { response.removeListener('close', cancel); }
+      }
       if (route === '/api/analysis/doubt') {
-        const analysis = await analyzeManual(payload.input || {}, response);
+        const analysis = await analyzeManual({ ...payload.input, analysisPhase: 'FINAL' }, response, auth.user.id);
         if (analysis.status !== 'OK') return json(response, 200, analysis);
         const context = snapshotForCoach(analysis);
         if (analysis.observedState) { context.observedState = analysis.observedState; context.observedSource = analysis.observedSource; }
         const question = String(payload.question || 'Explain this hand.').slice(0, 500);
         const historyPath = userStoragePath(auth, 'training-events.jsonl');
-        const similarCases = similarDecisions(readEvents(historyPath), context);
-        const answer = await answerDoubt(context, question, process.env, similarCases);
+        const recentPage = await readEventPage({filePath:historyPath,limit:100,types:['DECISION'],maxScannedBytes:1048576});
+        const similarCases = similarDecisions(recentPage.events, context).map(item=>({...item,retrievalScope:'UP_TO_100_RECENT_DECISIONS_WITHIN_1MIB',scanLimited:recentPage.scanLimited===true}));
+        const local = payload.responseMode === 'LOCAL_FIRST' ? localFirstAnswer(context, question, similarCases, auth) : null;
+        const answer = local?.answer || await answerDoubt(context, question, process.env, similarCases);
+        if (response.destroyed) return;
         appendEvent({ type: 'DOUBT', source: 'MANUAL_ANALYSIS', street: context.street, question, context,
           answer: answer.answer, provider: answer.provider, model: answer.model || null, similarCases }, historyPath);
-        return json(response, 200, { status: 'OK', answer, context, similarCases });
+        return json(response, 200, { status: 'OK', answer, context, similarCases, enrichment: local?.enrichment || null });
       }
       if (route === '/api/workspace') return json(response, 200, { status: 'OK', ...saveWorkspace(payload.workspace, payload.expectedRevision, userStoragePath(auth, 'workspace.json')) });
-      if (route === '/api/analyze') return json(response, 200, await analyzeManual(payload, response));
+      if (route === '/api/analyze') return json(response, 200, await analyzeManual(payload, response, auth.user.id));
       if (route === '/api/multiway/start') return json(response, 200, multiway.start(payload.config));
       if (route === '/api/multiway/state') return json(response, 200, multiway.envelope(payload.multiway));
       if (route === '/api/multiway/step') return json(response, 200, multiway.step(payload.multiway, payload.event, payload.expectedRevision));
@@ -310,12 +389,14 @@ const server = http.createServer(async (request, response) => {
           if (!isAction) {
             const question = String(payload.question || 'Why this action?').slice(0, 500);
             const historyPath = userStoragePath(auth, 'training-events.jsonl');
-            const similarCases = similarDecisions(readEvents(historyPath), snapshot);
-            const answer = await answerDoubt(snapshot, question, process.env, similarCases);
+            const recentPage = await readEventPage({filePath:historyPath,limit:100,types:['DECISION'],maxScannedBytes:1048576});
+            const similarCases = similarDecisions(recentPage.events, snapshot).map(item=>({...item,retrievalScope:'UP_TO_100_RECENT_DECISIONS_WITHIN_1MIB',scanLimited:recentPage.scanLimited===true}));
+            const local = payload.responseMode === 'LOCAL_FIRST' ? localFirstAnswer(snapshot, question, similarCases, auth, session) : null;
+            const answer = local?.answer || await answerDoubt(snapshot, question, process.env, similarCases);
             if (response.destroyed) return;
             appendEvent({ type: 'DOUBT', sessionId: session.id, street: snapshot.street, revision: session.events.length, question,
               context: snapshot, answer: answer.answer, summary: answer.summary, provider: answer.provider, model: answer.model || null, similarCases }, historyPath);
-            return json(response, 200, { status: 'OK', answer, context: snapshot, similarCases });
+            return json(response, 200, { status: 'OK', answer, context: snapshot, similarCases, enrichment: local?.enrichment || null });
           }
           // Commit a complete successor only after the evaluation succeeds.
           // Hidden future cards remain exclusively inside the game simulator.
@@ -357,19 +438,13 @@ const server = http.createServer(async (request, response) => {
     }
   }
   if (request.method === 'GET' && route === '/api/training/history') {
+    const controller=new AbortController(),cancel=()=>{if(!response.writableEnded)controller.abort();};
+    response.once('close',cancel);
     try {
-    const events = readEvents(userStoragePath(auth, 'training-events.jsonl'));
-    const recent = events.filter((event) => event.type === 'DECISION').slice(-20).reverse().map((event) => ({
-      timestamp: event.timestamp, street: event.street, chosenAction: event.chosenAction,
-      recommendedAction: event.recommendedAction, quality: event.quality, evLoss: event.evLoss, qualityDetails: event.qualityDetails || null,
-      chosenSize: event.chosenSize ?? null, recommendedSize: event.recommendedSize ?? null, summary: event.summary || null,
-      trainingEvaluation: event.context?.trainingEvaluation || null,
-      heroCards: event.context?.heroCards || [], board: event.context?.board || [], position: event.context?.position || null, variant: event.context?.variant || 'PLO5_HIGH'
-    }));
-    return json(response, 200, { status: 'OK', summary: summarize(events), recent,
-      observedHands:events.filter(event=>event.type==='OBSERVED_HAND').slice(-10).reverse(),
-      trends: ['PASSIVE', 'AGGRESSIVE', 'MIXED'].map((style) => opponentTendencies(events, style)),
-      outcomeTimeline: events.filter((event) => event.type === 'HAND_COMPLETE').map((event) => ({ timestamp: event.timestamp, net: event.outcome?.heroNet ?? 0 })) });    } catch (error) { return json(response, 500, { status: 'ERROR', reason: `Histórico indisponível: ${error.message}` }); }
+      const overview=await historyOverview(userStoragePath(auth,'training-events.jsonl'),{signal:controller.signal,recentLimit:20,timelineLimit:1000});
+      return json(response,200,{status:'OK',...overview});
+    } catch(error){return json(response,error.statusCode||500,{status:'ERROR',reason:`History unavailable: ${error.message}`});}
+    finally{response.removeListener('close',cancel);}
   }
   if (request.method === 'GET') return serveStatic(request, response);
   response.writeHead(405); response.end('Method not allowed');
@@ -392,4 +467,5 @@ if (require.main === module) {
   }
 }
 
+server.on('close',()=>{manualCache.clear();coachTickets.clear();closeHistoryService().catch(()=>{});});
 module.exports = { server, buildInput, userStoragePath };

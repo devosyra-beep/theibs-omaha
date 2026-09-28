@@ -239,6 +239,40 @@
     document.addEventListener('keydown', keydown);
     refresh(); return window.theibsMultiwayUI;
   }
-  window.theibsMultiwayUI = { init, render, setBusy, setError, openSetup, openPlayer, openBoard, getDraft,
+  function voiceContext() {
+    return { token: JSON.stringify([activeToken(), view.config, context(), window.theibsApp?.getVoiceContext?.()]),
+      enabled: view.enabled, busy: busy(), phase: view.state?.phase, nextStreet: view.state?.nextStreet,
+      board: [...(view.state?.board || [])],
+      actionState: view.state ? { phase:view.state.phase, actor:view.state.actor, heroId:view.state.heroId,
+        legal:{...view.state.legal,actions:[...(view.state.legal?.actions||[])]},
+        players:view.state.players.map(item=>({id:item.id,hero:item.hero,name:item.name,position:item.position,folded:item.folded,allIn:item.allIn,streetPaid:item.streetPaid})) } : null };
+  }
+  async function commitVoiceBoard({ addedCards, expectedToken }) {
+    const current = voiceContext();
+    if (!inAnalysis() || !current.enabled || current.busy || current.phase !== 'WAIT_BOARD' || current.token !== expectedToken) return false;
+    if (!Array.isArray(addedCards) || addedCards.length !== (current.nextStreet === 'FLOP' ? 3 : 1) ||
+        addedCards.some(card => typeof card !== 'string' || !/^[2-9TJQKA][shdc]$/.test(card))) return false;
+    const source = context(), hero = source.heroCards || view.config?.heroCards || [];
+    const cards = [...current.board, ...addedCards], known = [...hero, ...cards];
+    if (new Set(known).size !== known.length) return false;
+    return invoke('board', { cards });
+  }
+  async function undoVoiceBoard({ expectedToken }) {
+    const current = voiceContext(), events = window.theibsApp?.getState().multiway?.events;
+    if (!inAnalysis() || !current.enabled || current.busy || current.token !== expectedToken || events?.at(-1)?.type !== 'BOARD') return false;
+    return invoke('undo');
+  }
+  async function commitVoiceAction({ command, expectedToken }) {
+    const current=voiceContext();
+    if(!inAnalysis()||!current.enabled||current.busy||current.token!==expectedToken)return false;
+    try{return await invoke('act',window.TheibsCardVoice.resolveAction(command,current.actionState));}
+    catch(error){setError(error.message);return false;}
+  }
+  async function undoVoiceAction({ expectedToken }) {
+    const current=voiceContext(),events=window.theibsApp?.getState().multiway?.events;
+    if(!inAnalysis()||!current.enabled||current.busy||current.token!==expectedToken||events?.at(-1)?.type!=='ACT')return false;
+    return invoke('undo');
+  }
+  window.theibsMultiwayUI = { init, render, setBusy, setError, openSetup, openPlayer, openBoard, getDraft, voiceContext, commitVoiceBoard, undoVoiceBoard, commitVoiceAction, undoVoiceAction,
     getState: () => ({ enabled: view.enabled, state: view.state, config: view.config, busy: busy(), error: view.error }) };
 })();

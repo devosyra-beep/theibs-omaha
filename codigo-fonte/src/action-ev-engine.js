@@ -1,3 +1,4 @@
+const { normalizeRakeSchedule, calculateRake } = require('./rake-model');
 const ACTIONS = ['FOLD', 'CHECK', 'CALL', 'BET', 'RAISE'];
 
 function numberOrNull(value, label) {
@@ -53,10 +54,19 @@ function notLegalResult(action) {
 }
 
 function rakeInfo(input) {
+  if (input.rakeSchedule != null) {
+    if ((input.rake != null && input.rake !== '') || input.assumeNoRake === true) throw Error('Informe somente rakeSchedule, rake fixo ou assumeNoRake.');
+    const schedule = normalizeRakeSchedule(input.rakeSchedule);
+    return { value:null, schedule, assumption:`Rake percentual com teto declarado (${schedule.source}); aplicado ao pote elegível de cada ramo.` };
+  }
   const explicitRake = input.rake !== undefined && input.rake !== null && input.rake !== '';
   if (explicitRake) return { value: nonNegativeOrNull(input.rake, 'rake'), assumption: 'Rake informado explicitamente.' };
   if (input.assumeNoRake === true) return { value: 0, assumption: 'Rake assumido como zero por configuração explícita.' };
   return { value: null, assumption: null };
+}
+
+function rakeAt(rake, pot, boardCount) {
+  return rake.schedule ? calculateRake({pot, boardCount}, rake.schedule) : rake.value;
 }
 
 function calculateCall(input, equity, rake) {
@@ -67,14 +77,17 @@ function calculateCall(input, equity, rake) {
   if (amountToCall === null || potBeforeAction === null) return missingResult('CALL', ['amountToCall', 'potBeforeAction']);
   if (amountToCall === 0) return missingResult('CALL', ['amountToCall must be greater than zero']);
   if (equity === null) return missingResult('CALL', ['equity']);
-  if (rake.value === null) return missingResult('CALL', ['rake or assumeNoRake'], [], ['EV de call não foi modelado porque a premissa de rake não foi informada.']);
+  if (rake.value === null && !rake.schedule) return missingResult('CALL', ['rake or assumeNoRake'], [], ['EV de call não foi modelado porque a premissa de rake não foi informada.']);
   const potAfterCall = potBeforeAction + amountToCall;
-  const ev = equity * Math.max(0, potAfterCall - rake.value) - amountToCall;
+  const chargedRake = rakeAt(rake, potAfterCall, 5);
+  const ev = equity * Math.max(0, potAfterCall - chargedRake) - amountToCall;
   return {
     action: 'CALL',
     legal: true,
     status: 'MODELED',
     ev,
+    rake: chargedRake,
+    netPot: Math.max(0, potAfterCall - chargedRake),
     model: 'SHOWDOWN_ONLY',
     assumptions: ['Sem apostas futuras.', rake.assumption],
     missingInputs: [],
@@ -88,14 +101,16 @@ function calculateCheck(input, equity, rake) {
     return missingResult('CHECK', ['futureStreetModel'], [], ['EV de check depende de ações futuras e não foi estimado.']);
   }
   if (equity === null) return missingResult('CHECK', ['equity']);
-  if (rake.value === null) return missingResult('CHECK', ['rake or assumeNoRake']);
+  if (rake.value === null && !rake.schedule) return missingResult('CHECK', ['rake or assumeNoRake']);
   const potAtShowdown = nonNegativeOrNull(future.potAtShowdown ?? input.potBeforeAction, 'potAtShowdown');
   if (potAtShowdown === null) return missingResult('CHECK', ['potAtShowdown']);
   return {
     action: 'CHECK',
     legal: true,
     status: 'MODELED',
-    ev: equity * Math.max(0, potAtShowdown - rake.value),
+    ev: equity * Math.max(0, potAtShowdown - rakeAt(rake, potAtShowdown, 5)),
+    rake: rakeAt(rake, potAtShowdown, 5),
+    netPot: Math.max(0, potAtShowdown - rakeAt(rake, potAtShowdown, 5)),
     model: 'SHOWDOWN_ONLY',
     assumptions: ['Nenhuma aposta futura; showdown direto.', rake.assumption],
     missingInputs: [],
@@ -141,7 +156,7 @@ function calculateScenarioEV(action, input, model, rake) {
   try {
     if (!model || model.type !== 'SCENARIO_SHOWDOWN_ONLY') throw new Error('tipo de modelo de resposta não suportado.');
     if (model.action !== action) throw new Error('o modelo foi definido para outra ação.');
-    if (!['USER_PROVIDED', 'HEURISTIC_PRESET'].includes(model.source)) throw new Error('source deve identificar uma hipótese USER_PROVIDED ou HEURISTIC_PRESET.');
+    if (!['USER_PROVIDED', 'HEURISTIC_PRESET', 'USER_SUPPLIED_HYPOTHESIS'].includes(model.source)) throw new Error('source deve identificar uma hipótese USER_PROVIDED, USER_SUPPLIED_HYPOTHESIS ou HEURISTIC_PRESET.');
     for (const other of Object.values(input.actionResponseModels || {})) {
       if (other?.type === 'SCENARIO_SHOWDOWN_ONLY' && !sameScenarioState(model, other)) throw new Error('os modelos das ações devem compartilhar o mesmo estado de contribuições e stacks.');
     }
@@ -165,7 +180,7 @@ function calculateScenarioEV(action, input, model, rake) {
       if (heroCost > pot + 1e-8) throw new Error('o tamanho da aposta excede o pote.');
       if (input.betSize != null && input.betSize !== '' && !closeEnough(requiredNonNegative(input.betSize, 'betSize'), heroCost)) throw new Error('betSize deve ser o custo incremental de targetStreetTotal.');
     } else {
-      if (call <= 0 || target <= currentBet) throw new Error('RAISE exige aposta enfrentada e total maior que a aposta atual.');
+      if (currentBet <= 0 || target <= currentBet) throw new Error('RAISE exige aposta atual positiva e total maior que ela.');
       if (heroCost > pot + 2 * call + 1e-8) throw new Error('o aumento excede o limite do pote: custo máximo = pote + 2 × call.');
       if (input.raiseTo != null && input.raiseTo !== '' && !closeEnough(requiredNonNegative(input.raiseTo, 'raiseTo'), target)) throw new Error('raiseTo deve ser o total da rodada, igual a targetStreetTotal.');
       const explicitMinimum = model.minRaiseTo ?? input.minRaiseTo;
@@ -190,7 +205,7 @@ function calculateScenarioEV(action, input, model, rake) {
       opponents.set(id, { id, contribution, stackRemaining });
     }
     if (contributions > pot + 1e-8) throw new Error('a soma das contribuições atuais excede o pote informado.');
-    if (call > 0 && ![...opponents.values()].some(opponent => closeEnough(opponent.contribution, currentBet))) throw new Error('nenhum adversário tem a aposta atual que o herói enfrenta.');
+    if ((call > 0 || action === 'RAISE') && ![...opponents.values()].some(opponent => closeEnough(opponent.contribution, currentBet))) throw new Error('nenhum adversário tem a aposta atual que o herói enfrenta.');
     if (!Array.isArray(model.scenarios) || model.scenarios.length < 1) throw new Error('informe os cenários de resposta.');
     const seenSubsets = new Set();
     let probabilitySum = 0;
@@ -222,9 +237,17 @@ function calculateScenarioEV(action, input, model, rake) {
         if ((opponent.stackRemaining === 0 || (action === 'CALL' && closeEnough(opponent.contribution, target))) && !ids.includes(opponent.id)) throw new Error(`o adversário ${opponent.id} já igualado/all-in não pode desaparecer deste showdown.`);
       }
       if (action === 'CALL' && ids.length === 0) throw new Error('CALL não pode ganhar o pote por todos desistirem.');
-      const branchRake = scenario.rake == null || scenario.rake === '' ? rake.value : requiredNonNegative(scenario.rake, 'rake do cenário');
-      if (branchRake === null) throw new Error('informe rake ou assumeNoRake para cada cenário.');
-      const potAtShowdown = ids.length ? pot + heroCost + opponentAdditional : pot;
+      // Folding to a raise returns only the unmatched raise increment. The
+      // hero's call-sized matching part remains in the contested pot and can
+      // incur rake, even though its gross award cancels that new investment.
+      const uncalledReturned = ids.length ? 0 : Math.max(0,target-Math.max(...[...opponents.values()].map(p=>p.contribution)));
+      const matchedHeroCost = ids.length ? heroCost : heroCost-uncalledReturned;
+      const potAtShowdown = pot + matchedHeroCost + opponentAdditional;
+      if (rake.schedule && scenario.rake != null && scenario.rake !== '') throw new Error('Não combine rakeSchedule com rake fixo de cenário.');
+      const branchRake = scenario.rake == null || scenario.rake === ''
+        ? rakeAt(rake, potAtShowdown, ids.length ? 5 : (input.board || []).length)
+        : requiredNonNegative(scenario.rake, 'rake do cenário');
+      if (branchRake === null) throw new Error('informe rake, rakeSchedule ou assumeNoRake para cada cenário.');
       if (branchRake > potAtShowdown) throw new Error('rake do cenário excede seu pote.');
       let branchEquity = null;
       let branchEv = pot - branchRake;
@@ -258,7 +281,7 @@ function calculateScenarioEV(action, input, model, rake) {
       scenarioBreakdown.push({
         id: String(scenario.id || `scenario-${index + 1}`), probability, callers: ids,
         equity: branchEquity, equitySource: scenario.equitySource || null,
-        heroCost: ids.length ? heroCost : 0, uncalledReturned: ids.length ? 0 : heroCost,
+        heroCost: matchedHeroCost, uncalledReturned, eligibleRakePot:potAtShowdown,
         opponentAdditional, potAtShowdown, rake: branchRake, ev: branchEv, weightedEv: probability * branchEv,
         ...(branchEnvelope ? { conditionalEvEnvelope: branchEnvelope } : {}),
         ...(scenario.equityIntervalLevel != null ? { equityIntervalLevel: scenario.equityIntervalLevel } : {})
@@ -303,7 +326,7 @@ function calculateAggression(action, input, equity, rake) {
   if (potBeforeAction === null) missing.push('potBeforeAction');
   if (foldEquity === null) missing.push('foldEquity');
   if (continuationEquity === null) missing.push('continuationEquity');
-  if (rake.value === null) missing.push('rake or assumeNoRake');
+  if (rake.value === null && !rake.schedule) missing.push('rake or assumeNoRake');
   if (missing.length > 0) return missingResult(action, [...new Set(missing)]);
 
   const amountToCall = nonNegativeOrNull(input.amountToCall, 'amountToCall') ?? 0;
@@ -312,7 +335,7 @@ function calculateAggression(action, input, equity, rake) {
   const heroCost = action === 'BET' ? size : size - heroContribution;
   const currentBet = heroContribution + amountToCall;
   const opponentAdditional = action === 'BET' ? size : size - currentBet;
-  if (action === 'BET' && amountToCall > 0 || action === 'RAISE' && amountToCall <= 0) return scenarioError(action, 'ação incompatível com o valor para pagar.');
+  if (action === 'BET' && (amountToCall > 0 || heroContribution > 0) || action === 'RAISE' && currentBet <= 0) return scenarioError(action, 'ação incompatível com o valor para pagar.');
   if (heroCost <= 0 || opponentAdditional < 0 || (action === 'RAISE' && opponentAdditional === 0)) return scenarioError(action, 'tamanho não aumenta a aposta atual.');
   if (Number.isFinite(Number(input.effectiveStack)) && heroCost > Number(input.effectiveStack)) return scenarioError(action, 'o custo incremental excede o stack efetivo.');
   if (heroCost > potBeforeAction + 2 * amountToCall + 1e-8) return scenarioError(action, 'tamanho excede o limite do pote.');
@@ -323,8 +346,9 @@ function calculateAggression(action, input, equity, rake) {
   }
   if (2 * heroContribution + amountToCall > potBeforeAction + 1e-8) return scenarioError(action, 'contribuições atuais excedem o pote informado.');
   const potIfCalled = potBeforeAction + heroCost + opponentAdditional;
-  const continuationEv = continuationEquity * Math.max(0, potIfCalled - rake.value) - heroCost;
-  const ev = foldEquity * Math.max(0, potBeforeAction - rake.value) + (1 - foldEquity) * continuationEv;
+  const continuationRake = rakeAt(rake, potIfCalled, 5), foldRake = rakeAt(rake, potBeforeAction + amountToCall, (input.board || []).length);
+  const continuationEv = continuationEquity * Math.max(0, potIfCalled - continuationRake) - heroCost;
+  const ev = foldEquity * Math.max(0, potBeforeAction - foldRake) + (1 - foldEquity) * continuationEv;
   return {
     action,
     legal: true,
@@ -334,7 +358,8 @@ function calculateAggression(action, input, equity, rake) {
     modelScope: 'FIXED_RESPONSE_SHOWDOWN_ONLY',
     source: 'USER_PROVIDED',
     certainty: 'CONDITIONAL_ON_UNVALIDATED_RESPONSE_ASSUMPTIONS',
-    heroCost,
+    targetStreetTotal: action === 'BET' ? heroContribution + size : size, heroContribution, heroCost,
+    rakeByResponse: {fold:foldRake,call:continuationRake},
     assumptions: [
       `Fold equity de ${(foldEquity * 100).toFixed(1)}%.`,
       `Equity de continuação de ${(continuationEquity * 100).toFixed(1)}%.`,

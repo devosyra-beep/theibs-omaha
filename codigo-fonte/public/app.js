@@ -1,4 +1,4 @@
-/* Theibs controller. All analysis and simulated actions go to the original local
+/* Theibs controller. All analysis and simulated actions go to the Theibs web
    Theibs API. EssenceDeck supplies presentation only; no demo engine is loaded. */
 (function () {
   'use strict';
@@ -6,7 +6,10 @@
   const form = $('#analysis-form'), result = $('#result'), emptyState = $('#empty-state');
   const analyzeButton = $('#analyze-button');
   const cards = window.theibsCardKeyboard;
+  const feedback = window.TheibsAnalyzeFeedback;
   const snapshots = [];
+  const snapshotModel = window.TheibsSnapshots;
+  const metrics = window.theibsMetrics = { analyses: [] };
   const value = (id) => document.getElementById(id).value.trim();
   const percent = (number) => number == null || !Number.isFinite(Number(number)) ? '—' : `${(Number(number) * 100).toFixed(1)}%`;
   const money = (number) => number == null || !Number.isFinite(Number(number)) ? '—' : Number(number).toFixed(2);
@@ -15,11 +18,13 @@
   const qualityName = (quality) => ({ INCONCLUSIVE_COMPARISON: 'No clear advantage between options', INCOMPLETE_COMPARISON: 'Limited comparison', MATCHED_HEURISTIC: 'Matches the previous heuristic', DIFFERENT_HEURISTIC: 'Differs from the previous heuristic', MATCHED_MODELED: 'Favored choice in this exercise', DIFFERENT_MODELED: 'Another option had higher EV', UNVERIFIED: 'Not evaluated yet' })[quality] || quality;
   const actionName = action => ({FOLD:'Fold',CALL:'Call',CHECK:'Check',BET:'Bet',RAISE:'Raise',NO_DECISION:'No recommendation'})[action] || action || '—';
   const actionWithSize = (action,size) => actionName(action)+(['BET','RAISE'].includes(action)&&Number.isFinite(size)?' to '+money(size):'');
-  const comparisonLabel = data => !data.ev?.comparisonComplete ? 'Partial leader' : data.strategy?.baseline?.leadership?.status === 'SEPARATED' ? 'Highest EV in scenario' : 'Inconclusive comparison';
+  const comparisonLabel = data => data.analysisStage === 'PROVISIONAL' ? 'Provisional estimate · refining' : !data.ev?.comparisonComplete ? 'Partial comparison' : data.recommendation?.status === 'CONDITIONAL' ? 'Highest EV under assumptions' : 'Inconclusive comparison';
+  const recommendationText = data => data.analysisStage === 'PROVISIONAL' ? 'Refining…' : data.recommendation?.action ? actionName(data.recommendation.action) : 'No clear choice';
   const numberLabel = n => Number.isFinite(n) ? Math.round(n).toLocaleString('en-US') : '—';
   const FIELD_IDS = ['position','players','potBeforeAction','amountToCall','effectiveStack','samples','seed',
     'opponentHand','opponentRange','opponentProfile','opponentProfileSource','observedFoldToBet','observedCallFrequency','observedRaiseFrequency','observedBluffFrequency',
     'betSize','raiseTo','foldEquity','continuationEquity','rake','assumeNoRake','opponentModel','auto-analysis','training-mode','training-style','training-street','training-seed','training-stack'];
+  FIELD_IDS.push('rake-mode','rake-rate','rake-cap','rake-no-flop','rake-rounding','analysis-big-blind','analysis-equivalence');
   FIELD_IDS.push('study-mode','study-hero-contribution','study-min-raise','study-min-bet','study-accept',...Array.from({length:9},(_,i)=>['study-contribution-'+i,'study-probability-'+i]).flat());
   let activeView = 'analyze', inputRevision = 0, analysisBusy = false, trainingBusy = false;
   let lastAnalysis = null, trainingSession = null, trainingDecisions = [];
@@ -28,9 +33,20 @@
   let toastTimer = null, priorHero = '';
   let analysisTimer=null,analysisController=null,analysisQueued=false;
   let engineStatus = null;
+  const webBuild = document.querySelector('meta[name="theibs-web-build"]')?.content;
+  function engineVersionError() {
+    return webBuild && engineStatus?.version && webBuild !== engineStatus.version
+      ? `Versões incompatíveis: interface ${webBuild}, motor ${engineStatus.version}. Recarregue a página. Se persistir, aguarde a atualização do serviço antes de calcular.` : '';
+  }
+  function renderEngineVersion() {
+    const warning = document.getElementById('engine-build-warning'), error = engineVersionError();
+    warning.hidden = !error; warning.textContent = error;
+    document.getElementById('view-title').title = `Interface ${webBuild || '—'} · motor ${engineStatus?.version || 'indisponível'}`;
+  }
+  let inputChangedAt = performance.now(), coachController = null, coachGeneration = 0;
   let multiway = null, multiwayState = null, multiwayAnalysis = null, multiwayYesple = null;
   let multiwayBusy = false, syncingMultiway = false, multiwayCardTimer = null, multiwayCardSnapshot = null, multiwayRevision = 0;
-  const multiwayLocked = ['variant-select','players','opponent-count','position','potBeforeAction','amountToCall','effectiveStack','opponentHand','opponentRange','study-mode'];
+  const multiwayLocked = ['variant-select','players','opponent-count','position','potBeforeAction','amountToCall','effectiveStack','study-mode'];
   const multiwayManualModels = ['opponentProfile','opponentProfileSource','observedFoldToBet','observedCallFrequency','observedRaiseFrequency','observedBluffFrequency','betSize','raiseTo','foldEquity','continuationEquity','study-hero-contribution','study-min-raise','study-min-bet','study-accept',...Array.from({length:9},(_,i)=>['study-contribution-'+i,'study-probability-'+i]).flat()];
   function multiwayContext() {
     const hand=cards.state.cards();
@@ -45,6 +61,7 @@
     for(const id of multiwayManualModels){const el=document.getElementById(id);el.disabled=!!multiway;el.title=multiway?'Free-form assumptions from simple mode. Multiway models must identify each seat.':'';}
     // Board changes belong to to street event; existing card entry edits only the private hand.
     if(multiway)document.querySelectorAll('#board-slots [data-slot]').forEach(el=>{el.disabled=true;el.title='Use Deal board in Multiway.';});
+    window.theibsOpponentInputs?.refresh();
   }
   function syncMultiwayCards() {
     if(!multiwayState)return;
@@ -53,30 +70,47 @@
     const hero=snapshot.slots.slice(0,snapshot.count);
     snapshot.slots=[...hero,...multiwayState.board.map(window.TheibsCards.fromCanonical),...Array(5-multiwayState.board.length).fill(null)];
     snapshot.selected=Math.min(snapshot.selected,snapshot.count-1);
-    syncingMultiway=true;cards.restore(snapshot);syncingMultiway=false;
+    const sameCards=snapshot.count===cards.state.count&&JSON.stringify(snapshot.slots)===JSON.stringify(cards.state.slots);
+    syncingMultiway=true;cards.restore(snapshot,{preserveUndo:sameCards});syncingMultiway=false;
   }
   function acceptMultiway(data) {
     multiway=data.multiway;multiwayState=data.state;multiwayAnalysis=data.analysis;
     syncMultiwayCards();updateTableContext();renderMultiway();updateBoardHelp();
     snapshots.forEach(item=>item.stale=true);invalidateAnalysis();renderStreetCards();scheduleSave();
   }
-  async function runMultiway(operation) {
-    if(multiwayBusy)return;
+  function multiwayRequestContext() {
+    return { revision: multiwayRevision, view: activeView, session: JSON.stringify(window.theibsVoiceSessionContext?.()) };
+  }
+  function currentMultiwayRequest(captured) {
+    return captured.revision === multiwayRevision && captured.view === activeView &&
+      captured.session === JSON.stringify(window.theibsVoiceSessionContext?.()) && !window.theibsVoiceSessionContext?.().expired;
+  }
+  async function runMultiway(operation, beforeAccept) {
+    const entryView=activeView, entryRevision=multiwayRevision;
+    await window.theibsAuth?.ensureSession?.();
+    if(entryView!==activeView||entryRevision!==multiwayRevision)throw Error('Contexto alterado durante a confirmação da sessão. Repita a ação no contexto atual.');
+    if(engineVersionError()) throw Error(engineVersionError());
+    if(multiwayBusy) throw Error('Aguarde o registro da ação atual.');
     multiwayRevision++;
+    const captured = multiwayRequestContext();
     clearTimeout(multiwayCardTimer);
     multiwayCardSnapshot=cards.state.snapshot();multiwayBusy=true;invalidateAnalysis();renderMultiway();
-    try { const data=await operation();if(data)acceptMultiway(data); }
+    try {
+      const data=await operation();
+      if (!currentMultiwayRequest(captured)) throw Error('Contexto ou sessão alterados. A resposta foi descartada; nenhuma ação nova foi aplicada.');
+      if(data) { beforeAccept?.(); acceptMultiway(data); }
+    }
     catch(error){window.theibsMultiwayUI.setError(error.message);throw error;}
-    finally{multiwayBusy=false;multiwayCardSnapshot=null;renderMultiway();scheduleAnalysis();}
+    finally{multiwayBusy=false;multiwayCardSnapshot=null;renderMultiway();if(currentMultiwayRequest(captured))scheduleAnalysis();}
   }
   async function startMultiway(config) {
-    return runMultiway(async()=>{
-      const data=await postJson('/api/multiway/start',{config});
+    return runMultiway(()=>postJson('/api/multiway/start',{config}),()=>{
+      window.theibsOpponentInputs?.reset();
       if(!multiwayYesple)multiwayYesple={keyboard:cards.state.snapshot(),fields:Object.fromEntries(FIELD_IDS.map(id=>{const el=document.getElementById(id);return[id,el.type==='checkbox'?el.checked:el.value];}))};
       syncingMultiway=true;
       const count=Number(config.variant.match(/\d/)[0]);
       cards.restore({count,slots:[...(config.heroCards||[]).map(window.TheibsCards.fromCanonical),...Array(count-(config.heroCards?.length||0)+5).fill(null)],selected:0});
-      syncingMultiway=false;snapshots.splice(0);$('#settings-dialog').close();window.theibsCardPicker.close();return data;
+      syncingMultiway=false;snapshots.splice(0);$('#settings-dialog').close();window.theibsCardPicker.close();
     });
   }
   async function stepMultiway(event) {
@@ -95,12 +129,9 @@
   }
 
   function renderEngineDetails() {
-    const data=lastAnalysis?.data, perf=data?.performance, q=data?.equity;
-    const samples=perf?.monteCarloSamples ?? (q?.method==='MONTE_CARLO'?q.samples:null);
-    const uiMs=data?.clientTiming?.elapsedMs;
-    const rate=samples>0&&uiMs>0?samples*1000/uiMs:null;
-    const llm=!engineStatus ? 'AI configuration has not been checked or is unavailable.' : engineStatus.llmProvider==='ollama' ? `Ollama configured: ${engineStatus.llmModel||'model not specified'}. The model answers on demand in the Assistant and training.` : 'Local explainer active. Ollama is not configured for this run.';
-    $('#engine-details').innerHTML=`<section class="engine-card"><span class="eyebrow">LATEST ANALYSIS · 100K/S TARGET</span><h3>${rate===null?'Waiting for measurement':numberLabel(rate)+' simulations/s'}</h3><p>${rate===null?'Complete a hand and analyze it to measure this machine.':rate>=100000?'The target was reached in this analysis.':'This analysis was below the 100K/s target.'} The value varies by scenario, sample size and machine load.</p><dl class="engine-metrics"><div><dt>Analyzed format</dt><dd>${data?.status==='OK'?esc(data.state?.variant||'Omaha')+' · '+q.opponents+' opponent(s)':'—'}</dd></div><div><dt>Complete simulations</dt><dd>${numberLabel(samples)}</dd></div><div><dt>Response to interface</dt><dd>${Number.isFinite(uiMs)?(uiMs/1000).toFixed(3)+' s':'—'}</dd></div><div><dt>Worker request</dt><dd>${Number.isFinite(perf?.requestElapsedMs)?(perf.requestElapsedMs/1000).toFixed(3)+' s':'—'}</dd></div><div><dt>Equity core</dt><dd>${numberLabel(q?.simulationsPerSecond)} simulations/s</dd></div><div><dt>Worker reuse</dt><dd>${perf?perf.workerReused?'Yes':'First use':'—'}</dd></div></dl><p class="micro">A complete simulation deals the rest of the board and opponent hands, then compares every player. In a bet/raise study, the count adds simulations for each caller count. The main rate includes the full request round trip; the core rate measures only equity evaluation. Exact enumeration is not Monte Carlo.</p></section><section class="engine-card"><h3>What AI does today</h3><p>${esc(llm)}</p><p>The coach explains calculated facts and can find similar decisions in your history. Llama selects relevant facts for your question. Displayed text and numbers come from the engine; the model does not calculate equity, change EV or accelerate Monte Carlo.</p></section><section class="engine-card"><h3>What learns from use</h3><p>Your history, questions and statistics are saved and help choose reviews. There is no automatic weight training, range modification or learning of an optimal strategy.</p><p>The next improvement depends on reliable play references, separate evaluation data and calibrated response models. More simulations reduce sampling noise; they do not fix wrong assumptions.</p></section>`;
+    const data=lastAnalysis?.data, perf=data?.performance, timing=data?.clientTiming;
+    const measured=n=>Number.isFinite(n)?(n/1000).toFixed(3)+' s':'—';
+    $('#engine-details').innerHTML=`<section class="engine-card"><span class="eyebrow">LATEST ANALYSIS</span><h3>${data?comparisonLabel(data):'Waiting for measurement'}</h3><dl class="engine-metrics"><div><dt>Input to display proxy</dt><dd>${measured(timing?.inputToFrameMs)}</dd></div><div><dt>HTTP round trip</dt><dd>${measured(timing?.httpElapsedMs)}</dd></div><div><dt>Worker calculation</dt><dd>${measured(perf?.workerExecutionMs)}</dd></div><div><dt>Actual samples</dt><dd>${numberLabel(data?.equity?.samples)}</dd></div><div><dt>Cached result</dt><dd>${perf?perf.cacheHit?'Yes · original calculation reused':'No':'—'}</dd></div></dl><p class="micro">Display timing ends at the second animation frame after rendering; it is a proxy, not a hardware paint measurement. Cache hits do not run new simulations. Sampling intervals do not include errors in opponent assumptions.</p></section><section class="engine-card"><h3>Coach & learning</h3><p>Calculated facts are available without waiting for a language model. Optional Llama selects verified facts; it cannot change EV or equity.</p><p>History supports reviews. It does not train weights, learn optimal play or prove profit. Comparisons remain conditional on ranges, future play and costs.</p></section>`;
   }
 
   function toast(text) {
@@ -108,8 +139,17 @@
     clearTimeout(toastTimer); toastTimer = setTimeout(() => $('#toast').classList.add('hidden'), 5500);
   }
   async function requestJson(url, options = {}) {
+    const protectedRequest = url !== '/api/status';
+    if (protectedRequest) await window.theibsAuth?.ensureSession?.();
+    const session = JSON.stringify(window.theibsVoiceSessionContext?.());
     const response = await fetch(url, options);
-    let data; try { data = await response.json(); } catch { throw new Error(`Invalid response from the local engine (HTTP ${response.status}).`); }
+    let data; try { data = await response.json(); } catch { throw new Error(`Invalid response from the web engine (HTTP ${response.status}).`); }
+    // Receiving headers does not finish the request: identity may change while
+    // the response body is arriving or while another request is being awaited.
+    if (protectedRequest && (session !== JSON.stringify(window.theibsVoiceSessionContext?.()) || window.theibsVoiceSessionContext?.().expired)) {
+      const error = new Error('A sessão mudou durante a resposta. Entre novamente para continuar.');
+      error.code = 'AUTH_SESSION_CHANGED'; throw error;
+    }
     if (!response.ok) { const error = new Error(data.reason || `HTTP ${response.status}`); error.status = response.status; throw error; }
     return data;
   }
@@ -121,7 +161,8 @@
   function updateBoardHelp() {
     const street = currentStreet();
     document.querySelectorAll('.street-tab').forEach((b) => { b.classList.toggle('active', b.dataset.street === street); b.setAttribute('aria-pressed', String(b.dataset.street === street)); });
-    $('#board-help').textContent = street === 'PREFLOP' ? 'Leave blank to analyze preflop only.' : `Enter ${{ FLOP: 3, TURN: 4, RIVER: 5 }[street]} board cards for this street.`;
+    const progress = feedback.inputProgress({count:cards.state.count,slots:cards.state.slots,manualInvalid:cards.isManualInvalid()});
+    $('#board-help').textContent = !progress.ready && progress.street ? progress.detail : street === 'PREFLOP' ? 'Leave blank to analyze preflop only.' : `Enter ${{ FLOP: 3, TURN: 4, RIVER: 5 }[street]} board cards for this street.`;
   }
   function renderStreetCards() {
     const byStreet = new Map(snapshots.map((item) => [item.street, item]));
@@ -129,7 +170,7 @@
       const item = byStreet.get(street);
       return `<div class="street-card${currentStreet() === street ? ' current' : ''}"><div class="street-name">${streetName(street)}</div><div class="street-meta"><span>${item ? item.stale ? 'Analyze again' : 'Analyzed' : 'Waiting'}</span><span class="street-equity">${item && !item.stale ? percent(item.equity) : '—'}</span></div></div>`;
     }).join('');
-    const valid = snapshots.filter((item) => item.equity != null && !item.stale);
+    const valid = snapshotModel.ordered(snapshots.filter((item) => item.equity != null && !item.stale));
     $('#session-count').textContent = valid.length;
     $('#session-average').textContent = valid.length ? percent(valid.reduce((sum, item) => sum + item.equity, 0) / valid.length) : '—';
     $('#session-action').textContent = valid.at(-1)?.action || '—';
@@ -143,9 +184,9 @@ function renderCharts(latest) {
   document.querySelector('#win-percent').textContent = latest ? percent(latest.winRate) : '—';
   document.querySelector('#loss-percent').textContent = latest ? percent(1 - latest.winRate) : '—';
   document.querySelector('#win-fill').style.width = latest ? `${Math.max(0, Math.min(100, latest.winRate * 100))}%` : '0%';
-  document.querySelector('#timeline-range').textContent = snapshots.length ? `${snapshots.length} ponto${snapshots.length === 1 ? '' : 's'}` : '—';
-  document.querySelector('#timeline-empty').style.display = snapshots.length ? 'none' : 'block';
-  const points = snapshots.filter((item) => item.equity != null && !item.stale);
+  const points = snapshotModel.ordered(snapshots.filter((item) => item.equity != null && !item.stale));
+  document.querySelector('#timeline-range').textContent = points.length ? `${points.length} compatible point(s)` : '—';
+  document.querySelector('#timeline-empty').style.display = points.length ? 'none' : 'block';
   if (!points.length) {
     document.querySelector('#chart-line').setAttribute('points', '');
     document.querySelector('#chart-area').setAttribute('d', '');
@@ -161,7 +202,7 @@ function renderCharts(latest) {
   const line = coords.map((point) => `${point.x.toFixed(1)},${point.y.toFixed(1)}`).join(' ');
   document.querySelector('#chart-line').setAttribute('points', line);
   document.querySelector('#chart-area').setAttribute('d', `M ${coords[0].x} ${bottom} L ${coords.map((point) => `${point.x} ${point.y}`).join(' L ')} L ${coords.at(-1).x} ${bottom} Z`);
-  document.querySelector('#chart-points').innerHTML = coords.map(({ x, y, item }) => `<circle cx="${x}" cy="${y}" r="4" fill="#e3b866" stroke="#111719" stroke-width="2"><title>${streetName(item.street)} · ${percent(item.equity)}</title></circle>`).join('');
+  document.querySelector('#chart-points').innerHTML = coords.map(({ x, y, item }) => `<circle cx="${x}" cy="${y}" r="4" fill="#e3b866" stroke="#111719" stroke-width="2"><title>${esc(streetName(item.street))} · ${percent(item.equity)}${item.interval?' · sampling interval '+item.interval.map(percent).join(' to '):' · exact under assumptions'} · ${esc(item.method)} · ${item.samples} samples · build ${esc(item.engineBuild)} · ${esc(item.analysisId)}</title></circle>`).join('');
 }
 
 function renderEvTable(ev) {
@@ -183,6 +224,20 @@ function renderEvTable(ev) {
   return `<section class="ev-block"><div class="ev-heading"><span>EV by action</span><span>${esc(summary)}</span></div><div class="ev-table-wrap"><table class="ev-table"><thead><tr><th>Action</th><th>EV</th><th>Status</th><th>Assumptions / missing inputs</th></tr></thead><tbody>${rows}</tbody></table></div>${breakdown}${(ev.warnings || []).map((warning) => `<div class="result-warning">${esc(warning)}</div>`).join('')}</section>`;
 }
 
+function renderAnalysisDiagnostics(data) {
+  const d = data.analysisDiagnostics; if (!d) return '';
+  const labels = { MISSING_ACTION_MODEL:'Some legal actions need a response model', MISSING_OPPONENTS:'Not all opponents are modeled',
+    EXACT_POINT_TIE:'Point estimates are tied', OVERLAPPING_INTERVALS:'The difference is not separated by the uncertainty bounds',
+    MISSING_INTERVALS:'Uncertainty bounds are unavailable', SINGLE_MODELED_ACTION:'Only one action is modeled',
+    PRACTICAL_EQUIVALENCE:'The point leader is within the declared regret limit in this model',
+    UNVERIFIED_HEURISTIC_ADJUSTMENT:'The heuristic adjustment has no verified advantage', SAMPLING_TIME_BUDGET:'Sampling reached its time budget',
+    INVALID_OR_UNAVAILABLE_MODEL:'The state or model is unavailable', PROVISIONAL:'The estimate is provisional' };
+  const reasons = (d.reasonCodes || []).map(code => labels[code] || code);
+  const method = d.selectionMethod === 'SHARED_EQUITY_AFFINE_DIFFERENCES' ? 'Compared differences using the same sampled equity' : 'Compared marginal uncertainty bounds';
+  const next = feedback.summary({data, action:Number(value('amountToCall'))>0?'CALL':'CHECK', multiway:!!multiway});
+  return `<section class="result-detail"><strong>Decision support</strong><p>${esc(method)}. ${esc(reasons.join('. '))}</p><p>${esc(next.title)}. ${esc(next.detail)}</p><p>These are conditional showdown values. The return of following the complete policy is evaluated separately in the 100-hand experiment.</p></section>`;
+}
+
 function renderStrategyPanel(strategy) {
   if (!strategy) return '';
   const baseline = strategy.baseline || {};
@@ -201,8 +256,8 @@ function renderResult(data, street) {
   }
   const equity = data.equity || {}; const math = data.potMath || {};
   const modeledCall = data.ev?.actions?.CALL?.status === 'MODELED' ? data.ev.actions.CALL.ev : null;
-  result.innerHTML = `<div class="result-top"><div><div class="result-label">${comparisonLabel(data)} · ${streetName(street)}</div><div class="result-action">${esc(data.recommendedAction)}</div></div></div>
-    <details class="result-disclosure"><summary>Why? View calculations & assumptions</summary><div><p class="result-reason">${esc(data.reason)}</p><span class="confidence">${esc(data.confidence)}</span><div class="result-metrics"><div class="mini-metric"><small>Equity</small><strong>${percent(equity.equity)}</strong></div><div class="mini-metric"><small>Pot odds</small><strong>${percent(math.potOdds)}</strong></div><div class="mini-metric"><small>EV call</small><strong>${money(modeledCall)}</strong></div><div class="mini-metric"><small>SPR</small><strong>${math.spr == null ? '—' : Number(math.spr).toFixed(1)}</strong></div></div>${renderEvTable(data.ev)}${renderStrategyPanel(data.strategy)}<div class="result-detail">${esc(equity.method)} · ${esc(equity.samples)} samples · ${esc(equity.opponents)} opponent(s) · legal: ${(data.legalActions || []).map(esc).join(' / ')}<br>${(data.assumptions || []).map(esc).join(' · ')}${equity.confidenceInterval95 ? `<br>95% Monte Carlo CI: ${percent(equity.confidenceInterval95[0])}–${percent(equity.confidenceInterval95[1])} (does not include range uncertainty)` : ''}</div>${(data.warnings || []).map((warning) => `<div class="result-warning">${esc(warning)}</div>`).join('')}</div></details>`;
+  result.innerHTML = `<div class="result-top"><div><div class="result-label">${comparisonLabel(data)} · ${streetName(street)}</div><div class="result-action">${esc(recommendationText(data))}</div></div></div>
+    <details class="result-disclosure"><summary>Why? View calculations & assumptions</summary><div><p class="result-reason">${esc(data.reason)}</p><span class="confidence">${esc(data.confidence)}</span><div class="result-metrics"><div class="mini-metric"><small>Equity</small><strong>${percent(equity.equity)}</strong></div><div class="mini-metric"><small>Pot odds</small><strong>${percent(math.potOdds)}</strong></div><div class="mini-metric"><small>EV call</small><strong>${money(modeledCall)}</strong></div><div class="mini-metric"><small>SPR</small><strong>${math.spr == null ? '—' : Number(math.spr).toFixed(1)}</strong></div></div>${renderAnalysisDiagnostics(data)}${renderEvTable(data.ev)}${renderStrategyPanel(data.strategy)}<div class="result-detail">${esc(equity.method)} · ${esc(equity.samples)} samples · ${esc(equity.opponents)} opponent(s) · legal: ${(data.legalActions || []).map(esc).join(' / ')}<br>${(data.assumptions || []).map(esc).join(' · ')}${equity.confidenceInterval95 ? `<br>95% Monte Carlo CI: ${percent(equity.confidenceInterval95[0])}–${percent(equity.confidenceInterval95[1])} (does not include range uncertainty)` : ''}</div>${(data.warnings || []).map((warning) => `<div class="result-warning">${esc(warning)}</div>`).join('')}</div></details>`;
 }
 
 
@@ -236,25 +291,54 @@ function renderResult(data, street) {
     $('#analysis-seats').innerHTML = window.EssenceUI.opponentSeats(opponents,cards.state.count);
   }
   function quickAction(data, note) {
+    const progress = feedback.inputProgress({count:cards.state.count,slots:cards.state.slots,manualInvalid:cards.isManualInvalid()});
+    const action=Number(value('amountToCall'))>0?'CALL':'CHECK';
+    const assessment=progress.ready?data?.continuationAssessment:null;
+    const continuation=window.TheibsContinuationView.describe(assessment);
+    const display=continuation||feedback.summary({data,action,progress,busy:analysisBusy,auto:$('#auto-analysis').checked,multiway:!!multiway,note});
     const facts=data?.handInsights;
     $('#nuts-badge').hidden=!(data?.status==='OK'&&facts?.made&&facts?.nuts?.unbeaten===true);
     $('#hand-facts-content').innerHTML=facts?`<p><strong>${esc(facts.made?.label||'Preflop')}</strong>${facts.made?`<br>Your cards used: ${facts.made.usedHeroCards.map(esc).join(' + ')}`:`<br>${facts.privatePairs.length} paired group(s) · ${facts.suited.length} suit(s) with two or more cards`}</p>${facts.nuts?`<p>${facts.nuts.unbeaten?'Nuts on the current board; ties are possible.':'Your hand can be beaten on the current board.'}</p>`:''}${facts.nextCard?`<p>Next card: <b>${facts.nextCard.flushCards.length}</b> complete a flush · <b>${facts.nextCard.straightCards.length}</b> complete a straight.</p><p class="micro">Improving does not guarantee a win; these are not clean outs.</p>`:''}${facts.blockers.map(b=>`<p>${esc(b.detail)}</p>`).join('')}`:'Complete the cards to see made hand, draws and blockers. You do not need to record actions.';
-    $('#quick-action').textContent = data?.status === 'OK' ? data.recommendedAction : data ? 'NO_DECISION' : '—';
+    $('#quick-action').textContent = data?.status === 'OK' ? recommendationText(data) : data ? 'NO_DECISION' : '—';
     $('#quick-action-note').textContent = note || (data?.status === 'OK' ? data.ev?.comparisonComplete?comparisonLabel(data):'Partial · missing '+(data.ev?.missingLegalActions||[]).join(', ') : data?.reason || 'Complete your cards.');
-    const action=Number(value('amountToCall'))>0?'CALL':'CHECK';
+    if(continuation){$('#quick-action').textContent=continuation.shortTitle;$('#quick-action-note').textContent='Decisão atual · sem comparar BET/RAISE';}
     const model=data?.status==='OK'?data.ev?.actions?.[action]:null;
     const ev=model?.status==='MODELED'?model.ev:null;
     const interval=model?.confidenceInterval95;
     const envelope=model?.conditionalEvEnvelope;
     const bounds=envelope||interval;
-    const uncertain=bounds&&bounds[0]<0&&bounds[1]>0;
-    const tone=ev==null?'pending':uncertain?'neutral':ev>0.005?'positive':ev<-.005?'negative':'neutral';
+    const uncertain=display.uncertain;
+    const tone=display.tone;
     $('#ev-summary').dataset.tone=tone;
-    $('#ev-label').textContent=`${action} EV`;
+    $('#ev-label').textContent=`${data?.analysisStage==='PROVISIONAL'?'Provisional ':''}${action} EV`;
     $('#ev-value').textContent=ev==null?'—':`${ev>0?'+':''}${money(Math.abs(ev)<.005?0:ev)}`;
-    $('#ev-state').textContent=({positive:'Positive',negative:'Negative',neutral:'Break-even',pending:analysisBusy&&!data?'Calculating…':'Not calculated'})[tone];
-    if(uncertain)$('#ev-state').textContent='Sinal incerto';
-    $('#ev-state').classList.toggle('sr-only',!uncertain);
+    $('#ev-state').textContent=display.state;
+    $('#ev-state').classList.remove('sr-only');
+    $('#analysis-next-title').textContent=display.title;
+    $('#analysis-next-detail').textContent=display.detail;
+    const scope=data?.opponentModelScope;
+    if(!continuation&&scope&&data.ev?.missingLegalActions?.some(item=>['BET','RAISE'].includes(item))){
+      const message={MISSING_SEAT_CALL_PROBABILITIES:'As respostas dos adversários não foram presumidas. O estudo de BET/RAISE é opcional; a equity e o CALL disponíveis continuam válidos dentro do modelo mostrado.',INDEPENDENT_STUDY_NOT_ACCEPTED:'As taxas individuais estão registradas. Para comparar BET/RAISE, confirme as hipóteses no estudo opcional.',SPECIFIC_RANGE_CONTINUATION_UNSUPPORTED:'O range individual foi usado na equity e no CALL. BET/RAISE com ranges específicos de continuação ainda não está disponível.',MISSING_SEAT_CONTRIBUTIONS:'Para estudar a aposta, informe os aportes desta street em Compare bet / raise. Os demais cálculos continuam disponíveis.',MISSING_LEGAL_MINIMUM:'Para estudar a aposta, informe seu mínimo legal em Compare bet / raise.'}[scope.aggression?.reasonCode];
+      if(message)$('#analysis-next-detail').textContent=message;
+    }
+    $('#analysis-next-action').hidden=!display.target;
+    $('#analysis-next-action').dataset.target=display.target||'';
+    $('#analysis-next-action').textContent=display.label||'';
+    const metricsHost=$('#continuation-metrics'),risk=$('#continuation-risk');
+    metricsHost.replaceChildren();metricsHost.hidden=true;risk.hidden=true;
+    if(assessment&&!['UNAVAILABLE','PROVISIONAL'].includes(assessment.status)){
+      const add=(label,text)=>{const pair=document.createElement('div'),name=document.createElement('dt'),number=document.createElement('dd');name.textContent=label;number.textContent=text;pair.append(name,number);metricsHost.append(pair);};
+      const pp=n=>`${n>0?'+':''}${n.toLocaleString('pt-BR',{maximumFractionDigits:2})} p.p.`;
+      if(Number.isFinite(assessment.equity))add('Equity no modelo',percent(assessment.equity));
+      if(Number.isFinite(assessment.breakEvenEquity))add('Equity necessária',percent(assessment.breakEvenEquity));
+      if(Number.isFinite(assessment.amountToCall))add('Para pagar agora',money(assessment.amountToCall)+' fichas');
+      if(Number.isFinite(assessment.conservativeMarginPP))add('Margem pelo limite inferior',pp(assessment.conservativeMarginPP));
+      if(assessment.evBounds)add(assessment.boundsKind==='CONDITIONAL_ENVELOPE'?'Faixa nas hipóteses':assessment.boundsKind==='EXACT_MODEL_VALUE'?'EV exato neste modelo':'Intervalo amostral de EV (95%)',assessment.evBounds.map(money).join(' a ')+' fichas');
+      metricsHost.hidden=!metricsHost.children.length;
+      const hand=assessment.handContext;
+      risk.textContent=(hand?.nutsOnCurrentBoard?'Nuts neste board; empates ainda são possíveis. ':hand?.madeHand?`${hand.madeHand} neste board. `:'')+(hand?.futureBoardCards?'Novas cartas e apostas podem mudar a decisão.':'Reavalie se o preço ou os jogadores ativos mudarem.');risk.hidden=false;
+    }
+    if(!progress.ready){$('#quick-action').textContent='Waiting for cards';$('#quick-action-note').textContent=progress.detail;}
     const random=data?.ranges?.some(range=>range.kind==='UNIFORM');
     $('#ev-assumption').textContent=data?.status==='OK'
       ? `${random?'Random hands':'Entered model'} · ${data.equity.opponents} opponent(s) · no future betting${$('#assumeNoRake').checked?' · rake zero':''}${ev==null?' · EV depends on the assumptions shown in the calculation':''}.`
@@ -271,17 +355,44 @@ function renderResult(data, street) {
     if(data?.equity?.samplingMode==='ADAPTIVE')$('#ev-assumption').textContent+=` ${data.equity.samples.toLocaleString('en-US')} simulations · ${(data.equity.elapsedMs/1000).toFixed(2)} s · ${({PRECISION:'precision reached',CALL_EV_SIGN:'call EV sign separated from zero',TIME_BUDGET:'time limit',SAMPLE_LIMIT:'sample limit'})[data.equity.stopReason]}.`;
     $('#ev-alternatives').innerHTML=data?.status==='OK'?['FOLD','CALL','CHECK','BET','RAISE'].filter(a=>data.ev?.actions?.[a]?.legal).map(a=>{const item=data.ev.actions[a],n=item.status==='MODELED'?item.ev:null;return `<span>${a}<b class="${n>0?'positive':n<0?'negative':''}">${n==null?'—':(n>0?'+':'')+money(n)}</b></span>`;}).join(''):'';
   }
+  const feedbackHost=document.createElement('section');feedbackHost.id='analysis-input-feedback';feedbackHost.className='analysis-input-feedback';
+  feedbackHost.innerHTML='<div role="status" aria-live="polite"><strong id="analysis-next-title"></strong><p id="analysis-next-detail" class="micro"></p><dl id="continuation-metrics" hidden></dl><p id="continuation-risk" class="micro" hidden></p></div><p id="ev-scope" class="micro">Leitura do preço atual, sem comparar BET/RAISE. Depende do modelo de cartas e supõe nenhuma aposta futura. Não garante vitória nem lucro.</p><button id="analysis-next-action" type="button" class="text-button" hidden></button>';
+  $('#ev-summary').append(feedbackHost);
+  $('#analysis-next-action').addEventListener('click',()=>{
+    const target=$('#analysis-next-action').dataset.target;
+    if(target==='entry'){$('#open-entry').click();return;}
+    if(target==='cards'){
+      const next=cards.state.slots.findIndex(card=>!card);if(next>=0)cards.select(next);
+      if(!$('#card-picker').open)$('#open-card-picker').click();return;
+    }
+    if(target==='calculation'){$('#open-analysis').click();return;}
+    if(target==='responses'||target==='opponents'){$('#open-opponent-inputs').click();return;}
+    const field=document.getElementById(({costs:'rake-mode',responses:'study-mode',precision:'samples',opponents:'opponentModel'})[target]);
+    if(!field)return;
+    for(const dialog of document.querySelectorAll('dialog[open]'))if(dialog.id!=='settings-dialog')dialog.close();
+    const settings=$('#settings-dialog');if(!settings.open)settings.showModal();
+    for(let parent=field.parentElement;parent&&parent!==settings;parent=parent.parentElement)if(parent.tagName==='DETAILS')parent.open=true;
+    field.scrollIntoView({block:'center'});field.focus();
+  });
   function scheduleAnalysis() {
     clearTimeout(analysisTimer);
-    if(!loaded||activeView!=='analyze'||!$('#auto-analysis').checked)return;
-    analysisTimer=setTimeout(()=>{
+    if(!loaded||window.theibsVoiceSessionContext?.().expired||activeView!=='analyze'||!$('#auto-analysis').checked)return;
+    analysisTimer=setTimeout(async()=>{
       if(analysisBusy){analysisQueued=true;return;}
-      try{buildAnalysisPayload();}catch(error){quickAction(null,error.message);return;}
+      const requestedRevision=inputRevision;
+      try{
+        await window.theibsAuth?.ensureSession?.();
+        if(!loaded||activeView!=='analyze'||!$('#auto-analysis').checked||requestedRevision!==inputRevision)return;
+        buildAnalysisPayload();
+      }catch(error){if(activeView==='analyze'&&requestedRevision===inputRevision)quickAction({status:'ERROR',reason:error.message});return;}
       analyze();
-    },350);
+    },80);
   }
   function invalidateAnalysis() {
-    inputRevision += 1; lastAnalysis = null;
+    inputRevision += 1; lastAnalysis = null; inputChangedAt = performance.now();
+    let input; try { input = buildAnalysisPayload(true); } catch { input = null; }
+    snapshotModel.invalidate(snapshots, input, engineStatus?.version);
+    renderStreetCards();
     document.dispatchEvent(new CustomEvent('theibs:analysis-invalidated'));
     renderEngineDetails();
     result.classList.add('hidden'); emptyState.classList.remove('hidden');
@@ -296,68 +407,102 @@ function renderResult(data, street) {
       button.classList.toggle('active', selected); button.setAttribute('aria-pressed', String(selected));
     });
   }
-  function buildAnalysisPayload() {
+  function costPayload() {
+    const result = { rake: value('rake'), assumeNoRake: $('#assumeNoRake').checked };
+    if (value('rake-mode') === 'PERCENT_CAPPED') {
+      if (value('rake-rate') === '' || value('rake-cap') === '') throw Error('Enter the rake rate and cap.');
+      result.rake = undefined; result.assumeNoRake = false;
+      result.rakeSchedule = { type: 'PERCENT_CAPPED', rate: Number(value('rake-rate')) / 100,
+        cap: Number(value('rake-cap')), noFlopNoDrop: $('#rake-no-flop').checked,
+        rounding: value('rake-rounding'), source: 'USER_PROVIDED', version: '1' };
+    }
+    if (value('analysis-big-blind') !== '') result.bigBlind = Number(value('analysis-big-blind'));
+    if (value('analysis-equivalence') !== '') {
+      if (!result.bigBlind || result.bigBlind <= 0) throw Error('Enter the big blind for a comparison in BB.');
+      result.practicalEquivalenceBB = Number(value('analysis-equivalence'));
+    }
+    return result;
+  }
+  function buildAnalysisPayload(allowIncomplete = false) {
+    if(window.theibsVoiceSessionContext?.().expired) throw Error('Session changed or expired. Sign in again before analyzing.');
+    if(engineVersionError()) throw Error(engineVersionError());
+    if(cards.isManualInvalid())throw Error('Fix the cards in the text field.');
     if(multiway){
       if(multiwayBusy)throw Error('Updating the street.');
       const canonical=cards.canonicalForSubmit();
       if(JSON.stringify(canonical.heroCards)!==JSON.stringify(multiway.config.heroCards))throw Error('Confirm your cards before analyzing.');
       if(!multiwayAnalysis?.available)throw Error(multiwayAnalysis?.reasons?.map(r=>r.message).join(' ')||'Waiting for your turn.');
       const adaptive=value('samples')==='adaptive';
-      return {...canonical,multiway,unknownOpponentModel:value('opponentModel'),samples:adaptive?50000:value('samples'),...(adaptive?{samplingMode:'ADAPTIVE'}:{}),seed:value('seed')||'42',rake:value('rake'),assumeNoRake:$('#assumeNoRake').checked,futureStreetModel:{type:'SHOWDOWN_ONLY'}};
+      return {...canonical,multiway,unknownOpponentModel:'UNIFORM',...window.theibsOpponentInputs.payload(),betSize:value('betSize'),raiseTo:value('raiseTo'),samples:adaptive?50000:value('samples'),...(adaptive?{samplingMode:'ADAPTIVE'}:{}),seed:value('seed')||'42',...costPayload(),futureStreetModel:{type:'SHOWDOWN_ONLY'}};
     }
-    const canonical = cards.canonicalForSubmit();
-    const parse = (text) => window.TheibsCards.parsePortugueseCards(text).map(window.TheibsCards.toCanonical);
-    const opponentHand = parse(value('opponentHand'));
-    if (opponentHand.length && opponentHand.length !== cards.state.count) throw new Error(`The opponent hand needs ${cards.state.count} cards.`);
-    if (opponentHand.length && new Set([...canonical.heroCards, ...canonical.board, ...opponentHand]).size !== canonical.heroCards.length + canonical.board.length + opponentHand.length) throw new Error('Duplicate opponent card across your hand, board and opponent.');
-    const ranges = value('opponentRange').split(/\n|\|/).map((line) => line.trim()).filter(Boolean).map(parse);
-    if (ranges.some((hand) => hand.length !== cards.state.count)) throw new Error(`Each range line must contain ${cards.state.count} cards.`);
+    const canonical = allowIncomplete ? { variant: `PLO${cards.state.count}_HIGH`, street: currentStreet(),
+      heroCards: cards.state.cards().hero.map(window.TheibsCards.toCanonical), board: cards.state.cards().board.map(window.TheibsCards.toCanonical) } : cards.canonicalForSubmit();
     const payload = { ...canonical,
       position: value('position'), players: value('players'), potBeforeAction: value('potBeforeAction'), amountToCall: value('amountToCall'), effectiveStack: value('effectiveStack'), samples: value('samples'), seed: value('seed') || '42',
-      opponentHand: opponentHand.join(' '), opponentRange: ranges.map((h) => h.join(' ')).join('\n'),
-      unknownOpponentModel: value('opponentModel'), futureStreetModel:{type:'SHOWDOWN_ONLY'},
-      betSize: value('betSize'), raiseTo: value('raiseTo'), foldEquity: value('foldEquity'), continuationEquity: value('continuationEquity'), rake: value('rake'), assumeNoRake: $('#assumeNoRake').checked,
-      opponentProfile: value('opponentProfile'), opponentProfileSource: value('opponentProfileSource'),
-      opponentTendencies: { foldToBet: value('observedFoldToBet') || undefined, callFrequency: value('observedCallFrequency') || undefined, raiseFrequency: value('observedRaiseFrequency') || undefined, bluffFrequency: value('observedBluffFrequency') || undefined }
+      unknownOpponentModel:'UNIFORM', ...window.theibsOpponentInputs.payload(), futureStreetModel:{type:'SHOWDOWN_ONLY'},
+      betSize:value('betSize'),raiseTo:value('raiseTo'),...costPayload(),
+      heroContribution:value('study-hero-contribution'),minRaiseTo:value('study-min-raise'),minBet:value('study-min-bet'),
+      opponentContributions:Array.from({length:Number(value('players'))-1},(_,seatId)=>({seatId,contribution:value('study-contribution-'+seatId)})).filter(item=>item.contribution!=='')
     };
     if(payload.samples==='adaptive'){payload.samples=50000;payload.samplingMode='ADAPTIVE';}
-    if(value('study-mode')==='UNIFORM'){
-      const n=Number(value('players'))-1;
-      if(Array.from({length:n},(_,i)=>value('study-probability-'+i)).some(v=>v===''))throw Error('Enter each opponent call probability in the raise assumptions.');
-      payload.aggressionStudy={enabled:true,assumptionsAccepted:$('#study-accept').checked,heroContribution:value('study-hero-contribution'),minRaiseTo:value('study-min-raise'),minBet:value('study-min-bet'),opponents:Array.from({length:n},(_,i)=>({contribution:value('study-contribution-'+i),callProbability:Number(value('study-probability-'+i))/100}))};
-    }
     return payload;
   }
   async function analyze(event) {
-    event?.preventDefault(); if (analysisBusy) {analysisQueued=true;return;}
+    event?.preventDefault();
+    const entryView=activeView, entryRevision=inputRevision;
+    try { await window.theibsAuth?.ensureSession?.(); } catch(error) { if(entryView===activeView&&entryRevision===inputRevision)quickAction({status:'ERROR',reason:error.message}); return; }
+    if(entryView!==activeView||entryRevision!==inputRevision||activeView!=='analyze')return;
+    if (analysisBusy) {analysisQueued=true;return;}
     let payload;
     try { payload = buildAnalysisPayload(); }
     catch (error) { const data = { status: 'NO_DECISION', reason: error.message }; renderResult(data, currentStreet()); quickAction(data); cards.announce(error.message, true); return; }
-    const requestedRevision = inputRevision;
-    analysisBusy = true; analysisController=new AbortController(); analyzeButton.disabled = true; $('#quick-analyze').disabled = true;
+    const requestedRevision = inputRevision, inputAt = event?.type ? performance.now() : inputChangedAt;
+    analysisBusy = true; const controller = analysisController = new AbortController();
+    analyzeButton.disabled = true; $('#quick-analyze').disabled = true;
     analyzeButton.textContent = 'Calculating…'; $('#quick-analyze').textContent = 'Calculating…';
     quickAction(null, 'The engine is calculating this hand…');
-    try {
-      const requestStarted=performance.now();
-      const data = await requestJson('/api/analyze', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),signal:analysisController.signal});
-      data.clientTiming={elapsedMs:performance.now()-requestStarted,scope:'HTTP_RESPONSE_TO_UI'};
-      if (requestedRevision !== inputRevision) { return; }
+    const publish = async (data, started, phase) => {
+      if (requestedRevision !== inputRevision || controller.signal.aborted) return false;
+      data.clientTiming={httpElapsedMs:performance.now()-started,scope:'HTTP_ROUND_TRIP_AND_SECOND_FRAME_PROXY'};
       renderResult(data, payload.street); quickAction(data);
-      lastAnalysis = { signature: JSON.stringify(payload), data, street: payload.street };
-      renderEngineDetails();
-      if (data.status === 'OK') {
-        const snapshot = { street: payload.street, equity: data.equity.equity, winRate: data.equity.winRate, method: data.equity.method, samples: data.equity.samples, action: data.recommendedAction, stale: false };
-        const index = snapshots.findIndex((item) => item.street === payload.street);
-        if (index >= 0) snapshots.splice(index, 1, snapshot); else snapshots.push(snapshot);
-        renderStreetCards(); renderCharts(snapshot);
-      } else renderCharts();
-      scheduleSave();
+      const snapshot=data.status==='OK'?snapshotModel.create(data,payload):null;
+      if (phase==='FINAL') {
+        lastAnalysis = { signature: snapshotModel.stable(payload), data, street: payload.street };
+        if(snapshot) {
+          const index=snapshots.findIndex(item=>item.street===payload.street);
+          if(index>=0)snapshots.splice(index,1,snapshot);else snapshots.push(snapshot);
+          renderStreetCards();
+        }
+      }
+      renderCharts(snapshot);
+      // Two rAF callbacks bound a display opportunity, not guaranteed physical paint.
+      await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+      if (requestedRevision !== inputRevision || controller.signal.aborted) return false;
+      data.clientTiming.inputToFrameMs=performance.now()-inputAt;
+      data.clientTiming.responseToFrameMs=performance.now()-started-data.clientTiming.httpElapsedMs;
+      metrics.analyses.push({analysisId:data.analysisId,phase,status:data.status,...data.clientTiming});
+      if(metrics.analyses.length>1000)metrics.analyses.shift();
+      document.dispatchEvent(new CustomEvent('theibs:analysis-painted',{detail:metrics.analyses.at(-1)}));
+      if(phase==='FINAL'){renderEngineDetails();scheduleSave();}
+      return true;
+    };
+    try {
+      // A short, explicitly provisional calculation never supplies an imperative action.
+      // Full study branches retain their specified budgets, so skip duplicate study work.
+      if (!payload.aggressionStudy && (payload.samplingMode==='ADAPTIVE' || Number(payload.samples)>512)) {
+        const started=performance.now();
+        const preview=await requestJson('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...payload,analysisPhase:'PREVIEW'}),signal:controller.signal});
+        if(!await publish(preview,started,'PREVIEW') || preview.status!=='OK')return;
+      }
+      const started=performance.now();
+      const data=await requestJson('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...payload,analysisPhase:'FINAL'}),signal:controller.signal});
+      await publish(data,started,'FINAL');
     } catch (error) {
       if(error.name==='AbortError')return;
-      if (requestedRevision === inputRevision) { const data = { status: 'ERROR', reason: `Could not connect to the local engine: ${error.message}` }; renderResult(data, payload.street); quickAction(data); }
+      if(requestedRevision===inputRevision){lastAnalysis=null;const data={status:'ERROR',reason:`Calculation unavailable: ${error.message}`};renderResult(data,payload.street);quickAction(data);renderCharts();}
     } finally {
-      analysisBusy = false; analysisController=null; analyzeButton.disabled = false; $('#quick-analyze').disabled = false;
-      analyzeButton.innerHTML = 'Analyze street <span>↗</span>'; $('#quick-analyze').innerHTML = 'Analyze hand <span>↗</span>';
+      analysisBusy=false;analysisController=null;analyzeButton.disabled=false;$('#quick-analyze').disabled=false;
+      analyzeButton.innerHTML='Analyze street <span>↗</span>';$('#quick-analyze').innerHTML='Analyze hand <span>↗</span>';
       if(analysisQueued){analysisQueued=false;scheduleAnalysis();}
     }
   }
@@ -365,11 +510,18 @@ function renderResult(data, street) {
     if(multiwayBusy){toast('Wait for the action to be recorded before clearing the hand.');return;}
     if (confirm && (cards.state.slots.some(Boolean) || cards.isManualInvalid() || multiway?.events.length) && !window.confirm(multiway?'Start another Multiway hand and clear this hand’s cards and actions? Table settings will be kept.':'Clear the current hand’s cards and analyses? Saved history and settings will be preserved.')) return;
     if(multiway){try{await startMultiway({...multiway.config,heroCards:[]});}catch(error){toast(error.message);}return;}
+    window.theibsOpponentInputs.reset();
     snapshots.splice(0); cards.reset(); invalidateAnalysis(); updateBoardHelp(); renderStreetCards(); renderCharts();
     quickAction(null); scheduleSave();
   }
   function showView(view, save = true) {
     if (!['analyze', 'train', 'history'].includes(view)) return;
+    const changed = view !== activeView;
+    if (changed) {
+      multiwayRevision++; inputRevision++;
+      clearTimeout(multiwayCardTimer); clearTimeout(analysisTimer);
+      analysisController?.abort(); analysisQueued=false;
+    }
     activeView = view;
     document.body.dataset.view=view;
     $('.analysis-rail').classList.toggle('hidden', view !== 'analyze');
@@ -382,6 +534,7 @@ function renderResult(data, street) {
     if (view === 'history') renderHistory();
     if (view === 'train') renderTrainingSession();
     if (save) scheduleSave();
+    if(changed&&view==='analyze')scheduleAnalysis();
   }
 
   // ---- Same guided/challenge, coaching, legal-action and review flows as Theibs. ----
@@ -438,7 +591,7 @@ function renderResult(data, street) {
   async function startTraining() {
     if (trainingBusy) return;
     if (trainingSession && !trainingSession.finished && !window.confirm('The simulated hand is still active. Start another? Recorded decisions remain in history.')) return;
-    setTrainingBusy(true);
+    cancelCoach(); setTrainingBusy(true);
     try {
       const data = await postJson('/api/training/start', { variant: `PLO${cards.state.count}_HIGH`, mode: value('training-mode'), opponentStyle: value('training-style'), targetStreet: value('training-street'), seed: Number(value('training-seed')), startingStack: Number(value('training-stack')) });
       trainingSession = data.session; trainingDecisions = [];
@@ -449,7 +602,7 @@ function renderResult(data, street) {
   }
   async function actTraining(action) {
     if (!trainingSession || trainingSession.finished || trainingBusy) return;
-    const sessionId = trainingSession.id; setTrainingBusy(true);
+    cancelCoach(); const sessionId = trainingSession.id; setTrainingBusy(true);
     try {
       const data = await postJson('/api/training/act', { sessionId, revision:trainingSession.revision, action, ...(trainingSession.legalActions.some(candidate=>['BET','RAISE'].includes(candidate)) ? { size: Number(value('training-size')) } : {}) });
       if (trainingSession?.id !== sessionId) return;
@@ -458,29 +611,47 @@ function renderResult(data, street) {
     } catch (error) { $('#training-coach').textContent = error.message; }
     finally { setTrainingBusy(false); }
   }
+  function cancelCoach() {
+    coachGeneration++; coachController?.abort(); coachController=null;
+  }
   async function askCoach() {
-    const target = $('#training-coach');
-    if (!trainingSession || trainingSession.finished) { target.textContent = 'Start an active hand to ask about the current decision.'; return; }
-    if (trainingBusy) return;
-    setTrainingBusy(true); target.textContent = 'Analyzing question…';
+    const target=$('#training-coach');
+    if(!trainingSession||trainingSession.finished){target.textContent='Start an active hand to ask about the current decision.';return;}
+    if(trainingBusy)return;
+    cancelCoach(); const generation=coachGeneration, controller=coachController=new AbortController();
+    const sessionId=trainingSession.id, revision=trainingSession.revision, question=value('training-question'), chosenSize=value('training-size');
+    const current=()=>!controller.signal.aborted&&generation===coachGeneration&&trainingSession?.id===sessionId&&trainingSession?.revision===revision&&value('training-question')===question&&value('training-size')===chosenSize;
+    setTrainingBusy(true); target.textContent='Calculating verified facts…';
+    let local=null;
     try {
-      const data = await postJson('/api/training/doubt', { sessionId: trainingSession.id, revision:trainingSession.revision, question: value('training-question'),...(trainingSession.legalActions.some(action=>['BET','RAISE'].includes(action))?{size:Number(value('training-size'))}:{}) });
-      if(data.status==='LOCKED')target.textContent=data.reason;else renderCoachAnswer(target,data.answer,data.context);
-      if (data.answer) $('#coach-provider').textContent = data.answer.provider === 'ollama' ? 'Llama · calculated facts' : 'Local coach';
-    } catch (error) { target.textContent = error.message; }
-    finally { setTrainingBusy(false); }
+      local=await requestJson('/api/training/doubt',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId,revision,question,responseMode:'LOCAL_FIRST',...(trainingSession.legalActions.some(action=>['BET','RAISE'].includes(action))?{size:Number(chosenSize)}:{})}),signal:controller.signal});
+      if(!current())return;
+      if(local.status==='LOCKED')target.textContent=local.reason;
+      else {renderCoachAnswer(target,local.answer,local.context);$('#coach-provider').textContent='Engine coach · calculated facts';}
+    } catch(error) {if(current()&&error.name!=='AbortError')target.textContent=error.message;}
+    finally {if(generation===coachGeneration||trainingBusy)setTrainingBusy(false);}
+    // Numeric work is done. Optional language selection does not lock actions.
+    if(local?.enrichment&&current()) {
+      try {
+        const extra=await requestJson('/api/coach/enrich',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ticket:local.enrichment.ticket}),signal:controller.signal});
+        if(current()&&extra.analysisId===local.context.analysisId){renderCoachAnswer(target,extra.answer,extra.context);$('#coach-provider').textContent=extra.answer.provider==='ollama'?'Llama · verified fact selection':'Engine coach · calculated facts';}
+      } catch { /* The immediate verified answer stays visible. */ }
+    }
+    if(coachController===controller)coachController=null;
   }
   async function renderHistory() {
     try {
       const data = await requestJson('/api/training/history'), summary = data.summary;
-      $('#history-summary').innerHTML = [['Simulated hands', summary.hands], ['Wins / losses', `${summary.wins} / ${summary.losses}`], ['Recorded questions', summary.doubts], ['Average EV difference', summary.averageEvLoss == null ? '—' : money(summary.averageEvLoss)]].map(([label, number]) => `<div class="panel">${esc(label)}<strong>${esc(number)}</strong></div>`).join('');
-      const timeline = data.outcomeTimeline || [];
-      let cumulative = 0; const totals = timeline.map((item) => { cumulative += Number(item.net) || 0; return cumulative; });
+      $('#history-summary').innerHTML = [['Simulated hands', summary.hands], ['Wins / losses', `${summary.wins} / ${summary.losses}`], ['Recorded questions', summary.doubts], ['EV difference · '+(summary.averageEvLossUnit||'chips')+' · '+(summary.averageEvLossDenominator||0)+' evaluated', summary.averageEvLoss == null ? (summary.evLossCohorts?.length>1?'Separate cohorts':'—') : money(summary.averageEvLoss)]].map(([label, number]) => `<div class="panel">${esc(label)}<strong>${esc(number)}</strong></div>`).join('');
+      const allOutcomes=data.outcomeTimeline||[], selectedCohort=allOutcomes.at(-1)?.cohortId;
+      const cohortOutcomes=allOutcomes.filter(item=>item.cohortId===selectedCohort),timeline=cohortOutcomes.filter(item=>Number.isFinite(item.net));
+      const unknownOutcomes=cohortOutcomes.length-timeline.length,otherCohorts=allOutcomes.length-cohortOutcomes.length;
+      let cumulative = 0; const totals = timeline.map((item) => { cumulative += item.net; return cumulative; });
       if (totals.length) {
         const low = Math.min(0, ...totals), high = Math.max(0, ...totals), span = Math.max(1, high - low);
         const points = totals.map((number, index) => `${20 + (totals.length === 1 ? 150 : index * 300 / (totals.length - 1))},${145 - (number - low) * 120 / span}`).join(' ');
-        $('#history-outcomes').innerHTML = `<h3>Cumulative result · play chips</h3><svg class="history-svg" viewBox="0 0 340 165" role="img" aria-label="Cumulative results line"><line x1="20" y1="145" x2="320" y2="145" stroke="currentColor" opacity="0.1"/><polyline points="${esc(points)}" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linejoin="round"/></svg><div class="history-legend">${timeline.length} hand(s) · result ${money(cumulative)}. This line does not measure decision quality.</div>`;
-      } else $('#history-outcomes').innerHTML = '<h3>Cumulative result</h3><p class="muted">Complete a simulated hand to start the timeline.</p>';
+        $('#history-outcomes').innerHTML = `<h3>Known simulated results · play chips</h3><svg class="history-svg" viewBox="0 0 340 165" role="img" aria-label="Cumulative results line"><line x1="20" y1="145" x2="320" y2="145" stroke="currentColor" opacity="0.1"/><polyline points="${esc(points)}" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linejoin="round"/></svg><div class="history-legend">${data.historyScope?.timelineTruncated?"Recent window · ":""}${timeline.length} known result(s) in latest cohort (${esc(cohortOutcomes.at(-1)?.cohort?.variant||"unknown variant")} · build ${esc(cohortOutcomes.at(-1)?.cohort?.engineBuild||"unknown")}) · ${otherCohorts} results from other cohorts excluded · ${unknownOutcomes} unknown, excluded · result ${money(cumulative)}. This is a subtotal of known simulated results, not decision quality or expected profit.</div>`;
+      } else $('#history-outcomes').innerHTML = `<h3>Known simulated results · play chips</h3><p class="muted">${allOutcomes.length ? `${unknownOutcomes} unknown result(s) in latest cohort; no values plotted. ${otherCohorts} results from other cohorts excluded.` : 'Complete a simulated hand to start the timeline.'}</p>`;
       $('#history-recent').innerHTML = `<h3>Latest 20 decisions</h3>${data.recent.length ? data.recent.map((item) => `<details class="history-hand"><summary><span class="history-hand-cards">${(item.heroCards || []).map((c) => window.EssenceUI.canonicalCard(c, { small: true })).join('')}</span><span class="history-hand-meta">${esc(item.variant?.replace('_HIGH', '') || 'PLO5')} · ${esc(streetName(item.street))}</span><span class="history-hand-action">${esc(actionWithSize(item.chosenAction,item.chosenSize))}</span></summary><div><p>Your action: <strong>${esc(actionWithSize(item.chosenAction,item.chosenSize))}</strong> · highest calculated EV: <strong>${esc(actionWithSize(item.recommendedAction,item.recommendedSize))}</strong></p><p>${esc(qualityName(item.quality))}${item.evLoss == null ? '' : ` · EV difference ${money(item.evLoss)} chips`}</p><p class="micro">${esc(new Date(item.timestamp).toLocaleString('en-US'))} · ${esc(item.position || 'Position not recorded')}</p></div></details>`).join('') : '<p class="muted">No decisions recorded yet.</p>'}`;
       $('#history-trends').innerHTML = `<h3>Simulator trends</h3>${data.trends.map((item) => `<div class="trend-row"><strong>${esc(({ PASSIVE: 'Passive', AGGRESSIVE: 'Aggressive', MIXED: 'Mixed' })[item.opponentStyle])}</strong><p>Bets ${item.observedBets}/${item.opportunities} · smoothed rate ${percent(item.smoothedBetRate)} · confidence ${esc(item.confidence)}</p></div>`).join('')}<p class="micro">Simulated opponent data, not real players. The sample and model limit conclusions.</p><hr><p class="micro">Next exercise: ${esc(summary.nextExercise?.street || 'waiting for data')}. ${esc(summary.nextExercise?.reason || '')}</p>${summary.nextExercise ? `<button id="practice-suggestion" class="ghost-button" type="button" data-street="${esc(summary.nextExercise.street)}">Practice this street →</button>` : ''}`;
       if(data.observedHands?.length) $('#history-recent').insertAdjacentHTML('afterbegin', '<h3>Tracked hands</h3>'+data.observedHands.map(event=>{
@@ -490,28 +661,30 @@ function renderResult(data, street) {
     } catch (error) { $('#history-summary').innerHTML = `<div class="panel warning-text">History unavailable: ${esc(error.message)}</div>`; }
   }
 
-  // ---- Persistent workspace is server-side: to random desktop port cannot lose it. ----
+  // ---- Workspace persistence belongs to the web service. ----
   function serializeWorkspace() {
     const fields = Object.fromEntries(FIELD_IDS.map((id) => { const el = document.getElementById(id); return [id, el.type === 'checkbox' ? el.checked : el.value]; }));
     return { schemaVersion: 1, keyboard: cards.state.snapshot(), manualText: cards.manualDraft(), fields,
       ui: { felt: document.body.dataset.felt, deck: document.body.dataset.deck, view: activeView, cardDisplayVersion: 2, workflowVersion: 1, sidebarCollapsed: document.body.dataset.sidebar === 'collapsed' },
-      handFlow:null, legacyHandFlow, multiway, multiwayYesple,
+      handFlow:null, legacyHandFlow, multiway, multiwayYesple, opponentInputs:window.theibsOpponentInputs.snapshot(),
       snapshots: [...snapshots], lastAnalysis, trainingSessionId: trainingSession?.id || null };
   }
   function scheduleSave() {
-    if (!loaded || saveBlocked) return;
+    if (!loaded || saveBlocked || window.theibsVoiceSessionContext?.().expired) return;
     saveDirty = true; $('#save-status').textContent = 'Pending changes…';
     clearTimeout(saveTimer); saveTimer = setTimeout(() => flushSave(), 300);
   }
   async function flushSave(keepalive = false) {
     clearTimeout(saveTimer);
-    if (!loaded || saveBlocked || saveBusy || !saveDirty) return;
-    saveBusy = true; saveDirty = false; $('#save-status').textContent = 'Salvando localmente…';
+    if (!loaded || saveBlocked || saveBusy || !saveDirty || window.theibsVoiceSessionContext?.().expired) return;
+    saveBusy = true; saveDirty = false; $('#save-status').textContent = 'Saving draft…';
+    const session = JSON.stringify(window.theibsVoiceSessionContext?.());
     try {
       const data = await postJson('/api/workspace', { workspace: serializeWorkspace(), expectedRevision: revision }, keepalive);
       revision = data.revision;
-      $('#save-status').textContent = `Saved locally · ${new Date(data.updatedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`;
+      $('#save-status').textContent = `Draft saved · ${new Date(data.updatedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`;
     } catch (error) {
+      if(session!==JSON.stringify(window.theibsVoiceSessionContext?.())||window.theibsVoiceSessionContext?.().expired)return;
       saveDirty = true; $('#save-status').textContent = 'Unsaved draft';
       if (error.status === 409) { saveBlocked = true; toast(error.message); }
       else $('#save-status').title = error.message;
@@ -521,9 +694,12 @@ function renderResult(data, street) {
     }
   }
   async function initialize() {
-    const initialRevision = inputRevision;
     try {
-      const saved = await requestJson('/api/workspace'); revision = saved.revision;
+      await window.theibsAuth?.ensureSession?.();
+      const initialRevision = inputRevision, initialSession = JSON.stringify(window.theibsVoiceSessionContext?.());
+      const [saved, currentStatus] = await Promise.all([requestJson('/api/workspace'), requestJson('/api/status').catch(()=>null)]);
+      if(initialSession!==JSON.stringify(window.theibsVoiceSessionContext?.())||window.theibsVoiceSessionContext?.().expired)throw Error('A sessão mudou antes de carregar o rascunho. Entre novamente para continuar.');
+      engineStatus=currentStatus; renderEngineVersion(); revision = saved.revision;
       const editedBeforeLoad = inputRevision !== initialRevision;
       const workspace = saved.workspace;
       if (workspace && inputRevision === initialRevision) {
@@ -535,17 +711,18 @@ function renderResult(data, street) {
         }
         if (!cards.restore(workspace.keyboard)) throw new Error('Invalid card draft. The file was preserved.');
         cards.restoreManualDraft(workspace.manualText);
-        for (const item of (workspace.snapshots || []).slice(0, 4)) if (['PREFLOP','FLOP','TURN','RIVER'].includes(item.street) && Number.isFinite(item.equity)) snapshots.push(item);
+        for (const item of (workspace.snapshots || []).slice(0, 4)) if (['PREFLOP','FLOP','TURN','RIVER'].includes(item.street) && Number.isFinite(item.equity)) snapshots.push({...item,stale:item.stale||item.schemaVersion!==2||item.engineBuild!==engineStatus?.version});
         // Enable the requested four-suit palette once for existing drafts.
         // Subsequent changes to the deck selector remain the user's choice.
         applyAppearance((workspace.ui?.cardDisplayVersion || 0) < 2 ? 'cores' : workspace.ui?.deck, workspace.ui?.felt);
         window.theibsFocusUI.restore(workspace.ui?.sidebarCollapsed !== false);
-        if(!workspace.ui?.workflowVersion&&!workspace.fields?.rake) $('#assumeNoRake').checked=true;
         legacyHandFlow=workspace.legacyHandFlow||workspace.handFlow||null;
         if(workspace.multiway?.enabled){multiwayYesple=workspace.multiwayYesple||null;await runMultiway(()=>postJson('/api/multiway/state',{multiway:workspace.multiway}));}
+        window.theibsOpponentInputs.restore(workspace.opponentInputs);
         updateTableContext(); updateBoardHelp(); renderStreetCards();
         try {
-          if (workspace.lastAnalysis?.data?.engineBuild === '0.10.0' && workspace.lastAnalysis.signature === JSON.stringify(buildAnalysisPayload())) {
+          snapshotModel.invalidate(snapshots, buildAnalysisPayload(true), engineStatus?.version);
+          if (workspace.lastAnalysis?.data?.provenance?.schemaVersion === 2 && workspace.lastAnalysis.data.engineBuild === engineStatus?.version && workspace.lastAnalysis.signature === snapshotModel.stable(buildAnalysisPayload())) {
             lastAnalysis = workspace.lastAnalysis; renderResult(lastAnalysis.data, lastAnalysis.street); quickAction(lastAnalysis.data);
             renderCharts(snapshots.find((item) => item.street === lastAnalysis.street && !item.stale));
           }
@@ -560,7 +737,7 @@ function renderResult(data, street) {
         }
         showView(workspace.ui?.view || 'analyze', false);
         $('#save-status').textContent = 'Draft restored';
-      } else $('#save-status').textContent = 'Ready to save locally';
+      } else $('#save-status').textContent = 'Ready to save draft';
       loaded = true;
       if (editedBeforeLoad || (workspace && ((workspace.ui?.cardDisplayVersion || 0) < 2 || !workspace.ui?.workflowVersion))) scheduleSave();
       scheduleAnalysis();
@@ -573,19 +750,28 @@ function renderResult(data, street) {
     renderTrainingSession();
     try {
       const status = await requestJson('/api/status');
-      engineStatus=status;renderEngineDetails();
-      $('#engine-status').innerHTML = '<i></i>Local engine';
-      $('#coach-provider').textContent = status.llmProvider === 'ollama' ? `Ollama configured · ${status.llmModel || 'model not specified'} · availability checked when asked` : 'Local explanation · Ollama optional';
+      engineStatus=status;renderEngineVersion();renderEngineDetails();
+      $('#engine-status').innerHTML = '<i></i>Web engine';
+      $('#coach-provider').textContent = status.llmProvider === 'ollama' ? `Ollama configured · ${status.llmModel || 'model not specified'} · availability checked when asked` : 'Engine explanation · server enrichment optional';
     } catch { $('#engine-status').textContent = 'Engine unavailable'; }
   }
 
+  for(const id of ['training-question','training-size'])document.getElementById(id).addEventListener('input',cancelCoach);
   form.addEventListener('submit', analyze);
   document.addEventListener('theibs:layout-preference', scheduleSave);
+  document.addEventListener('theibs:voice-session-changed',()=>{
+    multiwayRevision++;clearTimeout(multiwayCardTimer);clearTimeout(saveTimer);
+    saveDirty=false;
+    analysisController?.abort();cancelCoach();
+    if(loaded)invalidateAnalysis();
+  });
   form.addEventListener('input', (event) => {
+    if(event.target.closest('#opponent-input-panel'))return;
     if (['heroCards','board','paste-cards'].includes(event.target.id)) return;
     invalidateAnalysis(); updateTableContext(); scheduleSave();
   });
   form.addEventListener('change', (event) => {
+    if(event.target.closest('#opponent-input-panel'))return;
     if (['heroCards','board','paste-cards'].includes(event.target.id)) return;
     invalidateAnalysis(); updateTableContext(); scheduleSave();
   });
@@ -601,8 +787,8 @@ function renderResult(data, street) {
       multiway={...multiway,config:{...multiway.config,heroCards:privateCards.length===cards.state.count?privateCards:[]}};
       multiwayAnalysis={available:false,reasons:[{message:'Updating your cards.'}]};
       invalidateAnalysis();
-      clearTimeout(multiwayCardTimer);const requested=++multiwayRevision;
-      multiwayCardTimer=setTimeout(async()=>{try{const data=await postJson('/api/multiway/state',{multiway});if(requested===multiwayRevision&&multiway)acceptMultiway(data);}catch(error){if(requested===multiwayRevision)toast(error.message);}},180);
+      clearTimeout(multiwayCardTimer);multiwayRevision++;const requested=multiwayRequestContext();
+      multiwayCardTimer=setTimeout(async()=>{try{const data=await postJson('/api/multiway/state',{multiway});if(currentMultiwayRequest(requested)&&multiway)acceptMultiway(data);}catch(error){if(currentMultiwayRequest(requested))toast(error.message);}},180);
       scheduleSave();
       return;
     }
@@ -654,6 +840,7 @@ function renderResult(data, street) {
   $('#training-start').addEventListener('click', startTraining);
   $('#training-clear').addEventListener('click', () => {
     if(trainingBusy)return;
+    cancelCoach();
     if(trainingSession&&!trainingSession.finished&&!window.confirm('Clear the cards and end this training hand? Recorded decisions remain in History.'))return;
     trainingSession=null;trainingDecisions=[];
     $('#training-feedback').classList.add('hidden');$('#training-coach').textContent='';$('#training-question').value='';
@@ -681,13 +868,14 @@ function renderResult(data, street) {
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flushSave(true); });
   document.addEventListener('theibs:llm-updated', event => {
     engineStatus={...engineStatus,llmProvider:event.detail.provider,llmModel:event.detail.model};renderEngineDetails();
-    $('#coach-provider').textContent=event.detail.provider==='ollama'?`Llama · ${event.detail.model} · on demand`:'Local explanation';
+    $('#coach-provider').textContent=event.detail.provider==='ollama'?`Llama · ${event.detail.model} · on demand`:'Engine explanation';
   });
   window.addEventListener('beforeunload', (event) => { if (saveDirty || saveBusy) { event.preventDefault(); event.returnValue = ''; } });
   const setupHost=document.createElement('section');setupHost.id='multiway-setup';$('#settings-dialog .dialog-content').prepend(setupHost);
   const nutsBadge=document.createElement('div');nutsBadge.id='nuts-badge';nutsBadge.className='nuts-badge';nutsBadge.hidden=true;nutsBadge.innerHTML='<span class="nuts-dot" aria-hidden="true"></span><span class="nuts-label">NUTS</span>';nutsBadge.setAttribute('role','status');nutsBadge.setAttribute('aria-label','Nuts: best possible hand on the current board. Ties are possible.');nutsBadge.title='Best possible hand on the current board. Ties are possible; future cards can change the hand.';$('#analyze-workspace .insight-panel').after(nutsBadge);
   const controlsHost=document.createElement('section');controlsHost.id='multiway-controls';$('.quick-decision').before(controlsHost);
   window.theibsMultiwayUI.init({getContext:multiwayContext,handlers:{start:startMultiway,act:event=>stepMultiway({type:'ACT',...event}),markFold:event=>stepMultiway({type:'MARK_FOLD',...event}),board:event=>stepMultiway({type:'BOARD',...event}),undo:()=>runMultiway(()=>postJson('/api/multiway/state',{multiway:{...multiway,events:multiway.events.slice(0,-1)}})),exit:exitMultiway}});
+  window.theibsOpponentInputs.init({getContext:()=>({mode:multiway?'MULTIWAY':'SIMPLE',variant:`PLO${cards.state.count}_HIGH`,count:cards.state.count,position:multiway?multiway.config.heroPosition:value('position'),busy:multiwayBusy,players:multiwayState&&multiway?multiwayState.players.filter(p=>!p.hero).map((p,index)=>({seatId:p.id,label:`ADV. ${index+1} · ${p.position}`,folded:p.folded})):Array.from({length:Math.max(1,Number(value('players'))-1)},(_,seatId)=>({seatId,label:`ADV. ${seatId+1}`,folded:false}))}),onChange:()=>{invalidateAnalysis();scheduleSave();}});
   updateTableContext(); renderMultiway();renderStreetCards(); renderCharts(); updateBoardHelp(); renderTrainingSession();
-  window.theibsApp = { ready: initialize(), getState: () => ({ activeView, analysisBusy, trainingBusy, lastAnalysis, trainingSession, multiway,multiwayState,multiwayAnalysis,multiwayBusy,snapshots: [...snapshots], saveBusy, saveDirty, saveBlocked }), flushSave, showView, getAnalysisInput: buildAnalysisPayload, renderCoachAnswer };
+  window.theibsApp = { ready: initialize(), getState: () => ({ activeView, analysisBusy, trainingBusy, lastAnalysis, trainingSession, multiway,multiwayState,multiwayAnalysis,multiwayBusy,snapshots: [...snapshots], saveBusy, saveDirty, saveBlocked }), flushSave, showView, getAnalysisInput: buildAnalysisPayload, getVoiceContext: () => ({ activeView, inputRevision, multiwayRevision, loaded, session: window.theibsVoiceSessionContext?.(), accessVisible: !document.getElementById('app-shell').hidden && !document.getElementById('app-shell').inert }), renderCoachAnswer };
 })();

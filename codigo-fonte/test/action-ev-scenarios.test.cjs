@@ -35,9 +35,9 @@ test('multiway raise weights caller subsets with incremental costs and condition
   assert.equal(action.heroCost, 10);
   // fold:20; a:.6*37-10=12.2; b:.5*41-10=10.5; ab:.35*48-10=6.8.
   near(action.ev, .2 * 20 + .3 * 12.2 + .1 * 10.5 + .4 * 6.8);
-  assert.deepEqual(action.scenarioBreakdown.map(scenario => scenario.potAtShowdown), [20, 37, 41, 48]);
-  assert.equal(action.scenarioBreakdown[0].uncalledReturned, 10);
-  assert.equal(action.scenarioBreakdown[0].heroCost, 0);
+  assert.deepEqual(action.scenarioBreakdown.map(scenario => scenario.potAtShowdown), [23, 37, 41, 48]);
+  assert.equal(action.scenarioBreakdown[0].uncalledReturned, 7);
+  assert.equal(action.scenarioBreakdown[0].heroCost, 3);
   assert.equal(action.modelScope, 'FIXED_RESPONSE_SHOWDOWN_ONLY');
   assert.match(action.certainty, /ASSUMPTIONS/);
 });

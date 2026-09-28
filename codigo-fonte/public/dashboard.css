@@ -446,7 +446,7 @@ button[data-felt=azul]::before { background:#3769af; } button[data-felt=preto]::
 @media(max-width:999px) {
  .analysis-seats { position:absolute; inset:0; }
  .table-surface .poker-table { min-height:350px; }
- .table-surface .table-center { padding-bottom:0; }
+ .table-surface .table-center { padding-bottom:96px; }
  .table-surface .hero-position { bottom:18px; transform:translateX(-50%); gap:4px; }
  .seat-map-note { bottom:3px; }
  .opponent-place .card-back { width:17px; height:23px; }
@@ -648,7 +648,7 @@ body[data-view=analyze] #ev-value,body[data-view=analyze] #hero-equity { font-si
  body[data-sidebar=collapsed] .app-shell { grid-template-columns:64px minmax(0,1fr)!important; }
  body[data-sidebar=collapsed] .primary-rail { padding:12px 8px; gap:20px; overflow:visible; }
  body[data-sidebar=collapsed] .rail-header { justify-content:center; }
- body[data-sidebar=collapsed] .brand,body[data-sidebar=collapsed] .nav-label,body[data-sidebar=collapsed] .rail-section { display:none; }
+ body[data-sidebar=collapsed] .primary-rail .brand,body[data-sidebar=collapsed] .primary-rail .nav-label,body[data-sidebar=collapsed] .primary-rail .rail-section { display:none; }
  body[data-sidebar=collapsed] .nav-tab { width:46px; height:46px; padding:12px; justify-content:center; }
  body[data-sidebar=collapsed] #compact-variant { display:inline-flex; align-self:center; }
  body[data-sidebar=collapsed] #open-help { justify-content:center; padding:6px; }
@@ -656,3 +656,21 @@ body[data-view=analyze] #ev-value,body[data-view=analyze] #hero-equity { font-si
  body[data-sidebar=collapsed] .save-indicator { display:block; justify-self:center; }
  body[data-sidebar=collapsed] .rail-bottom { padding-bottom:7px; }
 }
+
+/* Optional opponent input never blocks the card workspace. */
+.opponent-input-actions {display:flex;flex-wrap:wrap;gap:8px;margin:12px 0;}
+#opponent-input-panel label {display:block;margin:10px 0;}
+#opponent-input-panel input,#opponent-input-panel select,#opponent-input-panel textarea {max-width:100%;}
+#opponent-input-list {padding-left:20px;overflow-wrap:anywhere;}
+#opponent-input-panel .checkbox-label {display:flex;align-items:flex-start;gap:8px;}
+
+/* Current-call assessment uses existing EV; no strength score or extra worker. */
+#analysis-next-title {display:block;font-size:18px;line-height:1.3;}
+#continuation-metrics {display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0;}
+#continuation-metrics[hidden],#continuation-risk[hidden] {display:none;}
+#continuation-metrics div {min-width:0;}
+#continuation-metrics dt {font-size:11px;color:var(--muted);line-height:1.4;}
+#continuation-metrics dd {margin:3px 0 0;font-size:14px;overflow-wrap:anywhere;}
+#continuation-metrics div:last-child {grid-column:1 / -1;}
+#continuation-risk {padding-top:10px;border-top:1px solid var(--border);}
+body[data-view=analyze] #quick-action {overflow-wrap:anywhere;}

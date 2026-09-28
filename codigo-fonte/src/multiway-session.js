@@ -4,6 +4,7 @@ const { normalizeCards, cardCodes } = require('./cards');
 const { holeCount } = require('./variants');
 const { evaluateStrategy } = require('./strategy-engine');
 const { applyExploit } = require('./exploit-engine');
+const { hasOverrides, prepareOpponentOverrides } = require('./opponent-overrides');
 
 const SOURCE = 'USER_OBSERVED_ACTIONS';
 const object = value => value && typeof value === 'object' && !Array.isArray(value);
@@ -66,15 +67,12 @@ function envelope(raw) {
     warn('CALL_REACHES_ALL_IN', 'O call coloca o herói em all-in; o cálculo simplificado está bloqueado.');
   }
   if (multiway.config.heroCards.length !== holeCount(multiway.config.variant)) warn('HERO_CARDS_INCOMPLETE', 'Complete suas cartas privadas antes de analisar.');
-  if (state.actor === state.heroId && state.heroToCall === 0 && state.legal.actions.includes('RAISE')) {
-    warn('FREE_RAISE_OPTION_UNSUPPORTED', 'A opção de aumentar sem valor para pagar ainda não é calculada. Você pode registrar check ou raise normalmente.');
-  }
   const availableActions = state.actor === state.heroId ? state.legal.actions.filter(action => action !== 'FOLD' || state.heroToCall > 0) : [];
   const input = { variant: multiway.config.variant, heroCards: [...multiway.config.heroCards], board: [...state.board],
     street: state.street, position: multiway.config.playerCount === 2 && multiway.config.heroPosition === 'BTN' ? 'BTN' : hero.position,
     players: state.activePlayers, potBeforeAction: state.pot, amountToCall: state.heroToCall,
     effectiveStack: hero.stack, heroContribution: hero.streetPaid,
-    availableActions, minRaiseTo: state.legal.minTo, maxRaiseTo: state.legal.maxTo, minBet: state.bigBlind,
+    availableActions, minRaiseTo: state.legal.minTo, maxRaiseTo: state.legal.maxTo, minBet: state.bigBlind, bigBlind: state.bigBlind,
     actionHistory: state.log, sidePots: state.hasSidePots };
   const warnings = ['As ações e contribuições foram informadas pelo usuário. Elas não determinam as cartas ou as frequências de resposta adversárias.'];
   if (multiway.events.some(event => event.type === 'MARK_FOLD')) warnings.push('Há saída registrada fora da ordem: o histórico observado é parcial; nenhuma ação intermediária foi inventada.');
@@ -100,6 +98,8 @@ function sameSeats(ids, expected) {
 
 function prepareAnalysis(raw, supplied) {
   const observed = envelope(raw), { state } = observed, reasons = [...observed.analysis.reasons];
+  if(hasOverrides(supplied)&&observed.analysis.available)supplied=prepareOpponentOverrides({...supplied,...observed.analysis.input},{observed:true,
+    seats:state.players.filter(player=>!player.hero&&!player.folded).map(player=>({seatId:player.id,contribution:player.streetPaid,stackRemaining:player.stack}))});
   const input = { ...supplied, ...observed.analysis.input }, blockedActions = {}, warnings = [...observed.analysis.warnings];
   if (supplied.futureStreetModel?.type === 'SHOWDOWN_ONLY') {
     // With no future bets there are no new contributions. A manual what-if
@@ -130,7 +130,7 @@ function prepareAnalysis(raw, supplied) {
   }
   let studyValid = false;
   if (supplied.aggressionStudy?.enabled) {
-    const rawStudy = supplied.aggressionStudy, action = state.heroToCall > 0 ? 'RAISE' : 'BET';
+    const rawStudy = supplied.aggressionStudy, action = state.heroToCall + hero.streetPaid > 0 ? 'RAISE' : 'BET';
     if (!sameSeats(rawStudy.opponents?.map(player => player.seatId), activeIds)) {
       blockedActions[action] = 'As probabilidades de resposta precisam identificar cada assento ativo; nenhuma associação por índice foi presumida.';
       delete input.aggressionStudy;

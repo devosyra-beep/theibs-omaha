@@ -65,8 +65,8 @@ test('all-fold response returns the uncalled raise and wins only the existing po
   assert.equal(raise.status, 'MODELED');
   assert.equal(raise.scenarioBreakdown.length, 1);
   near(raise.ev, 1.5);
-  near(raise.scenarioBreakdown[0].heroCost, 0);
-  near(raise.scenarioBreakdown[0].uncalledReturned, 3.5);
+  near(raise.scenarioBreakdown[0].heroCost, 1);
+  near(raise.scenarioBreakdown[0].uncalledReturned, 2.5);
   assert.deepEqual(raise.scenarioBreakdown[0].callers, []);
 });
 

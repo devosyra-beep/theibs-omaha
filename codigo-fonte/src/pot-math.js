@@ -26,7 +26,7 @@ function calculatePotMath(input) {
       const net=branches.length===1?potAfterCall-branches[0].rake:null;
       potOdds=net>0?amountToCall/net:null;
     }else if(callModel.status==='MODELED'){
-      const net=potAfterCall-Number(input.rake||0);
+      const net=Number.isFinite(callModel.netPot)?callModel.netPot:potAfterCall-Number(input.rake||0);
       potOdds=amountToCall>0&&net>0?amountToCall/net:0;
     }
   }

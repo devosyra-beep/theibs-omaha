@@ -34,7 +34,7 @@ test('landing, PWA shell, Google login and icons are served with correct media t
   assert.match(landing, /Poker training/);
   assert.match(landing, /Built for accessibility/);
   assert.match(landing, /href="\/app\?login=1"/);
-  assert.match(landing, /landing-assets\/theibs-app\.png/);
+  assert.match(landing, /<img[^>]+src="\/landing-assets\/theibs-training\.png"/);
   assert.match(page, /id="login-screen"/);
   assert.match(page, /Continue with Google/);
   assert.match(page, /id="header-signout"[^>]*>Sign out</);

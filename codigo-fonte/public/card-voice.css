@@ -1,0 +1,24 @@
+#card-voice-disclosure{border:1px solid var(--border, #343b3d);border-radius:10px;padding:12px 16px;margin-top:12px;align-self:stretch;min-width:0}
+#card-voice-disclosure>summary{cursor:pointer;font-size:13px;color:var(--foreground,#e5efe8)}
+#card-voice{border-top:1px solid var(--border, #343b3d);padding:14px 0 2px;margin-top:12px;text-align:left}
+#card-voice .voice-heading,#card-voice .voice-options,#card-voice .voice-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+#card-voice .voice-heading{justify-content:space-between;margin-bottom:10px}
+#card-voice .voice-badge{font-size:11px;padding:3px 8px;border:1px solid #778578;border-radius:12px;color:#bed3bf}
+#card-voice .voice-options label{display:flex;flex-direction:column;gap:4px;font-size:12px;flex:1;min-width:150px}
+#card-voice select{min-height:34px;width:100%}
+#card-voice .voice-help{font-size:12px;line-height:1.5;color:var(--text-muted,#a8b0ae);margin:8px 0}
+#card-voice .voice-consent{display:flex;flex-direction:row;gap:8px;align-items:flex-start;font-size:12px;line-height:1.5;margin:8px 0 12px}
+#card-voice .voice-consent[hidden]{display:none}
+#card-voice .voice-consent input{width:auto;flex:none;margin-top:3px}
+#card-voice button{min-height:38px;padding:7px 12px;border:1px solid #5b6860;border-radius:7px;background:#1e2924;color:#e5efe8;cursor:pointer;font-size:12px}
+#card-voice button:disabled{opacity:.45;cursor:default}
+#card-voice button:focus-visible,#card-voice select:focus-visible{outline:2px solid #afe0b7;outline-offset:3px}
+#card-voice #voice-hold{touch-action:none;user-select:none}
+#card-voice.is-listening{border-top-color:#72d099}
+#card-voice.is-listening #voice-toggle{background:#335f46}
+#voice-status{font-size:12px;line-height:1.5;min-height:1.5em;margin:10px 0}
+#voice-status.voice-error{color:#ffb299}
+#voice-review{padding:10px;background:#1b2620;border:1px solid #677f6c;border-radius:8px}
+#voice-review output,#voice-proposal{display:block;font-size:13px;overflow-wrap:anywhere;margin-bottom:10px}
+#card-voice details summary{cursor:pointer;font-size:12px}
+@media(max-width:600px){#card-voice .voice-actions button{flex:1}#card-voice .voice-options label{min-width:130px}}

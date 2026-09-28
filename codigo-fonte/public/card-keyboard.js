@@ -11,6 +11,15 @@
   const heroSlots = $('#hero-slots'), boardSlots = $('#board-slots');
   const grid = $('#card-grid'), status = $('#keyboard-status');
   let pendingRank = '', pendingTen = false, manualInvalid = false, message = '';
+  let revision = 0;
+  let renderedCount = null, slotElements = [], renderedCards = [], deckButtons = [];
+  let renderedDeckState = null;
+  const cardTemplate = document.createElement('template');
+  const setText = (selector, text) => {
+    const element = $(selector);
+    if (element.textContent !== text) element.textContent = text;
+  };
+  const setDisabled = (element, disabled) => { if (element.disabled !== disabled) element.disabled = disabled; };
 
   function isEditing(target) {
     if (!(target instanceof Element)) return false;
@@ -21,7 +30,9 @@
   }
   function active() { return document.body.dataset.multiwayBusy!=='true' && !$('#analyze-workspace').classList.contains('hidden') && !document.querySelector('dialog[open]'); }
   function announce(text, error = false) {
-    message = text; status.textContent = text; status.classList.toggle('error', error);
+    message = text;
+    if (status.textContent !== text) status.textContent = text;
+    status.classList.toggle('error', error);
   }
   function render() {
     const focus = document.activeElement;
@@ -31,35 +42,73 @@
       label: index < state.count ? `Hole card ${index + 1}` : `Community card ${index - state.count + 1}`,
       emptyLabel: index < state.count ? String(index + 1) : ['F', 'F', 'F', 'T', 'R'][index - state.count]
     });
-    heroSlots.innerHTML = Array.from({ length: state.count }, (_, i) => slot(i)).join('');
-    boardSlots.innerHTML = Array.from({ length: 5 }, (_, i) => slot(i + state.count)).join('');
-    if(document.body.dataset.multiway==='on')boardSlots.querySelectorAll('button').forEach(button=>{button.disabled=true;button.title='Use Revelar board no Multiway.';});
-    grid.innerHTML = CARD_SUITS.map((suit) => `<div class="card-row"><div class="card-suit${['C', 'O'].includes(suit.code) ? ' red' : ''}" data-suit="${suit.code}" aria-hidden="true">${suit.symbol}<small>${suit.code}</small></div><div class="card-ranks">${[...CARD_RANKS].map((rank) => {
-      const card = rank + suit.code;
-      const used = state.slots.some((c, i) => c === card && i !== state.selected);
-      return `<button type="button" class="card-key${['C', 'O'].includes(suit.code) ? ' red' : ''}${used ? ' used' : ''}${state.slots[state.selected] === card ? ' active' : ''}" data-card="${card}" data-suit="${suit.code}" aria-label="${rank === 'T' ? '10' : rank} de ${suit.name}" ${used || manualInvalid ? 'disabled' : ''}>${rank === 'T' ? '10' : rank}<small>${suit.code}</small></button>`;
-    }).join('')}</div></div>`).join('');
-    $('#undo-card').disabled = !state.undoStack.length;
-    $('#remove-card').disabled = !state.slots[state.selected];
+    // Keep focused buttons and the 52-card deck alive. Pending rank keys do not
+    // change cards, and must not rebuild the table before the suit arrives.
+    if (renderedCount !== state.count) {
+      heroSlots.innerHTML = Array.from({ length: state.count }, (_, i) => slot(i)).join('');
+      boardSlots.innerHTML = Array.from({ length: 5 }, (_, i) => slot(i + state.count)).join('');
+      slotElements = [...heroSlots.children, ...boardSlots.children];
+      renderedCards = [...state.slots];
+      renderedCount = state.count;
+    }
+    const multiway = document.body.dataset.multiway === 'on';
+    slotElements.forEach((element, index) => {
+      if (renderedCards[index] !== state.slots[index]) {
+        cardTemplate.innerHTML = slot(index);
+        const next = cardTemplate.content.firstElementChild;
+        element.className = next.className;
+        element.setAttribute('aria-label', next.getAttribute('aria-label'));
+        element.title = next.title;
+        element.replaceChildren(...next.childNodes);
+        renderedCards[index] = state.slots[index];
+      }
+      const selected = state.selected === index;
+      element.classList.toggle('selected', selected);
+      if (element.getAttribute('aria-pressed') !== String(selected)) element.setAttribute('aria-pressed', String(selected));
+      setDisabled(element, multiway && index >= state.count);
+      if (multiway && index >= state.count) element.title = 'Use Deal board in Multiway.';
+      else if (element.title === 'Use Deal board in Multiway.') {
+        cardTemplate.innerHTML = slot(index);
+        element.title = cardTemplate.content.firstElementChild.title;
+      }
+    });
+    if (!deckButtons.length) {
+      grid.innerHTML = CARD_SUITS.map((suit) => `<div class="card-row"><div class="card-suit${['C', 'O'].includes(suit.code) ? ' red' : ''}" data-suit="${suit.code}" aria-hidden="true">${suit.symbol}<small>${suit.code}</small></div><div class="card-ranks">${[...CARD_RANKS].map((rank) => `<button type="button" class="card-key${['C', 'O'].includes(suit.code) ? ' red' : ''}" data-card="${rank + suit.code}" data-suit="${suit.code}" aria-label="${rank === 'T' ? '10' : rank} de ${suit.name}">${rank === 'T' ? '10' : rank}<small>${suit.code}</small></button>`).join('')}</div></div>`).join('');
+      deckButtons = [...grid.querySelectorAll('[data-card]')];
+    }
+    const deckState = `${state.selected}:${manualInvalid}:${state.slots.join('|')}`;
+    if (deckState !== renderedDeckState) {
+      const usedCards = new Set(state.slots.filter((card, index) => card && index !== state.selected));
+      for (const button of deckButtons) {
+        const used = usedCards.has(button.dataset.card);
+        button.classList.toggle('used', used);
+        button.classList.toggle('active', state.slots[state.selected] === button.dataset.card);
+        setDisabled(button, used || manualInvalid);
+      }
+      renderedDeckState = deckState;
+    }
+    setDisabled($('#undo-card'), !state.undoStack.length);
+    setDisabled($('#remove-card'), !state.slots[state.selected]);
     $('#variant-select').value = String(state.count);
-    $('#analysis-variant').textContent = `PLO${state.count} HIGH`;
+    setText('#analysis-variant', `PLO${state.count} HIGH`);
     $('#variant-warning').className='micro variant-status';
-    $('#variant-warning').textContent=`PLO${state.count} ativo · regras e equity habilitadas.`;
-    $('#hero-help').textContent = `${state.count} cards · C = hearts, P = clubs.`;
+    setText('#variant-warning', `PLO${state.count} ativo · regras e equity habilitadas.`);
+    setText('#hero-help', `${state.count} cards · C = hearts, P = clubs.`);
     const cards = state.cards();
-    $('#table-card-count').textContent = `${cards.hero.length}/${state.count} hole · ${cards.board.length}/5 board`;
+    setText('#table-card-count', `${cards.hero.length}/${state.count} hole · ${cards.board.length}/5 board`);
     const target = state.selected < state.count ? `your card ${state.selected + 1}` : `board ${state.selected - state.count + 1}`;
     const selectedCard = state.slots[state.selected];
     const selectedSuit = selectedCard && CARD_SUITS.find((suit) => suit.code === selectedCard[1]);
-    $('#selected-card-label').textContent = selectedCard
+    setText('#selected-card-label', selectedCard
       ? `Selected: ${selectedCard[0] === 'T' ? '10' : selectedCard[0]} of ${selectedSuit.name.toLowerCase()} ${selectedSuit.symbol} · ${target}`
-      : `Next card: ${target} · type rank + suit`;
+      : `Next card: ${target} · type rank + suit`);
     if (!message) announce(manualInvalid ? 'Fix the text entry before continuing.' : pendingTen ? '10: type 0, then the suit.' : pendingRank ? `${pendingRank === 'T' ? '10' : pendingRank} → choose E, C, O or P.` : `Selected: ${target}.`, manualInvalid);
     if (focusedSlot !== undefined) document.querySelector(`[data-slot="${state.selected}"]`)?.focus({ preventScroll: true });
     else if (focusedCard !== undefined) document.querySelector(`[data-card="${focusedCard}"]:not(:disabled)`)?.focus({ preventScroll: true });
   }
   function changed(source = 'keyboard') {
-    document.dispatchEvent(new CustomEvent('theibs:cards-changed', { detail: { ...state.cards(), snapshot: state.snapshot(), valid: !manualInvalid, source } }));
+    revision += 1;
+    document.dispatchEvent(new CustomEvent('theibs:cards-changed', { detail: { ...state.cards(), snapshot: state.snapshot(), valid: !manualInvalid, source, revision } }));
   }
   function clearPending() { pendingRank = ''; pendingTen = false; message = ''; }
   function writeInputs(source) {
@@ -76,7 +125,7 @@
     } catch (error) { manualInvalid = true; announce(error.message, true); }
     render(); changed('manual');
   }
-  function select(index) { if(document.body.dataset.multiway==='on')index=Math.min(index,state.count-1);if (state.select(index)) { clearPending(); render(); } }
+  function select(index) { if(document.body.dataset.multiway==='on')index=Math.min(index,state.count-1);if (state.select(index)) { revision += 1; clearPending(); render(); document.dispatchEvent(new CustomEvent('theibs:card-selection', { detail: { selected: state.selected, revision } })); } }
   function assign(card) {
     if (manualInvalid) { announce('Fix the cards in the text field before using the deck.', true); return; }
     if (state.assign(card)) writeInputs('keyboard'); else announce(state.error, true);
@@ -159,6 +208,27 @@
   });
   window.theibsCardKeyboard = {
     state, render, select, paste,
+    getRevision: () => revision,
+    commitCommand(command, expectedRevision) {
+      if (!active() || manualInvalid || expectedRevision !== revision) return { ok: false, error: 'A entrada mudou. Dite novamente no destino desejado.' };
+      const priorCards = JSON.stringify([state.count, state.slots]);
+      if (document.body.dataset.multiway === 'on') {
+        // The simple card state must never override the multiway ledger.
+        const draft = new CardKeyboardState(state.count); draft.restore(state.snapshot());
+        draft.undoStack = state.undoStack.map(entry => ({ ...entry, slots: [...entry.slots] }));
+        if (!draft.applyCommand(command) || (command.type !== 'cards' && draft.selected >= state.count) ||
+            JSON.stringify(draft.slots.slice(state.count)) !== JSON.stringify(state.slots.slice(state.count))) {
+          return { ok: false, error: 'No Multiway, use o comando da street e a transação do board.' };
+        }
+      }
+      if (!state.applyCommand(command)) return { ok: false, error: state.error };
+      if (document.body.dataset.multiway === 'on') state.selected = Math.min(state.selected, state.count - 1);
+      if (priorCards === JSON.stringify([state.count, state.slots])) {
+        revision += 1; clearPending(); render();
+        document.dispatchEvent(new CustomEvent('theibs:card-selection', { detail: { selected: state.selected, revision, source: 'voice' } }));
+      } else writeInputs('voice');
+      return { ok: true, revision, snapshot: state.snapshot() };
+    },
     cancelPending() { clearPending(); render(); },
     manualDraft() { return manualInvalid ? { hero: heroInput.value, board: boardInput.value, invalid: true } : null; },
     restoreManualDraft(draft) {
@@ -167,7 +237,16 @@
       announce('Text draft restored. Fix invalid cards before analyzing.', true); render(); changed('manual-restore');
     },
     reset() { state.reset(); writeInputs('reset'); },
-    restore(snapshot) { if (!state.restore(snapshot)) return false; state.undoStack = []; writeInputs('restore'); return true; },
+    restore(snapshot, options = {}) {
+      // A server acknowledgement of the same cards must not erase a phrase's
+      // undo. New hands, variants, actual board changes and ordinary restores
+      // retain the prior behavior of dropping the local card history.
+      const preserveUndo = options.preserveUndo === true && snapshot?.count === state.count &&
+        JSON.stringify(snapshot?.slots) === JSON.stringify(state.slots);
+      if (!state.restore(snapshot)) return false;
+      if (!preserveUndo) state.undoStack = [];
+      writeInputs('restore'); return true;
+    },
     cardsForSubmit() { return manualInvalid || !state.validation().valid ? null : state.cards(); },
     canonicalForSubmit() { if (manualInvalid) throw new Error('Fix the cards in the text field.'); return state.canonicalCards(); },
     isManualInvalid() { return manualInvalid; },

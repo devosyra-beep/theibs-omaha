@@ -61,11 +61,11 @@
   $('#open-analysis').addEventListener('click',()=>openDialog(result));
   const engine=dialog('engine-dialog','Hand assistant');document.body.append(engine);
   $('#open-engine').addEventListener('click',()=>openDialog(engine));
-  engine.querySelector('.dialog-content').innerHTML=`<section id="llama-controls" aria-label="Assistant & local model">
-    <p id="llama-status" role="status">Checking the local assistant…</p>
-    <details id="llama-setup"><summary>Model & connection</summary>
-      <div class="llama-model-row"><label for="llama-model">Local model<select id="llama-model"><option value="">Check available models</option></select></label><button id="llama-refresh" type="button" class="ghost-button">Refresh</button><button id="llama-connect" type="button" class="primary-button">Connect</button></div>
-      <details class="llama-advanced"><summary>Ollama address</summary><label for="llama-url">Local server<input id="llama-url" type="url" value="http://127.0.0.1:11434" autocomplete="off" spellcheck="false"></label></details>
+  engine.querySelector('.dialog-content').innerHTML=`<section id="llama-controls" aria-label="Hand assistant">
+    <p id="llama-status" role="status">Checking the web assistant…</p>
+    <p class="micro">The web service provides the explanation. No model installation is required on your computer.</p><details id="llama-setup" hidden><summary>Server model configuration</summary>
+      <div class="llama-model-row"><label for="llama-model">Server model<select id="llama-model"><option value="">Check available models</option></select></label><button id="llama-refresh" type="button" class="ghost-button">Refresh</button><button id="llama-connect" type="button" class="primary-button">Connect</button></div>
+      <details class="llama-advanced"><summary>Ollama address</summary><label for="llama-url">Server address<input id="llama-url" type="url" value="http://127.0.0.1:11434" autocomplete="off" spellcheck="false"></label></details>
       <p id="llama-config-message" class="micro" role="status"></p>
     </details>
     <label class="analysis-ai-question-label" for="analysis-ai-question">About this hand<textarea id="analysis-ai-question" rows="2" placeholder="Ask about the calculation or describe a scenario to study."></textarea></label>
@@ -91,34 +91,28 @@
   $('#assumeNoRake').checked=true;
   const scenarios=document.createElement('details');scenarios.className='panel controls-panel';scenarios.id='raise-model-panel';
   scenarios.innerHTML=`<summary><span>Compare bet / raise</span></summary>
-    <p>Simulate opponent responses without recording the hand action by action.</p>
-    <label>Response model<select id="study-mode"><option value="OFF">Off · partial comparison</option><option value="UNIFORM">Study scenario · random hands</option></select></label>
-    <p class="micro">Choose assumptions to compare. They are not learned frequencies, GTO ranges or opponent reads.</p>
+    <p>Estudo opcional de BET / RAISE. Informe taxas somente no painel individual de adversários; nenhuma taxa será preenchida automaticamente.</p>
+    <label hidden>Response model<select id="study-mode"><option value="OFF">Off · partial comparison</option><option value="UNIFORM">Study scenario · random hands</option></select></label>
+    <p class="micro">Sem as hipóteses necessárias, equity e CALL disponíveis continuam sendo calculados. Ranges específicos de continuação ainda não são suportados neste estudo simplificado.</p>
     <p class="micro">Samples: the selected count applies to each number of callers. Adaptive mode uses 5K per count; select Deep for 50K per count.</p>
     <div class="form-grid"><label>You already committed this street<input id="study-hero-contribution" type="number" min="0" step="0.01" value="0"></label><label>Minimum legal raise (total)<input id="study-min-raise" type="number" min="0" step="0.01" placeholder="Optional · conservative limit"></label></div>
     <div id="study-sizes" class="form-grid"></div>
     <label>Minimum legal bet (table blind)<input id="study-min-bet" type="number" min="0.01" step="0.01" value="1"></label>
-    <button id="study-example" type="button" class="ghost-button">Fill initial 50% call assumption</button>
-    <p class="micro">This puts the current bet on OPP. 1 and zero on the others. Adjust it to match the scenario. Call probability refers to the proposed bet/raise.</p>
-    <div class="study-opponent-heading"><span>Active opponent</span><span>Committed this street</span><span>Call vs. your raise (%)</span></div>
-    ${Array.from({length:9},(_,i)=>`<div class="study-opponent-row" data-study-opponent="${i}"><strong>ADV. ${i+1}</strong><label class="sr-only" for="study-contribution-${i}">OPP. contribution ${i+1}</label><input id="study-contribution-${i}" type="number" min="0" step="0.01" value="0"><label class="sr-only" for="study-probability-${i}">OPP. call probability ${i+1}</label><input id="study-probability-${i}" type="number" min="0" max="100" step="1" placeholder="0–100"></div>`).join('')}
-    <label class="checkbox-label"><input id="study-accept" type="checkbox"> Use these assumptions: on a call, everyone completes the price; on a raise, they call according to the probabilities above. Everyone covers the bet, with no re-raise or future betting.</label>
-    <p class="micro">Equity is recalculated for each caller count. Call probabilities are independent of cards. This mode requires random hands for everyone. Bet/raise amounts are street totals; the engine subtracts what you already committed. The big blind free-option raise is not modeled yet.</p>`;
+    <p class="micro">No modo Simples, preencha os aportes desta street quando quiser modelar a aposta. No Multiway, os aportes vêm das ações que você registrou.</p>
+    <div class="study-opponent-heading"><span>Active opponent</span><span>Committed this street</span></div>
+    ${Array.from({length:9},(_,i)=>`<div class="study-opponent-row" data-study-opponent="${i}"><strong>ADV. ${i+1}</strong><label class="sr-only" for="study-contribution-${i}">OPP. contribution ${i+1}</label><input id="study-contribution-${i}" type="number" min="0" step="0.01" placeholder="Não informado"><input id="study-probability-${i}" type="hidden" value=""></div>`).join('')}
+    <label hidden><input id="study-accept" type="checkbox"> Legacy explicit study acceptance</label>
+    <p class="micro">Equity is recalculated for each caller count. Call probabilities are independent of cards. This mode requires random hands for everyone. Bet/raise amounts are street totals; the engine subtracts what you already committed. The big blind option supports CHECK/RAISE when its posted contribution and the legal raise minimum are provided.</p>`;
   settings.querySelector('.dialog-content').append(scenarios);
   for(const id of ['betSize','raiseTo'])$('#study-sizes').append($('#'+id).closest('label'));
   $('#betSize').closest('label').firstChild.textContent='Bet total this street';
   $('#raiseTo').closest('label').firstChild.textContent='Raise total this street';
-  $('#study-example').onclick=()=>{
-    const current=Number($('#study-hero-contribution').value)+Number($('#amountToCall').value);
-    for(let i=0;i<9;i++){$('#study-contribution-'+i).value=i===0?current:0;$('#study-probability-'+i).value=50;}
-    const h=Number($('#study-hero-contribution').value),c=Number($('#amountToCall').value),p=Number($('#potBeforeAction').value),stack=Number($('#effectiveStack').value);
-    if(c>0)$('#raiseTo').value=Math.round((h+Math.min(stack,p+2*c))*100)/100;else $('#betSize').value=Math.round((h+Math.min(stack,p))*100)/100;
-    $('#study-mode').value='UNIFORM';$('#study-mode').dispatchEvent(new Event('change',{bubbles:true}));
-  };
   const modelButton=document.createElement('button');modelButton.type='button';modelButton.id='open-raise-model';modelButton.className='text-button';modelButton.textContent='Compare bet / raise';ev.append(modelButton);
   modelButton.onclick=()=>{settings.showModal();scenarios.open=true;scenarios.scrollIntoView({block:'start'});};
   $('#rake').closest('label').firstChild.textContent='Total rake removed from the pot';
   $('#rake').closest('.controls-panel').querySelector('p.micro').textContent='Rake applies to the whole comparison. The fold/continuation-equity fields above belong to the simple heads-up model. For multiple opponents, use Compare bet / raise.';
+  for(const id of ['foldEquity','continuationEquity'])$('#'+id).closest('label').hidden=true;
+  $('#rake').closest('.controls-panel').querySelector('p.micro').textContent='Custos entram antes da comparação. Hipóteses de resposta são opcionais e pertencem a cada adversário; dados ausentes não viram probabilidades presumidas.';
   $('#opponentHand').closest('.controls-panel').querySelector('p.micro').textContent='Optional: enter a hand or range to refine the estimate. A behavioral profile does not replace a range.';
   $('#empty-state p').textContent='Complete your cards. The estimate uses the opponent model selected in settings.';
   $('#open-help').title='F1: keyboard, suits and actions';

@@ -4,6 +4,7 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
 const {evaluateFive,evaluateOmaha}=require('../src/evaluator');
 const {exactEquity,monteCarloEquity,Lcg}=require('../src/equity-engine');
 const {createSession,applyAction,publicSession}=require('../src/training-simulator');
+const {lowerBound}=require('./lib/binomial-coverage.cjs');
 const deck=[...'23456789TJQKA'].flatMap(r=>[...'cdhs'].map(s=>r+s));
 function oracle5(cards){
  const hist=Array(15).fill(0);for(const c of cards)hist['23456789TJQKA'.indexOf(c[0])+2]++;
@@ -18,7 +19,10 @@ const code=score=>score.reduce((a,n)=>a*15+n,0)*15**(6-score.length);
 function oracleOmaha(h,b){let best=null;for(let a=0;a<h.length;a++)for(let c=a+1;c<h.length;c++)for(let x=0;x<3;x++)for(let y=x+1;y<4;y++)for(let z=y+1;z<5;z++){const s=oracle5([h[a],h[c],b[x],b[y],b[z]]);if(!best||code(s)>code(best))best=s;}return best;}
 function deal(rng){const d=[...deck];for(let i=51;i>0;i--){const j=Math.floor(rng.next()*(i+1));[d[i],d[j]]=[d[j],d[i]];}return d;}
 const report={version:require('../package.json').version,startedAt:new Date().toISOString(),checks:[],status:'RUNNING',limitations:['Numeric correctness is separate from strategic quality.','No solver/GTO benchmark or real-player range calibration is included.','The independent oracle is separately implemented here, not an external certified library.']};
-const output=path.resolve(__dirname,'../../validacao/engine-method-report.json'),begin=Date.now();
+const outputArg=process.argv.indexOf('--output');
+const output=outputArg>=0?path.resolve(process.argv[outputArg+1]):path.resolve(__dirname,`../../validacao/engine-method-report-${new Date().toISOString().replace(/[:.]/g,'-')}.json`),begin=Date.now();
+if(fs.existsSync(output))throw Error('Refusing to overwrite prior validation evidence: '+output);
+report.evidence='LOCAL_EXECUTED';report.node=process.version;
 try{
  const rng=new Lcg(927531);
  for(let i=0;i<10000;i++){const h=deal(rng).slice(0,5);assert.deepEqual(evaluateFive(h).score,oracle5(h));}
@@ -45,8 +49,9 @@ try{
   calibration.push({variant:n,exact:exact.equity,estimate:mc.equity,error,covered:hit});
  }
  const bias=errors.reduce((a,b)=>a+b,0)/errors.length,rmse=Math.sqrt(errors.reduce((a,b)=>a+b*b,0)/errors.length),coverage=covered/errors.length;
- assert.ok(Math.abs(bias)<.025);assert.ok(rmse<.035);assert.ok(coverage>=.85);
- report.checks.push({name:'Monte Carlo vs exact turn enumeration',cases:90,samplesPerCase:1000,bias,rmse,coverage95:coverage,thresholds:{absoluteBiasBelow:.025,rmseBelow:.035,minCoverage:.85},status:'PASS',details:calibration});console.log(`PASS 90 exact/Monte Carlo comparisons; RMSE ${(rmse*100).toFixed(2)} pp; coverage ${(coverage*100).toFixed(1)}%`);
+ const coverageLower95=lowerBound(covered,errors.length,.05);
+ assert.ok(Math.abs(bias)<.025);assert.ok(rmse<.035);assert.ok(coverageLower95>=.93);
+ report.checks.push({name:'Monte Carlo vs exact turn enumeration (regression screen)',cases:90,samplesPerCase:1000,bias,rmse,coverage95:coverage,coverageLower95,thresholds:{absoluteBiasBelow:.025,rmseBelow:.035,minCoverageLower95:.93},scope:'One-sided binomial noninferiority screen with .02 coverage tolerance; stratified fixed/adaptive protocol is scripts/validate-equity-statistics.cjs.',status:'PASS',details:calibration});console.log(`PASS 90 exact/Monte Carlo comparisons; RMSE ${(rmse*100).toFixed(2)} pp; coverage ${(coverage*100).toFixed(1)}%`);
  if(process.argv.includes('--exhaustive-five')){
   const counts=Array(9).fill(0);let cases=0;
   for(let a=0;a<48;a++)for(let b=a+1;b<49;b++)for(let c=b+1;c<50;c++)for(let d=c+1;d<51;d++)for(let e=d+1;e<52;e++){const hand=[deck[a],deck[b],deck[c],deck[d],deck[e]];counts[evaluateFive(hand).categoryRank]++;cases++;}
@@ -55,4 +60,4 @@ try{
  }
  report.status='PASS';
 }catch(error){report.status='FAIL';report.failure=error.stack;process.exitCode=1;console.error(error);}
-finally{report.elapsedMs=Date.now()-begin;fs.mkdirSync(path.dirname(output),{recursive:true});fs.writeFileSync(output,JSON.stringify(report,null,2));console.log('Report:',output);}
+finally{report.elapsedMs=Date.now()-begin;fs.mkdirSync(path.dirname(output),{recursive:true});fs.writeFileSync(output,JSON.stringify(report,null,2),{flag:'wx'});console.log('Report:',output);}

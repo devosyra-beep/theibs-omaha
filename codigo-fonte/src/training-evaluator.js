@@ -11,6 +11,7 @@ const fast = require('./fast-evaluator');
 const { evaluateStrategy } = require('./strategy-engine');
 const { calculatePotMath } = require('./pot-math');
 const { describeHand } = require('./hand-insights');
+const { attachAnalysisContract } = require('./analysis-contract');
 
 const ACTIONS = ['FOLD', 'CHECK', 'CALL', 'BET', 'RAISE'];
 const MODEL = 'POLICY_ROLLOUT';
@@ -239,7 +240,7 @@ function evaluateTraining(input) {
     leadership, samplesPerOption: samples, totalRollouts: samples * results.filter(item => item.action !== 'FOLD').length,
     pairedSamples: true, seed, publicStateFingerprint: context.fingerprint,
     elapsedMs: Math.round(performance.now() - started), sizingScope: 'LEGAL_MIN_MID_MAX_PLUS_CHOSEN', assumptions };
-  return { status: 'OK', contractVersion: 'THEIBS_DECISION_V1', engineBuild: require('../package.json').version,
+  return attachAnalysisContract({ status: 'OK', contractVersion: 'THEIBS_DECISION_V1', engineBuild: require('../package.json').version,
     state: { ...basic, street: state.street, opponentCount: 1, actionHistory: state.log,
       knownInformation: { heroCards: true, board: true, position: true, pot: true, amountToCall: true },
       unknownInformation: ['opponentCards', 'futureBoard', 'historyConditionedRange'] },
@@ -249,7 +250,7 @@ function evaluateTraining(input) {
     strategy: { baseline, finalAction: recommended.action, finalSource: 'TRAINING_POLICY_ROLLOUT', confidence: baseline.confidence, warnings: baseline.warnings, conflicts: [] },
     trainingEvaluation, legalActions: actions, handInsights: describeHand(config.heroCards, state.board),
     reason: `${recommended.action}${recommended.size != null ? ` to ${recommended.size}` : ''} has the highest estimated EV among tested sizes against the simulated policy. ${leadership.status === 'SEPARATED' ? 'The sample intervals are separated.' : 'The difference between alternatives is still inconclusive.'}`,
-    assumptions, warnings: baseline.warnings };
+    assumptions, warnings: baseline.warnings }, { config, events: input.events, opponentStyle: context.opponentStyle, samples });
 }
 
 module.exports = { evaluateTraining, trainingEvaluationInput, sizeCandidates,

@@ -6,16 +6,30 @@ const path = require('node:path');
 const { chromium, _electron } = require('playwright');
 
 (async () => {
-  const report = { mode: process.argv.includes('--electron') ? 'Windows Electron packaged executable' : 'Windows Edge headless, real HTTP', checks: [], errors: [] };
+  const report = { at: new Date().toISOString(), evidence: 'LOCAL_EXECUTED', version: require('../package.json').version,
+    mode: process.argv.includes('--electron') ? 'Windows Electron packaged executable' : 'Windows Edge headless, real HTTP', checks: [], errors: [], status: 'RUNNING' };
   const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'theibs-keyboard-test-'));
+  const output = path.resolve(process.argv.find(arg => arg.startsWith('--out='))?.slice(6) || path.resolve(__dirname, '../../validacao'));
+  fs.mkdirSync(output, { recursive: true });
   process.env.THEIBS_DATA_PATH = path.join(temp, 'events.jsonl');
   process.env.THEIBS_WORKSPACE_PATH = path.join(temp, 'workspace.json');
+  process.env.THEIBS_LLM_CONFIG_PATH = path.join(temp, 'llm.json');
+  process.env.THEIBS_LLM_PROVIDER = 'none';
   let server, browser, electron, page;
   const check = async (name, run) => { await run(); report.checks.push(name); console.log('PASS', name); };
   const state = () => page.evaluate(() => theibsCardKeyboard.state.snapshot());
   const reset = async () => {
     await page.evaluate(() => theibsCardKeyboard.reset());
     await page.locator('[data-slot="0"]').click();
+  };
+  const variant = async count => {
+    await page.locator('#open-settings').click();
+    await page.locator('#variant-select').selectOption(String(count));
+    await page.locator('#settings-dialog [data-close-dialog]').click();
+  };
+  const openDeck = async () => {
+    await page.locator('#open-settings').click();
+    if (!await page.locator('#card-picker').evaluate(el => el.open)) await page.locator('#open-card-picker').click();
   };
   try {
     if (process.argv.includes('--electron')) {
@@ -30,7 +44,7 @@ const { chromium, _electron } = require('playwright');
       await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
       browser = await chromium.launch({ headless: true, channel: 'msedge' });
       page = await browser.newPage({ viewport: { width: 1440, height: 960 } });
-      await page.goto(`http://127.0.0.1:${server.address().port}`);
+      await page.goto(`http://127.0.0.1:${server.address().port}/app`);
     }
     page.setDefaultTimeout(10000);
     page.on('pageerror', error => report.errors.push(error.message));
@@ -60,14 +74,16 @@ const { chromium, _electron } = require('playwright');
     await check('text fields and selects remain protected', async () => {
       const before = await state();
       await page.locator('#open-settings').click();
+      await page.evaluate(()=>{document.getElementById('opponent-input-panel').open=true;});
       await page.locator('#opponentHand').fill('de tc 10o dp ae');
-      await page.locator('#settings-dialog [data-close-dialog]').click();
       await page.locator('#variant-select').focus(); await page.keyboard.type('de');
+      assert.equal(await page.evaluate(() => document.activeElement.id), 'variant-select', await page.locator('#variant-select').evaluate(el => JSON.stringify({html:el.outerHTML,visible:!!el.getClientRects().length,dialog:el.closest('dialog')?.open,style:getComputedStyle(el).display})));
       assert.deepEqual(await state(), before);
+      await page.locator('#settings-dialog [data-close-dialog]').click();
     });
     await check('all 52 physical rank/suit combinations in PLO4, PLO5 and PLO6', async () => {
       for (const count of [4, 5, 6]) {
-        await reset(); await page.locator('#variant-select').selectOption(String(count));
+        await reset(); await variant(count);
         for (const suit of 'ECOP') for (const rank of 'AKQJT98765432') {
           await reset(); await page.keyboard.type(rank.toLowerCase() + suit.toLowerCase());
           assert.equal((await state()).slots[0], rank + suit);
@@ -75,7 +91,7 @@ const { chromium, _electron } = require('playwright');
       }
     });
     await check('fast mixed entry, numeric 10 and D/T do not drop cards', async () => {
-      await reset(); await page.locator('#variant-select').selectOption('5');
+      await reset(); await variant(5);
       await page.locator('[data-slot="0"]').click();
       await page.keyboard.type('deTc10odpAE2e3c4o5p6e');
       assert.deepEqual((await state()).slots, ['TE','TC','TO','TP','AE','2E','3C','4O','5P','6E']);
@@ -83,7 +99,7 @@ const { chromium, _electron } = require('playwright');
     await check('duplicate aliases are rejected, then a valid rank recovers', async () => {
       await reset(); await page.keyboard.type('de10e');
       assert.equal((await state()).slots.filter(Boolean).length, 1);
-      assert.match(await page.locator('#keyboard-status').innerText(), /já está/);
+      assert.match(await page.locator('#keyboard-status').innerText(), /already used/);
       await page.keyboard.type('kc'); assert.equal((await state()).slots[1], 'KC');
     });
     await check('Backspace, Ctrl+Z, Delete, arrows and street shortcuts', async () => {
@@ -98,11 +114,53 @@ const { chromium, _electron } = require('playwright');
       }
     });
     await check('mouse entry and physical keys share the same next slot', async () => {
-      await reset(); await page.locator('[data-card="AE"]').click(); await page.keyboard.type('dc');
+      await reset();
+      await openDeck();
+      await page.locator('[data-card="AE"]').click();
+      await page.locator('#settings-dialog [data-close-dialog]').click();
+      await page.locator('[data-slot="1"]').click(); await page.keyboard.type('dc');
       assert.deepEqual((await state()).slots.slice(0, 2), ['AE', 'TC']);
     });
+    await check('rank-only entry retains slots and deck buttons; completed cards retain button focus', async () => {
+      await reset();
+      await page.evaluate(() => {
+        window.keyboardNodeRefs = { slot: document.querySelector('[data-slot="0"]'),
+          next: document.querySelector('[data-slot="1"]'), deck: [...document.querySelectorAll('[data-card]')] };
+      });
+      await page.keyboard.type('a');
+      assert.equal(await page.evaluate(() => keyboardNodeRefs.slot === document.querySelector('[data-slot="0"]')), true);
+      await page.keyboard.type('e');
+      assert.equal(await page.evaluate(() => keyboardNodeRefs.slot === document.querySelector('[data-slot="0"]') &&
+        keyboardNodeRefs.next === document.activeElement && keyboardNodeRefs.deck.every(node => node === document.querySelector(`[data-card="${node.dataset.card}"]`))), true);
+      assert.match(await page.locator('[data-slot="0"]').getAttribute('aria-label'), /A of Spades/);
+      assert.equal(await page.locator('[data-slot="1"]').getAttribute('aria-pressed'), 'true');
+    });
+    await check('composing and repeated key events never assign cards', async () => {
+      await reset();
+      await page.evaluate(() => {
+        for (const key of ['a', 'e']) document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, isComposing: true }));
+        for (const key of ['a', 'e']) document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, repeat: true }));
+      });
+      assert.equal((await state()).slots.filter(Boolean).length, 0);
+      await page.keyboard.type('ae');
+      assert.equal((await state()).slots[0], 'AE');
+    });
+    await check('variant changes and undo preserve the board and update slot labels', async () => {
+      await reset(); await variant(5); await page.locator('[data-slot="0"]').click();
+      await page.keyboard.type('aekcqojpte2e3c4o');
+      await variant(6);
+      assert.deepEqual((await state()).slots.slice(6, 9), ['2E', '3C', '4O']);
+      assert.match(await page.locator('[data-slot="6"]').getAttribute('aria-label'), /Community card 1: 2 of Spades/);
+      await variant(4);
+      assert.deepEqual((await state()).slots.slice(4, 7), ['2E', '3C', '4O']);
+      await page.locator('[data-slot="0"]').click(); await page.keyboard.press('Control+z');
+      assert.equal((await state()).count, 6);
+      assert.equal(await page.locator('#hero-slots [data-slot]').count(), 6);
+      assert.deepEqual((await state()).slots.slice(6, 9), ['2E', '3C', '4O']);
+      await reset(); await variant(5);
+    });
     await check('paste and manual text accept D, T and 10; duplicate paste is atomic', async () => {
-      await reset(); await page.locator('#open-entry').click();
+      await reset(); await openDeck(); await page.locator('#open-entry').click();
       await page.locator('#paste-cards').fill('de tc 10o dp ae'); await page.locator('#paste-apply').click();
       assert.deepEqual((await state()).slots.slice(0,5), ['TE','TC','TO','TP','AE']);
       const before = await state();
@@ -115,7 +173,7 @@ const { chromium, _electron } = require('playwright');
     await check('real engine receives canonical tens and Portuguese suit conversion', async () => {
       await page.locator('#board').fill('2e 3c 4o 5p 6e');
       await page.locator('#entry-dialog [data-close-dialog]').click();
-      await page.locator('#open-settings').click();
+      await page.evaluate(()=>{document.getElementById('opponent-input-panel').open=true;});
       await page.locator('#opponentHand').fill('7e 8c 9o jp qe');
       await page.locator('#players').fill('2');
       await page.locator('#settings-dialog [data-close-dialog]').click();
@@ -129,7 +187,7 @@ const { chromium, _electron } = require('playwright');
     await check('help and other views do not receive card shortcuts', async () => {
       const before = await state();
       await page.keyboard.press('F1'); await page.keyboard.type('de'); assert.deepEqual(await state(), before);
-      assert.match(await page.locator('#help-dialog').innerText(), /D, T e 10/);
+      assert.match(await page.locator('#help-dialog').innerText(), /D, T and 10/);
       await page.locator('#close-help').click();
       await page.locator('[data-view="train"]').click(); await page.keyboard.type('de'); assert.deepEqual(await state(), before);
       await page.locator('[data-view="analyze"]').click();
@@ -140,18 +198,19 @@ const { chromium, _electron } = require('playwright');
       assert.deepEqual(await state(), before);
     });
     await check('no JavaScript errors', () => assert.deepEqual(report.errors, []));
-    await page.screenshot({ path: path.resolve(__dirname, '../../validacao/teclado-' + (electron ? 'electron' : 'edge') + '.png'), fullPage: true });
+    await page.screenshot({ path: path.join(output, 'teclado-' + (electron ? 'electron' : 'edge') + '.png'), fullPage: true });
     await page.evaluate(() => theibsApp.flushSave());
+    report.status = 'PASS';
   } catch (error) {
-    report.failure = error.stack; throw error;
+    if (page) await page.screenshot({ path: path.join(output, 'keyboard-failure.png'), fullPage: true }).catch(() => {});
+    report.status = 'FAIL'; report.failure = error.stack; throw error;
   } finally {
-    fs.mkdirSync(path.resolve(__dirname, '../../validacao'), { recursive: true });
-    fs.writeFileSync(path.resolve(__dirname, '../../validacao/teclado-' + (electron ? 'electron' : 'edge') + '.json'), JSON.stringify(report, null, 2));
+    fs.writeFileSync(path.join(output, 'teclado-' + (electron ? 'electron' : 'edge') + '.json'), JSON.stringify(report, null, 2));
     if (browser) await browser.close();
     if (electron) {
       try { await electron.evaluate(({ app }) => app.exit(0)); } catch {}
       await electron.close();
     }
-    if (server) await new Promise(resolve => server.close(resolve));
+    if (server) { await require('../src/analysis-worker').close(); await new Promise(resolve => server.close(resolve)); }
   }
 })().catch(error => { console.error(error); process.exitCode = 1; });

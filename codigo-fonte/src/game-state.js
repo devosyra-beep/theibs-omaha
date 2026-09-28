@@ -52,14 +52,14 @@ function normalizeStreet(value, boardLength, warnings, errors) {
   return street;
 }
 
-function normalizeActions(value, amountToCall, errors) {
+function normalizeActions(value, amountToCall, errors, heroContribution = 0) {
   if (value === undefined || value === null) return null;
   if (!Array.isArray(value)) {
     errors.push('availableActions deve ser uma lista.');
     return null;
   }
   const actions = [...new Set(value.map((action) => String(action).trim().toUpperCase()))];
-  const allowed = amountToCall > 0 ? ACTIONS_FACING_BET : ACTIONS_WITHOUT_BET;
+  const allowed = amountToCall > 0 ? ACTIONS_FACING_BET : Number(heroContribution) > 0 ? new Set(['CHECK','RAISE']) : ACTIONS_WITHOUT_BET;
   const invalid = actions.filter((action) => !allowed.has(action));
   if (invalid.length > 0) errors.push(`Ações incompatíveis com o estado: ${invalid.join(', ')}.`);
   return actions;
@@ -121,7 +121,7 @@ function normalizeGameState(input = {}) {
   if (effectiveStack === null) warnings.push('Stack efetivo não informado; ações e SPR podem ficar indisponíveis.');
 
   const street = normalizeStreet(input.street, board.length, warnings, errors);
-  const availableActions = normalizeActions(input.availableActions, amountToCall || 0, errors);
+  const availableActions = normalizeActions(input.availableActions, amountToCall || 0, errors, input.heroContribution);
   const actionHistory = normalizeHistory(input.actionHistory, errors);
   const previousAction = input.previousAction === undefined ? null : input.previousAction;
   if (previousAction !== null && typeof previousAction !== 'object') {

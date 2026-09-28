@@ -76,7 +76,7 @@ test('analyze and doubt derive observed facts and withhold unknown responses ins
   assert.equal(headsUp.observedState.pot, 3);
 });
 
-test('out-of-turn, all-in, side-pot and big-blind free-raise states cannot bypass analysis guard', async () => {
+test('out-of-turn and all-in guards remain while the BB option requires explicit raise assumptions', async () => {
   let record = multiway.start(config).multiway;
   record = multiway.step(record, act(2, 'CALL')).multiway;
   const outside = await post('/api/analyze', { ...simple, multiway: record });
@@ -85,8 +85,11 @@ test('out-of-turn, all-in, side-pot and big-blind free-raise states cannot bypas
   const bb = multiway.start({ ...config, heroPosition: 'BB' }).multiway;
   const bbOption = [act(2, 'CALL'), act(0, 'CALL')].reduce((r, event) => multiway.step(r, event).multiway, bb);
   const free = await post('/api/analyze', { ...simple, multiway: bbOption });
-  assert.equal(free.status, 'NO_DECISION');
-  assert.ok(free.reasonCodes.includes('FREE_RAISE_OPTION_UNSUPPORTED'));
+  assert.equal(free.status, 'OK');
+  assert.deepEqual(free.legalActions, ['CHECK', 'RAISE']);
+  assert.equal(free.ev.actions.RAISE.status, 'NOT_MODELED');
+  assert.equal(free.recommendation.action, null);
+  assert.equal(free.recommendation.status, 'UNAVAILABLE');
   const short = multiway.start({ ...config, stacks: [100, 100, 2] }).multiway;
   const callAllIn = await post('/api/analyze', { ...simple, multiway: short });
   assert.equal(callAllIn.status, 'NO_DECISION');

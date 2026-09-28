@@ -1,0 +1,1268 @@
+{
+  "schemaVersion": 1,
+  "evidenceOrigin": "SIMULATION",
+  "execution": "LOCAL_EXECUTED",
+  "status": "EXPLORATORY_INCONCLUSIVE",
+  "protocolId": "ANALYZE_HOLDOUT_2026-09-27T06-07-17.228Z",
+  "protocolHash": "5a8ecc3f2c51013e5afdb3acaa383b3340b790dd85949f1e072a370285b4bc42",
+  "createdAt": "2026-09-27T06:22:44.645Z",
+  "baselineVersion": "0.13.0",
+  "candidateVersion": "0.14.0",
+  "referenceCapitalBB": 1000,
+  "funding": "UNLIMITED_TOPUP_RESET_EACH_HAND",
+  "settings": {
+    "samples": 500,
+    "samplingMode": "FIXED",
+    "productPreset": "FAST_500",
+    "study": true,
+    "callProbability": 0.5,
+    "sizeFraction": 0.5,
+    "practicalEquivalenceBB": 0.1,
+    "deadlineMs": 3000,
+    "fallback": "CHECK_FOLD"
+  },
+  "uncertainty": {
+    "familyAlpha": 0.05,
+    "meanFamilySize": 12,
+    "positiveProbabilityFamilySize": 8,
+    "meanIntervals": "simultaneously adjusted within economic mean family",
+    "probabilityIntervals": "separate descriptive probability family, not an additional profitability gate"
+  },
+  "scenarios": [
+    {
+      "id": "CALL_STATION_ZERO",
+      "label": "PLO5 HU 50 BB · CALL_STATION · custo zero",
+      "variant": "PLO5",
+      "seats": 2,
+      "depthBB": 50,
+      "opponentFamily": "CALL_STATION",
+      "cost": {
+        "type": "ZERO_CONTROL"
+      },
+      "nBlocks": 20,
+      "handsPerBlock": 100,
+      "nHands": 2000,
+      "policies": [
+        {
+          "id": "baseline",
+          "version": "0.13.0",
+          "meanBB100": 48,
+          "meanCI": {
+            "lower": -274.85443574219175,
+            "upper": 370.8544357421917,
+            "level": 0.9958333333333333,
+            "method": "SEAT_STRATIFIED_FIXED_N_EMPIRICAL_BERNSTEIN",
+            "support": [
+              -5000,
+              5000
+            ]
+          },
+          "deltaBB100": null,
+          "deltaCI": null,
+          "referenceCapitalPercent": 4.8,
+          "referenceCapitalPercentCI": {
+            "lower": -27.485443574219175,
+            "upper": 37.08544357421917,
+            "level": 0.9958333333333333,
+            "method": "SEAT_STRATIFIED_FIXED_N_EMPIRICAL_BERNSTEIN",
+            "support": [
+              -5000,
+              5000
+            ]
+          },
+          "pPositive": 0.6,
+          "pPositiveCI": {
+            "lower": 0.284078391959098,
+            "upper": 0.8644660843822047,
+            "level": 0.99375,
+            "method": "CLOPPER_PEARSON_TWO_SIDED",
+            "n": 20
+          },
+          "pZero": 0.05,
+          "pNegative": 0.35,
+          "probabilityMonteCarloSE": 0.10954451150103323,
+          "probabilityMonteCarloSEMethod": "PLUGIN_BINOMIAL_DESCRIPTIVE; UNAVAILABLE_AT_BOUNDARY; USE_EXACT_CI_FOR_UNCERTAINTY",
+          "quantiles100": {
+            "p05": -100,
+            "p50": 60,
+            "p95": 194.00000000000003,
+            "kind": "DESCRIPTIVE_NOT_CONFIDENCE_OR_PREDICTION_INTERVAL"
+          },
+          "predictive100": {
+            "lower": -176,
+            "upper": 232,
+            "coverage": 0.9047619047619048,
+            "requestedCoverage": 0.9,
+            "method": "EXCHANGEABLE_ORDER_STATISTICS",
+            "status": "FINITE_SAMPLE_MARGINAL"
+          },
+          "coverage": {
+            "decisions": 8000,
+            "supported": 7000,
+            "abstentions": 1000,
+            "errors": 0,
+            "timeouts": 0,
+            "reasonCounts": {
+              "UNAVAILABLE_MODEL": 1000
+            },
+            "byStreetPosition": {
+              "PREFLOP:BTN": {
+                "decisions": 1000,
+                "supported": 1000,
+                "abstentions": 0
+              },
+              "FLOP:BTN": {
+                "decisions": 1000,
+                "supported": 1000,
+                "abstentions": 0
+              },
+              "TURN:BTN": {
+                "decisions": 1000,
+                "supported": 1000,
+                "abstentions": 0
+              },
+              "RIVER:BTN": {
+                "decisions": 1000,
+                "supported": 1000,
+                "abstentions": 0
+              },
+              "PREFLOP:BB": {
+                "decisions": 1000,
+                "supported": 0,
+                "abstentions": 1000
+              },
+              "FLOP:BB": {
+                "decisions": 1000,
+                "supported": 1000,
+                "abstentions": 0
+              },
+              "TURN:BB": {
+                "decisions": 1000,
+                "supported": 1000,
+                "abstentions": 0
+              },
+              "RIVER:BB": {
+                "decisions": 1000,
+                "supported": 1000,
+                "abstentions": 0
+              }
+            },
+            "observedSamples": [
+              500
+            ]
+          },
+          "maxDrawdownBB": 224,
+          "totalRakeChips": 0,
+          "fundingLedger": {
+            "externalTopupChips": 22640,
+            "externalWithdrawalChips": 24560,
+            "initialStackChips": 100,
+            "interpretation": "External withdrawals minus topups equals net profit; deposits are not profit. No finite bankroll stopping."
+          },
+          "powerPlan": {
+            "source": "INDEPENDENT_PILOT",
+            "absolute": {
+              "method": "NORMAL_APPROXIMATION_PLANNING_ONLY",
+              "sdBB100": 124.60812041544239,
+              "alpha": 0.0020833333333333333,
+              "power": 0.8,
+              "nullBB100": 0,
+              "alternativeBB100": 3,
+              "requiredIndependentBlocks": 23707,
+              "requiredHands": 2370700,
+              "limitation": "Pilot variance is uncertain; this is not achieved power or a stopping rule. Confirm with a new fixed protocol and calibration."
+            },
+            "relative": null,
+            "availableIndependentBlocks": 20
+          },
+          "claim": "INCONCLUSIVE"
+        },
+        {
+          "id": "candidate",
+          "version": "0.14.0",
+          "meanBB100": 63.2,
+          "meanCI": {
+            "lower": -308.43357246091426,
+            "upper": 434.8335724609143,
+            "level": 0.9958333333333333,
+            "method": "SEAT_STRATIFIED_FIXED_N_EMPIRICAL_BERNSTEIN",
+            "support": [
+              -5000,
+              5000
+            ]
+          },
+          "deltaBB100": 15.2,
+          "deltaCI": {
+            "lower": -386.7360486650208,
+            "upper": 417.1360486650208,
+            "level": 0.9958333333333333,
+            "method": "SEAT_STRATIFIED_FIXED_N_EMPIRICAL_BERNSTEIN",
+            "support": [
+              -10000,
+              10000
+            ]
+          },
+          "referenceCapitalPercent": 6.32,
+          "referenceCapitalPercentCI": {
+            "lower": -30.84335724609143,
+            "upper": 43.48335724609143,
+            "level": 0.9958333333333333,
+            "method": "SEAT_STRATIFIED_FIXED_N_EMPIRICAL_BERNSTEIN",
+            "support": [
+              -5000,
+              5000
+            ]
+          },
+          "pPositive": 0.65,
+          "pPositiveCI": {
+            "lower": 0.3275165810379742,
+            "upper": 0.8951960435367441,
+            "level": 0.99375,
+            "method": "CLOPPER_PEARSON_TWO_SIDED",
+            "n": 20
+          },
+          "pZero": 0.05,
+          "pNegative": 0.3,
+          "probabilityMonteCarloSE": 0.1066536450385077,
+          "probabilityMonteCarloSEMethod": "PLUGIN_BINOMIAL_DESCRIPTIVE; UNAVAILABLE_AT_BOUNDARY; USE_EXACT_CI_FOR_UNCERTAINTY",
+          "quantiles100": {
+            "p05": -105.6,
+            "p50": 72,
+            "p95": 256.8,
+            "kind": "DESCRIPTIVE_NOT_CONFIDENCE_OR_PREDICTION_INTERVAL"
+          },
+          "predictive100": {
+            "lower": -288,
+            "upper": 272,
+            "coverage": 0.9047619047619048,
+            "requestedCoverage": 0.9,
+            "method": "EXCHANGEABLE_ORDER_STATISTICS",
+            "status": "FINITE_SAMPLE_MARGINAL"
+          },
+          "coverage": {
+            "decisions": 8000,
+            "supported": 8000,
+            "abstentions": 0,
+            "errors": 0,
+            "timeouts": 0,
+            "reasonCounts": {},
+            "byStreetPosition": {
+              "PREFLOP:BTN": {
+                "decisions": 1000,
+                "supported": 1000,
+                "abstentions": 0
+              },
+              "FLOP:BTN": {
+                "decisions": 1000,
+                "supported": 1000,
+                "abstentions": 0
+              },
+              "TURN:BTN": {
+                "decisions": 1000,
+                "supported": 1000,
+                "abstentions": 0
+              },
+              "RIVER:BTN": {
+                "decisions": 1000,
+                "supported": 1000,
+                "abstentions": 0
+              },
+              "PREFLOP:BB": {
+                "decisions": 1000,
+                "supported": 1000,
+                "abstentions": 0
+              },
+              "FLOP:BB": {
+                "decisions": 1000,
+                "supported": 1000,
+                "abstentions": 0
+              },
+              "TURN:BB": {
+                "decisions": 1000,
+                "supported": 1000,
+                "abstentions": 0
+              },
+              "RIVER:BB": {
+                "decisions": 1000,
+                "supported": 1000,
+                "abstentions": 0
+              }
+            },
+            "observedSamples": [
+              500
+            ]
+          },
+          "maxDrawdownBB": 336,
+          "totalRakeChips": 0,
+          "fundingLedger": {
+            "externalTopupChips": 30208,
+            "externalWithdrawalChips": 32736,
+            "initialStackChips": 100,
+            "interpretation": "External withdrawals minus topups equals net profit; deposits are not profit. No finite bankroll stopping."
+          },
+          "powerPlan": {
+            "source": "INDEPENDENT_PILOT",
+            "absolute": {
+              "method": "NORMAL_APPROXIMATION_PLANNING_ONLY",
+              "sdBB100": 156.70067658059529,
+              "alpha": 0.0020833333333333333,
+              "power": 0.8,
+              "nullBB100": 0,
+              "alternativeBB100": 3,
+              "requiredIndependentBlocks": 37491,
+              "requiredHands": 3749100,
+              "limitation": "Pilot variance is uncertain; this is not achieved power or a stopping rule. Confirm with a new fixed protocol and calibration."
+            },
+            "relative": {
+              "method": "NORMAL_APPROXIMATION_PLANNING_ONLY",
+              "sdBB100": 54.85714285714285,
+              "alpha": 0.0020833333333333333,
+              "power": 0.8,
+              "nullBB100": 1,
+              "alternativeBB100": 3,
+              "requiredIndependentBlocks": 10338,
+              "requiredHands": 1033800,
+              "limitation": "Pilot variance is uncertain; this is not achieved power or a stopping rule. Confirm with a new fixed protocol and calibration."
+            },
+            "availableIndependentBlocks": 20
+          },
+          "claim": "INCONCLUSIVE"
+        }
+      ]
+    },
+    {
+      "id": "CALL_STATION_RAKE",
+      "label": "PLO5 HU 50 BB · CALL_STATION · rake sintético 5% cap 1 BB",
+      "variant": "PLO5",
+      "seats": 2,
+      "depthBB": 50,
+      "opponentFamily": "CALL_STATION",
+      "cost": {
+        "type": "PERCENT_CAPPED",
+        "rate": 0.05,
+        "cap": 2,
+        "noFlopNoDrop": true,
+        "rounding": "FLOOR_CENT",
+        "source": "SYNTHETIC_STUDY",
+        "version": "1"
+      },
+      "nBlocks": 20,
+      "handsPerBlock": 100,
+      "nHands": 2000,
+      "policies": [
+        {
+          "id": "baseline",
+          "version": "0.13.0",
+          "meanBB100": -67.91499999999935,
+          "meanCI": {
+            "lower": -385.227098468462,
+            "upper": 249.3970984684617,
+            "level": 0.9958333333333333,
+            "method": "SEAT_STRATIFIED_FIXED_N_EMPIRICAL_BERNSTEIN",
+            "support": [
+              -5000,
+              5000
+            ]
+          },
+          "deltaBB100": null,
+          "deltaCI": null,
+          "referenceCapitalPercent": -6.791499999999935,
+          "referenceCapitalPercentCI": {
+            "lower": -38.5227098468462,
+            "upper": 24.93970984684617,
+            "level": 0.9958333333333333,
+            "method": "SEAT_STRATIFIED_FIXED_N_EMPIRICAL_BERNSTEIN",
+            "support": [
+              -5000,
+              5000
+            ]
+          },
+          "pPositive": 0.35,
+          "pPositiveCI": {
+            "lower": 0.10480395646325594,
+            "upper": 0.6724834189620258,
+            "level": 0.99375,
+            "method": "CLOPPER_PEARSON_TWO_SIDED",
+            "n": 20
+          },
+          "pZero": 0,
+          "pNegative": 0.65,
+          "probabilityMonteCarloSE": 0.1066536450385077,
+          "probabilityMonteCarloSEMethod": "PLUGIN_BINOMIAL_DESCRIPTIVE; UNAVAILABLE_AT_BOUNDARY; USE_EXACT_CI_FOR_UNCERTAINTY",
+          "quantiles100": {
+            "p05": -232.99500000000026,
+            "p50": -53.049999999999976,
+            "p95": 56.17000000000003,
+            "kind": "DESCRIPTIVE_NOT_CONFIDENCE_OR_PREDICTION_INTERVAL"
+          },
+          "predictive100": {
+            "lower": -253.80000000000007,
+            "upper": 78.40000000000005,
+            "coverage": 0.9047619047619048,
+            "requestedCoverage": 0.9,
+            "method": "EXCHANGEABLE_ORDER_STATISTICS",
+            "status": "FINITE_SAMPLE_MARGINAL"
+          },
+          "coverage": {
+            "decisions": 8000,
+            "supported": 7000,
+            "abstentions": 1000,
+            "errors": 0,
+            "timeouts": 0,
+            "reasonCounts": {
+              "UNAVAILABLE_MODEL": 1000
+            },
+            "byStreetPosition": {
+              "PREFLOP:BTN": {
+                "decisions": 1000,
+                "supported": 1000,
+                "abstentions": 0
+              },
+              "FLOP:BTN": {
+                "decisions": 1000,
+                "supported": 1000,
+                "abstentions": 0
+              },
+              "TURN:BTN": {
+                "decisions": 1000,
+                "supported": 1000,
+                "abstentions": 0
+              },
+              "RIVER:BTN": {
+                "decisions": 1000,
+                "supported": 1000,
+                "abstentions": 0
+              },
+              "PREFLOP:BB": {
+                "decisions": 1000,
+                "supported": 0,
+                "abstentions": 1000
+              },
+              "FLOP:BB": {
+                "decisions": 1000,
+                "supported": 1000,
+                "abstentions": 0
+              },
+              "TURN:BB": {
+                "decisions": 1000,
+                "supported": 1000,
+                "abstentions": 0
+              },
+              "RIVER:BB": {
+                "decisions": 1000,
+                "supported": 1000,
+                "abstentions": 0
+              }
+            },
+            "observedSamples": [
+              500
+            ]
+          },
+          "maxDrawdownBB": 295.4,
+          "totalRakeChips": 3599.9999999999395,
+          "fundingLedger": {
+            "externalTopupChips": 24065.79999999999,
+            "externalWithdrawalChips": 21349.20000000007,
+            "initialStackChips": 100,
+            "interpretation": "External withdrawals minus topups equals net profit; deposits are not profit. No finite bankroll stopping."
+          },
+          "powerPlan": {
+            "source": "INDEPENDENT_PILOT",
+            "absolute": {
+              "method": "NORMAL_APPROXIMATION_PLANNING_ONLY",
+              "sdBB100": 122.33490666099803,
+              "alpha": 0.0020833333333333333,
+              "power": 0.8,
+              "nullBB100": 0,
+              "alternativeBB100": 3,
+              "requiredIndependentBlocks": 22850,
+              "requiredHands": 2285000,
+              "limitation": "Pilot variance is uncertain; this is not achieved power or a stopping rule. Confirm with a new fixed protocol and calibration."
+            },
+            "relative": null,
+            "availableIndependentBlocks": 20
+          },
+          "claim": "INCONCLUSIVE"
+        },
+        {
+          "id": "candidate",
+          "version": "0.14.0",
+          "meanBB100": -70.15,
+          "meanCI": {
+            "lower": -435.5430479650231,
+            "upper": 295.24304796502304,
+            "level": 0.9958333333333333,
+            "method": "SEAT_STRATIFIED_FIXED_N_EMPIRICAL_BERNSTEIN",
+            "support": [
+              -5000,
+              5000
+            ]
+          },
+          "deltaBB100": -2.2350000000000327,
+          "deltaCI": {
+            "lower": -403.47286144285937,
+            "upper": 399.0028614428593,
+            "level": 0.9958333333333333,
+            "method": "SEAT_STRATIFIED_FIXED_N_EMPIRICAL_BERNSTEIN",
+            "support": [
+              -10000,
+              10000
+            ]
+          },
+          "referenceCapitalPercent": -7.015000000000001,
+          "referenceCapitalPercentCI": {
+            "lower": -43.554304796502315,
+            "upper": 29.524304796502307,
+            "level": 0.9958333333333333,
+            "method": "SEAT_STRATIFIED_FIXED_N_EMPIRICAL_BERNSTEIN",
+            "support": [
+              -5000,
+              5000
+            ]
+          },
+          "pPositive": 0.25,
+          "pPositiveCI": {
+            "lower": 0.05228271511176638,
+            "upper": 0.5771396410540279,
+            "level": 0.99375,
+            "method": "CLOPPER_PEARSON_TWO_SIDED",
+            "n": 20
+          },
+          "pZero": 0,
+          "pNegative": 0.75,
+          "probabilityMonteCarloSE": 0.09682458365518543,
+          "probabilityMonteCarloSEMethod": "PLUGIN_BINOMIAL_DESCRIPTIVE; UNAVAILABLE_AT_BOUNDARY; USE_EXACT_CI_FOR_UNCERTAINTY",
+          "quantiles100": {
+            "p05": -282.5,
+            "p50": -50,
+            "p95": 90.275,
+            "kind": "DESCRIPTIVE_NOT_CONFIDENCE_OR_PREDICTION_INTERVAL"
+          },
+          "predictive100": {
+            "lower": -282.5,
+            "upper": 105,
+            "coverage": 0.9047619047619048,
+            "requestedCoverage": 0.9,
+            "method": "EXCHANGEABLE_ORDER_STATISTICS",
+            "status": "FINITE_SAMPLE_MARGINAL"
+          },
+          "coverage": {
+            "decisions": 8000,
+            "supported": 8000,
+            "abstentions": 0,
+            "errors": 0,
+            "timeouts": 0,
+            "reasonCounts": {},
+            "byStreetPosition": {
+              "PREFLOP:BTN": {
+                "decisions": 1000,
+                "supported": 1000,
+                "abstentions": 0
+              },
+              "FLOP:BTN": {
+                "decisions": 1000,
+                "supported": 1000,
+                "abstentions": 0
+              },
+              "TURN:BTN": {
+                "decisions": 1000,
+                "supported": 1000,
+                "abstentions": 0
+              },
+              "RIVER:BTN": {
+                "decisions": 1000,
+                "supported": 1000,
+                "abstentions": 0
+              },
+              "PREFLOP:BB": {
+                "decisions": 1000,
+                "supported": 1000,
+                "abstentions": 0
+              },
+              "FLOP:BB": {
+                "decisions": 1000,
+                "supported": 1000,
+                "abstentions": 0
+              },
+              "TURN:BB": {
+                "decisions": 1000,
+                "supported": 1000,
+                "abstentions": 0
+              },
+              "RIVER:BB": {
+                "decisions": 1000,
+                "supported": 1000,
+                "abstentions": 0
+              }
+            },
+            "observedSamples": [
+              500
+            ]
+          },
+          "maxDrawdownBB": 379,
+          "totalRakeChips": 4000,
+          "fundingLedger": {
+            "externalTopupChips": 31846,
+            "externalWithdrawalChips": 29040,
+            "initialStackChips": 100,
+            "interpretation": "External withdrawals minus topups equals net profit; deposits are not profit. No finite bankroll stopping."
+          },
+          "powerPlan": {
+            "source": "INDEPENDENT_PILOT",
+            "absolute": {
+              "method": "NORMAL_APPROXIMATION_PLANNING_ONLY",
+              "sdBB100": 154.17535735754444,
+              "alpha": 0.0020833333333333333,
+              "power": 0.8,
+              "nullBB100": 0,
+              "alternativeBB100": 3,
+              "requiredIndependentBlocks": 36292,
+              "requiredHands": 3629200,
+              "limitation": "Pilot variance is uncertain; this is not achieved power or a stopping rule. Confirm with a new fixed protocol and calibration."
+            },
+            "relative": {
+              "method": "NORMAL_APPROXIMATION_PLANNING_ONLY",
+              "sdBB100": 54.872252383446536,
+              "alpha": 0.0020833333333333333,
+              "power": 0.8,
+              "nullBB100": 1,
+              "alternativeBB100": 3,
+              "requiredIndependentBlocks": 10344,
+              "requiredHands": 1034400,
+              "limitation": "Pilot variance is uncertain; this is not achieved power or a stopping rule. Confirm with a new fixed protocol and calibration."
+            },
+            "availableIndependentBlocks": 20
+          },
+          "claim": "INCONCLUSIVE"
+        }
+      ]
+    },
+    {
+      "id": "PRESSURE_ZERO",
+      "label": "PLO5 HU 50 BB · PRESSURE · custo zero",
+      "variant": "PLO5",
+      "seats": 2,
+      "depthBB": 50,
+      "opponentFamily": "PRESSURE",
+      "cost": {
+        "type": "ZERO_CONTROL"
+      },
+      "nBlocks": 20,
+      "handsPerBlock": 100,
+      "nHands": 2000,
+      "policies": [
+        {
+          "id": "baseline",
+          "version": "0.13.0",
+          "meanBB100": 23.00600000000009,
+          "meanCI": {
+            "lower": -488.3371426510076,
+            "upper": 534.3491426510074,
+            "level": 0.9958333333333333,
+            "method": "SEAT_STRATIFIED_FIXED_N_EMPIRICAL_BERNSTEIN",
+            "support": [
+              -5000,
+              5000
+            ]
+          },
+          "deltaBB100": null,
+          "deltaCI": null,
+          "referenceCapitalPercent": 2.300600000000009,
+          "referenceCapitalPercentCI": {
+            "lower": -48.83371426510076,
+            "upper": 53.43491426510074,
+            "level": 0.9958333333333333,
+            "method": "SEAT_STRATIFIED_FIXED_N_EMPIRICAL_BERNSTEIN",
+            "support": [
+              -5000,
+              5000
+            ]
+          },
+          "pPositive": 0.5,
+          "pPositiveCI": {
+            "lower": 0.2048257413052833,
+            "upper": 0.7951742586947167,
+            "level": 0.99375,
+            "method": "CLOPPER_PEARSON_TWO_SIDED",
+            "n": 20
+          },
+          "pZero": 0,
+          "pNegative": 0.5,
+          "probabilityMonteCarloSE": 0.11180339887498948,
+          "probabilityMonteCarloSEMethod": "PLUGIN_BINOMIAL_DESCRIPTIVE; UNAVAILABLE_AT_BOUNDARY; USE_EXACT_CI_FOR_UNCERTAINTY",
+          "quantiles100": {
+            "p05": -287.5505000000001,
+            "p50": 11.037500000000023,
+            "p95": 409.5895000000001,
+            "kind": "DESCRIPTIVE_NOT_CONFIDENCE_OR_PREDICTION_INTERVAL"
+          },
+          "predictive100": {
+            "lower": -469.2000000000001,
+            "upper": 644.2299999999999,
+            "coverage": 0.9047619047619048,
+            "requestedCoverage": 0.9,
+            "method": "EXCHANGEABLE_ORDER_STATISTICS",
+            "status": "FINITE_SAMPLE_MARGINAL"
+          },
+          "coverage": {
+            "decisions": 4058,
+            "supported": 3816,
+            "abstentions": 242,
+            "errors": 0,
+            "timeouts": 0,
+            "reasonCounts": {
+              "INCOMPLETE": 19,
+              "UNAVAILABLE_MODEL": 210,
+              "INCONCLUSIVE": 13
+            },
+            "byStreetPosition": {
+              "PREFLOP:BTN": {
+                "decisions": 1731,
+                "supported": 1731,
+                "abstentions": 0
+              },
+              "FLOP:BTN": {
+                "decisions": 517,
+                "supported": 502,
+                "abstentions": 15
+              },
+              "PREFLOP:BB": {
+                "decisions": 1010,
+                "supported": 800,
+                "abstentions": 210
+              },
+              "FLOP:BB": {
+                "decisions": 534,
+                "supported": 534,
+                "abstentions": 0
+              },
+              "TURN:BTN": {
+                "decisions": 108,
+                "supported": 104,
+                "abstentions": 4
+              },
+              "TURN:BB": {
+                "decisions": 106,
+                "supported": 98,
+                "abstentions": 8
+              },
+              "RIVER:BB": {
+                "decisions": 33,
+                "supported": 30,
+                "abstentions": 3
+              },
+              "RIVER:BTN": {
+                "decisions": 19,
+                "supported": 17,
+                "abstentions": 2
+              }
+            },
+            "observedSamples": [
+              500
+            ]
+          },
+          "maxDrawdownBB": 565.8900000000001,
+          "totalRakeChips": 0,
+          "fundingLedger": {
+            "externalTopupChips": 32901,
+            "externalWithdrawalChips": 33821.23999999995,
+            "initialStackChips": 100,
+            "interpretation": "External withdrawals minus topups equals net profit; deposits are not profit. No finite bankroll stopping."
+          },
+          "powerPlan": {
+            "source": "INDEPENDENT_PILOT",
+            "absolute": {
+              "method": "NORMAL_APPROXIMATION_PLANNING_ONLY",
+              "sdBB100": 209.93790168470176,
+              "alpha": 0.0020833333333333333,
+              "power": 0.8,
+              "nullBB100": 0,
+              "alternativeBB100": 3,
+              "requiredIndependentBlocks": 67291,
+              "requiredHands": 6729100,
+              "limitation": "Pilot variance is uncertain; this is not achieved power or a stopping rule. Confirm with a new fixed protocol and calibration."
+            },
+            "relative": null,
+            "availableIndependentBlocks": 20
+          },
+          "claim": "INCONCLUSIVE"
+        },
+        {
+          "id": "candidate",
+          "version": "0.14.0",
+          "meanBB100": 59.9005000000004,
+          "meanCI": {
+            "lower": -460.0241275886866,
+            "upper": 579.8251275886864,
+            "level": 0.9958333333333333,
+            "method": "SEAT_STRATIFIED_FIXED_N_EMPIRICAL_BERNSTEIN",
+            "support": [
+              -5000,
+              5000
+            ]
+          },
+          "deltaBB100": 36.8945,
+          "deltaCI": {
+            "lower": -423.5540120165793,
+            "upper": 497.3430120165792,
+            "level": 0.9958333333333333,
+            "method": "SEAT_STRATIFIED_FIXED_N_EMPIRICAL_BERNSTEIN",
+            "support": [
+              -10000,
+              10000
+            ]
+          },
+          "referenceCapitalPercent": 5.99005000000004,
+          "referenceCapitalPercentCI": {
+            "lower": -46.002412758868665,
+            "upper": 57.982512758868644,
+            "level": 0.9958333333333333,
+            "method": "SEAT_STRATIFIED_FIXED_N_EMPIRICAL_BERNSTEIN",
+            "support": [
+              -5000,
+              5000
+            ]
+          },
+          "pPositive": 0.6,
+          "pPositiveCI": {
+            "lower": 0.284078391959098,
+            "upper": 0.8644660843822047,
+            "level": 0.99375,
+            "method": "CLOPPER_PEARSON_TWO_SIDED",
+            "n": 20
+          },
+          "pZero": 0,
+          "pNegative": 0.4,
+          "probabilityMonteCarloSE": 0.10954451150103323,
+          "probabilityMonteCarloSEMethod": "PLUGIN_BINOMIAL_DESCRIPTIVE; UNAVAILABLE_AT_BOUNDARY; USE_EXACT_CI_FOR_UNCERTAINTY",
+          "quantiles100": {
+            "p05": -239.469,
+            "p50": 108.02750000000003,
+            "p95": 422.6277500000001,
+            "kind": "DESCRIPTIVE_NOT_CONFIDENCE_OR_PREDICTION_INTERVAL"
+          },
+          "predictive100": {
+            "lower": -380.05000000000007,
+            "upper": 720.0299999999999,
+            "coverage": 0.9047619047619048,
+            "requestedCoverage": 0.9,
+            "method": "EXCHANGEABLE_ORDER_STATISTICS",
+            "status": "FINITE_SAMPLE_MARGINAL"
+          },
+          "coverage": {
+            "decisions": 3952,
+            "supported": 3928,
+            "abstentions": 24,
+            "errors": 0,
+            "timeouts": 0,
+            "reasonCounts": {
+              "MISSING_ACTION_MODEL": 21,
+              "OVERLAPPING_INTERVALS": 3
+            },
+            "byStreetPosition": {
+              "PREFLOP:BTN": {
+                "decisions": 1731,
+                "supported": 1731,
+                "abstentions": 0
+              },
+              "FLOP:BTN": {
+                "decisions": 517,
+                "supported": 502,
+                "abstentions": 15
+              },
+              "PREFLOP:BB": {
+                "decisions": 1218,
+                "supported": 1218,
+                "abstentions": 0
+              },
+              "FLOP:BB": {
+                "decisions": 301,
+                "supported": 294,
+                "abstentions": 7
+              },
+              "TURN:BTN": {
+                "decisions": 108,
+                "supported": 107,
+                "abstentions": 1
+              },
+              "TURN:BB": {
+                "decisions": 47,
+                "supported": 47,
+                "abstentions": 0
+              },
+              "RIVER:BTN": {
+                "decisions": 18,
+                "supported": 17,
+                "abstentions": 1
+              },
+              "RIVER:BB": {
+                "decisions": 12,
+                "supported": 12,
+                "abstentions": 0
+              }
+            },
+            "observedSamples": [
+              500
+            ]
+          },
+          "maxDrawdownBB": 538.59,
+          "totalRakeChips": 0,
+          "fundingLedger": {
+            "externalTopupChips": 33622.99999999999,
+            "externalWithdrawalChips": 36019.01999999999,
+            "initialStackChips": 100,
+            "interpretation": "External withdrawals minus topups equals net profit; deposits are not profit. No finite bankroll stopping."
+          },
+          "powerPlan": {
+            "source": "INDEPENDENT_PILOT",
+            "absolute": {
+              "method": "NORMAL_APPROXIMATION_PLANNING_ONLY",
+              "sdBB100": 213.53660516981384,
+              "alpha": 0.0020833333333333333,
+              "power": 0.8,
+              "nullBB100": 0,
+              "alternativeBB100": 3,
+              "requiredIndependentBlocks": 69618,
+              "requiredHands": 6961800,
+              "limitation": "Pilot variance is uncertain; this is not achieved power or a stopping rule. Confirm with a new fixed protocol and calibration."
+            },
+            "relative": {
+              "method": "NORMAL_APPROXIMATION_PLANNING_ONLY",
+              "sdBB100": 111.44301737860916,
+              "alpha": 0.0020833333333333333,
+              "power": 0.8,
+              "nullBB100": 1,
+              "alternativeBB100": 3,
+              "requiredIndependentBlocks": 42665,
+              "requiredHands": 4266500,
+              "limitation": "Pilot variance is uncertain; this is not achieved power or a stopping rule. Confirm with a new fixed protocol and calibration."
+            },
+            "availableIndependentBlocks": 20
+          },
+          "claim": "INCONCLUSIVE"
+        }
+      ]
+    },
+    {
+      "id": "PRESSURE_RAKE",
+      "label": "PLO5 HU 50 BB · PRESSURE · rake sintético 5% cap 1 BB",
+      "variant": "PLO5",
+      "seats": 2,
+      "depthBB": 50,
+      "opponentFamily": "PRESSURE",
+      "cost": {
+        "type": "PERCENT_CAPPED",
+        "rate": 0.05,
+        "cap": 2,
+        "noFlopNoDrop": true,
+        "rounding": "FLOOR_CENT",
+        "source": "SYNTHETIC_STUDY",
+        "version": "1"
+      },
+      "nBlocks": 20,
+      "handsPerBlock": 100,
+      "nHands": 2000,
+      "policies": [
+        {
+          "id": "baseline",
+          "version": "0.13.0",
+          "meanBB100": -30.913499999999967,
+          "meanCI": {
+            "lower": -561.6881567125695,
+            "upper": 499.86115671256925,
+            "level": 0.9958333333333333,
+            "method": "SEAT_STRATIFIED_FIXED_N_EMPIRICAL_BERNSTEIN",
+            "support": [
+              -5000,
+              5000
+            ]
+          },
+          "deltaBB100": null,
+          "deltaCI": null,
+          "referenceCapitalPercent": -3.0913499999999967,
+          "referenceCapitalPercentCI": {
+            "lower": -56.16881567125695,
+            "upper": 49.986115671256925,
+            "level": 0.9958333333333333,
+            "method": "SEAT_STRATIFIED_FIXED_N_EMPIRICAL_BERNSTEIN",
+            "support": [
+              -5000,
+              5000
+            ]
+          },
+          "pPositive": 0.5,
+          "pPositiveCI": {
+            "lower": 0.2048257413052833,
+            "upper": 0.7951742586947167,
+            "level": 0.99375,
+            "method": "CLOPPER_PEARSON_TWO_SIDED",
+            "n": 20
+          },
+          "pZero": 0,
+          "pNegative": 0.5,
+          "probabilityMonteCarloSE": 0.11180339887498948,
+          "probabilityMonteCarloSEMethod": "PLUGIN_BINOMIAL_DESCRIPTIVE; UNAVAILABLE_AT_BOUNDARY; USE_EXACT_CI_FOR_UNCERTAINTY",
+          "quantiles100": {
+            "p05": -491.36474999999996,
+            "p50": -8.319999999999972,
+            "p95": 526.9939999999999,
+            "kind": "DESCRIPTIVE_NOT_CONFIDENCE_OR_PREDICTION_INTERVAL"
+          },
+          "predictive100": {
+            "lower": -555.6750000000002,
+            "upper": 579.89,
+            "coverage": 0.9047619047619048,
+            "requestedCoverage": 0.9,
+            "method": "EXCHANGEABLE_ORDER_STATISTICS",
+            "status": "FINITE_SAMPLE_MARGINAL"
+          },
+          "coverage": {
+            "decisions": 4260,
+            "supported": 4013,
+            "abstentions": 247,
+            "errors": 0,
+            "timeouts": 0,
+            "reasonCounts": {
+              "UNAVAILABLE_MODEL": 211,
+              "INCONCLUSIVE": 11,
+              "INCOMPLETE": 25
+            },
+            "byStreetPosition": {
+              "PREFLOP:BTN": {
+                "decisions": 1849,
+                "supported": 1849,
+                "abstentions": 0
+              },
+              "FLOP:BTN": {
+                "decisions": 524,
+                "supported": 509,
+                "abstentions": 15
+              },
+              "PREFLOP:BB": {
+                "decisions": 1074,
+                "supported": 863,
+                "abstentions": 211
+              },
+              "FLOP:BB": {
+                "decisions": 509,
+                "supported": 509,
+                "abstentions": 0
+              },
+              "TURN:BB": {
+                "decisions": 135,
+                "supported": 120,
+                "abstentions": 15
+              },
+              "RIVER:BB": {
+                "decisions": 44,
+                "supported": 43,
+                "abstentions": 1
+              },
+              "TURN:BTN": {
+                "decisions": 107,
+                "supported": 105,
+                "abstentions": 2
+              },
+              "RIVER:BTN": {
+                "decisions": 18,
+                "supported": 15,
+                "abstentions": 3
+              }
+            },
+            "observedSamples": [
+              500
+            ]
+          },
+          "maxDrawdownBB": 758.5850000000002,
+          "totalRakeChips": 1781.7500000000055,
+          "fundingLedger": {
+            "externalTopupChips": 37628.67999999998,
+            "externalWithdrawalChips": 36392.13999999999,
+            "initialStackChips": 100,
+            "interpretation": "External withdrawals minus topups equals net profit; deposits are not profit. No finite bankroll stopping."
+          },
+          "powerPlan": {
+            "source": "INDEPENDENT_PILOT",
+            "absolute": {
+              "method": "NORMAL_APPROXIMATION_PLANNING_ONLY",
+              "sdBB100": 291.3065852231764,
+              "alpha": 0.0020833333333333333,
+              "power": 0.8,
+              "nullBB100": 0,
+              "alternativeBB100": 3,
+              "requiredIndependentBlocks": 129562,
+              "requiredHands": 12956200,
+              "limitation": "Pilot variance is uncertain; this is not achieved power or a stopping rule. Confirm with a new fixed protocol and calibration."
+            },
+            "relative": null,
+            "availableIndependentBlocks": 20
+          },
+          "claim": "INCONCLUSIVE"
+        },
+        {
+          "id": "candidate",
+          "version": "0.14.0",
+          "meanBB100": 37.40449999999997,
+          "meanCI": {
+            "lower": -498.8303107103844,
+            "upper": 573.6393107103844,
+            "level": 0.9958333333333333,
+            "method": "SEAT_STRATIFIED_FIXED_N_EMPIRICAL_BERNSTEIN",
+            "support": [
+              -5000,
+              5000
+            ]
+          },
+          "deltaBB100": 68.31799999999994,
+          "deltaCI": {
+            "lower": -394.1371708829356,
+            "upper": 530.7731708829357,
+            "level": 0.9958333333333333,
+            "method": "SEAT_STRATIFIED_FIXED_N_EMPIRICAL_BERNSTEIN",
+            "support": [
+              -10000,
+              10000
+            ]
+          },
+          "referenceCapitalPercent": 3.740449999999997,
+          "referenceCapitalPercentCI": {
+            "lower": -49.883031071038445,
+            "upper": 57.363931071038444,
+            "level": 0.9958333333333333,
+            "method": "SEAT_STRATIFIED_FIXED_N_EMPIRICAL_BERNSTEIN",
+            "support": [
+              -5000,
+              5000
+            ]
+          },
+          "pPositive": 0.55,
+          "pPositiveCI": {
+            "lower": 0.24320872639836094,
+            "upper": 0.8310835931353706,
+            "level": 0.99375,
+            "method": "CLOPPER_PEARSON_TWO_SIDED",
+            "n": 20
+          },
+          "pZero": 0,
+          "pNegative": 0.45,
+          "probabilityMonteCarloSE": 0.11124297730643495,
+          "probabilityMonteCarloSEMethod": "PLUGIN_BINOMIAL_DESCRIPTIVE; UNAVAILABLE_AT_BOUNDARY; USE_EXACT_CI_FOR_UNCERTAINTY",
+          "quantiles100": {
+            "p05": -435.9162499999999,
+            "p50": 37.31250000000002,
+            "p95": 609.7592500000001,
+            "kind": "DESCRIPTIVE_NOT_CONFIDENCE_OR_PREDICTION_INTERVAL"
+          },
+          "predictive100": {
+            "lower": -460.1650000000001,
+            "upper": 624.565,
+            "coverage": 0.9047619047619048,
+            "requestedCoverage": 0.9,
+            "method": "EXCHANGEABLE_ORDER_STATISTICS",
+            "status": "FINITE_SAMPLE_MARGINAL"
+          },
+          "coverage": {
+            "decisions": 4129,
+            "supported": 4106,
+            "abstentions": 23,
+            "errors": 0,
+            "timeouts": 0,
+            "reasonCounts": {
+              "OVERLAPPING_INTERVALS": 1,
+              "PRACTICAL_EQUIVALENCE": 1,
+              "MISSING_ACTION_MODEL": 22
+            },
+            "byStreetPosition": {
+              "PREFLOP:BTN": {
+                "decisions": 1849,
+                "supported": 1849,
+                "abstentions": 0
+              },
+              "FLOP:BTN": {
+                "decisions": 523,
+                "supported": 511,
+                "abstentions": 12
+              },
+              "PREFLOP:BB": {
+                "decisions": 1247,
+                "supported": 1247,
+                "abstentions": 0
+              },
+              "FLOP:BB": {
+                "decisions": 314,
+                "supported": 303,
+                "abstentions": 11
+              },
+              "TURN:BB": {
+                "decisions": 63,
+                "supported": 63,
+                "abstentions": 0
+              },
+              "RIVER:BB": {
+                "decisions": 11,
+                "supported": 11,
+                "abstentions": 0
+              },
+              "TURN:BTN": {
+                "decisions": 105,
+                "supported": 105,
+                "abstentions": 0
+              },
+              "RIVER:BTN": {
+                "decisions": 17,
+                "supported": 17,
+                "abstentions": 0
+              }
+            },
+            "observedSamples": [
+              500
+            ]
+          },
+          "maxDrawdownBB": 670.985,
+          "totalRakeChips": 1797.4000000000015,
+          "fundingLedger": {
+            "externalTopupChips": 37294.19999999998,
+            "externalWithdrawalChips": 38790.38000000004,
+            "initialStackChips": 100,
+            "interpretation": "External withdrawals minus topups equals net profit; deposits are not profit. No finite bankroll stopping."
+          },
+          "powerPlan": {
+            "source": "INDEPENDENT_PILOT",
+            "absolute": {
+              "method": "NORMAL_APPROXIMATION_PLANNING_ONLY",
+              "sdBB100": 291.30427746321766,
+              "alpha": 0.0020833333333333333,
+              "power": 0.8,
+              "nullBB100": 0,
+              "alternativeBB100": 3,
+              "requiredIndependentBlocks": 129560,
+              "requiredHands": 12956000,
+              "limitation": "Pilot variance is uncertain; this is not achieved power or a stopping rule. Confirm with a new fixed protocol and calibration."
+            },
+            "relative": {
+              "method": "NORMAL_APPROXIMATION_PLANNING_ONLY",
+              "sdBB100": 76.36853265646812,
+              "alpha": 0.0020833333333333333,
+              "power": 0.8,
+              "nullBB100": 1,
+              "alternativeBB100": 3,
+              "requiredIndependentBlocks": 20035,
+              "requiredHands": 2003500,
+              "limitation": "Pilot variance is uncertain; this is not achieved power or a stopping rule. Confirm with a new fixed protocol and calibration."
+            },
+            "availableIndependentBlocks": 20
+          },
+          "claim": "INCONCLUSIVE"
+        }
+      ]
+    }
+  ],
+  "limitations": [
+    "SHOWDOWN_ONLY action EV differs from complete reconsulted policy continuation.",
+    "Uniform ranges not conditioned on opponent actions; structural model risk remains.",
+    "Unlimited financing; no finite bankroll ruin estimate.",
+    "Direct synchronous deadline excludes HTTP queue/network.",
+    "Hosted deployment and provider ASR not evaluated here."
+  ],
+  "elapsedSeconds": 925.956
+}

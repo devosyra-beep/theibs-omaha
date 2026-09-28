@@ -1,0 +1,27 @@
+.economic-panel { margin-top: 18px; min-width: 0; }
+.economic-panel > summary { display: flex; gap: 12px; justify-content: space-between; cursor: pointer; font-weight: 650; }
+.economic-panel > summary span { color: var(--muted, #a9a9b4); font-size: 11px; font-weight: 400; }
+.economic-content { padding-top: 12px; }
+.economic-content > p, .economic-content details p { line-height: 1.55; }
+.economic-metrics { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; margin: 16px 0; }
+.economic-metrics section { padding: 14px; border: 1px solid #34303e; border-radius: 10px; min-width: 0; }
+.economic-metrics h3 { font-size: 12px; font-weight: 500; margin: 0 0 10px; }
+.economic-metrics strong { font-size: 22px; font-variant-numeric: tabular-nums; }
+.economic-metrics p { margin-bottom: 0; overflow-wrap: anywhere; }
+.economic-hash { font-family: monospace; font-size: 10px; overflow-wrap: anywhere; }
+#economic-status { color: #d9bd81; }
+#economic-scope { overflow-wrap: anywhere; }
+@media(max-width: 600px) { .economic-metrics { grid-template-columns: 1fr; } .economic-panel > summary { flex-direction: column; gap: 4px; } }
+
+/* Analyze has optional study panels; preserve the card table when they expand. */
+@media (min-width: 1000px) {
+  body[data-view=analyze] .workspace { overflow-y: auto; }
+  body[data-view=analyze] #analyze-workspace,
+  body[data-view=analyze] .study-layout { height: auto; min-height: 100%; align-items: start; }
+  body[data-view=analyze] .table-column { display: flex; flex-direction: column; height: auto; gap: 12px; }
+  body[data-view=analyze] .table-column > * { flex-shrink: 0; }
+  body[data-view=analyze] .table-surface { height: 420px; min-height: 420px; }
+  body[data-view=analyze] .context-rail { height: auto; }
+}
+
+#engine-build-warning { padding: 12px 16px; border: 1px solid #9d7432; border-radius: 8px; color: #ffd58b; line-height: 1.5; }

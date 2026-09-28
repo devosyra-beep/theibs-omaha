@@ -1,4 +1,4 @@
-/* Local language assistance. Proposals never bypass the numeric engine or its form validation. */
+/* Web language assistance. Proposals never bypass the numeric engine or its form validation. */
 (function () {
   'use strict';
   const $=s=>document.querySelector(s), app=window.theibsApp;
@@ -26,9 +26,9 @@
     if(!names.length)$('#llama-model').add(new Option('No models found',''));
     $('#llama-model').value=names.includes(selected)?selected:names.includes(config.model)?config.model:names[0]||'';
     $('#llama-url').value=config.baseUrl||'http://127.0.0.1:11434';
-    const status={NOT_CHECKED:'Not checked yet',AVAILABLE:'Model available',MODEL_MISSING:'Choose an installed model',UNAVAILABLE:'Ollama is unavailable',DISABLED:'Local explanation'}[availability.state]||'Unknown status';
+    const status={NOT_CHECKED:'Not checked yet',AVAILABLE:'Model available',MODEL_MISSING:'Server model unavailable',UNAVAILABLE:'Server enrichment unavailable',DISABLED:'Engine explanation'}[availability.state]||'Unknown status';
     $('#llama-status').textContent=availability.state==='AVAILABLE'&&data.lastInference?.state==='SUCCEEDED'?'Llama answered in this session':status;$('#llama-status').dataset.state=availability.state;
-    $('#llama-config-message').textContent=availability.state==='AVAILABLE'?'Model found. The answer is verified when you ask.':availability.reason||'Connect to Ollama to use Llama.';
+    $('#llama-config-message').textContent=availability.state==='AVAILABLE'?'Model found. The answer is verified when you ask.':availability.reason||'The engine explanation remains available.';
     document.dispatchEvent(new CustomEvent('theibs:llm-updated',{detail:config}));
   }
   async function refresh() {
@@ -60,7 +60,7 @@
       title.textContent=labels[change.field];description.textContent=String(change.value);row.append(title,description);list.append(row);
     }
     $('#analysis-ai-proposal-fields').replaceChildren(list);$('#analysis-ai-proposal').hidden=false;
-    $('#analysis-ai-response').textContent=`Review the values before applying. ${provider==='ollama'?'Prepared by Llama.':'Explicit data recognized locally.'}`;
+    $('#analysis-ai-response').textContent=`Review the values before applying. ${provider==='ollama'?'Prepared by Llama.':'Explicit data recognized by the service.'}`;
   }
   async function ask(mode) {
     if(busy)return;
@@ -69,11 +69,11 @@
     if(!question){$('#analysis-ai-response').textContent='Describe the scenario with the values you want to use.';return;}
     let input;
     if(mode==='explain')try{input=app.getAnalysisInput();}catch(error){$('#analysis-ai-response').textContent=error.message;return;}
-    clearProposal();setBusy(true);controller=new AbortController();
+    clearProposal();setBusy(true);controller?.abort();const activeController=controller=new AbortController();
     const requestedSignature=signature(),requestedQuestion=$('#analysis-ai-question').value;
     $('#analysis-ai-response').textContent=mode==='explain'?'Calculating the hand and preparing the explanation…':'Preparing scenario fields…';
     try {
-      const data=await json(mode==='explain'?'/api/analysis/doubt':'/api/analysis/prepare',mode==='explain'?{input,question}:{question,context:context()},controller.signal);
+      const data=await json(mode==='explain'?'/api/analysis/doubt':'/api/analysis/prepare',mode==='explain'?{input,question,responseMode:'LOCAL_FIRST'}:{question,context:context()},activeController.signal);
       if(signature()!==requestedSignature||$('#analysis-ai-question').value!==requestedQuestion){$('#analysis-ai-response').textContent='The input changed. Ask again.';return;}
       if(mode==='prepare') {
         if(data.status==='PROPOSAL')renderProposal(data.proposal,data.provider);
@@ -81,9 +81,18 @@
       } else {
         if(!data.answer?.answer)throw Error(data.reason||'No explanation was available for this hand.');
         app.renderCoachAnswer($('#analysis-ai-response'),data.answer,data.context);
+        setBusy(false);
+        if(data.enrichment) {
+          // This optional request never locks card entry or hides the verified answer.
+          try {
+            const extra=await json('/api/coach/enrich',{ticket:data.enrichment.ticket},activeController.signal);
+            if(controller===activeController&&!activeController.signal.aborted&&signature()===requestedSignature&&$('#analysis-ai-question').value===requestedQuestion&&extra.analysisId===data.context.analysisId)
+              app.renderCoachAnswer($('#analysis-ai-response'),extra.answer,extra.context);
+          } catch { /* Keep the local explanation if optional enrichment fails. */ }
+        }
       }
-    }catch(error){$('#analysis-ai-response').textContent=error.name==='AbortError'?'The input changed. Ask again.':error.message;}
-    finally{controller=null;setBusy(false);}
+    }catch(error){if(controller===activeController)$('#analysis-ai-response').textContent=error.name==='AbortError'?'The input changed. Ask again.':error.message;}
+    finally{if(controller===activeController){controller=null;setBusy(false);}}
   }
   function applyProposal() {
     if(!proposal||busy)return;
@@ -106,6 +115,6 @@
   $('#analysis-ai-explain').addEventListener('click',()=>ask('explain'));$('#analysis-ai-prepare').addEventListener('click',()=>ask('prepare'));
   $('#analysis-ai-apply').addEventListener('click',applyProposal);
   $('#analysis-ai-question').addEventListener('input',()=>{clearProposal();controller?.abort();});
-  document.addEventListener('theibs:analysis-invalidated',()=>{clearProposal();controller?.abort();});
+  document.addEventListener('theibs:analysis-invalidated',()=>{clearProposal();controller?.abort();$('#analysis-ai-response').textContent='The hand changed. Ask about the current cards.';});
   app.ready.then(async()=>{try{const current=await json('/api/llm/config');renderStatus(current);if(current.config?.provider==='ollama')renderStatus(await json('/api/llm/check',{}));}catch(error){$('#llama-status').textContent='Configuration unavailable';$('#llama-config-message').textContent=error.message;}});
 })();

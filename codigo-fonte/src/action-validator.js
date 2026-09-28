@@ -4,7 +4,7 @@ function legalActions(input) {
   if (!Number.isFinite(amountToCall) || amountToCall < 0) throw new Error('amountToCall must be valid.');
   if (!Number.isFinite(stack) || stack < 0) throw new Error('effectiveStack must be valid.');
   if (stack === 0) return [];
-  const candidates = amountToCall > 0 ? ['FOLD', 'CALL', ...(stack > amountToCall ? ['RAISE'] : [])] : ['CHECK', 'BET'];
+  const candidates = amountToCall > 0 ? ['FOLD', 'CALL', ...(stack > amountToCall ? ['RAISE'] : [])] : ['CHECK', Number(input.heroContribution) > 0 ? 'RAISE' : 'BET'];
   if (Array.isArray(input.availableActions)) return candidates.filter((action) => input.availableActions.includes(action));
   return candidates;
 }

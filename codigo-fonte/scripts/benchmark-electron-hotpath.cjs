@@ -9,7 +9,7 @@ if(!process.argv.includes('--inside-electron')){
  const candidate=fs.mkdtempSync(path.join(os.tmpdir(),'theibs-hotpath-candidate-'));
  fs.cpSync(path.resolve(__dirname,'../src'),path.join(candidate,'src'),{recursive:true});
  fs.copyFileSync(path.resolve(__dirname,'../package.json'),path.join(candidate,'package.json'));
- const exe=path.resolve(__dirname,'../../THEIBS/THEIBS.exe');
+ const exe=process.env.THEIBS_EXECUTABLE||path.resolve(__dirname,'../../THEIBS/THEIBS.exe');
  const result=spawnSync(exe,[__filename,'--inside-electron',`--baseline=${baseline}`,`--candidate=${candidate}`],{env:{...process.env,ELECTRON_RUN_AS_NODE:'1'},windowsHide:true,encoding:'utf8',timeout:120000,maxBuffer:4*1024*1024});
  process.stdout.write(result.stdout||'');process.stderr.write(result.stderr||'');if(result.error)throw result.error;process.exitCode=result.status??1;
 }else{
