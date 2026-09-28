@@ -240,6 +240,10 @@
     for(const name of Object.keys(targets))if(body.startsWith(name+' ')){prefix=name;body=body.slice(name.length+1);break;}
     const connector=en?'of':'de',suitOnly=body.startsWith(connector+' ')?body.slice(connector.length+1):body;
     if(Object.hasOwn(suits,suitOnly))return {missing:'rank',prefix,suit:suitOnly};
+    // Observed 'a clubs' is ambiguous, not an alias for eight or ace.
+    // Keep the exact suit and ask for the missing rank, never substitute it.
+    const ambiguous=en?body.match(/^a(?: of)? (spades?|hearts?|diamonds?|clubs?)$/):null;
+    if(ambiguous&&Object.hasOwn(suits,ambiguous[1]))return {missing:'rank',prefix,suit:ambiguous[1]};
     const words=body.split(' ');let i=0,count=0;
     while(i<words.length){
       if(count&&words[i]===(en?'and':'e'))i++;

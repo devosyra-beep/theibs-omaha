@@ -51,7 +51,7 @@ let browser, server, page;
   try {
     ({ server } = require(path.join(root, 'server')));
     await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
-    browser = await chromium.launch({ channel: 'msedge', headless: !headed });
+    browser = await chromium.launch({ ...(process.env.THEIBS_CHROMIUM_PATH?{executablePath:process.env.THEIBS_CHROMIUM_PATH}:{channel:'msedge'}), headless: !headed });
     report.environment.browser = browser.version();
     page = await browser.newPage({ viewport: report.environment.viewport, serviceWorkers: 'block' });
     await page.route('**/card-keyboard.js', route => route.fulfill({ contentType: 'application/javascript', body: fs.readFileSync(keyboard, 'utf8') }));

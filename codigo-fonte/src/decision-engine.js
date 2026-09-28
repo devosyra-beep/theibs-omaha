@@ -11,22 +11,19 @@ const { studySettings, buildStudyModels } = require('./aggression-scenarios');
 const { attachAnalysisContract } = require('./analysis-contract');
 const { sharedEquityLeadership } = require('./analyze-inference');
 
-function actionReason(action, strategy) {
-  const base = action === 'FOLD'
-    ? 'A linha abandona quando a equity ou o cenário não justificam continuar.'
-    : action === 'RAISE'
-      ? 'A linha aplica pressão ou valor quando a estratégia e as premissas sustentam a agressão.'
-      : action === 'BET'
-        ? 'A linha aposta para capturar valor ou pressão sob as premissas informadas.'
-        : action === 'CALL'
-          ? 'A linha continua para realizar equity dentro do preço e das premissas atuais.'
-          : action === 'CHECK'
-            ? 'A linha conserva a realização de equity e controla o pote.'
-            : 'Não há uma ação determinável com os dados atuais.';
-  if (strategy?.exploit?.finalSource === 'EXPLOIT_ADJUSTMENT') {
-    return `${base} Ajuste exploitativo aplicado sobre a estratégia-base.`;
+// One economic calculation and one interval propagation, shared by the
+// statistical-only and full-context flows. This never runs a new simulation.
+function economics(input, equity, actions) {
+  const ev = calculateActionEV({ ...input, equity: equity.equity, legalActions: actions });
+  const math = calculatePotMath({ ...input, equity: equity.equity, callModel: ev.actions.CALL });
+  if (equity.confidenceInterval95) {
+    const bounds = equity.confidenceInterval95.map(q => calculateActionEV({ ...input, equity:q, legalActions:actions }));
+    for (const action of ['CALL','CHECK']) if (ev.actions[action]?.status === 'MODELED' && !ev.actions[action].scenarioBreakdown) {
+      ev.actions[action].confidenceInterval95 = bounds.map(b => b.actions[action].ev);
+      ev.actions[action].intervalScope = 'SOMENTE_ERRO_AMOSTRAL_COM_PREMISSAS_FIXAS';
+    }
   }
-  return base;
+  return { ev, math };
 }
 
 function decide(input) {
@@ -79,7 +76,10 @@ function decide(input) {
     return { status: 'NO_DECISION', contractVersion: 'THEIBS_DECISION_V1', reason: 'Um range adversário válido é necessário para calcular equity.', state: inputState.state, ranges: rangeModel.publicRanges, warnings: [...warnings, error.message] };
   }
   if (normalizedInput.players && normalizedInput.players - 1 !== equity.opponents) warnings.push(`Equity calculada contra ${equity.opponents} oponente(s) modelado(s); a mesa informada tem ${normalizedInput.players - 1} adversário(s). Não representa automaticamente o cenário multiway completo.`);
-  const handInsights = describeHand(normalizedInput.heroCards, normalizedInput.board);
+  const handInsights = describeHand(normalizedInput.heroCards, normalizedInput.board, {
+    deadCards: normalizedInput.deadCards || [],
+    probabilitiesApplicable: rangeModel.ranges.every(range => range.kind === 'UNIFORM')
+  });
   const hasPot = inputState.state.knownInformation.pot === true;
   const hasCallPrice = inputState.state.knownInformation.amountToCall === true;
   const hasStack = inputState.state.knownInformation.effectiveStack === true;
@@ -90,22 +90,19 @@ function decide(input) {
   // result and, when the current call/check price is explicit, evaluate only
   // that decision instead of fabricating BET/RAISE assumptions.
   if (!hasPot || !hasCallPrice || !hasStack || !hasPosition) {
-    const priceActions = hasCallPrice
-      ? (normalizedInput.amountToCall > 0 ? ['FOLD', 'CALL'] : ['CHECK'])
-      : [];
-    let ev = calculateActionEV({ ...normalizedInput, equity: equity.equity, legalActions: priceActions });
-    const math = calculatePotMath({ ...normalizedInput, equity: equity.equity, callModel: ev.actions.CALL });
-    if(equity.confidenceInterval95){
-      const bounds=equity.confidenceInterval95.map(q=>calculateActionEV({...normalizedInput,equity:q,legalActions:priceActions}));
-      for(const action of ['CALL','CHECK'])if(ev.actions[action]?.status==='MODELED'&&!ev.actions[action].scenarioBreakdown){
-        ev.actions[action].confidenceInterval95=bounds.map(b=>b.actions[action].ev);
-        ev.actions[action].intervalScope='SOMENTE_ERRO_AMOSTRAL_COM_PREMISSAS_FIXAS';
-      }
-    }
+    let priceActions = hasCallPrice && normalizedInput.effectiveStack !== 0
+      ? (normalizedInput.amountToCall > 0 ? ['FOLD','CALL'] : ['CHECK']) : [];
+    if (Array.isArray(normalizedInput.availableActions)) priceActions = priceActions.filter(a => normalizedInput.availableActions.includes(a));
+    const { ev, math } = economics(normalizedInput, equity, priceActions);
+    ev.comparisonScope = 'CURRENT_PRICE_ONLY';
+    ev.currentPriceComparisonComplete = ev.comparisonComplete;
+    // A complete CALL/FOLD subset is not a complete action/size comparison.
+    ev.comparisonComplete = false;
     warnings.push(...ev.warnings);
     const currentPriceMissing = [
       ...(!hasCallPrice ? ['amountToCall'] : []),
-      ...(hasCallPrice && normalizedInput.amountToCall > 0 && !hasPot ? ['potBeforeAction'] : [])
+      ...(hasCallPrice && normalizedInput.amountToCall > 0 && !hasPot ? ['potBeforeAction'] : []),
+      ...(ev.actions.CALL.legal ? ev.actions.CALL.missingInputs.filter(x => !['amountToCall','potBeforeAction'].includes(x)) : [])
     ];
     const fullComparisonMissing = [
       ...(!hasPosition ? ['position'] : []),
@@ -115,9 +112,11 @@ function decide(input) {
     ];
     const reason = currentPriceMissing.length
       ? `Equity e qualidade da mão calculadas. Para avaliar o preço atual, informe: ${currentPriceMissing.join(', ')}.`
-      : normalizedInput.amountToCall === 0
+      : priceActions.includes('CHECK')
         ? 'Equity e qualidade da mão calculadas. Não há custo para continuar nesta decisão; CHECK é tratado separadamente de força da mão.'
-        : 'Equity, qualidade da mão e EV do CALL atual foram calculados. A comparação completa de ações permanece separada e pode exigir mais contexto.';
+        : ev.actions.CALL.status === 'MODELED'
+          ? 'Equity, qualidade da mão e EV do CALL atual foram calculados. A comparação completa de ações permanece separada e pode exigir mais contexto.'
+          : 'Equity e qualidade da mão calculadas; não há CALL disponível no estado informado.';
     return attachAnalysisContract({
       status: 'OK',
       contractVersion: 'THEIBS_DECISION_V1',
@@ -145,17 +144,9 @@ function decide(input) {
   }
 
   const actions = legalActions(normalizedInput);
-  let ev;
-  try { ev = calculateActionEV({ ...normalizedInput, equity: equity.equity, legalActions: actions }); }
-  catch(error) { return {status:'NO_DECISION',reason:error.message,state:inputState.state,warnings,errors:[error.message]}; }
-  const math = calculatePotMath({ ...normalizedInput, equity: equity.equity, callModel: ev.actions.CALL });
-  if(equity.confidenceInterval95){
-    const bounds=equity.confidenceInterval95.map(q=>calculateActionEV({...normalizedInput,equity:q,legalActions:actions}));
-    for(const action of ['CALL','CHECK'])if(ev.actions[action]?.status==='MODELED'&&!ev.actions[action].scenarioBreakdown){
-      ev.actions[action].confidenceInterval95=bounds.map(b=>b.actions[action].ev);
-      ev.actions[action].intervalScope='SOMENTE_ERRO_AMOSTRAL_COM_PREMISSAS_FIXAS';
-    }
-  }
+  let ev, math;
+  try { ({ ev, math } = economics(normalizedInput, equity, actions)); }
+  catch(error) { return {status:'NO_DECISION',reason:error.message,state:inputState.state,equity,handInsights,warnings,errors:[error.message]}; }
   warnings.push(...ev.warnings);
   if (actions.length === 0) return { status: 'NO_DECISION', contractVersion: 'THEIBS_DECISION_V1', reason: 'Nenhuma ação legal disponível.', state: inputState.state, ranges: rangeModel.publicRanges, equity, potMath: math, ev, legalActions: actions, warnings };
   const strategyInput = { ...normalizedInput, equity, potMath: math, ev, legalActions: actions, state: inputState.state };

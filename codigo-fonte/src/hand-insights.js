@@ -14,10 +14,10 @@ function bestCurrent(hero,board) {
  }
  return best;
 }
-function describeHand(heroInput,boardInput=[]) {
- const hero=normalizeCards(heroInput),board=normalizeCards(boardInput);normalizeCards([...hero,...board]);
+function computeHand(heroInput,boardInput=[],options={}) {
+ const hero=normalizeCards(heroInput),board=normalizeCards(boardInput),dead=normalizeCards(options.deadCards||[]);normalizeCards([...hero,...board,...dead]);
  if(![4,5,6].includes(hero.length)||![0,3,4,5].includes(board.length))throw Error('Not enough cards to describe the hand.');
- const unseen=makeDeck().filter(c=>![...hero,...board].some(k=>k.code===c.code));
+ const unseen=makeDeck().filter(c=>![...hero,...board,...dead].some(k=>k.code===c.code));
  const made=bestCurrent(hero,board),ranks={};for(const c of hero)ranks[c.rank]=(ranks[c.rank]||0)+1;
  const suited=Object.keys(SUITS).map(s=>({suit:s,name:SUITS[s],cards:hero.filter(c=>c.suit===s).map(c=>c.code)})).filter(s=>s.cards.length>=2);
  const blockers=hero.filter(c=>c.rank==='A'&&board.filter(b=>b.suit===c.suit).length>=2).map(c=>({card:c.code,suit:SUITS[c.suit],canMakeFlush:hero.filter(h=>h.suit===c.suit).length>=2,detail:`${cardName(c.code)} removes that ace from possible opponent hands. ${hero.filter(h=>h.suit===c.suit).length>=2?'You hold two cards of that suit.':'With only one card of that suit in your hand, you cannot make that flush in Omaha.'}`}));
@@ -35,8 +35,18 @@ function describeHand(heroInput,boardInput=[]) {
  }
  const drawSet=[...new Set([...flushCards,...straightCards])];
  return {version:'HAND_INSIGHTS_V1',made,privatePairs:Object.entries(ranks).filter(([,n])=>n>=2).map(([rank,count])=>({rank,count})),suited,blockers,nuts,
-  nextCard:board.length===3||board.length===4?{unseenCards:unseen.length,improvementCards:improvements,improvementProbability:improvements.length/unseen.length,flushCards,straightCards,drawCards:drawSet,drawProbability:drawSet.length/unseen.length}:null,
-  limitations:['Improvement cards are not clean outs: opponents can improve too.','Next-card probabilities use only the public cards and your hole cards; they are not win probabilities.','A blocker does not prove a bluff, and the nuts on the flop or turn do not guarantee a river win.']};
+  nextCard:board.length===3||board.length===4?{unseenCards:unseen.length,improvementCards:improvements,improvementProbability:options.probabilitiesApplicable===false?null:improvements.length/unseen.length,flushCards,straightCards,drawCards:drawSet,drawProbability:options.probabilitiesApplicable===false?null:drawSet.length/unseen.length,probabilityScope:options.probabilitiesApplicable===false?'NOT_CALCULATED_FOR_MANUAL_RANGES':'UNIFORM_REMAINING_CARDS_WITH_DECLARED_DEAD_CARDS'}:null,
+  limitations:['Improvement cards are not clean outs: opponents can improve too.','Next-card probabilities use hero/board/dead-card blockers and uniform unknown hands; with manual ranges they are not calculated. They are not win probabilities.','A blocker does not prove a bluff, and the nuts on the flop or turn do not guarantee a river win.']};
+}
+// Small per-worker LRU: immutable hand facts do not change with pot or price.
+// Return copies so coach/UI consumers cannot corrupt the cached result.
+const handCache=new Map();
+function describeHand(hero,board=[],options={}) {
+ const key=JSON.stringify([hero,board,options.deadCards||[],options.probabilitiesApplicable!==false]);
+ if(handCache.has(key)){const facts=handCache.get(key);handCache.delete(key);handCache.set(key,facts);return structuredClone(facts);}
+ const facts=computeHand(hero,board,options);handCache.set(key,facts);
+ while(handCache.size>32)handCache.delete(handCache.keys().next().value);
+ return structuredClone(facts);
 }
 const RANK_PLURALS={A:'aces',K:'kings',Q:'queens',J:'jacks',T:'tens'};
 const naturalList=values=>values.length<2?values.join(''):values.slice(0,-1).join(', ')+' and '+values.at(-1);
@@ -61,7 +71,7 @@ function explainHand(facts,topic='all') {
   if(!next)return facts.made?'There is no next card on the river to complete the hand.':'Straight and flush completion chances appear from the flop onward.';
   if(!next.drawCards.length)return 'No next card completes a straight or flush. Other improvements may exist.';
   const kind=next.flushCards.length&&next.straightCards.length?'a straight or flush':next.flushCards.length?'a flush':'a straight';
-  return `${next.drawCards.length} available ${next.drawCards.length===1?'card completes':'cards complete'} ${kind} on the next card (${percentage(next.drawProbability)}). Improving does not guarantee a win.`;
+  return `${next.drawCards.length} available ${next.drawCards.length===1?'card completes':'cards complete'} ${kind} on the next card${next.drawProbability===null?' (probability not calculated for the manual ranges)':` (${percentage(next.drawProbability)})`}. Improving does not guarantee a win.`;
  }
  return '';
 }
@@ -74,7 +84,7 @@ function explainHandDetails(facts,topic='all') {
  if((topic==='all'||topic==='draws')&&facts.nextCard){
   const next=facts.nextCard;
   if(next.drawCards.length)details.push(`Cards that complete a straight or flush: ${next.drawCards.map(cardName).join(', ')}. A card that serves both counts once.`);
-  details.push(`${next.improvementCards.length} ${next.improvementCards.length===1?'card raises':'cards raise'} the hand category (${percentage(next.improvementProbability)}). These probabilities use ${next.unseenCards} unseen cards; they are not win chances or clean outs.`);
+  details.push(`${next.improvementCards.length} ${next.improvementCards.length===1?'card raises':'cards raise'} the hand category${next.improvementProbability===null?' (probability not calculated for the manual ranges)':` (${percentage(next.improvementProbability)})`}. There are ${next.unseenCards} candidate unseen cards. These are not win chances or clean outs.`);
  }
  return details;
 }

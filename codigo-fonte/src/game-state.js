@@ -1,4 +1,5 @@
 const { normalizeCards, cardCodes } = require('./cards');
+const { isMissing, optionalNumber: readNumber } = require('./input-number');
 
 const { VARIANTS, holeCount } = require('./variants');
 const VARIANT = 'PLO5_HIGH';
@@ -7,18 +8,12 @@ const POSITIONS = new Set(['UTG', 'UTG1', 'UTG2', 'UTG3', 'EP', 'LJ', 'HJ', 'MP'
 const ACTIONS_WITHOUT_BET = new Set(['CHECK', 'BET']);
 const ACTIONS_FACING_BET = new Set(['FOLD', 'CALL', 'RAISE']);
 
-function optionalNumber(value, field, warnings, errors, defaultValue = null) {
-  if (value === undefined || value === null || value === '') {
-    if (defaultValue !== null) return defaultValue;
-    warnings.push(`${field} não informado.`);
-    return null;
-  }
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed) || parsed < 0) {
-    errors.push(`${field} deve ser um número maior ou igual a zero.`);
-    return null;
-  }
-  return parsed;
+function optionalNumber(value, field, warnings, errors) {
+  try {
+    const parsed = readNumber(value, field, { nonNegative: true });
+    if (parsed === null) warnings.push(`${field} não informado.`);
+    return parsed;
+  } catch (error) { errors.push(error.message); return null; }
 }
 
 function normalizePosition(value, warnings, errors) {
@@ -91,29 +86,31 @@ function normalizeGameState(input = {}) {
 
   let heroCards = [];
   let board = [];
+  let deadCards = [];
   try {
     heroCards = normalizeCards(input.heroCards || [], 'heroCards');
     board = normalizeCards(input.board || [], 'board');
+    deadCards = normalizeCards(input.deadCards || [], 'deadCards');
   } catch (error) {
     errors.push(error.message);
   }
   if (heroCards.length !== count) errors.push(count === 5 ? 'PLO5 exige exatamente cinco cartas privadas do herói.' : `PLO${count} exige exatamente ${count} cartas privadas do herói.`);
   if (![0, 3, 4, 5].includes(board.length)) errors.push('O board deve conter 0, 3, 4 ou 5 cartas.');
-  const knownCodes = [...cardCodes(heroCards), ...cardCodes(board)];
-  if (new Set(knownCodes).size !== knownCodes.length) errors.push('Carta duplicada entre a mão e o board.');
+  const knownCodes = [...cardCodes(heroCards), ...cardCodes(board), ...cardCodes(deadCards)];
+  if (new Set(knownCodes).size !== knownCodes.length) errors.push('Carta duplicada entre a mão, o board ou as cartas mortas.');
 
   const position = normalizePosition(input.position, warnings, errors);
-  const players = input.players === undefined || input.players === null || input.players === ''
+  const players = isMissing(input.players)
     ? null
     : Number(input.players);
-  if (players !== null && (!Number.isInteger(players) || players < 2 || players > 10)) {
+  if (players !== null && (!['number','string'].includes(typeof input.players) || !Number.isInteger(players) || players < 2 || players > 10)) {
     errors.push('players deve ser um número inteiro entre 2 e 10.');
   }
   if (players === null) warnings.push('Número de jogadores não informado.');
-  if(Number.isInteger(players)&&players*count+5>52) errors.push(`PLO${count} comporta no máximo ${Math.floor(47/count)} jogadores (${Math.floor(47/count)-1} adversários) reservando cinco cartas para o board.`);
+  if(Number.isInteger(players)&&players*count+5+deadCards.length>52) errors.push(`PLO${count} comporta no máximo ${Math.floor(47/count)} jogadores (${Math.floor(47/count)-1} adversários) reservando cinco cartas para o board.`);
 
-  const hasPot = input.potBeforeAction !== undefined && input.potBeforeAction !== null && input.potBeforeAction !== '';
-  const hasAmountToCall = input.amountToCall !== undefined && input.amountToCall !== null && input.amountToCall !== '';
+  const hasPot = !isMissing(input.potBeforeAction);
+  const hasAmountToCall = !isMissing(input.amountToCall);
   const potBeforeAction = optionalNumber(input.potBeforeAction, 'potBeforeAction', warnings, errors);
   const amountToCall = optionalNumber(input.amountToCall, 'amountToCall', warnings, errors);
   const effectiveStack = optionalNumber(input.effectiveStack, 'effectiveStack', warnings, errors);
@@ -138,6 +135,7 @@ function normalizeGameState(input = {}) {
     street,
     heroCards: cardCodes(heroCards),
     board: cardCodes(board),
+    ...(deadCards.length ? { deadCards: cardCodes(deadCards) } : {}),
     position,
     players,
     opponentCount: players === null ? null : players - 1,

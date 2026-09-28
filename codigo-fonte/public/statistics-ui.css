@@ -1,0 +1,10 @@
+.voice-destination { margin: .8rem 0; padding: .8rem; border: 1px solid var(--border, #36353e); border-radius: .65rem; }
+.voice-destination > strong { display: block; margin-bottom: .6rem; }
+.voice-destination [role="group"] { display: flex; flex-wrap: wrap; gap: .4rem; }
+.voice-destination button { padding: .45rem .8rem; color: inherit; background: transparent; border: 1px solid currentColor; border-radius: .4rem; }
+.voice-destination button[aria-pressed="true"] { outline: 2px solid currentColor; outline-offset: 1px; font-weight: 700; }
+.voice-destination button:disabled { opacity: .45; }
+#selected-card-label { min-height: 1.25rem; }
+#statistics-model, #statistics-precision, #statistics-split { overflow-wrap: anywhere; line-height: 1.45; }
+/* Raw point estimates are not interval-based positive/negative signals. */
+#ev-alternatives b.positive, #ev-alternatives b.negative, #result .ev-number.positive { color: inherit; }

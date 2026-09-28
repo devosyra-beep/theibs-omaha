@@ -1,5 +1,7 @@
 'use strict';
 const { createHash } = require('node:crypto');
+const { statisticalSummary } = require('./statistical-summary');
+const { isMissing } = require('./input-number');
 const BUILD = require('../package.json').version;
 const { analysisDiagnostics } = require('./analyze-inference');
 const { assessContinuation } = require('./continuation-assessment');
@@ -38,7 +40,7 @@ function recommendationFor(data) {
 function costProvenance(data, input) {
   if (data.trainingEvaluation) return { mode: 'EXPLICIT_ZERO_TRAINING_MODEL', amount: 0 };
   if(input.rakeSchedule)return {mode:'PERCENT_CAPPED_SCHEDULE',schedule:input.rakeSchedule,amount:null,scope:'ELIGIBLE_POT_BY_ACTION_RESPONSE'};
-  const amount = input.rake === '' || input.rake == null ? null : Number(input.rake);
+  const amount = isMissing(input.rake) ? null : Number(input.rake);
   const base = Number.isFinite(amount) ? { mode: 'FIXED_INPUT', amount }
     : input.assumeNoRake === true ? { mode: 'EXPLICIT_ZERO', amount: 0 } : { mode: 'UNKNOWN', amount: null };
   const byAction = Object.fromEntries(Object.entries(data.ev?.actions || {}).filter(([,item])=>item.scenarioBreakdown?.length)
@@ -49,8 +51,9 @@ function costProvenance(data, input) {
 // Callers pass PUBLIC inputs only. No simulator deal or hidden session object.
 function attachAnalysisContract(data, publicInput) {
   const continuationAssessment = assessContinuation(data);
+  const statistics = statisticalSummary(data);
   const inputHash = fingerprint({ engineBuild: BUILD, publicInput });
-  const outputHash = fingerprint({ equity: data.equity, ev: data.ev, trainingEvaluation: data.trainingEvaluation?.candidates, continuationAssessment });
+  const outputHash = fingerprint({ equity: data.equity, ev: data.ev, trainingEvaluation: data.trainingEvaluation?.candidates, continuationAssessment, statistics });
   const recommendation = recommendationFor(data);
   return { ...data, ...(recommendation.missingOpponentModel ? { reason: 'Incomplete opponent coverage: these values describe only the modeled opponents and do not support a recommendation for this table.' } : {}), engineBuild: BUILD, analysisId: fingerprint({ inputHash, outputHash }),
     provenance: { schemaVersion: 2, engineBuild: BUILD, inputHash, outputHash,
@@ -64,7 +67,7 @@ function attachAnalysisContract(data, publicInput) {
       rake: costProvenance(data, publicInput),
       futurePolicy: data.trainingEvaluation?.policy || publicInput.futureStreetModel || null,
       assumptions: data.assumptions || [] },
-    continuationAssessment, recommendation, analysisDiagnostics:analysisDiagnostics({...data,recommendation},publicInput) };
+    statistics, continuationAssessment, recommendation, analysisDiagnostics:analysisDiagnostics({...data,recommendation},publicInput) };
 }
 
 module.exports = { stableJSON, fingerprint, recommendationFor, attachAnalysisContract };

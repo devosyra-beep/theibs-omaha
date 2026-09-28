@@ -17,7 +17,7 @@ function assessContinuation(data = {}) {
     equityBounds: validBounds(q?.confidenceInterval95) ? [...q.confidenceInterval95] : q?.method === 'EXACT' && Number.isFinite(q?.equity) ? [q.equity, q.equity] : null,
     evChips: null, evBounds: null, boundsKind: null, breakEvenEquity: null,
     equityMarginPP: null, conservativeMarginPP: null,
-    reasonCodes: [],
+    reasonCodes: [], missingInputs: [...(call?.missingInputs || [])],
     handContext: { street: state.street || null, madeHand: data.handInsights?.made?.label || null,
       nutsOnCurrentBoard: data.handInsights?.nuts?.unbeaten === true,
       futureBoardCards: !Array.isArray(state.board) || state.board.length < 5 },

@@ -342,7 +342,7 @@ function renderResult(data, street) {
     if(!progress.ready){$('#quick-action').textContent='Waiting for cards';$('#quick-action-note').textContent=progress.detail;}
     const random=data?.ranges?.some(range=>range.kind==='UNIFORM');
     $('#ev-assumption').textContent=data?.status==='OK'
-      ? `${random?'Modelo: adversários com cartas aleatórias.':'Modelo: informação manual aplicada.'} ${data.equity.opponents} adversário(s) · sem apostas futuras${$('#assumeNoRake').checked?' · rake zero explícito':''}${ev==null?' · EV depende dos dados de preço/custo mostrados abaixo':''}.`
+      ? `${data.statistics?.model.statement || (random?'Modelo: cartas aleatórias e eventuais hipóteses manuais.':'Modelo: informação manual aplicada.')} ${data.equity.opponents} adversário(s) · sem apostas futuras${$('#assumeNoRake').checked?' · rake zero explícito':''}${ev==null?' · EV depende dos dados de preço/custo mostrados abaixo':''}.`
       : note||data?.reason||'Complete the cards to calculate.';
     if(interval)$('#ev-assumption').textContent+=` 95% sample range: ${money(interval[0])} to ${money(interval[1])} chips${uncertain?' · crosses zero':''}. Does not cover range error.`;
     if(envelope)$('#ev-assumption').textContent+=` Conditional range: ${money(envelope[0])} to ${money(envelope[1])} chips. Depends on response assumptions.`;
@@ -409,14 +409,9 @@ function renderResult(data, street) {
     });
   }
   function costPayload() {
-    const result = { rake: value('rake'), assumeNoRake: $('#assumeNoRake').checked };
-    if (value('rake-mode') === 'PERCENT_CAPPED') {
-      if (value('rake-rate') === '' || value('rake-cap') === '') throw Error('Enter the rake rate and cap.');
-      result.rake = undefined; result.assumeNoRake = false;
-      result.rakeSchedule = { type: 'PERCENT_CAPPED', rate: Number(value('rake-rate')) / 100,
-        cap: Number(value('rake-cap')), noFlopNoDrop: $('#rake-no-flop').checked,
-        rounding: value('rake-rounding'), source: 'USER_PROVIDED', version: '1' };
-    }
+    const result = window.TheibsCostInput.collect({rake:value('rake'),assumeNoRake:$('#assumeNoRake').checked,
+      mode:value('rake-mode'),rate:value('rake-rate'),cap:value('rake-cap'),
+      noFlopNoDrop:$('#rake-no-flop').checked,rounding:value('rake-rounding')});
     if (value('analysis-big-blind') !== '') result.bigBlind = Number(value('analysis-big-blind'));
     if (value('analysis-equivalence') !== '') {
       if (!result.bigBlind || result.bigBlind <= 0) throw Error('Enter the big blind for a comparison in BB.');
@@ -666,7 +661,7 @@ function renderResult(data, street) {
   function serializeWorkspace() {
     const fields = Object.fromEntries(FIELD_IDS.map((id) => { const el = document.getElementById(id); return [id, el.type === 'checkbox' ? el.checked : el.value]; }));
     return { schemaVersion: 1, keyboard: cards.state.snapshot(), manualText: cards.manualDraft(), fields,
-      ui: { felt: document.body.dataset.felt, deck: document.body.dataset.deck, view: activeView, cardDisplayVersion: 2, workflowVersion: 1, sidebarCollapsed: document.body.dataset.sidebar === 'collapsed' },
+      ui: { felt: document.body.dataset.felt, deck: document.body.dataset.deck, view: activeView, cardDisplayVersion: 2, workflowVersion: 1, costInputsVersion: 1, sidebarCollapsed: document.body.dataset.sidebar === 'collapsed' },
       handFlow:null, legacyHandFlow, multiway, multiwayYesple, opponentInputs:window.theibsOpponentInputs.snapshot(),
       snapshots: [...snapshots], lastAnalysis, trainingSessionId: trainingSession?.id || null };
   }
@@ -710,6 +705,7 @@ function renderResult(data, street) {
           if (el.type === 'checkbox') el.checked = savedValue === true;
           else if (['string', 'number'].includes(typeof savedValue)) el.value = String(savedValue);
         }
+        $('#assumeNoRake').checked = window.TheibsCostInput.restoreZeroRake(workspace);
         if (!cards.restore(workspace.keyboard)) throw new Error('Invalid card draft. The file was preserved.');
         cards.restoreManualDraft(workspace.manualText);
         for (const item of (workspace.snapshots || []).slice(0, 4)) if (['PREFLOP','FLOP','TURN','RIVER'].includes(item.street) && Number.isFinite(item.equity)) snapshots.push({...item,stale:item.stale||item.schemaVersion!==2||item.engineBuild!==engineStatus?.version});

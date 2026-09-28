@@ -20,6 +20,7 @@
     if(assessment.reasonCodes?.includes('AMOUNT_TO_CALL_REQUIRED'))Object.assign(view,{detail:'Informe quanto custa pagar agora. Campo vazio não é tratado como zero e não vira CHECK.',target:'price',label:'Informar preço'});
     if(assessment.reasonCodes?.includes('POT_REQUIRED'))Object.assign(view,{detail:'Informe o pote atual, já incluindo as apostas presentes. A equity continua válida sem esse valor, mas o EV do CALL não.',target:'pot',label:'Informar pote'});
     if(assessment.reasonCodes?.includes('COSTS_REQUIRED'))Object.assign(view,{detail:'Informe o rake da mesa ou confirme explicitamente custo zero. Sem isso, não há sinal de EV líquido.',target:'costs',label:'Informar custos'});
+    if(assessment.missingInputs?.some(x=>x==='rakeSchedule.rate'||x==='rakeSchedule.cap'))view.detail='Complete o custo percentual: '+assessment.missingInputs.map(x=>({'rakeSchedule.rate':'taxa de rake','rakeSchedule.cap':'teto do rake'})[x]||x).join(', ')+'. A equity continua disponível.';
     if(assessment.reasonCodes?.includes('INCOMPLETE_OPPONENT_COVERAGE'))view.detail='O cálculo não cobre todos os adversários desta mesa. Complete a cobertura antes de interpretar o CALL.';
     if(assessment.boundsKind==='CONDITIONAL_ENVELOPE')view.detail+=' As faixas dependem das hipóteses de resposta fornecidas; não são uma probabilidade de lucro.';
     return view;

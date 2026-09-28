@@ -1,12 +1,8 @@
 const { normalizeRakeSchedule, calculateRake } = require('./rake-model');
+const { isMissing, optionalNumber } = require('./input-number');
 const ACTIONS = ['FOLD', 'CHECK', 'CALL', 'BET', 'RAISE'];
 
-function numberOrNull(value, label) {
-  if (value === undefined || value === null || value === '') return null;
-  const number = Number(value);
-  if (!Number.isFinite(number)) throw new Error(`${label} deve ser um número finito.`);
-  return number;
-}
+function numberOrNull(value, label) { return optionalNumber(value, label); }
 
 function nonNegativeOrNull(value, label) {
   const number = numberOrNull(value, label);
@@ -55,11 +51,11 @@ function notLegalResult(action) {
 
 function rakeInfo(input) {
   if (input.rakeSchedule != null) {
-    if ((input.rake != null && input.rake !== '') || input.assumeNoRake === true) throw Error('Informe somente rakeSchedule, rake fixo ou assumeNoRake.');
+    if ((!isMissing(input.rake)) || input.assumeNoRake === true) throw Error('Informe somente rakeSchedule, rake fixo ou assumeNoRake.');
     const schedule = normalizeRakeSchedule(input.rakeSchedule);
     return { value:null, schedule, assumption:`Rake percentual com teto declarado (${schedule.source}); aplicado ao pote elegível de cada ramo.` };
   }
-  const explicitRake = input.rake !== undefined && input.rake !== null && input.rake !== '';
+  const explicitRake = !isMissing(input.rake);
   if (explicitRake) return { value: nonNegativeOrNull(input.rake, 'rake'), assumption: 'Rake informado explicitamente.' };
   if (input.assumeNoRake === true) return { value: 0, assumption: 'Rake assumido como zero por configuração explícita.' };
   return { value: null, assumption: null };
@@ -72,6 +68,9 @@ function rakeAt(rake, pot, boardCount) {
 function calculateCall(input, equity, rake) {
   const responseModel = input.actionResponseModels?.CALL;
   if (responseModel) return calculateScenarioEV('CALL', input, responseModel, rake);
+  if (Array.isArray(input.sidePots) ? input.sidePots.length > 0 : Boolean(input.sidePots)) {
+    return missingResult('CALL', ['modelo de potes laterais e elegibilidade'], [], ['A fórmula de pote único não cobre potes laterais.']);
+  }
   const amountToCall = nonNegativeOrNull(input.amountToCall, 'amountToCall');
   const potBeforeAction = nonNegativeOrNull(input.potBeforeAction, 'potBeforeAction');
   const missing = [];
@@ -80,9 +79,10 @@ function calculateCall(input, equity, rake) {
   if (missing.length) return missingResult('CALL', missing);
   if (amountToCall === 0) return missingResult('CALL', ['amountToCall must be greater than zero']);
   if (equity === null) return missingResult('CALL', ['equity']);
-  if (rake.value === null && !rake.schedule) return missingResult('CALL', ['rake or assumeNoRake'], [], ['EV de call não foi modelado porque a premissa de rake não foi informada.']);
+  if (rake.value === null && !rake.schedule) return missingResult('CALL', input.costInputMissing?.length ? input.costInputMissing : ['rake or assumeNoRake'], [], ['EV de call não foi modelado porque a premissa de rake não foi informada.']);
   const potAfterCall = potBeforeAction + amountToCall;
   const chargedRake = rakeAt(rake, potAfterCall, 5);
+  if (!Number.isFinite(potAfterCall) || chargedRake > potAfterCall) return missingResult('CALL', ['rake válido para o pote final'], [], ['O rake não pode exceder o pote final.']);
   const ev = equity * Math.max(0, potAfterCall - chargedRake) - amountToCall;
   return {
     action: 'CALL',
@@ -92,13 +92,14 @@ function calculateCall(input, equity, rake) {
     rake: chargedRake,
     netPot: Math.max(0, potAfterCall - chargedRake),
     model: 'SHOWDOWN_ONLY',
-    assumptions: ['Sem apostas futuras.', rake.assumption],
+    assumptions: ['Um único pote inteiramente elegível; sem novas contribuições ou apostas futuras.', rake.assumption],
     missingInputs: [],
     warnings: []
   };
 }
 
 function calculateCheck(input, equity, rake) {
+  if (Array.isArray(input.sidePots) ? input.sidePots.length > 0 : Boolean(input.sidePots)) return missingResult('CHECK', ['modelo de potes laterais e elegibilidade']);
   const future = input.futureStreetModel;
   if (!future || typeof future !== 'object' || future.type !== 'SHOWDOWN_ONLY') {
     return missingResult('CHECK', ['futureStreetModel'], [], ['EV de check depende de ações futuras e não foi estimado.']);
@@ -107,6 +108,7 @@ function calculateCheck(input, equity, rake) {
   if (rake.value === null && !rake.schedule) return missingResult('CHECK', ['rake or assumeNoRake']);
   const potAtShowdown = nonNegativeOrNull(future.potAtShowdown ?? input.potBeforeAction, 'potAtShowdown');
   if (potAtShowdown === null) return missingResult('CHECK', ['potAtShowdown']);
+  if (rakeAt(rake, potAtShowdown, 5) > potAtShowdown) return missingResult('CHECK', ['rake válido para o pote final']);
   return {
     action: 'CHECK',
     legal: true,
