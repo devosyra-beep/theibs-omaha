@@ -292,7 +292,8 @@ function renderResult(data, street) {
   }
   function quickAction(data, note) {
     const progress = feedback.inputProgress({count:cards.state.count,slots:cards.state.slots,manualInvalid:cards.isManualInvalid()});
-    const action=Number(value('amountToCall'))>0?'CALL':'CHECK';
+    const rawCall=value('amountToCall');
+    const action=rawCall===''?'CALL':Number(rawCall)>0?'CALL':'CHECK';
     const assessment=progress.ready?data?.continuationAssessment:null;
     const continuation=window.TheibsContinuationView.describe(assessment);
     const display=continuation||feedback.summary({data,action,progress,busy:analysisBusy,auto:$('#auto-analysis').checked,multiway:!!multiway,note});
@@ -341,7 +342,7 @@ function renderResult(data, street) {
     if(!progress.ready){$('#quick-action').textContent='Waiting for cards';$('#quick-action-note').textContent=progress.detail;}
     const random=data?.ranges?.some(range=>range.kind==='UNIFORM');
     $('#ev-assumption').textContent=data?.status==='OK'
-      ? `${random?'Random hands':'Entered model'} · ${data.equity.opponents} opponent(s) · no future betting${$('#assumeNoRake').checked?' · rake zero':''}${ev==null?' · EV depends on the assumptions shown in the calculation':''}.`
+      ? `${random?'Modelo: adversários com cartas aleatórias.':'Modelo: informação manual aplicada.'} ${data.equity.opponents} adversário(s) · sem apostas futuras${$('#assumeNoRake').checked?' · rake zero explícito':''}${ev==null?' · EV depende dos dados de preço/custo mostrados abaixo':''}.`
       : note||data?.reason||'Complete the cards to calculate.';
     if(interval)$('#ev-assumption').textContent+=` 95% sample range: ${money(interval[0])} to ${money(interval[1])} chips${uncertain?' · crosses zero':''}. Does not cover range error.`;
     if(envelope)$('#ev-assumption').textContent+=` Conditional range: ${money(envelope[0])} to ${money(envelope[1])} chips. Depends on response assumptions.`;
@@ -367,7 +368,7 @@ function renderResult(data, street) {
     }
     if(target==='calculation'){$('#open-analysis').click();return;}
     if(target==='responses'||target==='opponents'){$('#open-opponent-inputs').click();return;}
-    const field=document.getElementById(({costs:'rake-mode',responses:'study-mode',precision:'samples',opponents:'opponentModel'})[target]);
+    const field=document.getElementById(({costs:'rake-mode',responses:'study-mode',precision:'samples',opponents:'opponentModel',price:'amountToCall',pot:'potBeforeAction'})[target]);
     if(!field)return;
     for(const dialog of document.querySelectorAll('dialog[open]'))if(dialog.id!=='settings-dialog')dialog.close();
     const settings=$('#settings-dialog');if(!settings.open)settings.showModal();
