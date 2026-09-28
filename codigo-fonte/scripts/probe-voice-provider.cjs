@@ -69,7 +69,7 @@ try{
    window.__preparedSyntheticTrack={context,source,track:destination.stream.getAudioTracks()[0]};
    const values=buffer.getChannelData(0);return {duration:buffer.duration,sampleRate:buffer.sampleRate,peak:values.reduce((m,x)=>Math.max(m,Math.abs(x)),0),channels:buffer.numberOfChannels};
   });
-  await page.locator('#card-voice-disclosure>summary').click();await page.locator('#voice-language').selectOption(locale);await page.locator('#voice-consent').check();await page.locator('#voice-toggle').click();
+  await page.locator('#card-voice-disclosure>summary').click();await page.locator('#voice-auto-apply').uncheck();await page.locator('#voice-language').selectOption(locale);await page.locator('#voice-consent').check();await page.locator('#voice-toggle').click();
   // A provider may emit empty/early segments while audio is still playing.
   // Do not terminate the waveform merely because the first result arrived.
   await page.waitForFunction(()=>__nativeVoiceEvents.some(e=>e.event==='error'||e.event==='end'),null,{timeout:12000}).catch(()=>{});

@@ -1,3 +1,9 @@
+## 0.14.3 — 28/09/2026 — voz com aplicação automática no Analyze
+
+Resultado final completo e válido aplica diretamente pelo mesmo caminho do teclado, avança o slot e mantém a escuta. Aceita PT/EN; deduplica reenvio de segmentos e rejeita revisão de resultados finais, duplicatas, cartas incompletas e contexto obsoleto. Interims nunca viram cartas por temporizador. Fim de fala solicita ao provedor a conclusão do resultado; somente o final pode ser aplicado. Revisão de lote continua opcional.
+
+Ações/board Multiway suspendem captura durante a transação e retomam após confirmação, com cancelamento disponível durante a espera. Feedback mostra a carta aplicada; desfazer continua disponível. A homologação acústica humana permanece não executada, separada da aplicação automática agora habilitada. Não altera matemática, política de EV ou dados dos adversários. Ver `RELATORIO-VOZ-0.14.3.md` e registro de publicação.
+
 ## 0.14.2 — 28/09/2026 — leitura do CALL atual no Analyze
 
 Indicador separado da comparação completa de ações: favorável somente se o limite inferior do EV é positivo, desfavorável se o limite superior é negativo, incerto quando a faixa toca zero, CHECK gratuito neutro. Mostra equity necessária, margem e limites válidos do modelo, sem exigir BET/RAISE nem inventar resposta dos adversários. Usa o resultado existente e não acrescenta simulações. Custos ausentes, prévia, cobertura incompleta e bloqueios do Multiway impedem o sinal favorável.

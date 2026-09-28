@@ -34,7 +34,7 @@ async function apply(){await page.locator('#voice-apply').click();await page.wai
   });
   report.url=`http://127.0.0.1:${server.address().port}/app`;
   await page.goto(report.url);await page.evaluate(()=>theibsApp.ready);
-  await page.locator('#card-voice-disclosure>summary').click();
+  await page.locator('#card-voice-disclosure>summary').click();await page.locator('#voice-auto-apply').uncheck();
   await page.evaluate(()=>{document.querySelector('#auto-analysis').checked=false;theibsCardKeyboard.reset();});
   await check('explicit remote-processing permission required before ASR creation',async()=>{
    await page.locator('#voice-toggle').click();assert.equal(await page.evaluate(()=>__asr.length),0);
@@ -106,7 +106,7 @@ async function apply(){await page.locator('#voice-apply').click();await page.wai
    await page.waitForFunction(()=>!theibsApp.getState().analysisBusy,{timeout:30000});
    assert.ok(await page.evaluate(()=>theibsApp.getState().lastAnalysis?.data?.equity));
    const saved=await state();await page.evaluate(()=>theibsApp.flushSave());report.timingBeforeReload=await page.evaluate(()=>theibsCardVoice.getMetrics());await page.reload();await page.evaluate(()=>theibsApp.ready);assert.deepEqual(await state(),saved);
-   await page.locator('#card-voice-disclosure>summary').click();await page.locator('#voice-consent').check();
+   await page.locator('#card-voice-disclosure>summary').click();await page.locator('#voice-auto-apply').uncheck();await page.locator('#voice-consent').check();
   });
   await check('multiway hero phrase survives server acknowledgement and one undo restores cards and selection',async()=>{
    await page.evaluate(()=>{document.querySelector('#auto-analysis').checked=false;theibsCardKeyboard.reset();theibsCardKeyboard.paste('AE KC QO JP TE');});

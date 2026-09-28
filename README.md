@@ -1,12 +1,18 @@
 # THEIBS — laboratório Omaha
 
-Versão do código: **0.14.2**. Análise e treino de Omaha High PLO4, PLO5 e PLO6, com equity, EV condicionado às premissas, coach, entrada de cartas e histórico.
+Versão do código: **0.14.3**. Análise e treino de Omaha High PLO4, PLO5 e PLO6, com equity, EV condicionado às premissas, coach, entrada de cartas e histórico.
 
 ## Produto e validação
 
 A única entrega ao jogador é a **webapp hospedada**, acessada pelo navegador. Não exige aplicativo instalado, Node.js, Electron, Ollama nem serviço no computador do jogador. A voz é capturada no navegador com permissão explícita; cálculo, coach e persistência usam a API hospedada.
 
-Os comandos de Node.js nos relatórios são ferramentas de desenvolvimento e QA do mesmo código antes da publicação. `LOCAL_EXECUTED` identifica o ambiente de teste, não uma segunda versão do produto. Nesta rodada, o usuário autorizou validar o código antes de hospedar; a produção existente permanece separada até a publicação. A configuração de hospedagem está em `render.yaml` e `codigo-fonte/DEPLOY-SAAS.md`.
+Os comandos de Node.js nos relatórios são ferramentas de desenvolvimento e QA do mesmo código antes da publicação. `LOCAL_EXECUTED` identifica o ambiente de teste, não uma segunda versão do produto. A versão 0.14.2 foi publicada; o registro da atualização atual e sua verificação online ficam em PUBLICACAO-0.14.3.md quando concluídos. A configuração de hospedagem está em `render.yaml` e `codigo-fonte/DEPLOY-SAAS.md`.
+
+## O que mudou em 0.14.3
+
+A entrada por voz do Analyze aplica automaticamente comandos completos em português ou inglês assim que o reconhecedor entrega um resultado final válido. “Oito de paus” insere 8♣ e avança a seleção, sem parar a escuta ou clicar em Aplicar lote. Resultados provisórios aguardam a conclusão; replay do mesmo resultado não reaplica cartas. “Desfazer” corrige a última entrada. A revisão manual continua disponível desmarcando **Aplicar ao reconhecer e avançar para a próxima carta**.
+
+No Multiway, ações e streets passam pelo ledger, com ator, turno, total e contexto validados. A escuta retoma somente após confirmação da transação; parar ou cancelar impede a retomada. Teclado, navegação, mudança de sessão e contexto invalidam fala pendente. Não grava áudio nem persiste transcrições. Precisão acústica humana ainda não foi medida; essa ausência de medição não desativa a função autorizada pelo usuário. Motor de equity/EV preservado.
 
 ## O que mudou em 0.14.2
 
@@ -14,7 +20,7 @@ O **Analyze** passa a responder se o **preço do CALL atual** é favorável dent
 
 A leitura usa o resultado já calculado, sem uma nova simulação. Coach e snapshots recebem o mesmo indicador. Alterar cartas, preço ou premissas invalida o sinal anterior. As proteções do Multiway e o contrato de comparação entre todas as ações continuam ativos; uma leitura favorável do CALL não declara que CALL supera BET/RAISE.
 
-É necessário informar o pote e o valor real para pagar para interpretar o preço. Sem isso, cartas e número de adversários permitem estudar equity, mas não certificar se vale pagar. A leitura supõe nenhuma aposta futura e permanece condicionada aos ranges/custos informados. A versão foi validada em QA; ainda não foi publicada.
+É necessário informar o pote e o valor real para pagar para interpretar o preço. Sem isso, cartas e número de adversários permitem estudar equity, mas não certificar se vale pagar. A leitura supõe nenhuma aposta futura e permanece condicionada aos ranges/custos informados. Publicação 0.14.2 confirmada em `PUBLICACAO-0.14.2.md`.
 
 ## O que mudou em 0.14.1
 

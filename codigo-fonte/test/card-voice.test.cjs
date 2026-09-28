@@ -97,7 +97,124 @@ test('cancel, stale selection, hand, variant, locale and user/session cannot con
   assert.equal(session.accept(id,0,'ás de espadas',true),false);assert.equal(session.finish(id,initial),null);
   const id2=session.begin(initial);assert.notEqual(id2,id);assert.equal(session.accept(id,0,'ás de espadas',true),false);
   session.accept(id2,0,'ás de espadas',true);assert.ok(session.finish(id2,initial));
-  assert.equal(qualityGate.autoApply,false);assert.equal(qualityGate.acoustic,'NOT_EXECUTED');
+  assert.equal(qualityGate.autoApply,true);assert.equal(qualityGate.acoustic,'NOT_EXECUTED');assert.equal(qualityGate.rule,'FINAL_VALIDATED_ONLY');
+});
+test('streaming final cards commit once, advance selection and rebase after commit in PT/EN and every PLO variant',()=>{
+ for(const count of [4,5,6])for(const locale of ['pt-BR','en-US']){
+  const en=locale==='en-US',session=new RecognitionSession(),state=new CardKeyboardState(count);
+  let revision=0;const context=()=>({locale,variant:count,revision,selection:state.selected,user:'same-owner'});
+  const id=session.begin(context()),phrases=en?['ace of spades','king of hearts']:['ás de espadas','rei de copas'];
+  for(let index=0;index<phrases.length;index++){
+   assert.equal(session.reconcileResultCount(id,index+1),true);
+   for(let i=0;i<index;i++)assert.equal(session.accept(id,i,phrases[i],true),false);
+   session.accept(id,index,phrases[index],false);
+   assert.equal(session.prepareReady(id,context()),null);assert.equal(session.phase,'listening');assert.equal(session.error,'');
+   assert.equal(session.hasPending(),true);assert.equal(session.pendingPreview(),phrases[index]);
+   assert.equal(state.selected,index);
+   session.accept(id,index,phrases[index],true);
+   assert.deepEqual(session.prepareReady(id,context()).cards,[['As','Kh'][index]]);
+   assert.equal(session.resume(id,context()),false,'review is not a confirmed commit');
+   const command=session.take(context());assert.equal(session.hasPending(),false);
+   assert.equal(session.prepareReady(id,context()),null,'consumed commands cannot be prepared again');
+   assert.equal(state.applyCommand(command),true,state.error);revision++;
+   assert.equal(session.resume(id,context()),true);assert.equal(state.selected,index+1);
+   assert.equal(session.pendingPreview(),'');assert.equal(session.hasPending(),false);
+   assert.equal(session.reconcileResultCount(id,index+1),true);
+   for(let i=0;i<=index;i++)assert.equal(session.accept(id,i,phrases[i],true),false);
+   assert.equal(session.prepareReady(id,context()),null);assert.equal(session.phase,'listening');
+   assert.equal(state.undoStack.length,index+1,'replayed finals create no duplicate command');
+  }
+  assert.deepEqual(state.cards().hero,['AE','KC']);assert.equal(session.preview(),phrases.join(', '));
+  assert.equal(session.finish(id,context()),null);assert.equal(session.phase,'finished');assert.equal(session.error,'');
+  assert.equal(session.take(context()),null);assert.deepEqual(state.cards().hero,['AE','KC']);
+ }
+});
+test('streaming waits for every provisional segment and prepares a complete final batch atomically',()=>{
+ for(const locale of ['pt-BR','en-US']){
+  const session=new RecognitionSession(),ctx={locale},id=session.begin(ctx),state=new CardKeyboardState();
+  const parts=locale==='pt-BR'?['ás de espadas','rei de copas']:['ace of spades','king of hearts'];
+  assert.equal(session.prepareReady(id,ctx),null);assert.equal(session.error,'');
+  session.accept(id,0,parts[0],true);session.accept(id,1,parts[1],false);
+  for(let repeat=0;repeat<2;repeat++)assert.equal(session.prepareReady(id,ctx),null);
+  assert.equal(session.phase,'listening');assert.equal(session.error,'');assert.deepEqual(state.cards().hero,[]);
+  session.accept(id,1,parts[1],true);assert.deepEqual(session.prepareReady(id,ctx).cards,['As','Kh']);
+  assert.equal(state.applyCommand(session.take(ctx)),true);assert.equal(state.undoStack.length,1);
+  state.undo();assert.deepEqual(state.cards().hero,[]);
+ }
+});
+test('streaming rejects invalid final suffixes, prefixes, gaps and empty segments without a partial proposal',()=>{
+ for(const locale of ['pt-BR','en-US']){
+  const card=locale==='pt-BR'?'ás de espadas':'ace of spades';
+  for(const parts of [[card,'desconhecido'],['desconhecido',card],[card,''],['',card]]){
+   const session=new RecognitionSession(),ctx={locale},id=session.begin(ctx);
+   parts.forEach((text,index)=>session.accept(id,index,text,true));
+   assert.equal(session.prepareReady(id,ctx),null);assert.equal(session.phase,'rejected');assert.ok(session.error);
+   assert.equal(session.take(ctx),null);assert.equal(session.resume(id,ctx),false);
+  }
+  const session=new RecognitionSession(),ctx={locale},id=session.begin(ctx);
+  session.accept(id,0,card,true);session.accept(id,2,card,true);
+  assert.equal(session.prepareReady(id,ctx),null);assert.match(session.error,/Faltou um segmento/);
+ }
+});
+test('a provider cannot alter, downgrade or remove final segments before or after application',()=>{
+ for(const consumed of [false,true])for(const mutation of ['changed','downgraded','removed']){
+  const session=new RecognitionSession(),state=new CardKeyboardState(),ctx={locale:'pt-BR',revision:0},id=session.begin(ctx);
+  session.accept(id,0,'oito de paus',true);let current=ctx;
+  if(consumed){
+   session.prepareReady(id,ctx);assert.equal(state.applyCommand(session.take(ctx)),true);
+   current={...ctx,revision:1};assert.equal(session.resume(id,current),true);
+  }
+  const before=state.snapshot();
+  if(mutation==='removed')assert.equal(session.reconcileResultCount(id,0),false);
+  else assert.equal(session.accept(id,0,mutation==='changed'?'oito de copas':'oito de paus',mutation!=='downgraded'),false);
+  assert.equal(session.phase,'rejected');assert.match(session.error,/segmento final/);
+  assert.equal(session.accept(id,1,'rei de espadas',true),false);
+  assert.equal(session.prepareReady(id,current),null);assert.equal(session.resume(id,current),false);
+  assert.deepEqual(state.snapshot(),before,'provider revision never undoes an earlier confirmed command');
+ }
+});
+test('streaming resume needs a consumed proposal in the same generation; cancellation resets indices',()=>{
+ const ctx={locale:'en-US',revision:0},session=new RecognitionSession();
+ assert.equal(session.resume(null,ctx),false);
+ let id=session.begin(ctx);assert.equal(session.resume(id,ctx),false);
+ session.accept(id,0,'ace of spades',true);session.prepareReady(id,ctx);
+ assert.equal(session.resume(id,ctx),false);assert.equal(session.phase,'review');
+ session.take(ctx);assert.equal(session.resume(id+1,{...ctx,revision:1}),false);
+ assert.equal(session.context,JSON.stringify(ctx));assert.equal(session.phase,'consumed');
+ assert.equal(session.resume(id,{...ctx,revision:1}),true);assert.equal(session.resume(id,ctx),false);
+ session.cancel();assert.equal(session.hasPending(),false);assert.equal(session.pendingPreview(),'');
+ assert.equal(session.resume(id,ctx),false);assert.equal(session.accept(id,1,'king of hearts',true),false);
+ const oldId=id;id=session.begin(ctx);assert.notEqual(id,oldId);assert.equal(session.accept(oldId,0,'king of hearts',true),false);
+ session.accept(id,0,'king of hearts',true);assert.deepEqual(session.prepareReady(id,ctx).cards,['Kh']);
+ session.take(ctx);assert.equal(session.take(ctx),null);assert.equal(session.resume(id,ctx),false);
+});
+test('streaming refuses changed context before prepare and before consume',()=>{
+ const original={locale:'pt-BR',revision:1,hand:'a',variant:5,selection:0,session:{epoch:1,required:true,expired:false}};
+ for(const change of [{revision:2},{hand:'b'},{variant:4},{selection:1},{locale:'en-US'},{session:{epoch:2,required:true,expired:false}},{session:{epoch:1,required:true,expired:true}}]){
+  for(const stage of ['prepare','take']){
+   const session=new RecognitionSession(),id=session.begin(original);session.accept(id,0,'ás de espadas',true);
+   if(stage==='prepare'){assert.equal(session.prepareReady(id,{...original,...change}),null);assert.match(session.error,/contexto mudou/);}
+   else{assert.ok(session.prepareReady(id,original));assert.equal(session.take({...original,...change}),null);}
+   assert.equal(session.resume(id,{...original,...change}),false);
+  }
+ }
+});
+test('manual finish after a streaming commit only prepares the new suffix and preserves incomplete rejection',()=>{
+ const ctx={locale:'en-US'},session=new RecognitionSession();let id=session.begin(ctx);
+ session.accept(id,0,'ace of spades',true);session.prepareReady(id,ctx);session.take(ctx);session.resume(id,ctx);
+ session.accept(id,1,'king of hearts',true);assert.deepEqual(session.finish(id,ctx).cards,['Kh']);
+ session.take(ctx);session.resume(id,ctx);session.accept(id,2,'queen of',false);
+ assert.equal(session.finish(id,ctx),null);assert.match(session.error,/incompleta/);
+ id=session.begin(ctx);assert.equal(session.finish(id,ctx),null);assert.match(session.error,/incompleta/);
+});
+test('oversized or malformed result snapshots reject instead of applying the valid prefix',()=>{
+ for(const kind of ['count','index','trailing-gap']){
+  const session=new RecognitionSession(),ctx={locale:'en-US'},id=session.begin(ctx);session.accept(id,0,'ace of spades',true);
+  if(kind==='count')assert.equal(session.reconcileResultCount(id,102),false);
+  else if(kind==='index')assert.equal(session.accept(id,101,'king of hearts',true),false);
+  else assert.equal(session.reconcileResultCount(id,2),true);
+  assert.equal(session.prepareReady(id,ctx),null);assert.equal(session.phase,'rejected');assert.ok(session.error);
+ }
 });
 test('voice actions have explicit actors, total raises and exact localized amounts',()=>{
  for(const [pt,en,action,to] of [['eu desisto','hero fold','FOLD'],['herói passa','hero check','CHECK'],['eu paguei','hero call','CALL'],

@@ -167,45 +167,73 @@
     begin(context) {
       this.generation++; this.id = this.generation; this.context = token(context);
       this.segments = new Map(); this.phase = 'listening'; this.proposal = null; this.error = '';
+      this.cursor = 0; this.proposalEnd = null; this.resultCount = null;
       return this.id;
     }
+    reject(message) { this.error = message; this.phase = 'rejected'; this.proposal = null; this.proposalEnd = null; }
     accept(id, index, text, final) {
-      if (id !== this.id || this.phase !== 'listening' || !Number.isInteger(index) || index < 0 || index > 100) return false;
+      if (id !== this.id || this.phase !== 'listening') return false;
+      if (!Number.isInteger(index) || index < 0 || index > 100 || (this.resultCount !== null && index >= this.resultCount)) { this.reject('Segmento de voz fora do intervalo. Dite novamente.'); return false; }
+      text = String(text);
       const old = this.segments.get(index);
       if (old?.final) {
-        if (old.text !== text) { this.error = 'O reconhecedor alterou um segmento final. Dite novamente.'; }
+        if (old.text !== text || !final) this.reject('O reconhecedor alterou um segmento final. Dite novamente.');
         return false;
       }
-      this.segments.set(index, { text: String(text), final: Boolean(final) }); return true;
+      this.segments.set(index, { text, final: Boolean(final) }); return true;
     }
     reconcileResultCount(id, count) {
-      if (id !== this.id || this.phase !== 'listening' || !Number.isInteger(count) || count < 0 || count > 101) return false;
+      if (id !== this.id || this.phase !== 'listening') return false;
+      if (!Number.isInteger(count) || count < 0 || count > 101) { this.reject('Quantidade de segmentos de voz inválida. Dite novamente.'); return false; }
       // SpeechRecognitionEvent.results is a snapshot: a provider can merge or
       // remove provisional results. Final segments must never disappear.
       for (const [index, segment] of this.segments) if (index >= count) {
-        if (segment.final) { this.error = 'O reconhecedor removeu um segmento final. Dite novamente.'; return false; }
+        if (segment.final) { this.reject('O reconhecedor removeu um segmento final. Dite novamente.'); return false; }
         this.segments.delete(index);
       }
+      this.resultCount = count;
       return true;
     }
     preview() { return [...this.segments].sort((a, b) => a[0] - b[0]).map(([, s]) => s.text).join(', '); }
-    finish(id, context) {
+    hasPending() { return [...this.segments.keys()].some(index => index >= this.cursor); }
+    pendingPreview() { return [...this.segments].filter(([index]) => index >= this.cursor).sort((a, b) => a[0] - b[0]).map(([, s]) => s.text).join(', '); }
+    prepareReady(id, context) { return this.prepare(id, context, false); }
+    finish(id, context) { return this.prepare(id, context, true); }
+    prepare(id, context, finishing) {
       if (id !== this.id || this.phase !== 'listening') return null;
-      this.phase = 'rejected';
-      if (token(context) !== this.context) { this.error = 'O contexto mudou. Nenhuma carta aplicada.'; return null; }
+      if (token(context) !== this.context) { this.reject('O contexto mudou. Nenhuma entrada pendente foi aplicada.'); return null; }
       if (this.error) return null;
       const segments = [...this.segments].sort((a, b) => a[0] - b[0]);
-      if (!segments.length || segments.some(([, s]) => !s.final)) { this.error = 'A fala ficou incompleta. Dite novamente.'; return null; }
-      if (segments.some(([, s]) => !s.text.trim())) { this.error = 'O serviço do navegador devolveu texto vazio. Confira idioma, microfone e disponibilidade do serviço; nenhum lote foi aplicado.'; return null; }
-      if (segments.some(([index], i) => index !== i)) { this.error = 'Faltou um segmento da frase. Dite novamente.'; return null; }
-      try { this.proposal = parse(this.preview(), context.locale); this.phase = 'review'; return this.proposal; }
-      catch (error) { this.error = error.message; return null; }
+      if (segments.some(([, s]) => !s.final)) {
+        if (finishing) this.reject('A fala ficou incompleta. Dite novamente.');
+        return null;
+      }
+      if ((this.resultCount !== null && segments.length !== this.resultCount) || segments.some(([index], i) => index !== i)) { this.reject('Faltou um segmento da frase. Dite novamente.'); return null; }
+      if (!this.hasPending()) {
+        if (finishing) {
+          if (this.cursor) this.phase = 'finished';
+          else this.reject('A fala ficou incompleta. Dite novamente.');
+        }
+        return null;
+      }
+      const pending = segments.slice(this.cursor);
+      if (pending.some(([, s]) => !s.text.trim())) { this.reject('O serviço do navegador devolveu texto vazio. Confira idioma, microfone e disponibilidade do serviço; nenhum lote foi aplicado.'); return null; }
+      try {
+        this.proposal = parse(pending.map(([, s]) => s.text).join(', '), context.locale);
+        this.proposalEnd = segments.length; this.phase = 'review'; return this.proposal;
+      } catch (error) { this.reject(error.message); return null; }
     }
     take(context) {
       if (this.phase !== 'review' || token(context) !== this.context) { this.cancel(); return null; }
-      this.phase = 'consumed'; return this.proposal;
+      this.cursor = this.proposalEnd; this.phase = 'consumed'; return this.proposal;
     }
-    cancel() { this.id = null; this.phase = 'cancelled'; this.segments = new Map(); this.proposal = null; }
+    // The caller must confirm that the typed command committed successfully
+    // before rebasing. Failed/async commits must cancel instead of queueing audio.
+    resume(id, context) {
+      if (id !== this.id || this.phase !== 'consumed' || !this.proposal || this.error) return false;
+      this.context = token(context); this.proposal = null; this.proposalEnd = null; this.phase = 'listening'; return true;
+    }
+    cancel() { this.id = null; this.phase = 'cancelled'; this.segments = new Map(); this.proposal = null; this.cursor = 0; this.proposalEnd = null; this.resultCount = null; }
   }
-  return { RANKS, SUITS, EN_RANKS, EN_SUITS, normalize, parse, parseChips, resolveAction, RecognitionSession, qualityGate: Object.freeze({ acoustic: 'NOT_EXECUTED', autoApply: false }) };
+  return { RANKS, SUITS, EN_RANKS, EN_SUITS, normalize, parse, parseChips, resolveAction, RecognitionSession, qualityGate: Object.freeze({ acoustic: 'NOT_EXECUTED', autoApply: true, rule: 'FINAL_VALIDATED_ONLY' }) };
 });

@@ -17,7 +17,7 @@ async function boot(expiryMs=3600000,refreshable=false){
   window.__asr=[];window.SpeechRecognition=class{constructor(){__asr.push(this);}start(){this.onstart?.();}stop(){this.onend?.();}abort(){this.aborted=true;this.onend?.();}};
  },{ms:expiryMs,refreshable});
  const page=await context.newPage();page.on('pageerror',error=>report.browserErrors.push(error.message));await page.goto(`http://127.0.0.1:${server.address().port}/app`);await page.evaluate(()=>theibsApp.ready);
- await page.locator('#card-voice-disclosure>summary').click();await page.locator('#voice-consent').check();await page.locator('#voice-toggle').click();
+ await page.locator('#card-voice-disclosure>summary').click();await page.locator('#voice-auto-apply').uncheck();await page.locator('#voice-consent').check();await page.locator('#voice-toggle').click();
  assert.equal(await page.evaluate(()=>theibsCardVoice.getStatus().listening),true);
  return {page,context};
 }
