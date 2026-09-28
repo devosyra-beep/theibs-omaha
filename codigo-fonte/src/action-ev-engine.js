@@ -74,7 +74,10 @@ function calculateCall(input, equity, rake) {
   if (responseModel) return calculateScenarioEV('CALL', input, responseModel, rake);
   const amountToCall = nonNegativeOrNull(input.amountToCall, 'amountToCall');
   const potBeforeAction = nonNegativeOrNull(input.potBeforeAction, 'potBeforeAction');
-  if (amountToCall === null || potBeforeAction === null) return missingResult('CALL', ['amountToCall', 'potBeforeAction']);
+  const missing = [];
+  if (amountToCall === null) missing.push('amountToCall');
+  if (potBeforeAction === null) missing.push('potBeforeAction');
+  if (missing.length) return missingResult('CALL', missing);
   if (amountToCall === 0) return missingResult('CALL', ['amountToCall must be greater than zero']);
   if (equity === null) return missingResult('CALL', ['equity']);
   if (rake.value === null && !rake.schedule) return missingResult('CALL', ['rake or assumeNoRake'], [], ['EV de call não foi modelado porque a premissa de rake não foi informada.']);
