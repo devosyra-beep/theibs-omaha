@@ -57,7 +57,7 @@ test('missing pot does not block equity and is named as the missing CALL input',
   assert.equal(result.status, 'OK');
   assert.ok(Number.isFinite(result.equity.equity));
   assert.equal(result.ev.actions.CALL.status, 'NOT_MODELED');
-  assert.deepEqual(result.ev.actions.CALL.missingInputs, ['amountToCall','potBeforeAction']);
+  assert.deepEqual(result.ev.actions.CALL.missingInputs, ['potBeforeAction']);
   assert.equal(result.continuationAssessment.status, 'UNAVAILABLE');
   assert.deepEqual(result.continuationAssessment.reasonCodes, ['POT_REQUIRED']);
 });
