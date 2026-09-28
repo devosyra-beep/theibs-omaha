@@ -25,6 +25,7 @@ jobs:
           node --check src/continuation-assessment.js
           node --check server.js
           node --check public/app.js
+          node --check public/dashboard.js
           node --check public/continuation-view.js
       - name: Node test suite
         run: node --test "test/*.test.cjs"
