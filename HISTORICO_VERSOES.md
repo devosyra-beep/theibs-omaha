@@ -1,3 +1,9 @@
+## 0.14.4 — 28/09/2026 — conclusão antecipada de cartas por voz
+
+Modo Rápido solicita resultado final após uma carta completa permanecer estável por 220 ms. Cada alteração de texto/finalidade/contexto invalida o candidato; replay idêntico não reinicia o prazo. Nunca promove interim a carta. Frase completa, ações/valores e gesto de segurar ficam fora do encerramento antecipado. O gesto agora sobrevive a reinícios naturais do reconhecedor.
+
+Retomada rápida sem pausa adicional de 80 ms, com guardas de contexto/cancelamento. Checagem de idioma instalado reutilizada por até 60 segundos. Sem instalação de modelo, novo serviço de voz, biasing experimental ou alteração do motor. Medição de latência de reconhecimento separada da aplicação. Evidências e ressalvas em RELATORIO-VELOCIDADE-VOZ-0.14.4.md.
+
 ## 0.14.3 — 28/09/2026 — voz com aplicação automática no Analyze
 
 Resultado final completo e válido aplica diretamente pelo mesmo caminho do teclado, avança o slot e mantém a escuta. Aceita PT/EN; deduplica reenvio de segmentos e rejeita revisão de resultados finais, duplicatas, cartas incompletas e contexto obsoleto. Interims nunca viram cartas por temporizador. Fim de fala solicita ao provedor a conclusão do resultado; somente o final pode ser aplicado. Revisão de lote continua opcional.

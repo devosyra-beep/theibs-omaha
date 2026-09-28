@@ -1,12 +1,20 @@
 # THEIBS — laboratório Omaha
 
-Versão do código: **0.14.3**. Análise e treino de Omaha High PLO4, PLO5 e PLO6, com equity, EV condicionado às premissas, coach, entrada de cartas e histórico.
+Versão do código: **0.14.4**. Análise e treino de Omaha High PLO4, PLO5 e PLO6, com equity, EV condicionado às premissas, coach, entrada de cartas e histórico.
 
 ## Produto e validação
 
 A única entrega ao jogador é a **webapp hospedada**, acessada pelo navegador. Não exige aplicativo instalado, Node.js, Electron, Ollama nem serviço no computador do jogador. A voz é capturada no navegador com permissão explícita; cálculo, coach e persistência usam a API hospedada.
 
-Os comandos de Node.js nos relatórios são ferramentas de desenvolvimento e QA do mesmo código antes da publicação. `LOCAL_EXECUTED` identifica o ambiente de teste, não uma segunda versão do produto. A versão 0.14.2 foi publicada; o registro da atualização atual e sua verificação online ficam em PUBLICACAO-0.14.3.md quando concluídos. A configuração de hospedagem está em `render.yaml` e `codigo-fonte/DEPLOY-SAAS.md`.
+Os comandos de Node.js nos relatórios são ferramentas de desenvolvimento e QA do mesmo código antes da publicação. `LOCAL_EXECUTED` identifica o ambiente de teste, não uma segunda versão do produto. A versão 0.14.2 foi publicada; o registro da atualização atual e sua verificação online ficam em PUBLICACAO-0.14.4.md quando concluídos. A configuração de hospedagem está em `render.yaml` e `codigo-fonte/DEPLOY-SAAS.md`.
+
+## O que mudou em 0.14.4
+
+A voz recebe **Ritmo da fala**. **Rápido · uma carta por vez** solicita ao navegador a conclusão quando uma carta completa e válida fica estável por 220 ms. Não aplica transcrição provisória: ainda exige resultado final validado. Diga a carta e aguarde ela entrar antes da próxima; formas curtas como “oito paus” e “eight clubs” são aceitas. A pausa de reinício própria da aplicação cai de 80 ms para a próxima tarefa do navegador nesse modo.
+
+**Frase completa · cartas em sequência** mantém a captura do lote. Ações e valores de aposta aguardam a conclusão normal para não cortar expressões numéricas. **Segure para falar** segue o gesto e preserva essa intenção após reinícios do provedor. Disponibilidade do idioma no dispositivo é reutilizada por até 60 segundos; não baixa pacotes nem muda o modo de processamento automaticamente.
+
+As medições separam resposta do reconhecedor e inserção da carta. O limiar de 220 ms é uma regra para solicitar conclusão, não promessa de tempo total. Resultados comparativos e limites em `RELATORIO-VELOCIDADE-VOZ-0.14.4.md`; publicação em `PUBLICACAO-0.14.4.md` após verificação.
 
 ## O que mudou em 0.14.3
 

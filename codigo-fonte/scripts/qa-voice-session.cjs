@@ -24,7 +24,15 @@ async function boot(expiryMs=3600000,refreshable=false){
 (async()=>{try{
  ({server}=require('../server'));await new Promise(r=>server.listen(0,'127.0.0.1',r));browser=await chromium.launch({channel:'msedge',headless:true});
  {
-  const {page,context}=await boot(2200);
+  const {page,context}=await boot();
+  // Arm a near expiry only after capture is actually active. Navigation/render
+  // speed must not consume the fake token's lifetime before this test begins.
+  await page.evaluate(()=>{
+   const key='theibs.auth.session.v1', saved=JSON.parse(localStorage.getItem(key));
+   const value=JSON.stringify({...saved,expires_at:Date.now()+500});
+   localStorage.setItem(key,value);window.dispatchEvent(new StorageEvent('storage',{key,newValue:value}));
+   if(!theibsCardVoice.getStatus().listening)throw Error('Voice must be active before real expiry timer fires');
+  });
   await page.waitForFunction(()=>theibsVoiceSessionContext().expired&&!theibsCardVoice.getStatus().listening,null,{timeout:5000});
   assert.equal(await page.evaluate(()=>__asr.at(-1).aborted),true);const n=await page.evaluate(()=>__asr.length);
   assert.equal(await page.locator('#login-screen').isVisible(),true);assert.equal(await page.locator('#app-shell').evaluate(e=>e.hidden&&e.inert),true);
