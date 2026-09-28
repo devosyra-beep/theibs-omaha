@@ -1,6 +1,10 @@
 function legalActions(input) {
-  const amountToCall = Number(input.amountToCall || 0);
-  const stack = Number(input.effectiveStack);
+  const rawCall = input.amountToCall;
+  const rawStack = input.effectiveStack;
+  if (rawCall === undefined || rawCall === null || rawCall === '') throw new Error('amountToCall must be explicitly informed.');
+  if (rawStack === undefined || rawStack === null || rawStack === '') throw new Error('effectiveStack must be explicitly informed.');
+  const amountToCall = Number(rawCall);
+  const stack = Number(rawStack);
   if (!Number.isFinite(amountToCall) || amountToCall < 0) throw new Error('amountToCall must be valid.');
   if (!Number.isFinite(stack) || stack < 0) throw new Error('effectiveStack must be valid.');
   if (stack === 0) return [];
