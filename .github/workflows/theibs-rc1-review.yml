@@ -1,0 +1,111 @@
+name: THEIBS RC1 isolated review
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: theibs-rc1-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    if: github.repository == 'devosyra-beep/theibs-omaha' && github.head_ref == 'analyze-statistics-0.14.6' && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.number == 1
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.13.0'
+      - name: Apply exact reviewed source delta
+        run: python .review/apply-rc1.py
+      - name: Syntax and complete Node suite
+        working-directory: codigo-fonte
+        run: |
+          set -euo pipefail
+          find src public scripts test -type f \( -name '*.js' -o -name '*.cjs' \) -print0 | xargs -0 -n1 node --check
+          node --check server.js
+          node --test "test/*.test.cjs" 2>&1 | tee ../validation-output/node-tests.txt
+      - name: Install isolated browser test dependency
+        run: |
+          npm install --prefix "$RUNNER_TEMP/theibs-browser" --ignore-scripts --no-audit --no-fund playwright@1.57.0
+          "$RUNNER_TEMP/theibs-browser/node_modules/.bin/playwright" install --with-deps chromium
+          echo "NODE_PATH=$RUNNER_TEMP/theibs-browser/node_modules" >> "$GITHUB_ENV"
+          echo "THEIBS_CHROMIUM_PATH=$(node -e "console.log(require('$RUNNER_TEMP/theibs-browser/node_modules/playwright').chromium.executablePath())")" >> "$GITHUB_ENV"
+      - name: Controlled voice matrix (no audio or provider calls)
+        working-directory: codigo-fonte
+        run: |
+          set -o pipefail
+          node scripts/qa-voice-quality.cjs --out=../validation-output/controlled-voice 2>&1 | tee ../validation-output/controlled-voice.log
+      - name: Statistics and voice destination browser integration
+        working-directory: codigo-fonte
+        run: |
+          set -o pipefail
+          node scripts/qa-statistics-voice-focus.cjs --out=../validation-output/statistics-browser 2>&1 | tee ../validation-output/statistics-browser.log
+      - name: Keyboard rendering proxy, serial execution
+        working-directory: codigo-fonte
+        run: |
+          set -o pipefail
+          node scripts/benchmark-keyboard-ui.cjs --out=../validation-output/keyboard --label=rc1 --events=400 --delay=20 2>&1 | tee ../validation-output/keyboard.log
+      - name: Verify source integrity after tests
+        run: python .review/apply-rc1.py --verify-only
+      - name: Package exactly tracked webapp source plus reviewed new files
+        if: always()
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import subprocess, zipfile
+          out = Path('validation-output')
+          out.mkdir(exist_ok=True)
+          tracked = set(subprocess.check_output(['git','ls-files','codigo-fonte'],text=True).splitlines())
+          if (out/'source-paths.txt').exists():
+              tracked.update((out/'source-paths.txt').read_text().splitlines())
+          with zipfile.ZipFile(out/'theibs-webapp-0.14.6-rc.1.zip','w',zipfile.ZIP_DEFLATED) as archive:
+              for name in sorted(tracked):
+                  path = Path(name)
+                  if path.is_file() and not path.is_symlink(): archive.write(path,name)
+          (out/'review-head.txt').write_text(subprocess.check_output(['git','rev-parse','HEAD'],text=True))
+          PY
+      - name: Retain all results including failed attempts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: theibs-rc1-review-${{ github.run_id }}
+          path: validation-output/
+          retention-days: 7
+          if-no-files-found: error
+  integrate_review_branch:
+    needs: verify
+    if: github.repository == 'devosyra-beep/theibs-omaha' && github.head_ref == 'analyze-statistics-0.14.6' && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.number == 1
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Apply only the source that passed the isolated review
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          actual=$(git ls-remote origin refs/heads/analyze-statistics-0.14.6 | cut -f1)
+          test "$actual" = "$EXPECTED_HEAD" || { echo 'Branch changed; refusing to overwrite concurrent work.'; exit 1; }
+          python .review/apply-rc1.py
+          python .review/apply-rc1.py --verify-only
+          while IFS= read -r file; do git add -- "$file"; done < validation-output/source-paths.txt
+          git rm -- .review/apply-rc1.py .review/rc1-source-part1.b64 .review/rc1-source-part2.b64 .github/workflows/theibs-rc1-review.yml
+          git diff --cached --stat
+          git config user.name 'THEIBS review automation'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'Integrate verified Analyze and voice RC1 on review branch only'
+          git push origin HEAD:refs/heads/analyze-statistics-0.14.6
+          echo 'No merge, main update, deployment, credentials, or audio provider was changed.'
