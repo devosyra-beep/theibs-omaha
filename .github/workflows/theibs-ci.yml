@@ -1,0 +1,30 @@
+name: THEIBS CI
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: codigo-fonte
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.13.0'
+      - name: Syntax checks
+        run: |
+          node --check src/game-state.js
+          node --check src/action-validator.js
+          node --check src/pot-math.js
+          node --check src/action-ev-engine.js
+          node --check src/decision-engine.js
+          node --check src/continuation-assessment.js
+          node --check server.js
+          node --check public/app.js
+          node --check public/continuation-view.js
+      - name: Node test suite
+        run: node --test "test/*.test.cjs"
