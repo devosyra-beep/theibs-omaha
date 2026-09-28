@@ -4,17 +4,32 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: theibs-ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     defaults:
       run:
         working-directory: codigo-fonte
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: '22.13.0'
+      - name: Snapshot tracked source
+        run: |
+          mkdir -p ../validation-output
+          git rev-parse HEAD > ../validation-output/tested-commit.txt
+          git archive --format=zip --output="$GITHUB_WORKSPACE/validation-output/theibs-tested-source.zip" HEAD
       - name: Syntax checks
         run: |
           node --check src/game-state.js
@@ -28,4 +43,14 @@ jobs:
           node --check public/dashboard.js
           node --check public/continuation-view.js
       - name: Node test suite
-        run: node --test "test/*.test.cjs"
+        run: |
+          set -o pipefail
+          node --test "test/*.test.cjs" 2>&1 | tee ../validation-output/node-tests.txt
+      - name: Preserve review evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: theibs-source-and-tests-${{ github.run_id }}
+          path: validation-output/
+          retention-days: 7
+          if-no-files-found: error
