@@ -283,7 +283,7 @@ function renderResult(data, street) {
     document.querySelectorAll('[data-study-opponent]').forEach(row=>row.hidden=Number(row.dataset.studyOpponent)>=opponents);
     const maxOpponents=maxPlayers-1;
     const opponentSelect=$('#opponent-count');
-    opponentSelect.innerHTML=Array.from({length:maxOpponents},(_,i)=>`<option value="${i+1}">${i+1}</option>`).join('');
+    opponentSelect.innerHTML=(opponents?'':'<option value="" selected>Select…</option>')+Array.from({length:maxOpponents},(_,i)=>`<option value="${i+1}">${i+1}</option>`).join('');
     if(opponents>maxOpponents)opponentSelect.add(new Option(`${opponents} · · exceeds the deck`,String(opponents)));
     opponentSelect.value=String(opponents);
     $('#opponent-total').title='Opponent positions are illustrative; their cards remain unknown.';
