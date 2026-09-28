@@ -81,6 +81,7 @@ function snapshotForCoach(result, session = {}) {
     rangeSource: ranges[0]?.source || null,
     rangeModel: hasUniform ? 'INCLUDES_UNIFORM_UNKNOWN_HANDS' : ranges.length ? 'PROVIDED_HANDS_OR_RANGES' : 'UNSPECIFIED',
     handInsights: result.handInsights || null,
+    statistics: result.statistics || null,
     strategy: result.strategy?.baseline || null,
     simulationPolicy: session.policyVersion || null,
     opponentStyle: session.opponentStyle || null,

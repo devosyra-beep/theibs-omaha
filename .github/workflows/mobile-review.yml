@@ -1,0 +1,67 @@
+name: THEIBS mobile review
+on:
+  push:
+    branches: [mobile-webapp-cleanup-0.14.6]
+permissions:
+  contents: read
+concurrency:
+  group: mobile-review-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.13.0'
+      - name: Apply exact five-file mobile delta with reviewed fixes
+        run: python .review/apply-mobile.py
+      - name: Syntax and complete Node tests
+        working-directory: codigo-fonte
+        run: |
+          set -o pipefail
+          node --check public/mobile-ui.js
+          node --check scripts/qa-mobile-layout.cjs
+          node --test "test/*.test.cjs" 2>&1 | tee ../validation-output/node-tests.txt
+      - name: Install isolated test browsers
+        run: |
+          npm install --prefix "$RUNNER_TEMP/theibs-browser" --ignore-scripts --no-audit --no-fund playwright@1.57.0
+          "$RUNNER_TEMP/theibs-browser/node_modules/.bin/playwright" install --with-deps chromium webkit
+          echo "NODE_PATH=$RUNNER_TEMP/theibs-browser/node_modules" >> "$GITHUB_ENV"
+      - name: Chromium mobile integration
+        working-directory: codigo-fonte
+        run: |
+          set -o pipefail
+          node scripts/qa-mobile-layout.cjs --browser=chromium --out=../validation-output/chromium 2>&1 | tee ../validation-output/chromium.log
+      - name: WebKit mobile integration
+        if: success() || failure()
+        working-directory: codigo-fonte
+        run: |
+          set -o pipefail
+          node scripts/qa-mobile-layout.cjs --browser=webkit --out=../validation-output/webkit 2>&1 | tee ../validation-output/webkit.log
+      - name: Preserve source and verify no test changed the candidate
+        if: always()
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import subprocess,zipfile,json,hashlib
+          out=Path('validation-output');out.mkdir(exist_ok=True)
+          manifest=json.loads((out/'mobile-final-source-hashes.json').read_text())
+          for f,digest in manifest.items():assert hashlib.sha256(Path(f).read_bytes()).hexdigest()==digest
+          files=set(subprocess.check_output(['git','ls-files','codigo-fonte'],text=True).splitlines())|set(manifest)
+          with zipfile.ZipFile(out/'mobile-candidate.zip','w',zipfile.ZIP_DEFLATED) as z:
+              for f in sorted(files):
+                  p=Path(f)
+                  if p.is_file() and not p.is_symlink():z.write(p,f)
+          PY
+      - name: Retain screenshots and raw evidence including failures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: theibs-mobile-${{ github.run_id }}
+          path: validation-output/
+          retention-days: 7

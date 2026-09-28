@@ -83,8 +83,7 @@ function parseCards(text) {
 }
 
 function parseOptionalNumber(value) {
-  if (value === undefined || value === null || String(value).trim() === '') return undefined;
-  return Number(value);
+  return require('./src/input-number').optionalNumber(value) ?? undefined;
 }
 
 function buildInput(payload) {
@@ -93,6 +92,7 @@ function buildInput(payload) {
     ...(payload.street ? { street: payload.street } : {}),
     heroCards: parseCards(payload.heroCards),
     board: parseCards(payload.board),
+    ...(payload.deadCards !== undefined ? { deadCards: parseCards(payload.deadCards) } : {}),
     position: payload.position,
     players: parseOptionalNumber(payload.players),
     potBeforeAction: parseOptionalNumber(payload.potBeforeAction),
@@ -104,6 +104,7 @@ function buildInput(payload) {
     continuationEquity: parseOptionalNumber(payload.continuationEquity),
     rake: parseOptionalNumber(payload.rake),
     rakeSchedule: payload.rakeSchedule,
+    costInputMissing: Array.isArray(payload.costInputMissing) ? payload.costInputMissing.filter(x => ['rakeSchedule.rate','rakeSchedule.cap'].includes(x)) : undefined,
     selectionInference: payload.selectionInference,
     practicalEquivalenceBB: parseOptionalNumber(payload.practicalEquivalenceBB),
     bigBlind: parseOptionalNumber(payload.bigBlind),
@@ -126,11 +127,13 @@ function buildInput(payload) {
     seed: Number(payload.seed ?? 42),
     unknownOpponentModel: payload.unknownOpponentModel,
     actionHistory: payload.actionHistory,
-    availableActions: Number(payload.amountToCall || 0)
-      ? ['FOLD', 'CALL', 'RAISE']
-      : Number(payload.heroContribution ?? payload.aggressionStudy?.heroContribution ?? 0) > 0 ? ['CHECK', 'RAISE'] : ['CHECK', 'BET']
+    availableActions: payload.amountToCall === undefined || payload.amountToCall === null || String(payload.amountToCall).trim() === ''
+      ? undefined
+      : Number(payload.amountToCall) > 0
+        ? ['FOLD', 'CALL', 'RAISE']
+        : Number(payload.heroContribution ?? payload.aggressionStudy?.heroContribution ?? 0) > 0 ? ['CHECK', 'RAISE'] : ['CHECK', 'BET']
   };
-  if (Array.isArray(payload.availableActions)) input.availableActions = input.availableActions.filter(action=>['FOLD','CALL','CHECK','BET','RAISE'].includes(action) && payload.availableActions.includes(action));
+  if (Array.isArray(payload.availableActions)) input.availableActions = (input.availableActions || []).filter(action=>['FOLD','CALL','CHECK','BET','RAISE'].includes(action) && payload.availableActions.includes(action));
   if (Object.hasOwn(payload,'opponentOverrides')) {
     input.opponentOverrides=payload.opponentOverrides;
     input.opponentStudyAccepted=payload.opponentStudyAccepted===true;

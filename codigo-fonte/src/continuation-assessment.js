@@ -17,7 +17,7 @@ function assessContinuation(data = {}) {
     equityBounds: validBounds(q?.confidenceInterval95) ? [...q.confidenceInterval95] : q?.method === 'EXACT' && Number.isFinite(q?.equity) ? [q.equity, q.equity] : null,
     evChips: null, evBounds: null, boundsKind: null, breakEvenEquity: null,
     equityMarginPP: null, conservativeMarginPP: null,
-    reasonCodes: [],
+    reasonCodes: [], missingInputs: [...(call?.missingInputs || [])],
     handContext: { street: state.street || null, madeHand: data.handInsights?.made?.label || null,
       nutsOnCurrentBoard: data.handInsights?.nuts?.unbeaten === true,
       futureBoardCards: !Array.isArray(state.board) || state.board.length < 5 },
@@ -27,13 +27,19 @@ function assessContinuation(data = {}) {
   if (data.status !== 'OK') return stop('UNAVAILABLE', 'CALCULATION_UNAVAILABLE');
   if (data.analysisStage === 'PROVISIONAL') return stop('PROVISIONAL', 'WAIT_FOR_FINAL_RESULT');
   if (!Number.isInteger(state.opponentCount) || !Number.isInteger(q?.opponents) || state.opponentCount !== q.opponents) return stop('UNAVAILABLE', 'INCOMPLETE_OPPONENT_COVERAGE');
+  if (state.knownInformation?.amountToCall === false) return stop('UNAVAILABLE', 'AMOUNT_TO_CALL_REQUIRED');
   if (amount === 0 && data.legalActions?.includes('CHECK')) {
     result.action = 'CHECK';
     return stop('FREE_CHECK', 'NO_CURRENT_CALL_COST');
   }
   if (!(amount > 0) || !data.legalActions?.includes('CALL') || call?.legal !== true) return stop('UNAVAILABLE', 'CALL_NOT_LEGAL');
   result.action = 'CALL';
-  if (call.status !== 'MODELED' || !Number.isFinite(call.ev)) return stop('UNAVAILABLE', (call.missingInputs || []).some(x => /rake/i.test(x)) ? 'COSTS_REQUIRED' : 'CALL_MODEL_UNAVAILABLE');
+  if (call.status !== 'MODELED' || !Number.isFinite(call.ev)) {
+    const missing = call.missingInputs || [];
+    if (missing.some(x => /potBeforeAction/i.test(x))) return stop('UNAVAILABLE', 'POT_REQUIRED');
+    if (missing.some(x => /amountToCall/i.test(x))) return stop('UNAVAILABLE', 'AMOUNT_TO_CALL_REQUIRED');
+    return stop('UNAVAILABLE', missing.some(x => /rake/i.test(x)) ? 'COSTS_REQUIRED' : 'CALL_MODEL_UNAVAILABLE');
+  }
   if (!['SHOWDOWN_ONLY', 'SCENARIO_SHOWDOWN_ONLY'].includes(call.model)) return stop('UNAVAILABLE', 'UNSUPPORTED_CALL_MODEL');
   result.evChips = call.ev;
   if (validBounds(call.conditionalEvEnvelope)) {
