@@ -15,6 +15,14 @@
   }
   // Old drafts may contain a checkbox that the old UI checked automatically.
   // Keep cards and actual amounts; require a fresh explicit zero-cost choice.
-  function restoreZeroRake(workspace){return workspace?.ui?.costInputsVersion===1&&workspace.fields?.assumeNoRake===true;}
+  function restoreZeroRake(workspace){
+    const explicitVersion=workspace?.ui?.costInputsVersion===1;
+    // The restored workspace is an in-memory draft. Sanitize its legacy return
+    // snapshot too, before exitMultiway can copy those checkbox values back.
+    // Do not change recorded amounts, cards or new explicit cost choices.
+    const backup=workspace?.multiwayYesple?.fields;
+    if(!explicitVersion&&backup&&typeof backup==='object'&&!Array.isArray(backup))backup.assumeNoRake=false;
+    return explicitVersion&&workspace.fields?.assumeNoRake===true;
+  }
   return {collect,restoreZeroRake};
 });
