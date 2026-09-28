@@ -1,6 +1,11 @@
+const { isMissing, optionalNumber } = require('./input-number');
 function legalActions(input) {
-  const amountToCall = Number(input.amountToCall || 0);
-  const stack = Number(input.effectiveStack);
+  const rawCall = input.amountToCall;
+  const rawStack = input.effectiveStack;
+  if (isMissing(rawCall)) throw new Error('amountToCall must be explicitly informed.');
+  if (isMissing(rawStack)) throw new Error('effectiveStack must be explicitly informed.');
+  const amountToCall = optionalNumber(rawCall);
+  const stack = optionalNumber(rawStack);
   if (!Number.isFinite(amountToCall) || amountToCall < 0) throw new Error('amountToCall must be valid.');
   if (!Number.isFinite(stack) || stack < 0) throw new Error('effectiveStack must be valid.');
   if (stack === 0) return [];

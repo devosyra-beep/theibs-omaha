@@ -51,3 +51,19 @@ test('experiment endpoint serves aggregate model evidence separately from a hand
   const data=await r.json();assert.ok(['OK','NOT_EXECUTED'].includes(data.status));
   if(data.report){assert.equal(data.report.evidenceOrigin,'SIMULATION');assert.ok(Array.isArray(data.report.scenarios));assert.equal(data.report.rawHands,undefined);}
 });
+
+test('basic HTTP analysis separates missing price, explicit CHECK, costs and dead-card identity',async()=>{
+ const input={variant:'PLO4_HIGH',heroCards:['As','Kd','Qc','Jh'],board:['2s','3d','4c'],players:2,unknownOpponentModel:'UNIFORM',opponentOverrides:[],samples:512,seed:913};
+ const blank=await post('/api/analyze',{...input,amountToCall:'  '});
+ assert.equal(blank.status,'OK');assert.equal(blank.state.amountToCall,null);
+ assert.equal(blank.continuationAssessment.status,'UNAVAILABLE');assert.equal(blank.statistics.equity.share,blank.equity.equity);
+ assert.equal(blank.statistics.model.kind,'UNIFORM_LEGAL_HANDS');assert.equal(blank.provenance.rake.mode,'UNKNOWN');
+ const check=await post('/api/analyze',{...input,amountToCall:0});assert.equal(check.continuationAssessment.status,'FREE_CHECK');
+ const noCosts=await post('/api/analyze',{...input,potBeforeAction:100,amountToCall:10,costInputMissing:['rakeSchedule.rate']});
+ assert.deepEqual(noCosts.continuationAssessment.missingInputs,['rakeSchedule.rate']);assert.equal(noCosts.ev.actions.CALL.ev,null);
+ const dead=await post('/api/analyze',{...input,deadCards:['7s']});
+ assert.notEqual(dead.provenance.inputHash,blank.provenance.inputHash);assert.equal(dead.handInsights.nextCard.unseenCards,44);
+ const repeat=await post('/api/analyze',{...input,deadCards:['As']});assert.equal(repeat.status,'NO_DECISION');
+ const coach=await post('/api/analysis/doubt',{input,question:'Explain this hand',responseMode:'LOCAL_FIRST'});
+ assert.equal(coach.context.statistics.equity.share,blank.equity.equity);
+});

@@ -3,7 +3,7 @@
   const $=s=>document.querySelector(s), form=$('#analysis-form');
   $('#samples').prepend(new Option('Adaptive · target up to 3s','adaptive'));
   const opponentsBar=document.createElement('div');opponentsBar.className='analysis-context-bar';
-  opponentsBar.innerHTML='<label for="opponent-count">Opponents in hand <select id="opponent-count"></select></label><span id="opponent-total" class="sr-only"></span>';
+  opponentsBar.innerHTML='<label for="opponent-count">Active opponents <select id="opponent-count"></select></label><span id="opponent-total" class="sr-only"></span>';
   $('#analyze-workspace .table-column').prepend(opponentsBar);
   for(const event of ['input','change'])$('#opponent-count').addEventListener(event,()=>{$('#players').value=Number($('#opponent-count').value)+1;});
   document.body.dataset.view='analyze';
@@ -84,11 +84,10 @@
   const facts=document.createElement('details');facts.id='hand-facts';facts.className='panel hand-facts compact-disclosure';
   facts.innerHTML='<summary>Hand insights</summary><div id="hand-facts-content">Complete your cards to see hand structure and draws.</div>';
   $('.context-rail').append(facts);
-  const modelLabel=document.createElement('label');modelLabel.innerHTML='Unknown opponent hands<select id="opponentModel"><option value="UNIFORM">Baseline: random hands</option><option value="EXPLICIT">Use only the entered hand / range</option></select><small>The random estimate includes every opponent still in the hand.</small>';
+  const modelLabel=document.createElement('label');modelLabel.innerHTML='Unknown opponent hands<select id="opponentModel"><option value="UNIFORM">Baseline: random legal hands</option></select><small>Modelo: adversários com cartas aleatórias. Manual hypotheses apply only to the selected opponent.</small>';
   $('#opponentHand').closest('.controls-panel').querySelector('.form-grid').before(modelLabel);
   const auto=document.createElement('label');auto.className='checkbox-label';auto.innerHTML='<input id="auto-analysis" type="checkbox" checked> Calculate automatically when cards are complete';
-  settings.querySelector('.dialog-content').prepend(auto);
-  $('#assumeNoRake').checked=true;
+  settings.querySelector('.dialog-content').prepend(auto); 
   const scenarios=document.createElement('details');scenarios.className='panel controls-panel';scenarios.id='raise-model-panel';
   scenarios.innerHTML=`<summary><span>Compare bet / raise</span></summary>
     <p>Estudo opcional de BET / RAISE. Informe taxas somente no painel individual de adversários; nenhuma taxa será preenchida automaticamente.</p>
