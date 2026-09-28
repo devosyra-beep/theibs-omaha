@@ -114,14 +114,14 @@ function normalizeGameState(input = {}) {
 
   const hasPot = input.potBeforeAction !== undefined && input.potBeforeAction !== null && input.potBeforeAction !== '';
   const hasAmountToCall = input.amountToCall !== undefined && input.amountToCall !== null && input.amountToCall !== '';
-  const potBeforeAction = optionalNumber(input.potBeforeAction, 'potBeforeAction', warnings, errors, 0);
-  const amountToCall = optionalNumber(input.amountToCall, 'amountToCall', warnings, errors, 0);
+  const potBeforeAction = optionalNumber(input.potBeforeAction, 'potBeforeAction', warnings, errors);
+  const amountToCall = optionalNumber(input.amountToCall, 'amountToCall', warnings, errors);
   const effectiveStack = optionalNumber(input.effectiveStack, 'effectiveStack', warnings, errors);
-  if(effectiveStack!==null && amountToCall>effectiveStack) errors.push('O valor para pagar excede seu stack. Informe o valor efetivamente pago no all-in; EV com potes laterais ainda não está modelado.');
+  if(effectiveStack!==null && amountToCall!==null && amountToCall>effectiveStack) errors.push('O valor para pagar excede seu stack. Informe o valor efetivamente pago no all-in; EV com potes laterais ainda não está modelado.');
   if (effectiveStack === null) warnings.push('Stack efetivo não informado; ações e SPR podem ficar indisponíveis.');
 
   const street = normalizeStreet(input.street, board.length, warnings, errors);
-  const availableActions = normalizeActions(input.availableActions, amountToCall || 0, errors, input.heroContribution);
+  const availableActions = normalizeActions(input.availableActions, amountToCall, errors, input.heroContribution);
   const actionHistory = normalizeHistory(input.actionHistory, errors);
   const previousAction = input.previousAction === undefined ? null : input.previousAction;
   if (previousAction !== null && typeof previousAction !== 'object') {
@@ -161,6 +161,8 @@ function normalizeGameState(input = {}) {
     unknownInformation: [
       ...(players === null ? ['players'] : []),
       ...(position === null ? ['position'] : []),
+      ...(!hasPot ? ['potBeforeAction'] : []),
+      ...(!hasAmountToCall ? ['amountToCall'] : []),
       ...(effectiveStack === null ? ['effectiveStack'] : []),
       ...(opponentModelProvided ? [] : ['opponentModel'])
     ]
