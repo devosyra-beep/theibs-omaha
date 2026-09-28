@@ -126,9 +126,11 @@ function buildInput(payload) {
     seed: Number(payload.seed ?? 42),
     unknownOpponentModel: payload.unknownOpponentModel,
     actionHistory: payload.actionHistory,
-    availableActions: Number(payload.amountToCall || 0)
-      ? ['FOLD', 'CALL', 'RAISE']
-      : Number(payload.heroContribution ?? payload.aggressionStudy?.heroContribution ?? 0) > 0 ? ['CHECK', 'RAISE'] : ['CHECK', 'BET']
+    availableActions: payload.amountToCall === undefined || payload.amountToCall === null || String(payload.amountToCall).trim() === ''
+      ? undefined
+      : Number(payload.amountToCall) > 0
+        ? ['FOLD', 'CALL', 'RAISE']
+        : Number(payload.heroContribution ?? payload.aggressionStudy?.heroContribution ?? 0) > 0 ? ['CHECK', 'RAISE'] : ['CHECK', 'BET']
   };
   if (Array.isArray(payload.availableActions)) input.availableActions = input.availableActions.filter(action=>['FOLD','CALL','CHECK','BET','RAISE'].includes(action) && payload.availableActions.includes(action));
   if (Object.hasOwn(payload,'opponentOverrides')) {
