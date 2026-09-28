@@ -1,0 +1,95 @@
+name: THEIBS mobile review
+on:
+  push:
+    branches: [mobile-webapp-cleanup-0.14.6]
+permissions:
+  contents: read
+concurrency:
+  group: mobile-review-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.13.0'
+      - name: Apply exact five-file source delta
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import base64, gzip, hashlib, json, subprocess
+          out=Path('validation-output');out.mkdir(exist_ok=True)
+          (out/'tested-head.txt').write_text(subprocess.check_output(['git','rev-parse','HEAD'],text=True))
+          encoded=''.join(Path('.review/mobile-'+p+'.b64').read_text().strip() for p in 'abcd')
+          assert len(encoded)==14296, 'Source transport length mismatch'
+          raw=gzip.decompress(base64.b64decode(encoded,validate=True))
+          assert hashlib.sha256(raw).hexdigest()=='874730e6901b23e449190e00482f3325e0f6a257ad824ace17d97abfaceff3fd', 'Source transport hash mismatch'
+          plan=json.loads(raw)
+          assert plan['schema']==1 and plan['base']=='ec0fff201a01adbfb42a1787f0d3fa6c8fc3af76'
+          allowed={'codigo-fonte/public/mobile-ui.js','codigo-fonte/public/mobile-ui.css','codigo-fonte/scripts/qa-mobile-layout.cjs','codigo-fonte/public/index.html','codigo-fonte/public/service-worker.js'}
+          assert len(plan['changes'])==5 and {c['path'] for c in plan['changes']}==allowed
+          pending=[]
+          for c in plan['changes']:
+              p=Path(c['path']);before=p.read_bytes() if p.exists() else None
+              assert not p.is_symlink()
+              assert (hashlib.sha256(before).hexdigest() if before is not None else None)==c['before'], 'Base changed: '+str(p)
+              text=(before or b'').decode('utf-8');ceiling=len(text)
+              for start,end,replacement in sorted(c['edits'],reverse=True):
+                  assert type(start)==int and type(end)==int and 0<=start<=end<=ceiling
+                  text=text[:start]+replacement+text[end:];ceiling=start
+              after=text.encode('utf-8')
+              assert hashlib.sha256(after).hexdigest()==c['after'], 'Candidate hash mismatch: '+str(p)
+              pending.append((p,after))
+          for p,data in pending:p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes(data)
+          (out/'mobile-source-manifest.json').write_text(json.dumps(plan,ensure_ascii=False,indent=2))
+          print('Applied exact source; no engine/auth/voice contract or production changes.')
+          PY
+      - name: Syntax and complete Node tests
+        working-directory: codigo-fonte
+        run: |
+          set -o pipefail
+          node --check public/mobile-ui.js
+          node --check scripts/qa-mobile-layout.cjs
+          node --test "test/*.test.cjs" 2>&1 | tee ../validation-output/node-tests.txt
+      - name: Install isolated test browsers
+        run: |
+          npm install --prefix "$RUNNER_TEMP/theibs-browser" --ignore-scripts --no-audit --no-fund playwright@1.57.0
+          "$RUNNER_TEMP/theibs-browser/node_modules/.bin/playwright" install --with-deps chromium webkit
+          echo "NODE_PATH=$RUNNER_TEMP/theibs-browser/node_modules" >> "$GITHUB_ENV"
+      - name: Chromium mobile integration
+        working-directory: codigo-fonte
+        run: |
+          set -o pipefail
+          node scripts/qa-mobile-layout.cjs --browser=chromium --out=../validation-output/chromium 2>&1 | tee ../validation-output/chromium.log
+      - name: WebKit mobile integration
+        if: success() || failure()
+        working-directory: codigo-fonte
+        run: |
+          set -o pipefail
+          node scripts/qa-mobile-layout.cjs --browser=webkit --out=../validation-output/webkit 2>&1 | tee ../validation-output/webkit.log
+      - name: Preserve candidate source
+        if: always()
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import subprocess,zipfile
+          out=Path('validation-output');out.mkdir(exist_ok=True)
+          files=set(subprocess.check_output(['git','ls-files','codigo-fonte'],text=True).splitlines())
+          files.update(['codigo-fonte/public/mobile-ui.js','codigo-fonte/public/mobile-ui.css','codigo-fonte/scripts/qa-mobile-layout.cjs'])
+          with zipfile.ZipFile(out/'mobile-candidate.zip','w',zipfile.ZIP_DEFLATED) as z:
+              for f in sorted(files):
+                  p=Path(f)
+                  if p.is_file() and not p.is_symlink():z.write(p,f)
+          PY
+      - name: Retain screenshots and raw evidence including failures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: theibs-mobile-${{ github.run_id }}
+          path: validation-output/
+          retention-days: 7
