@@ -41,6 +41,9 @@
   panel.querySelectorAll(':scope > .voice-help').forEach(item=>help.append(item));
   help.append(panel.querySelector(':scope > details'));
   panel.querySelector('.voice-heading').after(activation,panel.querySelector('#voice-status'),actions,advanced,help);
+  // Voice controls live inside the analysis form, but changing them must not
+  // invalidate the hand while microphone permission is being resolved.
+  for (const name of ['input', 'change']) panel.addEventListener(name, event => event.stopPropagation());
   const $ = id => panel.querySelector('#' + id), status = $('voice-status'), review = $('voice-review');
   let run = null, committing = false, timer = null, monitor = null, restartTimer = null, sample = null, lastLedgerUndo = null;
   let captureHold = false;
@@ -304,7 +307,9 @@
     trace(current,'start-request');
     armIdleTimer();
     try {
-      await waitForNativeRelease();
+      // Keep the first start in the checkbox's user gesture. Mobile browsers
+      // may reject microphone activation after an unnecessary async boundary.
+      if (nativeCaptures.size) await waitForNativeRelease();
       if (run !== current || current.cancelled) return;
       if (captured.processing === 'device') {
         if (typeof Recognition.available !== 'function' || !('processLocally' in Recognition.prototype)) throw Error('Reconhecimento no dispositivo não está disponível. Escolha conscientemente outro modo ou use o teclado.');
@@ -478,7 +483,12 @@
   }, true);
   // Auth owns storage/session continuity: a healthy token refresh preserves
   // its epoch. Logout, identity changes and failures emit the event above.
-  for (const name of ['blur', 'offline', 'pagehide']) window.addEventListener(name, () => { if (pending()) cancel('Voz cancelada ao interromper a página ou sessão.'); });
+  for (const name of ['offline', 'pagehide']) window.addEventListener(name, () => { if (pending()) cancel('Voz cancelada ao interromper a página ou sessão.'); });
+  window.addEventListener('blur', () => {
+    // A browser permission sheet can blur the page while the first start is
+    // pending. Visibility/pagehide still cancel capture when leaving the app.
+    if (pending() && captureState() !== 'starting') cancel('Voz cancelada ao interromper a página ou sessão.');
+  });
   document.addEventListener('visibilitychange', () => { if (document.hidden && pending()) cancel('Voz cancelada ao sair da página.'); });
   const observer = new MutationObserver(() => { if (!committing && pending() && JSON.stringify(context()) !== expectedContext()) cancel('Tela ou sessão alterada. Voz cancelada.'); });
   for (const element of [document.querySelector('#analyze-workspace'), document.querySelector('#app-shell'), document.body])
@@ -492,7 +502,5 @@
   if (Recognition && navigator.permissions?.query) navigator.permissions.query({name:'microphone'}).then(permission=>{
     const update=()=>{ microphonePermission=permission.state; controls(); };
     permission.addEventListener?.('change',update);update();
-    if (permission.state === 'prompt' && typeof navigator.permissions.request === 'function')
-      navigator.permissions.request({name:'microphone'}).then(result=>{microphonePermission=result.state;controls();}).catch(()=>{});
   }).catch(()=>{});
 })();

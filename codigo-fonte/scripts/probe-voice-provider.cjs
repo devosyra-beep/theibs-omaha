@@ -6,7 +6,7 @@ const {chromium}=require('playwright');
 const channel=process.argv.find(x=>x.startsWith('--channel='))?.slice(10)||'msedge';
 const audioSource=process.argv.includes('--source=track')?'track':'fake-device';
 const scenario=process.argv.includes('--scenario=action')?'action':'cards';
-const preflight=process.argv.includes('--preflight=enumerate')?'enumerate':'capture';
+const preflight=process.argv.includes('--preflight=none')?'none':process.argv.includes('--preflight=enumerate')?'enumerate':'capture';
 const out=path.resolve(process.argv.find(x=>x.startsWith('--out='))?.slice(6)||'../validacao/analyze-online-2026-09-27/voice');
 const temp=fs.mkdtempSync(path.join(os.tmpdir(),'theibs-synthetic-asr-'));
 Object.assign(process.env,{THEIBS_DATA_PATH:path.join(temp,'events.jsonl'),THEIBS_WORKSPACE_PATH:path.join(temp,'workspace.json'),THEIBS_LLM_CONFIG_PATH:path.join(temp,'llm.json'),THEIBS_LLM_PROVIDER:'none'});
@@ -21,7 +21,7 @@ try{
   const row={locale,browser:browser.version(),audioSource,wavSha256:crypto.createHash('sha256').update(fs.readFileSync(wav)).digest('hex'),reference:locale==='pt-BR'?'ás de espadas, dez de copas':'ace of spades, ten of hearts',expectedCards:['As','Th'],status:'RUNNING'};
   row.scenario=scenario;row.preflight=preflight;
   if(scenario==='action'){row.reference=locale==='pt-BR'?'eu aumento para dois vírgula cinco':'I raise to two point five';row.expectedEvent={type:'ACT',actor:0,action:'RAISE',to:2.5};delete row.expectedCards;}
-  const page=await browser.newPage({serviceWorkers:'block',viewport:{width:1366,height:1000},...(preflight==='enumerate'?{permissions:['microphone']}:{})});
+  const page=await browser.newPage({serviceWorkers:'block',viewport:{width:390,height:844},isMobile:true,hasTouch:true,...(preflight==='enumerate'?{permissions:['microphone']}:{})});
   await page.route('**/__synthetic-audio.wav',route=>route.fulfill({contentType:'audio/wav',body:fs.readFileSync(wav)}));
   await page.addInitScript(sourceMode=>{
    window.__nativeVoiceEvents=[];const Native=window.SpeechRecognition||window.webkitSpeechRecognition;
@@ -55,7 +55,8 @@ try{
    return values;
   },locale);
   // Assert the OS microphone is not the capture device before starting ASR.
-  row.fakeCapture=preflight==='enumerate'?await page.evaluate(async()=>{
+  row.permissionBefore=await page.evaluate(async()=>{try{return (await navigator.permissions.query({name:'microphone'})).state;}catch{return 'unavailable';}});
+  row.fakeCapture=preflight==='none'?{label:'Fake device configured by browser launch; checked after recognition',captureOpened:false}:preflight==='enumerate'?await page.evaluate(async()=>{
    const devices=await navigator.mediaDevices.enumerateDevices(),device=devices.find(d=>d.kind==='audioinput'&&/fake.*default|default.*fake/i.test(d.label));
    return {label:device?.label||'',kind:device?.kind||'',captureOpened:false};
   }):await page.evaluate(async()=>{
@@ -69,12 +70,17 @@ try{
    window.__preparedSyntheticTrack={context,source,track:destination.stream.getAudioTracks()[0]};
    const values=buffer.getChannelData(0);return {duration:buffer.duration,sampleRate:buffer.sampleRate,peak:values.reduce((m,x)=>Math.max(m,Math.abs(x)),0),channels:buffer.numberOfChannels};
   });
-  await page.locator('#card-voice-disclosure>summary').click();await page.locator('#voice-auto-apply').uncheck();await page.locator('#voice-language').selectOption(locale);await page.locator('#voice-consent').check();await page.locator('#voice-toggle').click();
+  await page.locator('#card-voice-disclosure').evaluate(e=>e.open=true);
+  await page.locator('#card-voice .voice-advanced').evaluate(e=>e.open=true);
+  await page.locator('#voice-auto-apply').uncheck();await page.locator('#voice-language').selectOption(locale);
+  await page.locator('#voice-consent').check();
   // A provider may emit empty/early segments while audio is still playing.
   // Do not terminate the waveform merely because the first result arrived.
   await page.waitForFunction(()=>__nativeVoiceEvents.some(e=>e.event==='error'||e.event==='end'),null,{timeout:12000}).catch(()=>{});
-  if(await page.evaluate(()=>theibsCardVoice.getStatus().listening))await page.locator('#voice-toggle').click();
+  if(await page.evaluate(()=>theibsCardVoice.getStatus().listening))await page.locator('#voice-consent').uncheck();
   await page.waitForFunction(()=>!theibsCardVoice.getStatus().listening,null,{timeout:5000}).catch(()=>{});
+  row.permissionAfter=await page.evaluate(async()=>{try{return (await navigator.permissions.query({name:'microphone'})).state;}catch{return 'unavailable';}});
+  if(preflight==='none')row.fakeCapture=await page.evaluate(async()=>{const devices=await navigator.mediaDevices.enumerateDevices();const device=devices.find(d=>d.kind==='audioinput'&&/fake/i.test(d.label));return {label:device?.label||'',kind:device?.kind||'',captureOpened:false};});
   row.events=await page.evaluate(()=>__nativeVoiceEvents);row.userMessage=await page.locator('#voice-status').innerText();
   row.proposal=await page.locator('#voice-proposal').innerText();row.reviewVisible=await page.locator('#voice-review').isVisible();
   row.status=row.events.some(e=>e.results?.some(r=>r.text.trim()))?'TEXT_RECEIVED':row.events.some(e=>e.event==='result')?'EMPTY_TRANSCRIPTION':'PROVIDER_UNAVAILABLE';
@@ -89,5 +95,5 @@ try{
  }
  report.status=report.rows.every(r=>r.exactDevelopmentExample===true)?'SYNTHETIC_SMOKE_PASS':'INCONCLUSIVE_PROVIDER_INTEGRATION';
 }catch(error){report.status='PROBE_ERROR';report.error=error.stack;process.exitCode=1;}
-finally{fs.writeFileSync(path.join(out,`provider-probe-${channel}${audioSource==='track'?'-track':''}${scenario==='action'?'-actions':''}${preflight==='enumerate'?'-enumerate':''}.json`),JSON.stringify(report,null,2));await browser?.close();await new Promise(r=>server?server.close(r):r());console.log(JSON.stringify(report));}
+finally{fs.writeFileSync(path.join(out,`provider-probe-${channel}${audioSource==='track'?'-track':''}${scenario==='action'?'-actions':''}${preflight==='enumerate'?'-enumerate':preflight==='none'?'-no-preflight':''}.json`),JSON.stringify(report,null,2));await browser?.close();await new Promise(r=>server?server.close(r):r());console.log(JSON.stringify(report));}
 })().then(()=>process.exit(process.exitCode||0));
