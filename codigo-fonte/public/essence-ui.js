@@ -43,8 +43,9 @@
         : [20+((i-mobileTopCount)%4)*20,19+Math.floor((i-mobileTopCount)/4)*20];
       const [x,y]=position;
       const status=p.folded?'Folded':p.allIn?'All-in':state.actor===p.id?'To act':p.lastAction||'';
+      const checked=!p.folded&&!p.allIn&&state.actor!==p.id&&p.lastAction==='CHECK';
       const name=p.name||`Adv. ${state.players.filter(item=>!item.hero).findIndex(item=>item.id===p.id)+1}`;
-      return `<button type="button" class="opponent-place multiway-seat${p.folded?' folded':''}${state.actor===p.id?' acting':''}" style="--seat-x:${x}%;--seat-y:${y}%;--seat-x-mobile:${mobilePosition[0]}%;--seat-y-mobile:${mobilePosition[1]}%" data-multiway-player="${p.id}" aria-label="${esc(name)} · ${esc(p.position)}: ${esc(status)}, stack ${money(p.stack)}">${hiddenCards(holeCount)}<span class="opponent-name">${esc(name)} · ${esc(p.position)} · ${money(p.stack)}</span>${status?`<span class="multiway-seat-status">${esc(({CALL:'Called',CHECK:'Checked',BET:'Bet',RAISE:'Raised',FOLD:'Folded'})[status]||status)}</span>`:''}</button>`;
+      return `<button type="button" class="opponent-place multiway-seat${p.folded?' folded':''}${state.actor===p.id?' acting to-act':''}${checked?' checked':''}" style="--seat-x:${x}%;--seat-y:${y}%;--seat-x-mobile:${mobilePosition[0]}%;--seat-y-mobile:${mobilePosition[1]}%" data-multiway-player="${p.id}" aria-label="${esc(name)} · ${esc(p.position)}: ${esc(status)}, stack ${money(p.stack)}">${hiddenCards(holeCount)}<span class="opponent-name">${esc(name)} · ${esc(p.position)} · ${money(p.stack)}</span>${status?`<span class="multiway-seat-status">${esc(({CALL:'Called',CHECK:'Checked',BET:'Bet',RAISE:'Raised',FOLD:'Folded','To act':'TO ACT'})[status]||status)}</span>`:''}</button>`;
     }).join('');
   }
   window.EssenceUI = { esc, cardMarkup, canonicalCard, money, trainingTable, hiddenCards, opponentSeats, multiwaySeats };

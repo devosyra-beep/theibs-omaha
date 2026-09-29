@@ -56,7 +56,7 @@
   }
   let inputChangedAt = performance.now(), coachController = null, coachGeneration = 0;
   let multiway = null, multiwayState = null, multiwayAnalysis = null, multiwayYesple = null;
-  let multiwayBusy = false, syncingMultiway = false, multiwayCardTimer = null, multiwayCardSnapshot = null, multiwayRevision = 0;
+  let multiwayBusy = false, syncingMultiway = false, multiwayCardTimer = null, multiwayCardSnapshot = null, multiwayRevision = 0, multiwayBoardEntryToken = null;
   const multiwayLocked = ['variant-select','players','opponent-count','position','potBeforeAction','amountToCall','effectiveStack','study-mode'];
   const multiwayManualModels = ['opponentProfile','opponentProfileSource','observedFoldToBet','observedCallFrequency','observedRaiseFrequency','observedBluffFrequency','betSize','raiseTo','foldEquity','continuationEquity','study-hero-contribution','study-min-raise','study-min-bet','study-accept',...Array.from({length:9},(_,i)=>['study-contribution-'+i,'study-probability-'+i]).flat()];
   function syncMultiwayBoardKeyboard() {
@@ -66,8 +66,14 @@
       const column = $('#analyze-workspace .table-column'), decision = $('.quick-decision');
       if (column && cardKeyboardPanel.parentElement !== column) column.insertBefore(cardKeyboardPanel, decision);
       cardKeyboardPanel.classList.add('multiway-board-entry');
-      window.theibsCardPicker?.open();
+      const token = `${multiwayState.nextStreet}:${multiwayState.board?.length || 0}:${multiwayState.log?.length || 0}`;
+      if (token !== multiwayBoardEntryToken) {
+        window.theibsCardPicker?.close();
+        window.theibsCardKeyboard?.select?.(cards.state.count + (multiwayState.board?.length || 0));
+        multiwayBoardEntryToken = token;
+      }
     } else {
+      multiwayBoardEntryToken = null;
       if (cardKeyboardPanel.parentElement !== cardKeyboardHome) {
         window.theibsCardPicker?.close();
         if (cardKeyboardPanel.contains(document.activeElement)) document.activeElement.blur();
@@ -602,10 +608,10 @@ function renderResult(data, street) {
       if(analysisQueued){analysisQueued=false;scheduleAnalysis();}
     }
   }
-  async function newAnalysisHand(confirm = true) {
+  async function newAnalysisHand(confirm = true, askPosition = false) {
     if(multiwayBusy){toast('Wait for the action to be recorded before clearing the hand.');return;}
     if (confirm && (cards.state.slots.some(Boolean) || cards.isManualInvalid() || multiway?.events.length) && !window.confirm(multiway?'Start another Multiway hand and clear this hand’s cards and actions? Table settings will be kept.':'Clear the current hand’s cards and analyses? Saved history and settings will be preserved.')) return;
-    if(multiway){try{await startMultiway({...multiway.config,heroCards:[]});}catch(error){toast(error.message);}return;}
+    if(multiway){if(askPosition){window.theibsMultiwayUI.requestHeroPosition();return;}try{await startMultiway({...multiway.config,heroCards:[]});}catch(error){toast(error.message);}return;}
     window.theibsOpponentInputs.reset();
     snapshots.splice(0); cards.reset(); invalidateAnalysis(); updateBoardHelp(); renderStreetCards(); renderCharts();
     quickAction(null); scheduleSave();
@@ -902,7 +908,7 @@ function renderResult(data, street) {
     cards.select(({ PREFLOP: 0, FLOP: cards.state.count, TURN: cards.state.count + 3, RIVER: cards.state.count + 4 })[button.dataset.street]);
     toast(`Selected input: ${streetName(button.dataset.street)}. The analyzed street is defined by the completed board.`);
   }));
-  $('#new-hand').addEventListener('click', () => { if (activeView === 'train') startTraining(); else { showView('analyze'); newAnalysisHand(); } });
+  $('#new-hand').addEventListener('click', () => { if (activeView === 'train') startTraining(); else { showView('analyze'); newAnalysisHand(true, true); } });
   $('#clear').addEventListener('click', () => newAnalysisHand());
   // A modifier is to shortcut only on release, if it was never part of to chord.
   const heldHandKeys=new Set();let soloHandShift=null;

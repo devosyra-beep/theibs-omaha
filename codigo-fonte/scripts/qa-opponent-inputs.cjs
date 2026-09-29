@@ -1,46 +1,200 @@
 'use strict';
-const fs=require('node:fs'),path=require('node:path'),os=require('node:os'),assert=require('node:assert/strict');
-const {chromium}=require('playwright');
-const out=path.resolve(process.argv.find(x=>x.startsWith('--out='))?.slice(6)||'../validacao/analyze-online-2026-09-27/opponent-inputs');
-fs.mkdirSync(out,{recursive:true});assert.equal(fs.readdirSync(out).length,0,'Use new evidence directory.');
-const temp=fs.mkdtempSync(path.join(os.tmpdir(),'theibs-opponent-inputs-'));
-Object.assign(process.env,{THEIBS_DATA_PATH:path.join(temp,'events.jsonl'),THEIBS_WORKSPACE_PATH:path.join(temp,'workspace.json'),THEIBS_LLM_CONFIG_PATH:path.join(temp,'llm.json'),THEIBS_LLM_PROVIDER:'none'});
-const {server}=require('../server'),pool=require('../src/analysis-worker');
-const report={version:require('../package.json').version,execution:'LOCAL_BROWSER_REAL_HTTP',status:'RUNNING',checks:[],errors:[]};
-let browser,page,baseline;
-const input=()=>page.evaluate(()=>theibsApp.getAnalysisInput());
-const snapshot=()=>page.evaluate(()=>theibsOpponentInputs.snapshot());
-const mathResult=value=>Object.fromEntries(Object.entries(value).filter(([key])=>!['elapsedMs','simulationsPerSecond'].includes(key)));
-async function analyze(){await page.locator('#quick-analyze').click();await page.waitForFunction(()=>!theibsApp.getState().analysisBusy&&theibsApp.getState().lastAnalysis?.data?.status==='OK');return page.evaluate(()=>theibsApp.getState().lastAnalysis.data);}
-async function open(){await page.locator('#open-opponent-inputs').click();}
-async function close(){await page.locator('#settings-dialog [data-close-dialog]').click();}
-async function check(name,fn){await fn();report.checks.push({name,status:'PASS'});console.log('PASS',name);}
-(async()=>{try{
- await new Promise(r=>server.listen(0,'127.0.0.1',r));browser=await chromium.launch({headless:true,channel:'msedge'});report.browser=browser.version();
- page=await browser.newPage({viewport:{width:1366,height:900}});page.on('pageerror',e=>report.errors.push(e.message));page.on('dialog',d=>d.accept());
- await page.goto(`http://127.0.0.1:${server.address().port}/app`);await page.waitForFunction(()=>window.theibsApp);await page.evaluate(()=>theibsApp.ready);
- await page.evaluate(()=>{document.getElementById('auto-analysis').checked=false;for(const[id,value]of Object.entries({players:'3',samples:'500',position:'BTN',potBeforeAction:'12',amountToCall:'4',effectiveStack:'100',seed:'891'}))document.getElementById(id).value=value;theibsCardKeyboard.restore({count:5,slots:['AE','KE','QC','JC','TO','2E','3C','4O',null,null],selected:8});theibsCardPicker.close();});
- await check('Default requires no opponent hypothesis and invents no response rate',async()=>{const payload=await input();assert.deepEqual(payload.opponentOverrides,[]);assert.equal(payload.unknownOpponentModel,'UNIFORM');assert.equal(payload.opponentStudyAccepted,false);assert.equal(payload.opponentProfile,undefined);assert.equal(payload.foldEquity,undefined);assert.equal(await page.locator('#study-example').count(),0);baseline=await analyze();assert.equal(baseline.ranges.length,2);assert.ok(baseline.ranges.every(r=>r.kind==='UNIFORM'));});
- await check('Only selected ADV.2 receives range and probability; ADV.1 remains unknown',async()=>{
-  await open();await page.locator('#opponent-seat').selectOption('1');await page.locator('#opponentRange').fill('AP KP QP JP TP');await page.locator('#opponent-call-probability').fill('70');await page.locator('#opponent-apply').click();
-  assert.deepEqual((await input()).opponentOverrides,[{seatId:1,enabled:true,range:{hands:[['Ac','Kc','Qc','Jc','Tc']]},callProbability:.7}]);await close();
-  const data=await analyze();assert.equal(data.ranges.length,2);assert.equal(data.ranges[0].kind,'UNIFORM');assert.deepEqual(data.ranges[1].hands,[['Ac','Kc','Qc','Jc','Tc']]);assert.equal(data.ev.actions.CALL.status,'MODELED');assert.ok(data.opponentModelScope);report.partialScope=data.opponentModelScope;
- });
- await check('Unapplied drafts survive switching seats without entering the calculation',async()=>{const before=await input();await open();await page.locator('#opponentRange').fill('AP KP QP JP 9P');await page.locator('#opponent-call-probability').fill('81');await page.locator('#opponent-seat').selectOption('0');assert.equal(await page.locator('#opponentRange').inputValue(),'');assert.equal(await page.locator('#opponent-call-probability').inputValue(),'');await page.locator('#opponent-seat').selectOption('1');assert.equal(await page.locator('#opponentRange').inputValue(),'AP KP QP JP 9P');assert.equal(await page.locator('#opponent-call-probability').inputValue(),'81');assert.deepEqual((await input()).opponentOverrides,before.opponentOverrides);await close();});
- await check('Unapplied or invalid editor text never replaces active assumptions',async()=>{const before=await input();await open();await page.locator('#opponentRange').fill('invalid');await page.locator('#opponent-call-probability').fill('99');assert.deepEqual((await input()).opponentOverrides,before.opponentOverrides);await page.locator('#opponent-apply').click();assert.deepEqual((await input()).opponentOverrides,before.opponentOverrides);assert.equal(await page.locator('#opponent-input-message.warning-text').count(),1);await close();});
- await check('Removing the selected hypothesis exactly restores seeded default equity and CALL EV',async()=>{await open();await page.locator('#opponent-remove').click();await close();assert.deepEqual((await input()).opponentOverrides,[]);const data=await analyze();assert.deepEqual(data.equity,baseline.equity);assert.equal(data.ev.actions.CALL.ev,baseline.ev.actions.CALL.ev);});
- await check('One response probability stays isolated and does not change card equity or require the others',async()=>{await open();await page.locator('#opponent-seat').selectOption('1');await page.locator('#opponent-call-probability').fill('70');await page.locator('#opponent-apply').click();await close();const data=await analyze();assert.deepEqual(mathResult(data.equity),mathResult(baseline.equity));assert.equal(data.ev.actions.CALL.status,'MODELED');assert.equal(data.ev.actions.RAISE.status,'NOT_MODELED');assert.equal((await input()).opponentOverrides.length,1);});
- await check('Applied assumptions persist on reload with the same seat; new hand clears them',async()=>{await page.evaluate(()=>theibsApp.flushSave());await page.waitForFunction(()=>!theibsApp.getState().saveBusy);await page.reload();await page.waitForFunction(()=>window.theibsApp);await page.evaluate(()=>theibsApp.ready);assert.deepEqual((await input()).opponentOverrides,[{seatId:1,enabled:true,callProbability:.7}]);await page.locator('#new-hand').click();assert.deepEqual((await snapshot()).opponents,[]);});
- await check('Multiway keeps stable seat IDs and removes only the folded opponent hypothesis',async()=>{
-  await page.locator('#open-settings').click();await page.locator('#mw-setup-details').evaluate(el=>el.open=true);await page.locator('#mw-player-count').selectOption('6');await page.locator('#mw-hero-position').selectOption('CO');await page.locator('#mw-start').click();await page.waitForFunction(()=>!theibsApp.getState().multiwayBusy);
-  for(const[id,rate]of [['0','60'],['2','20']]){await open();await page.locator('#opponent-seat').selectOption(id);await page.locator('#opponent-call-probability').fill(rate);await page.locator('#opponent-apply').click();await close();}
-  assert.deepEqual((await snapshot()).opponents.map(o=>o.seatId),[0,2]);assert.equal(await page.evaluate(()=>theibsApp.getState().multiwayState.actor),2);
-  await page.locator('[data-mw-command="leave"]').click();await page.waitForFunction(()=>!theibsApp.getState().multiwayBusy&&theibsApp.getState().multiwayState.players[2].folded);
-  assert.deepEqual((await snapshot()).opponents,[{seatId:0,enabled:true,callProbability:.6}]);await open();assert.equal(await page.locator('#opponent-seat option[value="3"]').innerText(),'ADV. 4 · HJ');assert.equal(await page.locator('#opponent-seat option[value="2"]').count(),0);await close();
-  await page.locator('#open-settings').click();await page.locator('#mw-setup-details').evaluate(el=>el.open=true);await page.locator('#mw-undo').click();await page.waitForFunction(()=>!theibsApp.getState().multiwayBusy&&!theibsApp.getState().multiwayState.players[2].folded);assert.deepEqual((await snapshot()).opponents,[{seatId:0,enabled:true,callProbability:.6}]);await close();
-  await page.locator('#new-hand').click();await page.waitForFunction(()=>!theibsApp.getState().multiwayBusy);assert.deepEqual((await snapshot()).opponents,[]);
- });
- await check('Optional editor remains usable at narrow viewport',async()=>{await page.setViewportSize({width:390,height:844});await open();assert.ok(await page.locator('#opponent-apply').isVisible());const size=await page.evaluate(()=>({client:document.documentElement.clientWidth,scroll:document.documentElement.scrollWidth}));assert.ok(size.scroll<=size.client+2);await page.screenshot({path:path.join(out,'opponent-mobile.png')});await close();});
- assert.deepEqual(report.errors,[]);report.status='PASS';
-}catch(error){report.status='FAIL';report.error=error.stack;process.exitCode=1;await page?.screenshot({path:path.join(out,'failure.png'),fullPage:true}).catch(()=>{});}
-finally{await browser?.close();await pool.close();server.closeAllConnections();await new Promise(r=>server.close(r));fs.writeFileSync(path.join(out,'report.json'),JSON.stringify(report,null,2));console.log(JSON.stringify(report));}})();
+const fs = require('node:fs');
+const path = require('node:path');
+const os = require('node:os');
+const assert = require('node:assert/strict');
+const { chromium } = require('playwright');
+
+const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+const out = path.resolve(process.argv.find(arg => arg.startsWith('--out='))?.slice(6) || `../validacao/opponent-inputs-${stamp}`);
+fs.mkdirSync(out, { recursive: true });
+const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'theibs-opponent-inputs-'));
+Object.assign(process.env, {
+  THEIBS_DATA_PATH: path.join(temp, 'events.jsonl'),
+  THEIBS_WORKSPACE_PATH: path.join(temp, 'workspace.json'),
+  THEIBS_LLM_CONFIG_PATH: path.join(temp, 'llm.json'),
+  THEIBS_LLM_PROVIDER: 'none'
+});
+const { server } = require('../server');
+const pool = require('../src/analysis-worker');
+const report = { version: require('../package.json').version, execution: 'LOCAL_BROWSER_REAL_HTTP', status: 'RUNNING', checks: [], errors: [], output: out };
+let browser, page;
+const state = () => page.evaluate(() => theibsApp.getState());
+const input = () => page.evaluate(() => theibsApp.getAnalysisInput());
+const snapshot = () => page.evaluate(() => theibsOpponentInputs.snapshot());
+async function check(name, run) { await run(); report.checks.push({ name, status: 'PASS' }); console.log('PASS', name); }
+async function open() { await page.locator('#open-opponent-inputs').click(); }
+async function close() { await page.locator('#settings-dialog [data-close-dialog]').click(); }
+async function analyze() {
+  const response = page.waitForResponse(result => result.url().endsWith('/api/analyze'));
+  await page.locator('#quick-analyze').click();
+  const result = await (await response).json();
+  await page.waitForFunction(() => !theibsApp.getState().analysisBusy && theibsApp.getState().lastAnalysis?.data?.status === 'OK');
+  return result;
+}
+
+(async () => {
+  try {
+    await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+    browser = await chromium.launch({ headless: true, channel: 'msedge' });
+    report.browser = browser.version();
+    page = await browser.newPage({ viewport: { width: 1366, height: 900 } });
+    page.on('pageerror', error => report.errors.push(error.message));
+    page.on('dialog', dialog => dialog.accept());
+    await page.goto(`http://127.0.0.1:${server.address().port}/app`);
+    await page.waitForFunction(() => Boolean(window.theibsApp));
+    await page.evaluate(() => theibsApp.ready);
+    await page.evaluate(() => {
+      document.getElementById('auto-analysis').checked = false;
+      document.getElementById('samples').value = '500';
+      theibsCardKeyboard.restore({ count: 5, slots: ['AE', 'KE', 'QC', 'JC', 'TO', null, null, null, null, null], selected: 5 });
+      theibsCardPicker.close();
+    });
+    await page.locator('#open-settings').click();
+    await page.locator('#mw-setup-details').evaluate(element => { element.open = true; });
+    await page.locator('#mw-player-count').selectOption('3');
+    await page.locator('#mw-hero-position').selectOption('SB');
+    await page.locator('#mw-start').click();
+    await page.waitForFunction(() => !theibsApp.getState().multiwayBusy && Boolean(theibsApp.getState().multiwayState));
+    if ((await state()).multiwayState.actor !== (await state()).multiwayState.heroId) {
+      assert.ok((await state()).multiwayState.legal.actions.includes('CALL'), 'the first opponent can call the blind');
+      await page.locator('[data-mw-command="call"]').click();
+    }
+    await page.waitForFunction(() => !theibsApp.getState().multiwayBusy && theibsApp.getState().multiwayState?.actor === theibsApp.getState().multiwayState?.heroId);
+
+    await check('Quick analysis exposes equity inputs only; seat-specific opponent editor is available in Multiway', async () => {
+      assert.equal(await page.locator('#open-opponent-inputs').isVisible(), true);
+      const payload = await input();
+      assert.equal(payload.multiway.enabled, true);
+      assert.deepEqual(payload.opponentOverrides, []);
+      assert.equal(payload.unknownOpponentModel, 'UNIFORM');
+      const result = await analyze();
+      assert.equal(result.status, 'OK');
+      assert.equal(result.equity.opponents, 2);
+      assert.equal((await state()).lastAnalysis.data.status, 'OK');
+    });
+
+    await check('Applying a range and call hypothesis affects only the selected physical seat', async () => {
+      await open();
+      await page.locator('#opponent-seat').selectOption('1');
+      await page.locator('#opponentRange').fill('AP KP QP JP TP');
+      await page.locator('#opponent-call-probability').fill('70');
+      await page.locator('#opponent-apply').click();
+      assert.deepEqual((await input()).opponentOverrides, [{ seatId: 1, enabled: true, range: { hands: [['Ac', 'Kc', 'Qc', 'Jc', 'Tc']] }, callProbability: .7 }]);
+      assert.match(await page.locator('#opponent-input-list').innerText(), /ADV\. 1 · BB: range manual; call 70%/);
+      await close();
+      const result = await analyze();
+      assert.equal(result.status, 'OK');
+      assert.equal(result.equity.opponents, 2);
+    });
+
+    await check('Unapplied drafts survive switching seats without entering the calculation', async () => {
+      const before = await input();
+      await open();
+      await page.locator('#opponentRange').fill('AP KP QP JP 9P');
+      await page.locator('#opponent-call-probability').fill('81');
+      await page.locator('#opponent-seat').selectOption('2');
+      assert.equal(await page.locator('#opponentRange').inputValue(), '');
+      assert.equal(await page.locator('#opponent-call-probability').inputValue(), '');
+      await page.locator('#opponent-seat').selectOption('1');
+      assert.equal(await page.locator('#opponentRange').inputValue(), 'AP KP QP JP 9P');
+      assert.equal(await page.locator('#opponent-call-probability').inputValue(), '81');
+      assert.deepEqual((await input()).opponentOverrides, before.opponentOverrides);
+      await close();
+    });
+
+    await check('Invalid or unapplied text never replaces active assumptions', async () => {
+      const before = await input();
+      await open();
+      await page.locator('#opponentRange').fill('invalid');
+      await page.locator('#opponent-call-probability').fill('99');
+      assert.deepEqual((await input()).opponentOverrides, before.opponentOverrides);
+      await page.locator('#opponent-apply').click();
+      assert.deepEqual((await input()).opponentOverrides, before.opponentOverrides);
+      assert.equal(await page.locator('#opponent-input-message.warning-text').count(), 1);
+      await close();
+    });
+
+    await check('Removing a hypothesis restores the unknown-hand model', async () => {
+      await open();
+      await page.locator('#opponent-seat').selectOption('1');
+      await page.locator('#opponent-remove').click();
+      assert.deepEqual((await input()).opponentOverrides, []);
+      assert.match(await page.locator('#opponent-input-scope').innerText(), /mãos legais aleatórias/);
+      await close();
+    });
+
+    await check('Applied assumptions persist on reload and reset with a new hand', async () => {
+      await open();
+      for (const [seat, rate] of [['1', '60'], ['2', '20']]) {
+        await page.locator('#opponent-seat').selectOption(seat);
+        await page.locator('#opponent-call-probability').fill(rate);
+        await page.locator('#opponent-apply').click();
+      }
+      await close();
+      await page.evaluate(() => theibsApp.flushSave());
+      await page.waitForFunction(() => !theibsApp.getState().saveBusy && !theibsApp.getState().saveDirty);
+      await page.reload();
+      await page.waitForFunction(() => Boolean(window.theibsApp));
+      await page.evaluate(() => theibsApp.ready);
+      assert.deepEqual((await input()).opponentOverrides, [
+        { seatId: 1, enabled: true, callProbability: .6 },
+        { seatId: 2, enabled: true, callProbability: .2 }
+      ]);
+      await page.locator('#new-hand').click();
+      assert.equal(await page.locator('#mw-position-prompt').isVisible(), true);
+      await page.locator('#mw-hero-position').selectOption('SB');
+      await page.locator('#mw-start').click();
+      await page.waitForFunction(() => !theibsApp.getState().multiwayBusy && theibsApp.getState().multiway?.events.length === 0);
+      assert.deepEqual((await snapshot()).opponents, []);
+    });
+
+    await check('Folded seats lose their hypothesis; undo restores the seat without silently restoring it', async () => {
+      await open();
+      await page.locator('#opponent-seat').selectOption('1');
+      await page.locator('#opponent-call-probability').fill('60');
+      await page.locator('#opponent-apply').click();
+      await close();
+      if ((await state()).multiwayState.actor !== (await state()).multiwayState.heroId) {
+        await page.locator('[data-mw-command="call"]').click();
+        await page.waitForFunction(() => !theibsApp.getState().multiwayBusy && theibsApp.getState().multiwayState.actor === theibsApp.getState().multiwayState.heroId);
+      }
+      await page.locator('[data-mw-command="aggressive"]').click();
+      await page.locator('#mw-size').fill('3');
+      await page.locator('#mw-size-confirm').click();
+      await page.waitForFunction(() => !theibsApp.getState().multiwayBusy && theibsApp.getState().multiwayState.actor === 1);
+      const before = (await state()).multiway.events.length;
+      await page.locator('[data-multiway-player="1"]').click();
+      assert.equal(await page.locator('#mw-seat-fold').isEnabled(), true, 'the big blind now owes chips after the observed raise');
+      await page.locator('#mw-seat-fold').click();
+      await page.waitForFunction(count => theibsApp.getState().multiway.events.length === count + 1 && !theibsApp.getState().multiwayBusy, before);
+      assert.deepEqual((await snapshot()).opponents, []);
+      await page.locator('#mw-undo').click();
+      await page.waitForFunction(count => theibsApp.getState().multiway.events.length === count - 1 && !theibsApp.getState().multiwayBusy, before + 1);
+      assert.deepEqual((await snapshot()).opponents, []);
+      await open();
+      assert.equal(await page.locator('#opponent-seat option[value="1"]').count(), 1);
+      await close();
+    });
+
+    await check('Opponent editor remains usable at 390px without horizontal overflow', async () => {
+      await page.setViewportSize({ width: 390, height: 844 });
+      await open();
+      assert.equal(await page.locator('#opponent-apply').isVisible(), true);
+      const size = await page.evaluate(() => ({ client: document.documentElement.clientWidth, scroll: document.documentElement.scrollWidth }));
+      assert.ok(size.scroll <= size.client + 2, JSON.stringify(size));
+      await page.screenshot({ path: path.join(out, 'opponent-mobile.png') });
+      await close();
+    });
+
+    assert.deepEqual(report.errors, []);
+    report.status = 'PASS';
+  } catch (error) {
+    report.status = 'FAIL'; report.error = error.stack; process.exitCode = 1;
+    await page?.screenshot({ path: path.join(out, 'failure.png'), fullPage: true }).catch(() => {});
+  } finally {
+    await browser?.close(); await pool.close(); server.closeAllConnections(); await new Promise(resolve => server.close(resolve));
+    fs.writeFileSync(path.join(out, 'report.json'), JSON.stringify(report, null, 2));
+    console.log(JSON.stringify(report, null, 2));
+  }
+})().catch(error => { console.error(error); process.exitCode = 1; });

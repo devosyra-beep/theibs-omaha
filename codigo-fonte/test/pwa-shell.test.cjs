@@ -53,7 +53,8 @@ test('landing, PWA shell, Google login and icons are served with correct media t
   assert.match(dashboard, /data-close-dialog commandfor="\$\{id\}" command="close"/);
   assert.match(dashboard, /data-dialog-target="#settings-dialog" commandfor="settings-dialog" command="show-modal"/);
   assert.doesNotMatch(dashboard, /openCardsSettings|addEventListener\('focusin'/);
-  assert.match(multiway, /id: 'leave', key: 'm', code: 'KeyM'/);
+  assert.match(multiway, /id: 'leave', key: null, code: null/);
   assert.match(multiway, /id: 'call', key: ',', code: 'Comma'/);
+  assert.match(multiway, /id: 'check', key: '\.', code: 'Period'/);
   assert.match(multiway, /id: 'aggressive', key: ';', code: 'Semicolon'/);
 });

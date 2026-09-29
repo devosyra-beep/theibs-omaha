@@ -112,7 +112,7 @@ if training_release:
     manifest['trainingPerformance']['note'] = 'Three states per scenario; full policy rollouts, not showdown simulations/s. Not a latency guarantee.'
     manifest['trainingModel'] = 'Finite sizing grid, 256 rollouts per option, uniform opponent prior, heuristic continuation policies; no GTO or automatic learning.'
 if multiway_release:
-    manifest['multiway'] = {'mode': 'optional user-observed actions', 'shortcuts': {'B':'FOLD','N':'CHECK','M':'CALL',',':'BET','.':'RAISE'},
+    manifest['multiway'] = {'mode': 'optional user-observed actions', 'shortcuts': {',':'CALL', '.':'CHECK', ';':'BET/RAISE'},
         'preservesPhysicalSeats': True, 'automaticOpponentResponses': False,
         'limitations': ['EV requires hero turn and explicit response assumptions', 'No EV for all-ins or side pots', 'No result settlement UI at showdown']}
     manifest['llama']['integration'] = 'NOT_RERUN_MULTIWAY_RELEASE'

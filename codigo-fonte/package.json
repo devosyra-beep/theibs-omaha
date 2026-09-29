@@ -7,7 +7,7 @@
   "main": "desktop/main.js",
   "scripts": {
     "package:current": "node scripts/package-current.cjs",
-    "test": "node --test \"test/*.test.cjs\"",
+    "test": "node --test --test-concurrency=1 \"test/*.test.cjs\"",
     "manual": "node src/manual-cli.js",
     "theibs": "node server.js",
     "desktop": "electron .",

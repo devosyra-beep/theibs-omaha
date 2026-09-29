@@ -64,8 +64,7 @@ const { chromium, _electron } = require('playwright');
     await check('settings block card shortcuts; closing restores card entry', async () => {
       await reset();
       await page.locator('#open-settings').click();
-      await page.locator('#assumeNoRake').locator('xpath=ancestor::details[1]').locator('summary').click();
-      await page.locator('#assumeNoRake').check(); await page.keyboard.type('kc');
+      await page.keyboard.type('kc');
       assert.equal((await state()).slots[0], null);
       await page.locator('#settings-dialog [data-close-dialog]').click();
       await page.locator('[data-slot="0"]').click();await page.keyboard.type('kc');
@@ -73,9 +72,11 @@ const { chromium, _electron } = require('playwright');
     });
     await check('text fields and selects remain protected', async () => {
       const before = await state();
-      await page.locator('#open-settings').click();
-      await page.evaluate(()=>{document.getElementById('opponent-input-panel').open=true;});
-      await page.locator('#opponentHand').fill('de tc 10o dp ae');
+      await openDeck(); await page.locator('#open-entry').click();
+      await page.locator('#paste-cards').fill('de tc 10o dp ae');
+      await page.locator('#paste-cards').focus(); await page.keyboard.type('de');
+      assert.deepEqual(await state(), before);
+      await page.locator('#entry-dialog [data-close-dialog]').click();
       await page.locator('#variant-select').focus(); await page.keyboard.type('de');
       assert.equal(await page.evaluate(() => document.activeElement.id), 'variant-select', await page.locator('#variant-select').evaluate(el => JSON.stringify({html:el.outerHTML,visible:!!el.getClientRects().length,dialog:el.closest('dialog')?.open,style:getComputedStyle(el).display})));
       assert.deepEqual(await state(), before);
@@ -170,19 +171,19 @@ const { chromium, _electron } = require('playwright');
       assert.deepEqual((await state()).slots.slice(0,5), ['TC','TE','TP','TO','AC']);
       assert.equal(await page.evaluate(() => theibsCardKeyboard.isManualInvalid()), false);
     });
-    await check('real engine receives canonical tens and Portuguese suit conversion', async () => {
+    await check('quick equity engine receives canonical tens and Portuguese suit conversion', async () => {
       await page.locator('#board').fill('2e 3c 4o 5p 6e');
       await page.locator('#entry-dialog [data-close-dialog]').click();
-      await page.evaluate(()=>{document.getElementById('opponent-input-panel').open=true;});
-      await page.locator('#opponentHand').fill('7e 8c 9o jp qe');
-      await page.locator('#players').fill('2');
       await page.locator('#settings-dialog [data-close-dialog]').click();
-      const request = page.waitForRequest(req => req.url().endsWith('/api/analyze'));
+      const request = page.waitForRequest(req => req.url().endsWith('/api/equity'));
       await page.locator('#quick-analyze').click();
       const data = (await request).postDataJSON();
       assert.deepEqual(data.heroCards, ['Th','Ts','Tc','Td','Ah']);
+      assert.deepEqual(data.board, ['2s','3h','4d','5c','6s']);
+      assert.equal(data.unknownOpponentModel, 'UNIFORM');
       await page.waitForFunction(() => !theibsApp.getState().analysisBusy);
-      assert.equal(await page.evaluate(() => theibsApp.getState().lastAnalysis.data.status), 'OK');
+      assert.notEqual(await page.locator('#hero-equity').innerText(), '—');
+      assert.match(await page.locator('#equity-range').innerText(), /Faixa 95%/);
     });
     await check('help and other views do not receive card shortcuts', async () => {
       const before = await state();
