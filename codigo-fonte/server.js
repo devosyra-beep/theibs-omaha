@@ -173,7 +173,9 @@ function serveStatic(request, response) {
       '.webmanifest': 'application/manifest+json; charset=utf-8',
       '.svg': 'image/svg+xml',
       '.png': 'image/png',
-      '.ico': 'image/x-icon'
+      '.ico': 'image/x-icon',
+      '.wasm': 'application/wasm',
+      '.gz': 'application/gzip'
     })[extension] || 'text/html; charset=utf-8';
     response.writeHead(200, { 'Content-Type': contentType, 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' });
     response.end(data);

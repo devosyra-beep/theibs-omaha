@@ -209,6 +209,20 @@
   window.theibsCardKeyboard = {
     state, render, select, paste,
     getRevision: () => revision,
+    applyReviewedHero(heroCards, expectedRevision) {
+      if (document.body.dataset.multiway !== 'on' || document.body.dataset.multiwayBusy === 'true' ||
+          $('#analyze-workspace').classList.contains('hidden') || manualInvalid || expectedRevision !== revision)
+        return { ok: false, error: 'A mão mudou. Confira a imagem e tente novamente.' };
+      if (!Array.isArray(heroCards) || heroCards.length !== state.count)
+        return { ok: false, error: `Confirme as ${state.count} cartas privadas.` };
+      let hero;
+      try { hero = heroCards.map(api.fromCanonical); }
+      catch (error) { return { ok: false, error: error.message }; }
+      const board = state.cards().board;
+      if (!state.setCards(hero, board, true)) return { ok: false, error: state.error };
+      writeInputs('image-review');
+      return { ok: true, revision };
+    },
     commitCommand(command, expectedRevision) {
       if (!active() || manualInvalid || expectedRevision !== revision) return { ok: false, error: 'A entrada mudou. Dite novamente no destino desejado.' };
       const priorCards = JSON.stringify([state.count, state.slots]);
