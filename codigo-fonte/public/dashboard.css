@@ -749,3 +749,59 @@ body[data-view=analyze] #quick-action {overflow-wrap:anywhere;}
 #ev-scope-details { border-top:1px solid var(--border); padding-top:8px; }
 #ev-scope-details>summary { color:var(--muted); font-size:12px; cursor:pointer; min-height:28px; }
 #ev-scope-details #ev-scope { margin:4px 0; }
+
+/* Simple analysis uses only cards, board and opponent count. */
+#quick-action-status { display:none; }
+#equity-scope { display:none; }
+#equity-range { display:none; }
+body[data-view=analyze][data-multiway=off] #ev-summary { display:none; }
+body[data-view=analyze][data-multiway=off] .multiway-auto-toggle { display:none; }
+body[data-view=analyze][data-multiway=off] .insight-panel #equity-scope { display:block; line-height:1.4; }
+body[data-view=analyze][data-multiway=off] .insight-panel #equity-range { display:block; font-size:15px; font-weight:600; line-height:1.4; color:var(--foreground); }
+@media(max-width:700px) {
+ body[data-view=analyze][data-multiway=off] .analysis-seats:has(>.opponent-place.dense) { inset:10% 8% auto; height:24px; display:flex; align-items:center; justify-content:space-between; }
+ body[data-view=analyze][data-multiway=off] .opponent-place.dense { position:static; transform:none; }
+ body[data-view=analyze][data-multiway=off] .opponent-place.dense .opponent-cards,
+ body[data-view=analyze][data-multiway=off] .opponent-place.dense .opponent-name { display:none; }
+ body[data-view=analyze][data-multiway=off] .opponent-place.dense::before { content:attr(data-opponent); display:grid; place-items:center; width:22px; height:22px; border:1px solid var(--border); border-radius:50%; background:#171c2b; color:var(--foreground); font:600 11px/1 var(--font-mono); }
+}
+body[data-view=analyze][data-multiway=off] .quick-decision>div,
+body[data-view=analyze][data-multiway=off] .table-center>.eyebrow,
+body[data-view=analyze][data-multiway=off] #table-pot,
+body[data-view=analyze][data-multiway=off] .table-meta,
+body[data-view=analyze][data-multiway=off] .hero-seat,
+body[data-view=analyze][data-multiway=off] .seat-map-note,
+body[data-view=analyze][data-multiway=off] #open-opponent-inputs,
+body[data-view=analyze][data-multiway=off] #settings-dialog .controls-panel,
+body[data-view=analyze][data-multiway=off] #settings-dialog .form-actions,
+body[data-view=analyze][data-multiway=off] #analysis-dialog #analysis-input-feedback,
+body[data-view=analyze][data-multiway=off] #analysis-dialog #ev-premises,
+body[data-view=analyze][data-multiway=off] #analysis-dialog #ev-unit,
+body[data-view=analyze][data-multiway=off] #analysis-dialog #quick-action-note,
+body[data-view=analyze][data-multiway=off] #analysis-dialog #hand-facts,
+body[data-view=analyze][data-multiway=off] #analysis-dialog #open-raise-model { display:none!important; }
+.quick-price[hidden] { display:none!important; }
+@media(max-width:700px) {
+ body[data-view=analyze]:not([data-multiway=on]) #analysis-form>.context-rail { display:none; }
+ body[data-view=analyze]:not([data-multiway=on]) .table-column>.insight-panel {
+   min-height:0; width:100%; margin:8px 0 0; padding:16px 18px; gap:3px;
+   border-color:var(--border);
+ }
+ body[data-view=analyze]:not([data-multiway=on]) .table-column>.insight-panel .eyebrow { font-size:12px; }
+ body[data-view=analyze]:not([data-multiway=on]) .table-column>.insight-panel .hero-equity { font-size:clamp(42px,13vw,60px); }
+ body[data-view=analyze]:not([data-multiway=on]) .table-column>.insight-panel #equity-range { font-size:14px; }
+ body[data-view=analyze]:not([data-multiway=on]) .table-column>.insight-panel #equity-scope { display:block; line-height:1.4; }
+ body[data-view=analyze]:not([data-multiway=on]) .table-column>.insight-panel .win-chart { display:none; }
+ body[data-view=analyze]:not([data-multiway=on]) .quick-price { margin:8px 0 0; border:1px solid var(--border); border-radius:10px; background:var(--card); }
+ body[data-view=analyze]:not([data-multiway=on]) .quick-price>summary { display:flex; justify-content:space-between; align-items:center; min-height:44px; padding:9px 14px; color:var(--foreground); cursor:pointer; font-size:13px; }
+ body[data-view=analyze]:not([data-multiway=on]) .quick-price>summary span { color:var(--muted); font-size:11px; }
+ body[data-view=analyze]:not([data-multiway=on]) .quick-price-fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; padding:0 14px 14px; }
+ body[data-view=analyze]:not([data-multiway=on]) .quick-price-fields label { display:grid; gap:6px; min-width:0; font-size:12px; }
+ body[data-view=analyze]:not([data-multiway=on]) .quick-price-fields input { width:100%; min-width:0; min-height:44px; }
+ body[data-view=analyze]:not([data-multiway=on]) .quick-decision { margin:8px 0 12px; padding:12px 0; }
+ body[data-view=analyze]:not([data-multiway=on]) .quick-decision>div { display:grid; grid-template-columns:minmax(0,1fr) 32px; gap:3px 4px; align-items:center; }
+ body[data-view=analyze]:not([data-multiway=on]) .quick-decision small { display:block; grid-column:1/-1; font-size:10px; }
+ body[data-view=analyze]:not([data-multiway=on]) #quick-action { grid-column:1; }
+ body[data-view=analyze]:not([data-multiway=on]) #action-info { grid-column:2; }
+ body[data-view=analyze]:not([data-multiway=on]) #quick-action-status { display:block; grid-column:1/-1; color:var(--muted); font-size:11px; line-height:1.4; }
+}

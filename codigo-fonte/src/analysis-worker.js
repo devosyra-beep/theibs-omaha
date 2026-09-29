@@ -10,7 +10,7 @@ if (!isMainThread) {
     try {
       const result = kind === 'TRAINING'
         ? require('./training-evaluator').evaluateTraining(input)
-        : decide(input);
+        : kind === 'EQUITY' ? require('./quick-equity').calculateQuickEquity(input) : decide(input);
       parentPort.postMessage({ id, result, workerExecutionMs: performance.now() - started });
     } catch (error) {
       parentPort.postMessage({ id, error: error.message, workerExecutionMs: performance.now() - started });
@@ -101,6 +101,7 @@ if (!isMainThread) {
     };
     analyze.stats = () => ({ workers: slots.size, busy: [...slots].filter(slot => slot.job).length, closed });
     analyze.training = (input, response) => analyze(input, response, 'TRAINING');
+    analyze.equity = (input, response) => analyze(input, response, 'EQUITY');
     return analyze;
   }
 

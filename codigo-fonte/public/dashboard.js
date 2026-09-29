@@ -3,7 +3,7 @@
   const $=s=>document.querySelector(s), form=$('#analysis-form');
   $('#samples').prepend(new Option('Adaptive · target up to 3s','adaptive'));
   const opponentsBar=document.createElement('div');opponentsBar.className='analysis-context-bar';
-  opponentsBar.innerHTML='<label for="opponent-count">Opponents in hand <select id="opponent-count"></select></label><span id="opponent-total" class="sr-only"></span>';
+  opponentsBar.innerHTML='<label for="opponent-count">Número de adversários <select id="opponent-count"></select></label><span id="opponent-total" class="sr-only"></span>';
   $('#analyze-workspace .table-column').prepend(opponentsBar);
   for(const event of ['input','change'])$('#opponent-count').addEventListener(event,()=>{$('#players').value=Number($('#opponent-count').value)+1;});
   document.body.dataset.view='analyze';
@@ -90,7 +90,7 @@
   $('.context-rail').append(facts);
   const modelLabel=document.createElement('label');modelLabel.innerHTML='Unknown opponent hands<select id="opponentModel"><option value="UNIFORM">Baseline: random hands</option><option value="EXPLICIT">Use only the entered hand / range</option></select><small>The random estimate includes every opponent still in the hand.</small>';
   $('#opponentHand').closest('.controls-panel').querySelector('.form-grid').before(modelLabel);
-  const auto=document.createElement('label');auto.className='checkbox-label';auto.innerHTML='<input id="auto-analysis" type="checkbox" checked> Calculate automatically when cards are complete';
+  const auto=document.createElement('label');auto.className='checkbox-label multiway-auto-toggle';auto.innerHTML='<input id="auto-analysis" type="checkbox" checked> Calculate automatically when cards are complete';
   settings.querySelector('.dialog-content').prepend(auto);
   $('#assumeNoRake').checked=true;
   const scenarios=document.createElement('details');scenarios.className='panel controls-panel';scenarios.id='raise-model-panel';
@@ -118,7 +118,7 @@
   for(const id of ['foldEquity','continuationEquity'])$('#'+id).closest('label').hidden=true;
   $('#rake').closest('.controls-panel').querySelector('p.micro').textContent='Custos entram antes da comparação. Hipóteses de resposta são opcionais e pertencem a cada adversário; dados ausentes não viram probabilidades presumidas.';
   $('#opponentHand').closest('.controls-panel').querySelector('p.micro').textContent='Optional: enter a hand or range to refine the estimate. A behavioral profile does not replace a range.';
-  $('#empty-state p').textContent='Complete your cards. The estimate uses the opponent model selected in settings.';
+  $('#empty-state p').textContent='Complete your cards and choose the number of opponents. Simple analysis estimates equity against random hands.';
   $('#open-help').title='F1: keyboard, suits and actions';
   const clear=$('#clear'); clear.textContent='Clear cards'; clear.className='ghost-button';
   $('.keyboard-heading').append(clear);

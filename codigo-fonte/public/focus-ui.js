@@ -66,12 +66,33 @@
   const compare=$('#open-raise-model');compare.addEventListener('click',()=>$('#analysis-dialog').close(),true);
   const actionInfo=document.createElement('button');actionInfo.id='action-info';actionInfo.type='button';iconButton(actionInfo,'info','About the comparison');$('#quick-action').after(actionInfo);
   actionInfo.onclick=openCalculation;
-  const reflectNote=()=>{actionInfo.title=$('#quick-action-note').textContent;actionInfo.setAttribute('aria-label','View calculation: '+actionInfo.title);$('#quick-action').title='Highest-EV action among calculated options. Review the assumptions in the calculation.';};
+  const reflectNote=()=>{actionInfo.title=$('#quick-action-note').textContent;actionInfo.setAttribute('aria-label','View calculation: '+actionInfo.title);$('#quick-action').title='Leitura da decisão atual; confira as premissas no cálculo.';};
   new MutationObserver(reflectNote).observe($('#quick-action-note'),{childList:true,subtree:true,characterData:true});reflectNote();
   // Coverage mismatches keep a visible signal instead of silently hiding them.
   const warning=$('#ev-critical-warning'),coverage=document.createElement('button');coverage.id='ev-coverage-info';coverage.type='button';iconButton(coverage,'info','Check calculated opponents');coverage.hidden=true;$('#ev-summary .ev-topline').append(coverage);overview.append(warning);
   const reflectWarning=()=>{coverage.hidden=warning.hidden;coverage.title=warning.textContent;coverage.setAttribute('aria-label',warning.textContent||'Check calculated opponents');};
   new MutationObserver(reflectWarning).observe(warning,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden']});reflectWarning();
   coverage.onclick=openCalculation;
+  // Keep the equity next to the table on small screens. The actual price fields
+  // move with it, so there is only one source of truth for analysis inputs.
+  const tableColumn=$('#analyze-workspace .table-column'),contextRail=$('#analysis-form .context-rail');
+  const equityPanel=$('#analyze-workspace .insight-panel'),quickDecision=$('.quick-decision');
+  const quickPrice=document.createElement('details');quickPrice.id='quick-price';quickPrice.className='quick-price';
+  quickPrice.innerHTML='<summary>Preço do CALL <span>opcional</span></summary><div class="quick-price-fields"></div>';
+  quickDecision.before(quickPrice);
+  const potLabel=$('#potBeforeAction').closest('label'),callLabel=$('#amountToCall').closest('label');
+  potLabel.firstChild.textContent='Pote atual ';
+  callLabel.firstChild.textContent='Para pagar ';
+  const priceFields=quickPrice.querySelector('.quick-price-fields'),stackLabel=$('#effectiveStack').closest('label');
+  function placeQuickAnalysis(){
+    const compact=mobileWidth.matches&&document.body.dataset.multiway!=='on';
+    quickPrice.hidden=true;
+    if(compact){tableColumn.insertBefore(equityPanel,quickPrice);priceFields.append(potLabel,callLabel);}
+    else{contextRail.append(equityPanel);stackLabel.before(potLabel,callLabel);quickPrice.open=false;}
+    const nutsBadge=$('#nuts-badge');if(nutsBadge)equityPanel.after(nutsBadge);
+  }
+  mobileWidth.addEventListener('change',placeQuickAnalysis);
+  new MutationObserver(placeQuickAnalysis).observe(document.body,{attributes:true,attributeFilter:['data-multiway']});
+  placeQuickAnalysis();
   window.theibsFocusUI={restore};restore();
 })();

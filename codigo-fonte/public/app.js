@@ -12,6 +12,15 @@
   const metrics = window.theibsMetrics = { analyses: [] };
   const value = (id) => document.getElementById(id).value.trim();
   const percent = (number) => number == null || !Number.isFinite(Number(number)) ? '—' : `${(Number(number) * 100).toFixed(1)}%`;
+  const quickEquityPrecision = (equity) => {
+    const bounds = equity?.confidenceInterval95;
+    const hasBounds = Array.isArray(bounds) && bounds.length === 2 && bounds.every(Number.isFinite);
+    const halfWidth = hasBounds ? Math.max(equity.equity - bounds[0], bounds[1] - equity.equity) : null;
+    return {
+      range: hasBounds ? `${percent(bounds[0])}–${percent(bounds[1])}` : 'Exata neste modelo',
+      preliminary: equity?.method !== 'EXACT' && (equity?.stopReason === 'TIME_BUDGET' || equity?.stopReason === 'SAMPLE_LIMIT' || halfWidth === null || halfWidth > .010001)
+    };
+  };
   const money = (number) => number == null || !Number.isFinite(Number(number)) ? '—' : Number(number).toFixed(2);
   const esc = window.EssenceUI.esc;
   const streetName = (street) => ({ PREFLOP: 'Preflop', FLOP: 'Flop', TURN: 'Turn', RIVER: 'River' })[street] || street;
@@ -56,6 +65,10 @@
     document.body.dataset.multiwayBusy=String(multiwayBusy);
     for(const id of ['hero-slots','card-grid'])document.getElementById(id).inert=multiwayBusy;
     window.theibsMultiwayUI.render({enabled:!!multiway,state:multiwayState,config:multiway?.config,busy:multiwayBusy});
+    placeAnalysisFeedback();
+    if(!analysisBusy)$('#quick-analyze').innerHTML=multiway?'Analyze hand <span>↗</span>':'Calcular equity <span>↗</span>';
+    $('#analysis-form .view-heading h1').textContent=multiway?'Every card, a decision.':'Suas cartas. Sua equity.';
+    $('#analysis-form .view-heading .eyebrow').textContent=multiway?'MANUAL ANALYSIS':'ANÁLISE DE EQUITY';
     $('#analysis-seats').setAttribute('aria-label',multiway?'Table seats; click an opponent to record to fold.':'Opponents with face-down cards; illustrative positions.');
     for(const id of multiwayLocked) { const el=document.getElementById(id);el.disabled=!!multiway;el.title=multiway?'Defined by Multiway tracking. Exit the mode to edit freely.':''; }
     for(const id of multiwayManualModels){const el=document.getElementById(id);el.disabled=!!multiway;el.title=multiway?'Free-form assumptions from simple mode. Multiway models must identify each seat.':'';}
@@ -180,6 +193,9 @@ function renderCharts(latest) {
   const equity = latest?.equity;
   document.querySelector('#hero-equity').textContent = equity == null ? '—' : percent(equity);
   document.querySelector('#hero-method').textContent = latest ? `${latest.method} · ${latest.samples} samples` : 'Waiting for hand';
+  document.querySelector('#equity-range').textContent = activeView === 'analyze' && !multiway
+    ? latest ? `${quickEquityPrecision(latest).preliminary ? 'Estimativa preliminar · ' : ''}Faixa 95%: ${quickEquityPrecision(latest).range}` : 'Aguardando cartas'
+    : '';
   document.querySelector('#chart-total').textContent = latest ? streetName(latest.street) : '—';
   document.querySelector('#win-percent').textContent = latest ? percent(latest.winRate) : '—';
   document.querySelector('#loss-percent').textContent = latest ? percent(1 - latest.winRate) : '—';
@@ -235,7 +251,7 @@ function renderAnalysisDiagnostics(data) {
   const reasons = (d.reasonCodes || []).map(code => labels[code] || code);
   const method = d.selectionMethod === 'SHARED_EQUITY_AFFINE_DIFFERENCES' ? 'Compared differences using the same sampled equity' : 'Compared marginal uncertainty bounds';
   const next = feedback.summary({data, action:Number(value('amountToCall'))>0?'CALL':'CHECK', multiway:!!multiway});
-  return `<section class="result-detail"><strong>Decision support</strong><p>${esc(method)}. ${esc(reasons.join('. '))}</p><p>${esc(next.title)}. ${esc(next.detail)}</p><p>These are conditional showdown values. The return of following the complete policy is evaluated separately in the 100-hand experiment.</p></section>`;
+  return `<section class="result-detail"><strong>Decision support</strong><p>${esc(method)}. ${esc(reasons.join('. '))}</p><p>${esc(next.title)}. ${esc(next.detail)}</p><p>These values assume showdown without future betting.</p></section>`;
 }
 
 function renderStrategyPanel(strategy) {
@@ -247,6 +263,21 @@ function renderStrategyPanel(strategy) {
   return `<section class="strategy-block"><div class="ev-heading"><span>Strategy / exploit</span><span>${esc(exploit.profile || 'UNKNOWN')}</span></div><div class="strategy-grid"><div><small>Base</small><strong>${esc(baseline.action || '—')}</strong></div><div><small>Final</small><strong class="${changed ? 'strategy-changed' : ''}">${esc(strategy.finalAction || '—')}</strong></div><div><small>Source</small><strong>${esc(strategy.finalSource || '—')}</strong></div><div><small>Confidence</small><strong>${esc(strategy.confidence || '—')}</strong></div></div>${changed ? `<div class="strategy-adjustment">Action changed by the exploit assumption. ${esc(adjustments || 'No quantitative adjustment provided.')}</div>` : ''}${(exploit.warnings || []).map((warning) => `<div class="result-warning">${esc(warning)}</div>`).join('')}</section>`;
 }
 
+function quickCallFold(data, progress) {
+  if (!progress.ready) return {label:'—',detail:progress.detail};
+  if (!data) return {label:'—',detail:analysisBusy?'Calculando equidade…':'Aguardando cálculo da equidade.'};
+  if (data.status !== 'OK') return {label:'—',detail:data.reason || 'Cálculo indisponível.'};
+  if (data.analysisStage === 'PROVISIONAL') return {label:'—',detail:'Calculando resultado final…'};
+  if (value('potBeforeAction') === '' || value('amountToCall') === '')
+    return {label:'—',detail:'Informe pote e valor a pagar para comparar CALL/FOLD.'};
+  if (!(Number(value('amountToCall')) > 0)) return {label:'—',detail:'Sem aposta para pagar nesta decisão.'};
+  const assessment=data.continuationAssessment;
+  if (assessment?.status === 'FAVORABLE') return {label:'CALL',detail:'Margem positiva no modelo atual.'};
+  if (assessment?.status === 'UNFAVORABLE') return {label:'FOLD',detail:'CALL desfavorável no modelo atual.'};
+  if (assessment?.status === 'UNCERTAIN') return {label:'—',detail:'Margem incerta; sem sugestão de CALL/FOLD.'};
+  return {label:'—',detail:'CALL/FOLD indisponível com os dados atuais.'};
+}
+
 function renderResult(data, street) {
   emptyState.classList.add('hidden');
   result.classList.remove('hidden');
@@ -256,7 +287,8 @@ function renderResult(data, street) {
   }
   const equity = data.equity || {}; const math = data.potMath || {};
   const modeledCall = data.ev?.actions?.CALL?.status === 'MODELED' ? data.ev.actions.CALL.ev : null;
-  result.innerHTML = `<div class="result-top"><div><div class="result-label">${comparisonLabel(data)} · ${streetName(street)}</div><div class="result-action">${esc(recommendationText(data))}</div></div></div>
+  const simpleDecision=quickCallFold(data,feedback.inputProgress({count:cards.state.count,slots:cards.state.slots,manualInvalid:cards.isManualInvalid()}));
+  result.innerHTML = `<div class="result-top"><div><div class="result-label">${multiway?comparisonLabel(data):'CALL / FOLD'} · ${streetName(street)}</div><div class="result-action">${esc(multiway?recommendationText(data):simpleDecision.label)}</div></div></div>
     <details class="result-disclosure"><summary>Why? View calculations & assumptions</summary><div><p class="result-reason">${esc(data.reason)}</p><span class="confidence">${esc(data.confidence)}</span><div class="result-metrics"><div class="mini-metric"><small>Equity</small><strong>${percent(equity.equity)}</strong></div><div class="mini-metric"><small>Pot odds</small><strong>${percent(math.potOdds)}</strong></div><div class="mini-metric"><small>EV call</small><strong>${money(modeledCall)}</strong></div><div class="mini-metric"><small>SPR</small><strong>${math.spr == null ? '—' : Number(math.spr).toFixed(1)}</strong></div></div>${renderAnalysisDiagnostics(data)}${renderEvTable(data.ev)}${renderStrategyPanel(data.strategy)}<div class="result-detail">${esc(equity.method)} · ${esc(equity.samples)} samples · ${esc(equity.opponents)} opponent(s) · legal: ${(data.legalActions || []).map(esc).join(' / ')}<br>${(data.assumptions || []).map(esc).join(' · ')}${equity.confidenceInterval95 ? `<br>95% Monte Carlo CI: ${percent(equity.confidenceInterval95[0])}–${percent(equity.confidenceInterval95[1])} (does not include range uncertainty)` : ''}</div>${(data.warnings || []).map((warning) => `<div class="result-warning">${esc(warning)}</div>`).join('')}</div></details>`;
 }
 
@@ -291,6 +323,7 @@ function renderResult(data, street) {
     $('#analysis-seats').innerHTML = window.EssenceUI.opponentSeats(opponents,cards.state.count);
   }
   function quickAction(data, note) {
+    document.body.dataset.equityOnly=String(!multiway&&(value('potBeforeAction')===''||value('amountToCall')===''));
     const progress = feedback.inputProgress({count:cards.state.count,slots:cards.state.slots,manualInvalid:cards.isManualInvalid()});
     const action=Number(value('amountToCall'))>0?'CALL':'CHECK';
     const assessment=progress.ready?data?.continuationAssessment:null;
@@ -313,7 +346,7 @@ function renderResult(data, street) {
     $('#ev-label').textContent=`${data?.analysisStage==='PROVISIONAL'?'Provisional ':''}${action} EV`;
     $('#ev-value').textContent=ev==null?'—':`${ev>0?'+':''}${money(Math.abs(ev)<.005?0:ev)}`;
     $('#ev-state').textContent=display.state;
-    $('#ev-state').classList.remove('sr-only');
+    $('#ev-state').classList.toggle('sr-only',!multiway);
     $('#analysis-next-title').textContent=display.title;
     $('#analysis-next-detail').textContent=display.detail;
     const scope=data?.opponentModelScope;
@@ -339,6 +372,14 @@ function renderResult(data, street) {
       risk.textContent=(hand?.nutsOnCurrentBoard?'Nuts neste board; empates ainda são possíveis. ':hand?.madeHand?`${hand.madeHand} neste board. `:'')+(hand?.futureBoardCards?'Novas cartas e apostas podem mudar a decisão.':'Reavalie se o preço ou os jogadores ativos mudarem.');risk.hidden=false;
     }
     if(!progress.ready){$('#quick-action').textContent='Waiting for cards';$('#quick-action-note').textContent=progress.detail;}
+    const simpleDecision=quickCallFold(data,progress);
+    $('#quick-action-status').textContent=multiway?'':simpleDecision.detail;
+    if(!multiway){$('#quick-action').textContent=simpleDecision.label;$('#quick-action-note').textContent=simpleDecision.detail;}
+    const modeled=data?.status==='OK'?data.equity?.opponents:null;
+    const tableOpponents=Number(value('players'))-1;
+    const randomModel=data?.ranges?.some(range=>range.kind==='UNIFORM');
+    $('#equity-scope').textContent=modeled==null?`${tableOpponents} adversário${tableOpponents===1?'':'s'} aleatório${tableOpponents===1?'':'s'}`
+      : `${modeled}${modeled===tableOpponents?'':` de ${tableOpponents}`} adversário${modeled===1?'':'s'} · ${randomModel?'mãos aleatórias':'modelo informado'}`;
     const random=data?.ranges?.some(range=>range.kind==='UNIFORM');
     $('#ev-assumption').textContent=data?.status==='OK'
       ? `${random?'Random hands':'Entered model'} · ${data.equity.opponents} opponent(s) · no future betting${$('#assumeNoRake').checked?' · rake zero':''}${ev==null?' · EV depends on the assumptions shown in the calculation':''}.`
@@ -358,6 +399,14 @@ function renderResult(data, street) {
   const feedbackHost=document.createElement('section');feedbackHost.id='analysis-input-feedback';feedbackHost.className='analysis-input-feedback';
   feedbackHost.innerHTML='<div role="status" aria-live="polite"><strong id="analysis-next-title"></strong><p id="analysis-next-detail" class="micro"></p><dl id="continuation-metrics" hidden></dl><p id="continuation-risk" class="micro" hidden></p></div><details id="ev-scope-details"><summary>Limites do cálculo</summary><p id="ev-scope" class="micro">Leitura do preço atual, sem comparar BET/RAISE. Depende do modelo de cartas e supõe nenhuma aposta futura. Não garante vitória nem lucro.</p></details><button id="analysis-next-action" type="button" class="text-button" hidden></button>';
   $('#ev-summary').append(feedbackHost);
+  function placeAnalysisFeedback(){
+    const host=$('#analysis-input-feedback');
+    if(!host)return;
+    if(multiway){if(host.parentElement!==$('#ev-summary'))$('#ev-summary').append(host);}
+    else if(host.parentElement!==$('#analysis-dialog .dialog-content'))$('#analysis-dialog .calculation-overview').after(host);
+    $('#ev-state').classList.toggle('sr-only',!multiway);
+  }
+  placeAnalysisFeedback();
   $('#analysis-next-action').addEventListener('click',()=>{
     const target=$('#analysis-next-action').dataset.target;
     if(target==='entry'){$('#open-entry').click();return;}
@@ -376,13 +425,13 @@ function renderResult(data, street) {
   });
   function scheduleAnalysis() {
     clearTimeout(analysisTimer);
-    if(!loaded||window.theibsVoiceSessionContext?.().expired||activeView!=='analyze'||!$('#auto-analysis').checked)return;
+    if(!loaded||window.theibsVoiceSessionContext?.().expired||activeView!=='analyze'||(multiway&&!$('#auto-analysis').checked))return;
     analysisTimer=setTimeout(async()=>{
       if(analysisBusy){analysisQueued=true;return;}
       const requestedRevision=inputRevision;
       try{
         await window.theibsAuth?.ensureSession?.();
-        if(!loaded||activeView!=='analyze'||!$('#auto-analysis').checked||requestedRevision!==inputRevision)return;
+        if(!loaded||activeView!=='analyze'||(multiway&&!$('#auto-analysis').checked)||requestedRevision!==inputRevision)return;
         buildAnalysisPayload();
       }catch(error){if(activeView==='analyze'&&requestedRevision===inputRevision)quickAction({status:'ERROR',reason:error.message});return;}
       analyze();
@@ -447,6 +496,16 @@ function renderResult(data, street) {
     if(payload.samples==='adaptive'){payload.samples=50000;payload.samplingMode='ADAPTIVE';}
     return payload;
   }
+  function buildQuickEquityPayload(){
+    if(window.theibsVoiceSessionContext?.().expired)throw Error('Session changed or expired. Sign in again before analyzing.');
+    if(engineVersionError())throw Error(engineVersionError());
+    if(cards.isManualInvalid())throw Error('Fix the cards in the text field.');
+    const canonical=cards.canonicalForSubmit();
+    return {...canonical,players:Number(value('players')),unknownOpponentModel:'UNIFORM',
+      // Quick equity uses the engine's 2-second adaptive budget, independently
+      // of the hidden Multiway sample selector or an older saved 500 setting.
+      samplingMode:'ADAPTIVE',seed:value('seed')||'42'};
+  }
   async function analyze(event) {
     event?.preventDefault();
     const entryView=activeView, entryRevision=inputRevision;
@@ -454,13 +513,14 @@ function renderResult(data, street) {
     if(entryView!==activeView||entryRevision!==inputRevision||activeView!=='analyze')return;
     if (analysisBusy) {analysisQueued=true;return;}
     let payload;
-    try { payload = buildAnalysisPayload(); }
+    try { payload = multiway?buildAnalysisPayload():buildQuickEquityPayload(); }
     catch (error) { const data = { status: 'NO_DECISION', reason: error.message }; renderResult(data, currentStreet()); quickAction(data); cards.announce(error.message, true); return; }
     const requestedRevision = inputRevision, inputAt = event?.type ? performance.now() : inputChangedAt;
     analysisBusy = true; const controller = analysisController = new AbortController();
     analyzeButton.disabled = true; $('#quick-analyze').disabled = true;
     analyzeButton.textContent = 'Calculating…'; $('#quick-analyze').textContent = 'Calculating…';
     quickAction(null, 'The engine is calculating this hand…');
+    if(!multiway)$('#equity-range').textContent='Calculando…';
     const publish = async (data, started, phase) => {
       if (requestedRevision !== inputRevision || controller.signal.aborted) return false;
       data.clientTiming={httpElapsedMs:performance.now()-started,scope:'HTTP_ROUND_TRIP_AND_SECOND_FRAME_PROXY'};
@@ -487,6 +547,21 @@ function renderResult(data, street) {
       return true;
     };
     try {
+      // Simple mode uses cards, board and opponent count only. Stored prices,
+      // action assumptions and player profiles do not enter this estimate.
+      if(!multiway){
+        const data=await requestJson('/api/equity',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),signal:controller.signal});
+        if(requestedRevision!==inputRevision||controller.signal.aborted)return;
+        if(data.status==='OK'){
+          renderCharts({...data.equity,street:payload.street});quickAction(data);
+          emptyState.classList.add('hidden');result.classList.remove('hidden');
+          const precision=quickEquityPrecision(data.equity);
+          const stopLabel=({PRECISION:'Precisão-alvo atingida',TIME_BUDGET:'Limite de tempo atingido',SAMPLE_LIMIT:'Limite de amostras atingido'})[data.equity.stopReason]||'Cálculo concluído';
+          result.innerHTML=`<div class="result-top"><div><div class="result-label">EQUITY · ${esc(streetName(payload.street))}</div><div class="result-action">${percent(data.equity.equity)}</div></div></div><p class="micro">${precision.preliminary?'Estimativa preliminar · ':''}Faixa 95%: ${esc(precision.range)} · ${esc($('#equity-scope').textContent)}</p><details class="result-disclosure"><summary>Detalhes</summary><div><p>${esc(data.equity.samples.toLocaleString('pt-BR'))} simulações · ${esc(data.equity.method)} · ${esc(stopLabel)}.</p><p>Equity até o showdown contra mãos adversárias aleatórias. Pote, blinds, posição e apostas não entram neste cálculo.</p><p>A faixa quantifica a incerteza da amostragem neste modelo; não cobre escolhas reais dos adversários.</p>${(data.assumptions||[]).map(item=>`<p>${esc(item)}</p>`).join('')}${(data.warnings||[]).map(item=>`<p class="result-warning">${esc(item)}</p>`).join('')}</div></details>`;
+          lastAnalysis=null;renderEngineDetails();scheduleSave();
+        }else{renderResult(data,payload.street);quickAction(data);renderCharts();}
+        return;
+      }
       // A short, explicitly provisional calculation never supplies an imperative action.
       // Full study branches retain their specified budgets, so skip duplicate study work.
       if (!payload.aggressionStudy && (payload.samplingMode==='ADAPTIVE' || Number(payload.samples)>512)) {
@@ -502,7 +577,7 @@ function renderResult(data, street) {
       if(requestedRevision===inputRevision){lastAnalysis=null;const data={status:'ERROR',reason:`Calculation unavailable: ${error.message}`};renderResult(data,payload.street);quickAction(data);renderCharts();}
     } finally {
       analysisBusy=false;analysisController=null;analyzeButton.disabled=false;$('#quick-analyze').disabled=false;
-      analyzeButton.innerHTML='Analyze street <span>↗</span>';$('#quick-analyze').innerHTML='Analyze hand <span>↗</span>';
+      analyzeButton.innerHTML='Analyze street <span>↗</span>';$('#quick-analyze').innerHTML=multiway?'Analyze hand <span>↗</span>':'Calcular equity <span>↗</span>';
       if(analysisQueued){analysisQueued=false;scheduleAnalysis();}
     }
   }
@@ -876,6 +951,6 @@ function renderResult(data, street) {
   const controlsHost=document.createElement('section');controlsHost.id='multiway-controls';$('.quick-decision').before(controlsHost);
   window.theibsMultiwayUI.init({getContext:multiwayContext,handlers:{start:startMultiway,act:event=>stepMultiway({type:'ACT',...event}),markFold:event=>stepMultiway({type:'MARK_FOLD',...event}),board:event=>stepMultiway({type:'BOARD',...event}),undo:()=>runMultiway(()=>postJson('/api/multiway/state',{multiway:{...multiway,events:multiway.events.slice(0,-1)}})),exit:exitMultiway}});
   window.theibsOpponentInputs.init({getContext:()=>({mode:multiway?'MULTIWAY':'SIMPLE',variant:`PLO${cards.state.count}_HIGH`,count:cards.state.count,position:multiway?multiway.config.heroPosition:value('position'),busy:multiwayBusy,players:multiwayState&&multiway?multiwayState.players.filter(p=>!p.hero).map((p,index)=>({seatId:p.id,label:`ADV. ${index+1} · ${p.position}`,folded:p.folded})):Array.from({length:Math.max(1,Number(value('players'))-1)},(_,seatId)=>({seatId,label:`ADV. ${seatId+1}`,folded:false}))}),onChange:()=>{invalidateAnalysis();scheduleSave();}});
-  updateTableContext(); renderMultiway();renderStreetCards(); renderCharts(); updateBoardHelp(); renderTrainingSession();
+  updateTableContext(); renderMultiway();renderStreetCards(); renderCharts(); quickAction(null); updateBoardHelp(); renderTrainingSession();
   window.theibsApp = { ready: initialize(), getState: () => ({ activeView, analysisBusy, trainingBusy, lastAnalysis, trainingSession, multiway,multiwayState,multiwayAnalysis,multiwayBusy,snapshots: [...snapshots], saveBusy, saveDirty, saveBlocked }), flushSave, showView, getAnalysisInput: buildAnalysisPayload, getVoiceContext: () => ({ activeView, inputRevision, multiwayRevision, loaded, session: window.theibsVoiceSessionContext?.(), accessVisible: !document.getElementById('app-shell').hidden && !document.getElementById('app-shell').inert }), renderCoachAnswer };
 })();
