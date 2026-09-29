@@ -2,22 +2,21 @@
  * the keyboard/ledger boundary. No audio or transcript persistence. */
 (function () {
   'use strict';
-  if (typeof document === 'undefined' || !window.TheibsCardVoice || !window.TheibsCardVoiceFast || !window.theibsCardKeyboard) return;
+  if (typeof document === 'undefined' || !window.TheibsCardVoice || !window.theibsCardKeyboard) return;
   const host = document.querySelector('#analyze-workspace .table-column');
   if (!host) return;
-  const voice = window.TheibsCardVoice, fast = window.TheibsCardVoiceFast, keyboard = window.theibsCardKeyboard, session = new voice.RecognitionSession();
+  const voice = window.TheibsCardVoice, keyboard = window.theibsCardKeyboard, session = new voice.RecognitionSession();
   const panel = document.createElement('section'); panel.id = 'card-voice'; panel.setAttribute('aria-label', 'Cartas e ações observadas por voz');
   panel.innerHTML = `<div class="voice-heading"><strong>Cartas e ações por voz</strong><span id="voice-capture-state" class="voice-badge" aria-live="polite">Pronto para iniciar</span><span id="voice-mode-badge" class="voice-badge">Aplicação automática</span></div>
     <div class="voice-options"><label>Idioma / Language<select id="voice-language"><option value="pt-BR">Português (Brasil)</option><option value="en-US">English (US)</option></select></label>
-    <label>Reconhecimento<select id="voice-processing"><option value="browser">Serviço do navegador</option><option value="device">Somente neste dispositivo</option></select></label>
-    <label>Ritmo da fala<select id="voice-pace"><option value="fast">Rápido · uma carta por vez</option><option value="batch">Frase completa · cartas em sequência</option></select></label></div>
-    <label class="voice-consent"><input id="voice-auto-apply" type="checkbox" checked> Aplicar ao reconhecer e avançar para a próxima carta</label>
+    <label>Reconhecimento<select id="voice-processing"><option value="browser">Serviço do navegador</option><option value="device">Somente neste dispositivo</option></select></label></div>
+    <label class="voice-consent"><input id="voice-auto-apply" type="checkbox" checked> Aplicar cartas reconhecidas e avançar pela sequência</label>
     <p id="voice-privacy" class="voice-help">O serviço de voz do navegador pode enviar áudio ao provedor do navegador. Destino e retenção dependem dele. O THEIBS não grava áudio nem salva transcrições.</p>
     <label class="voice-consent"><input id="voice-consent" type="checkbox"> Permito o serviço de voz do navegador para esta página, inclusive processamento remoto.</label>
     <div class="voice-actions"><button id="voice-hold" type="button">Segure para falar</button><button id="voice-toggle" type="button" aria-pressed="false" title="Alt+V">Iniciar fala · Alt+V</button><button id="voice-cancel" type="button" disabled>Cancelar</button><button id="voice-undo" type="button" disabled>Desfazer última entrada</button></div>
     <p id="voice-status" role="status" aria-live="polite">Escolha o idioma. Diga valor e naipe; o teclado continua disponível.</p>
     <div id="voice-review" hidden><p class="voice-help">Confira a frase e o destino antes de aplicar:</p><output id="voice-transcript"></output><strong id="voice-proposal"></strong><button id="voice-apply" type="button">Aplicar lote conferido</button></div>
-    <p class="voice-help">No modo rápido, diga uma carta e aguarde o indicador Ouvindo antes da próxima. Pode abreviar: “oito paus” / “eight clubs”. Para ditar várias cartas sem interrupção, escolha Frase completa. Apostas sempre aguardam a frase inteira; diga “desfazer” para corrigir. Desmarque a aplicação automática se preferir conferir cada lote. Ex.: “minhas cartas, ás de espadas, dez de copas” / “my cards, ace of spades, ten of hearts”.</p>
+    <p class="voice-help">Fale a sequência completa em uma frase, sempre com valor e naipe: “minhas cartas, ás de espadas, valete de copas, dama de ouros, dez de paus” / “my cards, ace of spades, jack of hearts, queen of diamonds, ten of clubs”. O lote pode ter 4, 5 ou 6 cartas. Para o ASR, “ás / A” e “valete / jota / jack” são equivalentes. Diga “desfazer” para corrigir.</p>
     <p class="voice-help">No Multiway, registre uma ação observada por vez: “eu pago”, “adversário um aumenta para seis”, “hero call”, “opponent one raises to six”. O ator precisa estar na vez. Raise é o total na street; nenhuma aposta é enviada a uma mesa externa.</p>
     <details><summary>Comandos e números</summary><p class="voice-help">PT: ás, dois, três, quatro, cinco, seis, sete, oito, nove, dez, valete, dama/rainha, rei + espadas/copas/ouros/paus. EN: ace, two, three, four, five, six, seven, eight, nine, ten, jack, queen, king + spades/hearts/diamonds/clubs. Números 2–10 também são aceitos; “to”, “for”, “ate” e um/one não são cartas.</p><p class="voice-help">Destinos: minhas cartas/my cards, flop, turn, river, board. Selecionar carta três/select card three; corrigir carta três para dama de ouros/correct card three to queen of diamonds; remover carta selecionada/remove selected card; desfazer/undo; cancelar/cancel. Sem destino, use o slot selecionado; um lote não atravessa sua street.</p><p class="voice-help">Ações Multiway: eu/herói ou adversário/oponente N; em inglês hero/I ou opponent N (N é o número ADV. da mesa). Desistir/fold; passar/check; pagar/call sem valor (o preço vem da mesa); apostar/bet com valor; aumentar para/raise to com total. Valores sem separador de milhar: 2,50 ou dois vírgula cinquenta em PT; 2.50 ou two point five em EN. Aceita números por extenso até 999999,99; Aceita “aumenta para” (total), “aumenta em” (incremento sobre a maior aposta), “raise to/by”, fichas/chips e BB explícito. All-in usa o stack disponível somente quando a ação é legal. Uma ação por frase; se faltar um dado, diga apenas o complemento solicitado.</p></details>`;
   // The existing deck lives in Settings. Voice needs the visible Analyze
@@ -25,11 +24,11 @@
   const disclosure = document.createElement('details'); disclosure.id = 'card-voice-disclosure';
   const summary = document.createElement('summary'); summary.textContent = 'Entrada por voz · PT / EN';
   disclosure.append(summary, panel); host.append(disclosure);
-  disclosure.open = true;
+  disclosure.open = false;
   const activation=panel.querySelector('#voice-consent').closest('label'), consent=panel.querySelector('#voice-consent');
   activation.classList.add('voice-activation');
   const activationCopy=document.createElement('span');
-  activationCopy.innerHTML='<strong>Ativar comandos por voz</strong><small id="voice-consent-description">Ao ativar, autorizo o serviço do navegador, inclusive processamento remoto. O THEIBS não grava áudio.</small>';
+  activationCopy.innerHTML='<strong>Ativar / parar comandos por voz</strong><small id="voice-consent-description">Marque para iniciar e desmarque para encerrar. Ao ativar, autorizo o serviço do navegador, inclusive processamento remoto. O THEIBS não grava áudio.</small>';
   activation.replaceChildren(consent,activationCopy);
   const actions=panel.querySelector('.voice-actions'), advanced=document.createElement('details'), help=document.createElement('details');
   advanced.className='voice-advanced';advanced.innerHTML='<summary>Idioma e opções</summary><div class="voice-extra-actions"></div>';
@@ -81,7 +80,7 @@
   }
   function context() {
     return { revision: keyboard.getRevision(), snapshot: keyboard.state.snapshot(), invalid: keyboard.isManualInvalid(),
-      locale: $('voice-language').value, processing: $('voice-processing').value, pace: $('voice-pace').value, autoApply: autoApply(),
+      locale: $('voice-language').value, processing: $('voice-processing').value, pace: 'batch', autoApply: autoApply(),
       active: active(), app: window.theibsApp?.getVoiceContext?.() || { activeView: window.theibsApp?.getState?.().activeView },
       multiway: window.theibsMultiwayUI?.voiceContext?.() || null };
   }
@@ -96,35 +95,17 @@
     $('voice-capture-state').textContent = ({ idle:!Recognition?'Voz indisponível':microphonePermission==='denied'?'Permissão negada':microphonePermission==='granted'?'Pronto para ativar':'Permissão necessária', starting:'Preparando microfone', listening:'● Ouvindo', clarifying:'● Ouvindo complemento', processing:'Processando · aguarde', finalizing:'Concluindo · aguarde', restarting:'Retomando · aguarde', applying:'Aplicando · aguarde', review:'Confira a entrada' })[phase];
     $('voice-hold').disabled = committing || !Recognition || !window.isSecureContext;
     $('voice-toggle').disabled = (committing && !listening) || !Recognition || !window.isSecureContext;
+    $('voice-consent').disabled = committing;
     $('voice-undo').disabled = committing || (!keyboard.state.undoStack.length && !lastLedgerUndo);
   }
-  // An interim may request a final result, but it never mutates the table.
-  const endpoint = new fast.FastEndpoint({ delayMs: 220, onReady: ({key, contextKey}) => {
-    const current = run;
-    if (!current || current.closing || current.hold || committing || clarification || !wantListening ||
-      !current.automatic || $('voice-pace').value !== 'fast' || current.resultKey !== key ||
-      JSON.stringify(context()) !== contextKey || contextKey !== session.context) return;
-    const command = fast.candidate(session.pendingPreview(), $('voice-language').value);
-    try { if (!command) return; validate(command, context()); }
-    catch { return; }
-    requestFinal(current, 'VALID_CARD_STABLE');
-  }});
+  // Speak a full card or action sequence. Interim speech never closes capture.
   function requestFinal(current, reason) {
     if (run !== current || current.cancelled || current.closing) return;
-    endpoint.clear(); current.closing = true; current.stopRequestedAt = performance.now(); current.stopReason = reason; trace(current,'stop-request',{reason}); controls();
-    if (reason === 'VALID_CARD_STABLE') say('Concluindo a carta… aguarde ela entrar antes de falar a próxima.');
+    current.closing = true; current.stopRequestedAt = performance.now(); current.stopReason = reason; trace(current,'stop-request',{reason}); controls();
+    say('Concluindo a frase… aguarde o resultado final.');
     try { current.recognition.stop(); } catch { cancel('Não foi possível concluir a fala. Tente novamente.'); }
   }
-  function updateEndpoint(current) {
-    let command = null;
-    if (current.automatic && !current.hold && !current.closing && !clarification && $('voice-pace').value === 'fast' && wantListening) {
-      command = fast.candidate(session.pendingPreview(), $('voice-language').value);
-      try { if (command) validate(command, context()); } catch { command = null; }
-    }
-    if (command) current.firstValidCardAt ||= performance.now();
-    endpoint.update({key:current.resultKey, eligible:Boolean(command), contextKey:session.context});
-  }
-  function clearTimers() { endpoint.clear(); clearInterval(monitor); monitor = null; clearTimeout(restartTimer); restartTimer = null; restartContext = null; }
+  function clearTimers() { clearInterval(monitor); monitor = null; clearTimeout(restartTimer); restartTimer = null; restartContext = null; }
   function cancel(message) {
     const old = run; run = null; wantListening = false; captureHold = false; operationEpoch++; session.cancel(); clearTimers(); review.hidden = true;
     $('voice-consent').checked = false;
@@ -176,7 +157,7 @@
     if (current && run === current) {
       current.clarified = true;
       if (!session.resume(current.id, captured)) { cancel('Diga o comando completo novamente.'); return; }
-      endpoint.clear(); watchContext();
+      watchContext();
     } else session.cancel();
     say(`${proposal.error ? proposal.error+' ' : ''}${request.prompt}${audioReady() ? '' : ' Aguarde o indicador Ouvindo.'}`, Boolean(proposal.error)); controls();
     if (!run && wantListening) resumeCapture();
@@ -235,14 +216,39 @@
       : ({ hero: 'mão', flop: 'flop', turn: 'turn', river: 'river', board: 'board' })[command.target] || 'entrada atual';
     return `${target} → ${command.cards?.map(cardLabel).join(' · ') || (command.card && cardLabel(command.card)) || ({ undo: 'desfazer', remove: 'remover carta', select: `selecionar posição ${command.index + 1}`, target: 'selecionar destino' })[command.type] || command.type}`;
   }
+  function applySpeechHints(recognizer, locale) {
+    const Phrase = window.SpeechRecognitionPhrase || window.webkitSpeechRecognitionPhrase;
+    if (!('phrases' in recognizer) || typeof Phrase !== 'function') return false;
+    const english = locale === 'en-US';
+    const ranks = english
+      ? ['two','three','four','five','six','seven','eight','nine','ten','jack','queen','king','ace']
+      : ['dois','três','quatro','cinco','seis','sete','oito','nove','dez','valete','dama','rei','ás'];
+    const suits = english ? ['spades','hearts','diamonds','clubs'] : ['espadas','copas','ouros','paus'];
+    const connector = english ? 'of' : 'de';
+    const hints = new Map();
+    const add = (phrase, boost) => hints.set(phrase, Math.max(hints.get(phrase) || 0, boost));
+    for (const rank of ranks) for (const suit of suits) add(`${rank} ${connector} ${suit}`, 2.5);
+    const rankAliases = english
+      ? [['ace',['ace'],4.5],['jack',['jack'],4.5]]
+      : [['ás',['ás','as','a','ace'],4.5],['valete',['valete','valet','vale te','jota','jack'],4.5]];
+    for (const [, aliases, boost] of rankAliases) for (const alias of aliases) {
+      add(alias, 2.5);
+      for (const suit of suits) add(`${alias} ${connector} ${suit}`, boost);
+    }
+    try {
+      recognizer.phrases = [...hints].map(([phrase, boost]) => new Phrase(phrase, boost));
+      return true;
+    } catch {
+      return false;
+    }
+  }
   function timing(current, started) {
     return { locale: $('voice-language').value, mode: $('voice-processing').value,
       recognitionSessionMs: performance.now() - current.startedAt,
       startupMs: current.listenStartedAt ? current.listenStartedAt - current.startedAt : null,
       startToAudioMs: current.audioStartedAt ? current.audioStartedAt-current.startedAt : null,
-      pace: $('voice-pace').value, endReference: current.stopReason || 'FINAL_RESULT',
+      pace: 'batch', endReference: current.stopReason || 'FINAL_RESULT',
       firstResultToFinalMs: current.firstResultAt ? started - current.firstResultAt : null,
-      firstValidCardToFinalMs: current.firstValidCardAt ? started - current.firstValidCardAt : null,
       stopToFinalMs: current.stopRequestedAt ? started - current.stopRequestedAt : null,
       audioGapMs: current.audioGapMs ?? null,
       speechEndToFinalMs: current.speechEndedAt ? started-current.speechEndedAt : null,
@@ -257,14 +263,14 @@
       const unchanged = JSON.stringify(context()) === restartContext; restartTimer = null; restartContext = null;
       if (wantListening && unchanged) void start({ resume: true });
       else if (wantListening) cancel('Contexto alterado. Dite novamente.');
-    }, retry ? Math.min(1000, 250 * 2 ** Math.min(softRetryCount++, 2)) : $('voice-pace').value === 'fast' ? 0 : 80);
+    }, retry ? Math.min(1000, 250 * 2 ** Math.min(softRetryCount++, 2)) : 80);
     controls(); say(notice ? `${notice} Retomando microfone…` : clarification ? `${clarification.request.prompt} Retomando microfone…` : 'Retomando microfone… aguarde o indicador Ouvindo.');
   }
   function retryCapture(current, message) {
     if (run !== current || current.retryMessage) return;
     if (!wantListening || !$('voice-consent').checked || !active() || current.hold) { cancel(message); return; }
     current.retryMessage = message;
-    current.closing = true; endpoint.clear(); session.cancel();
+    current.closing = true; session.cancel();
     clearInterval(monitor); monitor = null;
     clearTimeout(clarificationTimer); clarificationTimer = null; clarification = null;
     controls(); say(`${message} Nenhuma entrada foi anotada; aguarde Ouvindo e repita.`);
@@ -280,7 +286,7 @@
   }
   function discardOrRetry(current, captured, message) {
     if (session.discardFinal(current.id, captured)) {
-      endpoint.clear(); current.firstResultAt = null; current.firstValidCardAt = null;
+      current.firstResultAt = null;
       clearTimeout(clarificationTimer); clarificationTimer = null; clarification = null;
       say(`${message} Nenhuma entrada foi anotada; pode repetir.`, true);
     } else retryCapture(current, message);
@@ -341,7 +347,7 @@
     const captured = context();
     if (!captured.active || captured.invalid) { cancel(); say('A voz está disponível na entrada válida de cartas do Analyze.', true); return; }
     if (!$('voice-consent').checked) { cancel(); say('Marque Ativar comandos por voz antes de falar.', true); return; }
-    const current = { id: session.begin(captured), startedAt: performance.now(), recognition: null, started: false, audioActive:false, cancelled: false, automatic: captured.autoApply, appliedCount: 0, hold: requestedHold, closing: false, resultKey: '', firstResultAt: null, firstValidCardAt: null, resumed:resume };
+    const current = { id: session.begin(captured), startedAt: performance.now(), recognition: null, started: false, audioActive:false, cancelled: false, automatic: captured.autoApply, appliedCount: 0, hold: requestedHold, closing: false, firstResultAt: null, resumed:resume };
     run = current; controls(); say('Preparando microfone…'); watchContext();
     trace(current,'start-request');
     try {
@@ -360,6 +366,7 @@
       if (run !== current || JSON.stringify(context()) !== session.context) { cancel('Contexto alterado antes de iniciar.'); return; }
       const recognizer = new Recognition(); current.recognition = recognizer;
       recognizer.lang = captured.locale; recognizer.continuous = true; recognizer.interimResults = true; recognizer.maxAlternatives = 1;
+      current.contextBiasing = applySpeechHints(recognizer, captured.locale);
       if (captured.processing === 'device') recognizer.processLocally = true;
       else if ('processLocally' in recognizer) recognizer.processLocally = false;
       recognizer.onstart = () => {
@@ -380,7 +387,6 @@
         if (JSON.stringify(capturedNow) !== session.context) { cancel('Contexto alterado durante a fala.'); return; }
         const started = performance.now(); current.firstResultAt ||= started;
         trace(current,'result',{finalCount:Array.from(event.results).filter(r=>r.isFinal).length,segmentCount:event.results.length});
-        current.resultKey = JSON.stringify(Array.from(event.results, r => [r[0].transcript, r.isFinal]));
         session.reconcileResultCount(current.id, event.results.length);
         // Results is cumulative. Inspect every index to catch changed final
         // segments and prevent repeated provider events from applying twice.
@@ -394,9 +400,9 @@
           if (proposal) {
             try { validate(proposal, capturedNow); }
             catch (error) { discardOrRetry(current, capturedNow, error.message); return; }
-            endpoint.clear(); sample = timing(current, started); void apply({ automatic: true, current }); current.firstResultAt = null; current.firstValidCardAt = null;
+            sample = timing(current, started); void apply({ automatic: true, current }); current.firstResultAt = null;
           }
-          else { updateEndpoint(current); if (session.hasPending() && !current.closing) say('Reconhecendo… diga o valor e o naipe.'); }
+          else if (session.hasPending() && !current.closing) say('Reconhecendo a frase… diga o valor e o naipe.');
         } else say(`Ouvindo: ${session.preview() || '…'} — confira o lote ao terminar.`);
       };
       recognizer.onerror = event => {
@@ -413,9 +419,7 @@
       recognizer.onspeechend = () => {
         current.speechEndedAt = performance.now();
         trace(current,'speech-end');
-        // Completed commands need no flush. Batch mode retains continuous
-        // capture through natural pauses; the user can explicitly stop a lot.
-        if (current.automatic && !current.hold && run === current && !committing && session.hasPending() && $('voice-pace').value === 'fast') requestFinal(current, 'PROVIDER_SPEECHEND');
+        // Keep capture open across pauses so the player can dictate the whole sequence.
       };
       recognizer.onspeechstart = () => { trace(current,'speech-start'); current.speechEndedAt = null; };
       current.released = new Promise(resolve => { current.release = resolve; });
@@ -482,7 +486,7 @@
       lastApplied = `Aplicado: ${label}. ${command.type==='action'?'Ação registrada na mesa.':'Próxima posição selecionada.'} Diga “desfazer” para corrigir.`;
       softRetryCount = 0;
       review.hidden = true; $('voice-transcript').textContent = ''; $('voice-proposal').textContent = '';
-      if (automatic && current && run === current) {
+      if (automatic && current && run === current && !current.closing && wantListening) {
         if (!session.resume(current.id, context())) throw Error('Não foi possível continuar a escuta. As entradas aplicadas foram mantidas.');
         watchContext(); say(lastApplied + (current.closing || !current.audioActive ? ' Aguarde o indicador Ouvindo antes da próxima fala.' : ''));
       } else if (automatic && wantListening) { session.cancel(); restart = true; say(lastApplied); }
@@ -504,13 +508,14 @@
   $('voice-undo').onclick = () => { if (committing) return; cancel(); sample = null; void apply({explicitCommand:{type:'undo'}}); };
   $('voice-consent').addEventListener('change', () => {
     if ($('voice-consent').checked) void start();
+    else if (run || wantListening) stop();
     else cancel('Voz desligada. Entradas anteriores mantidas.');
   });
-  for (const id of ['voice-language', 'voice-processing', 'voice-auto-apply', 'voice-pace']) $(id).addEventListener('change', () => {
+  for (const id of ['voice-language', 'voice-processing', 'voice-auto-apply']) $(id).addEventListener('change', () => {
     cancel('Configuração alterada. Dite novamente.');
     $('voice-consent-description').textContent = $('voice-processing').value === 'device'
-      ? 'Ao ativar, autorizo o microfone para reconhecimento neste dispositivo. O THEIBS não grava áudio.'
-      : 'Ao ativar, autorizo o serviço do navegador, inclusive processamento remoto. O THEIBS não grava áudio.';
+      ? 'Marque para iniciar e desmarque para encerrar. Ao ativar, autorizo o microfone para reconhecimento neste dispositivo. O THEIBS não grava áudio.'
+      : 'Marque para iniciar e desmarque para encerrar. Ao ativar, autorizo o serviço do navegador, inclusive processamento remoto. O THEIBS não grava áudio.';
     $('voice-privacy').textContent = $('voice-processing').value === 'device'
       ? 'O reconhecimento foi configurado para este dispositivo. O THEIBS não grava áudio nem salva transcrições.'
       : 'O serviço de voz do navegador pode enviar áudio ao provedor do navegador. Destino e retenção dependem dele. O THEIBS não grava áudio nem salva transcrições.';
@@ -546,7 +551,7 @@
   const observer = new MutationObserver(() => { if (!committing && pending() && JSON.stringify(context()) !== expectedContext()) cancel('Tela ou sessão alterada. Voz cancelada.'); });
   for (const element of [document.querySelector('#analyze-workspace'), document.querySelector('#app-shell'), document.body])
     if (element) observer.observe(element, { attributes: true, attributeFilter: ['class', 'hidden', 'inert', 'data-multiway', 'data-multiway-busy'] });
-  window.theibsCardVoice = { cancel, releaseCaptureForEvaluation, getStatus: () => ({ phase: session.phase, listening: Boolean(run) || wantListening, captureState:captureState(), audioReady:audioReady(), needsClarification:Boolean(clarification), committing, autoApply: autoApply(), pace: $('voice-pace').value, finalizing: Boolean(run?.closing), acoustic: 'NOT_EXECUTED' }),
+  window.theibsCardVoice = { cancel, releaseCaptureForEvaluation, getStatus: () => ({ phase: session.phase, listening: Boolean(run) || wantListening, captureState:captureState(), audioReady:audioReady(), needsClarification:Boolean(clarification), committing, autoApply: autoApply(), pace: 'batch', contextBiasing: Boolean(run?.contextBiasing), finalizing: Boolean(run?.closing), acoustic: 'NOT_EXECUTED' }),
     getDiagnostics: () => diagnostics.map(row => ({...row})),
     getMetrics: () => metrics.map(row => ({ ...row })), capability: () => ({ secureContext: window.isSecureContext, constructorPresent: Boolean(Recognition),
       functionalRecognition: 'NOT_VERIFIED', acoustic: 'NOT_EXECUTED', localAvailabilityCheck: typeof Recognition?.available === 'function' }) };

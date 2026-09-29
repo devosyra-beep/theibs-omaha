@@ -14,12 +14,64 @@
   let revision = 0;
   let renderedCount = null, slotElements = [], renderedCards = [], deckButtons = [];
   let renderedDeckState = null;
+  let multiwayBoardDraft = null;
   const cardTemplate = document.createElement('template');
   const setText = (selector, text) => {
     const element = $(selector);
     if (element.textContent !== text) element.textContent = text;
   };
   const setDisabled = (element, disabled) => { if (element.disabled !== disabled) element.disabled = disabled; };
+  function multiwayContext() {
+    if (document.body.dataset.multiway !== 'on') return null;
+    return window.theibsMultiwayUI?.voiceContext?.() || null;
+  }
+  function multiwayBoardRange(context = multiwayContext()) {
+    if (!context?.enabled || context.phase !== 'WAIT_BOARD') return null;
+    const start = state.count + (context.board?.length || 0);
+    const needed = context.nextStreet === 'FLOP' ? 3 : 1;
+    return { context, start, end: start + needed, needed, street: context.nextStreet };
+  }
+  function copyUndoStack() { return state.undoStack.map(entry => ({ ...entry, slots: [...entry.slots] })); }
+  function rememberMultiwayBoardDraft(range) {
+    if (multiwayBoardDraft?.stateToken === range.context.stateToken) return multiwayBoardDraft;
+    multiwayBoardDraft = { stateToken: range.context.stateToken, snapshot: state.snapshot(), undoStack: copyUndoStack(), range: { ...range } };
+    return multiwayBoardDraft;
+  }
+  function restoreMultiwayBoardDraft(draft, notice) {
+    if (draft && multiwayBoardDraft === draft) {
+      state.restore(draft.snapshot); state.undoStack = draft.undoStack.map(entry => ({ ...entry, slots: [...entry.slots] }));
+      multiwayBoardDraft = null; message = ''; render(); announce(notice, true);
+    }
+  }
+  function isMultiwayBoardSlot(index, range = multiwayBoardRange()) {
+    return Boolean(range && index >= range.start && index < range.end);
+  }
+  function finishMultiwayBoardEdit(range) {
+    const draft = rememberMultiwayBoardDraft(range);
+    const board = state.slots.slice(range.start, range.end);
+    const entered = board.filter(Boolean).length;
+    if (entered < range.needed) {
+      render();
+      announce(`${range.street === 'FLOP' ? 'Flop' : range.street}: ${entered}/${range.needed}. Continue on the board above.`);
+      return;
+    }
+    let addedCards;
+    try { addedCards = board.map(window.TheibsCards.toCanonical); }
+    catch (error) { restoreMultiwayBoardDraft(draft, error.message); return; }
+    const commit = window.theibsMultiwayUI?.commitKeyboardBoard;
+    if (typeof commit !== 'function') { restoreMultiwayBoardDraft(draft, 'Multiway board entry is unavailable.'); return; }
+    message = ''; render(); announce(`Adding ${range.street === 'FLOP' ? 'flop' : range.street.toLowerCase()} to Multiway…`);
+    Promise.resolve(commit({ addedCards, expectedStateToken: range.context.stateToken })).then(ok => {
+      if (!ok) restoreMultiwayBoardDraft(draft, 'Board was not added. Check the table and enter the cards again.');
+      else if (multiwayBoardDraft === draft) { multiwayBoardDraft = null; message = ''; render(); }
+    }).catch(error => restoreMultiwayBoardDraft(draft, error?.message || 'Board was not added. Enter the cards again.'));
+  }
+  function editMultiwayBoard(range, before) {
+    if (before && !multiwayBoardDraft) {
+      multiwayBoardDraft = { stateToken: range.context.stateToken, snapshot: before.snapshot, undoStack: before.undoStack, range: { ...range } };
+    }
+    finishMultiwayBoardEdit(range);
+  }
 
   function isEditing(target) {
     if (!(target instanceof Element)) return false;
@@ -37,6 +89,9 @@
   function render() {
     const focus = document.activeElement;
     const focusedSlot = focus?.dataset?.slot, focusedCard = focus?.dataset?.card;
+    const tableContext = multiwayContext(), boardRange = multiwayBoardRange(tableContext);
+    if (multiwayBoardDraft && (!tableContext?.enabled || tableContext.phase !== 'WAIT_BOARD' || tableContext.stateToken !== multiwayBoardDraft.stateToken))
+      multiwayBoardDraft = null;
     const slot = (index) => window.EssenceUI.cardMarkup(state.slots[index], {
       slot: index, selected: state.selected === index,
       label: index < state.count ? `Hole card ${index + 1}` : `Community card ${index - state.count + 1}`,
@@ -65,9 +120,11 @@
       const selected = state.selected === index;
       element.classList.toggle('selected', selected);
       if (element.getAttribute('aria-pressed') !== String(selected)) element.setAttribute('aria-pressed', String(selected));
-      setDisabled(element, multiway && index >= state.count);
-      if (multiway && index >= state.count) element.title = 'Use Deal board in Multiway.';
-      else if (element.title === 'Use Deal board in Multiway.') {
+      const editableBoardSlot = Boolean(boardRange && !tableContext.busy && index >= boardRange.start && index < boardRange.end);
+      setDisabled(element, multiway && index >= state.count && !editableBoardSlot);
+      if (multiway && index >= state.count && !editableBoardSlot) element.title = 'Board cards are available here when the betting round is complete.';
+      else if (multiway && editableBoardSlot) element.title = `Enter ${boardRange.street === 'FLOP' ? 'flop' : boardRange.street.toLowerCase()} card ${index - boardRange.start + 1} of ${boardRange.needed}.`;
+      else if (element.title === 'Board cards are available here when the betting round is complete.' || element.title.startsWith('Enter ') && index >= state.count) {
         cardTemplate.innerHTML = slot(index);
         element.title = cardTemplate.content.firstElementChild.title;
       }
@@ -87,7 +144,8 @@
       }
       renderedDeckState = deckState;
     }
-    setDisabled($('#undo-card'), !state.undoStack.length);
+    const canUndoBoardDraft = Boolean(boardRange && state.selected >= boardRange.start && multiwayBoardDraft?.stateToken === boardRange.context.stateToken && state.undoStack.length > multiwayBoardDraft.undoStack.length);
+    setDisabled($('#undo-card'), boardRange && state.selected >= state.count ? !canUndoBoardDraft : !state.undoStack.length);
     setDisabled($('#remove-card'), !state.slots[state.selected]);
     $('#variant-select').value = String(state.count);
     setText('#analysis-variant', `PLO${state.count} HIGH`);
@@ -125,19 +183,56 @@
     } catch (error) { manualInvalid = true; announce(error.message, true); }
     render(); changed('manual');
   }
-  function select(index) { if(document.body.dataset.multiway==='on')index=Math.min(index,state.count-1);if (state.select(index)) { revision += 1; clearPending(); render(); document.dispatchEvent(new CustomEvent('theibs:card-selection', { detail: { selected: state.selected, revision } })); } }
+  function select(index) {
+    if (document.body.dataset.multiway === 'on') {
+      const range = multiwayBoardRange();
+      if (range && index >= state.count) index = Math.max(range.start, Math.min(range.end - 1, index));
+      else if (index >= state.count) index = state.count - 1;
+    }
+    if (state.select(index)) { revision += 1; clearPending(); render(); document.dispatchEvent(new CustomEvent('theibs:card-selection', { detail: { selected: state.selected, revision } })); }
+  }
   function assign(card) {
     if (manualInvalid) { announce('Fix the cards in the text field before using the deck.', true); return; }
-    if (state.assign(card)) writeInputs('keyboard'); else announce(state.error, true);
+    const range = multiwayBoardRange();
+    const onMultiwayBoard = isMultiwayBoardSlot(state.selected, range);
+    const before = onMultiwayBoard && !multiwayBoardDraft ? { snapshot: state.snapshot(), undoStack: copyUndoStack() } : null;
+    if (state.assign(card)) {
+      if (onMultiwayBoard) editMultiwayBoard(range, before);
+      else writeInputs('keyboard');
+    } else announce(state.error, true);
   }
   function paste(text) {
     if (manualInvalid) { announce('Fix the text entry before pasting.', true); return false; }
+    const range = multiwayBoardRange(), onMultiwayBoard = isMultiwayBoardSlot(state.selected, range);
+    let before = null;
+    if (onMultiwayBoard) {
+      let parsed;
+      try { parsed = parsePortugueseCards(text); } catch (error) { announce(error.message, true); return false; }
+      if (parsed.length > range.end - state.selected) { announce(`Enter only the remaining ${range.street === 'FLOP' ? 'flop' : range.street.toLowerCase()} cards.`, true); return false; }
+      if (!multiwayBoardDraft) before = { snapshot: state.snapshot(), undoStack: copyUndoStack() };
+    }
     if (!state.paste(text)) { announce(state.error, true); return false; }
-    writeInputs('paste'); return true;
+    if (onMultiwayBoard) editMultiwayBoard(range, before); else writeInputs('paste');
+    return true;
   }
   function undo() {
     if (pendingRank || pendingTen) { clearPending(); render(); return; }
+    const range = multiwayBoardRange();
+    if (range && state.selected >= state.count) {
+      if (multiwayBoardDraft?.stateToken === range.context.stateToken && state.undoStack.length > multiwayBoardDraft.undoStack.length && state.undo()) {
+        render(); announce('Board card removed from the pending entry.');
+      } else announce('No pending board card to undo.', true);
+      return;
+    }
     if (state.undo()) writeInputs('undo');
+  }
+  function removeSelected() {
+    const range = multiwayBoardRange();
+    if (range && isMultiwayBoardSlot(state.selected, range)) {
+      if (state.removeSelected()) { render(); announce('Board card removed from the pending entry.'); }
+      return;
+    }
+    if (state.removeSelected()) writeInputs('remove');
   }
   async function copy() {
     try { if (manualInvalid) throw new Error('Fix the text before copying.'); const text = state.compactText(); await navigator.clipboard.writeText(text); announce('E/C/O/P sequence copied.'); }
@@ -155,7 +250,7 @@
     const target = event.target.closest('[data-slot]'); if (target) select(Number(target.dataset.slot));
   });
   grid.addEventListener('click', (event) => { const button = event.target.closest('[data-card]'); if (button && !button.disabled) assign(button.dataset.card); });
-  $('#remove-card').addEventListener('click', () => { if (state.removeSelected()) writeInputs('remove'); });
+  $('#remove-card').addEventListener('click', removeSelected);
   $('#undo-card').addEventListener('click', undo);
   $('#copy-cards').addEventListener('click', copy);
   $('#export-cards').addEventListener('click', exportDraft);

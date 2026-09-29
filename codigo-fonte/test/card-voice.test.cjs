@@ -248,6 +248,11 @@ test('empty provider final segments reject the whole phrase including a valid pr
   assert.equal(session.finish(id,context),null);assert.match(session.error,/serviço.*texto vazio/);
  }
 });
+test('Portuguese ace and jack aliases cover short or split browser transcripts', () => {
+  assert.deepEqual(parse('A de espadas, vale te de copas').cards, ['As', 'Jh']);
+  assert.deepEqual(parse('ace de ouros, valet de paus').cards, ['Ad', 'Jc']);
+  assert.deepEqual(parse('jota de espadas, ás de copas').cards, ['Js', 'Ah']);
+});
 
 test('discarded final speech leaves the same recognizer session ready for a corrected card',()=>{
  const context={locale:'pt-BR'},session=new RecognitionSession(),id=session.begin(context);

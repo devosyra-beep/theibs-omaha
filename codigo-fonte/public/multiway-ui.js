@@ -50,7 +50,7 @@
     localBusy = true; setError(''); refresh();
     try { await options.handlers[name](payload); return true; }
     catch (error) { setError(error?.message || 'Could not record the action. Check the data and try again.'); return false; }
-    finally { localBusy = false; refresh(); }
+    finally { localBusy = false; refresh(); options.onSettled?.(); }
   }
   function currentVariant() { const source = view.config || context(); return source.variant || `PLO${$('#variant-select')?.value || 5}_HIGH`; }
   function fillPositions(preferred) {
@@ -87,21 +87,25 @@
   }
   function refreshControls() {
     controlsHost.hidden = !view.enabled;
+    controlsHost.dataset.phase = view.state?.phase || '';
     document.body.dataset.multiway = view.enabled ? 'on' : 'off';
     const state = view.state, current = actor(), isHero = current?.id === state?.heroId;
     const heading = !state ? 'Preparing table' : state.phase === 'BETTING' ? `${isHero ? 'Your turn' : playerName(current) + "'s turn"} · ${current?.position || ''}`
-      : state.phase === 'WAIT_BOARD' ? `Deal ${STREETS[state.nextStreet] || 'next street'}` : state.phase === 'SHOWDOWN' ? 'Showdown · betting complete' : 'Hand complete';
+      : state.phase === 'WAIT_BOARD' ? `Enter ${STREETS[state.nextStreet] || 'next street'} on the table` : state.phase === 'SHOWDOWN' ? 'Showdown · betting complete' : 'Hand complete';
+    document.body.dataset.multiwayPhase = state?.phase || '';
     $('#mw-actor').textContent = heading; $('#mw-actor').classList.toggle('is-hero-turn', Boolean(isHero && state?.phase === 'BETTING'));
     $('#mw-round').textContent = state ? `${STREETS[state.street] || state.street} · ${state.activeOpponentCount ?? state.players.filter(item => !item.hero && !item.folded).length} active opponents` : '';
     for (const command of COMMANDS) {
       const button = $(`[data-mw-command="${command.id}"]`), actionCode = resolveCommand(command);
       button.disabled = !actionCode; button.dataset.mwAction = actionCode || '';
-      const fallback = command.id === 'call' ? 'Call' : command.id === 'aggressive' ? 'Bet / Raise' : 'Check / Fold';
+      const fallback = command.id === 'call' ? 'Call' : command.id === 'aggressive' ? 'Raise' : 'Fold';
       button.querySelector('span').textContent = actionCode ? ACTIONS[actionCode].label + (actionCode === 'CALL' ? ' ' + money(state.legal.toCall) : '') : fallback;
       button.title = `${actionCode ? ACTIONS[actionCode].label : fallback} · ${command.key.toUpperCase()}`;
     }
-    $('#mw-next-board').hidden = state?.phase !== 'WAIT_BOARD'; $('#mw-next-board').disabled = busy();
-    $('#mw-next-board').textContent = `Enter ${STREETS[state?.nextStreet] || 'cards'}`;
+    const boardPrompt = $('#mw-board-prompt');
+    boardPrompt.hidden = state?.phase !== 'WAIT_BOARD';
+    boardPrompt.textContent = state?.phase === 'WAIT_BOARD'
+      ? `Choose the next empty board card above. Enter all ${state.nextStreet === 'FLOP' ? '3 flop cards' : '1 card'} with the card keyboard or voice.` : '';
     $('#mw-undo').disabled = busy() || !state || !(view.canUndo ?? (state.log || []).some(event => !['SB', 'BB'].includes(event.action)));
     $('#mw-setup-status').textContent = view.enabled ? 'On' : 'Off';
     $('#mw-exit').hidden = !view.enabled; $('#mw-exit').disabled = busy();
@@ -195,7 +199,7 @@
     if (!setupHost || !controlsHost) throw Error('Multiway containers are missing.');
     setupHost.innerHTML = `<details id="mw-setup-details"><summary><span>Multiway <small id="mw-variant-label"></small></span><span id="mw-setup-status" class="mw-chip">Off</span></summary><div class="mw-setup-fields"><div class="mw-config-grid"><label>Players, including you<select id="mw-player-count"></select></label><label>Your position<select id="mw-hero-position"></select></label><label>Small blind<input id="mw-small-blind" type="number" min="0.01" step="0.01" required></label><label>Big blind<input id="mw-big-blind" type="number" min="0.01" step="0.01" required></label><label>Starting stack per player<input id="mw-starting-stack" type="number" min="0.01" step="0.01" required></label></div><p id="mw-start-note"></p><div class="mw-setup-actions"><button id="mw-start" type="button" class="primary-button">Start Multiway</button><button id="mw-exit" type="button" class="text-button" hidden>Return to simple mode</button></div><p id="multiway-setup-error" class="multiway-error" role="alert" hidden></p></div></details>`;
     controlsHost.classList.add('multiway-controls'); controlsHost.hidden = true;
-    controlsHost.innerHTML = `<div class="mw-control-heading"><strong id="mw-actor"></strong><span id="mw-round"></span><button id="mw-undo" type="button" class="text-button" title="Undo the last observed action">↶ Undo</button></div><div class="mw-action-row">${COMMANDS.map(item => `<button type="button" data-mw-command="${item.id}" data-mw-action="" disabled title="${item.key.toUpperCase()}"><kbd>${item.key.toUpperCase()}</kbd><span>${item.id === 'call' ? 'Call' : item.id === 'aggressive' ? 'Bet / Raise' : 'Check / Fold'}</span></button>`).join('')}<button id="mw-next-board" type="button" class="primary-button" hidden>Enter cards</button></div><p id="multiway-error" class="multiway-error" role="alert" hidden></p><details id="mw-history"><summary>Recent actions</summary><ol id="mw-history-list"></ol></details>`;
+    controlsHost.innerHTML = `<div class="mw-control-heading"><strong id="mw-actor"></strong><span id="mw-round"></span><button id="mw-undo" type="button" class="text-button" title="Undo the last observed action">↶ Undo</button></div><div class="mw-action-row">${COMMANDS.map(item => `<button type="button" data-mw-command="${item.id}" data-mw-action="" disabled title="${item.key.toUpperCase()}"><kbd>${item.key.toUpperCase()}</kbd><span>${item.id === 'call' ? 'Call' : item.id === 'aggressive' ? 'Raise' : 'Fold'}</span></button>`).join('')}</div><p id="mw-board-prompt" class="mw-board-prompt" role="status" aria-live="polite" hidden></p><p id="multiway-error" class="multiway-error" role="alert" hidden></p><details id="mw-history"><summary>Recent actions</summary><ol id="mw-history-list"></ol></details>`;
     setupHost.querySelector('.mw-setup-fields').append(controlsHost.querySelector('.mw-control-heading'), controlsHost.querySelector('#mw-history'));
     sizeDialog = dialog('multiway-size-dialog', '<span id="mw-size-title">Bet amount</span>', '<form id="mw-size-form"><label>Total this street<input id="mw-size" type="number" step="0.01" inputmode="decimal" required></label><p id="mw-size-limits"></p><p id="mw-size-cost"></p><button id="mw-size-confirm" type="submit" class="primary-button">Confirm total · Enter</button></form>');
     boardDialog = dialog('multiway-board-dialog', '<span id="mw-board-title">Next street</span>', '<form id="mw-board-form"><p id="mw-board-existing"></p><label><span id="mw-board-label">New cards</span><input id="mw-board-new" autocomplete="off" spellcheck="false" required></label><p class="mw-card-legend">Rank + suit: ♠ E · ♥ C · ♦ O · ♣ P. Ten = D, T or 10.</p><button id="mw-board-confirm" type="submit" class="primary-button">Deal street · Enter</button></form>');
@@ -210,7 +214,7 @@
       const draft = getDraft(); if (draft.smallBlind >= draft.bigBlind) { setError('The small blind must be lower than the big blind.'); return; }
       if (await invoke('start', draft)) { setupDirty = false; $('#mw-setup-details').open = false; }
     };
-    $('#mw-exit').onclick = () => invoke('exit'); $('#mw-undo').onclick = () => invoke('undo'); $('#mw-next-board').onclick = openBoard;
+    $('#mw-exit').onclick = () => invoke('exit'); $('#mw-undo').onclick = () => invoke('undo');
     controlsHost.addEventListener('click', event => { const button = event.target.closest('[data-mw-command]'); if (button && !button.disabled && button.dataset.mwAction) void action(button.dataset.mwAction); });
     $('#mw-size').addEventListener('input', sizeHelp);
     $('#mw-size-form').onsubmit = async event => {
@@ -241,6 +245,7 @@
   }
   function voiceContext() {
     return { token: JSON.stringify([activeToken(), view.config, context(), window.theibsApp?.getVoiceContext?.()]),
+      stateToken: activeToken(),
       enabled: view.enabled, busy: busy(), phase: view.state?.phase, nextStreet: view.state?.nextStreet,
       board: [...(view.state?.board || [])],
       actionState: view.state ? { phase:view.state.phase, actor:view.state.actor, heroId:view.state.heroId,
@@ -258,6 +263,11 @@
     if (new Set(known).size !== known.length) return false;
     return invoke('board', { cards });
   }
+  async function commitKeyboardBoard({ addedCards, expectedStateToken }) {
+    const current = voiceContext();
+    if (!current.enabled || current.busy || current.phase !== 'WAIT_BOARD' || current.stateToken !== expectedStateToken) return false;
+    return commitVoiceBoard({ addedCards, expectedToken: current.token });
+  }
   async function undoVoiceBoard({ expectedToken }) {
     const current = voiceContext(), events = window.theibsApp?.getState().multiway?.events;
     if (!inAnalysis() || !current.enabled || current.busy || current.token !== expectedToken || events?.at(-1)?.type !== 'BOARD') return false;
@@ -274,6 +284,6 @@
     if(!inAnalysis()||!current.enabled||current.busy||current.token!==expectedToken||events?.at(-1)?.type!=='ACT')return false;
     return invoke('undo');
   }
-  window.theibsMultiwayUI = { init, render, setBusy, setError, openSetup, openPlayer, openBoard, getDraft, voiceContext, commitVoiceBoard, undoVoiceBoard, commitVoiceAction, undoVoiceAction,
+  window.theibsMultiwayUI = { init, render, setBusy, setError, openSetup, openPlayer, openBoard, getDraft, voiceContext, commitVoiceBoard, commitKeyboardBoard, undoVoiceBoard, commitVoiceAction, undoVoiceAction,
     getState: () => ({ enabled: view.enabled, state: view.state, config: view.config, busy: busy(), error: view.error }) };
 })();

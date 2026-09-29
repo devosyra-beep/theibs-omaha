@@ -6,7 +6,7 @@
   else root.TheibsCardVoice = api;
 })(typeof window !== 'undefined' ? window : globalThis, function () {
   'use strict';
-  const RANKS = Object.freeze({ as: 'A', rei: 'K', dama: 'Q', rainha: 'Q', valete: 'J', dez: 'T', '10': 'T',
+  const RANKS = Object.freeze({ as: 'A', a: 'A', ace: 'A', rei: 'K', dama: 'Q', rainha: 'Q', valete: 'J', valet: 'J', jota: 'J', jack: 'J', dez: 'T', '10': 'T',
     nove: '9', '9': '9', oito: '8', '8': '8', sete: '7', '7': '7', seis: '6', '6': '6', cinco: '5', '5': '5',
     quatro: '4', '4': '4', tres: '3', '3': '3', dois: '2', duas: '2', '2': '2' });
   const SUITS = Object.freeze({ espada: 's', espadas: 's', copa: 'h', copas: 'h', ouro: 'd', ouros: 'd', pau: 'c', paus: 'c' });
@@ -22,6 +22,11 @@
   const TARGETS = { 'minhas cartas': 'hero', 'minha mao': 'hero', mao: 'hero', board: 'board', mesa: 'board', flop: 'flop', turn: 'turn', river: 'river' };
   const EN_TARGETS = { 'my cards': 'hero', 'my hand': 'hero', hand: 'hero', board: 'board', flop: 'flop', turn: 'turn', river: 'river' };
   const normalize = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[.,;:!?]/g, ' ').replace(/\s+/g, ' ').trim();
+  function normalizeCardSpeech(value, locale) {
+    let input = normalize(value);
+    if (locale === 'pt-BR') input = input.replace(/\bvale(?:\s+|-)?te\b/g, 'valete');
+    return input;
+  }
   const NUMBER_PT = { zero:0,um:1,uma:1,dois:2,duas:2,tres:3,quatro:4,cinco:5,seis:6,sete:7,oito:8,nove:9,dez:10,onze:11,doze:12,treze:13,catorze:14,quatorze:14,quinze:15,dezesseis:16,dezasseis:16,dezessete:17,dezassete:17,dezoito:18,dezenove:19,vinte:20,trinta:30,quarenta:40,cinquenta:50,sessenta:60,setenta:70,oitenta:80,noventa:90 };
   const NUMBER_EN = { zero:0,one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,eleven:11,twelve:12,thirteen:13,fourteen:14,fifteen:15,sixteen:16,seventeen:17,eighteen:18,nineteen:19,twenty:20,thirty:30,forty:40,fifty:50,sixty:60,seventy:70,eighty:80,ninety:90 };
   const HUNDREDS_PT = { cem:100,cento:100,duzentos:200,trezentos:300,quatrocentos:400,quinhentos:500,seiscentos:600,setecentos:700,oitocentos:800,novecentos:900 };
@@ -175,7 +180,7 @@
   }
   function cardsFrom(text, locale) {
     const english = locale === 'en-US', ranks = english ? EN_RANKS : RANKS, suits = english ? EN_SUITS : SUITS;
-    const words = text.split(' '), cards = [];
+    const words = normalizeCardSpeech(text, locale).split(' '), cards = [];
     let i = 0;
     while (i < words.length) {
       if (cards.length && words[i] === (english ? 'and' : 'e')) i++;
@@ -236,7 +241,7 @@
   }
   function cardGap(text,locale) {
     const en=locale==='en-US',ranks=en?EN_RANKS:RANKS,suits=en?EN_SUITS:SUITS,targets=en?EN_TARGETS:TARGETS;
-    let body=normalize(text),prefix='';
+    let body=normalizeCardSpeech(text,locale),prefix='';
     for(const name of Object.keys(targets))if(body.startsWith(name+' ')){prefix=name;body=body.slice(name.length+1);break;}
     const connector=en?'of':'de',suitOnly=body.startsWith(connector+' ')?body.slice(connector.length+1):body;
     if(Object.hasOwn(suits,suitOnly))return {missing:'rank',prefix,suit:suitOnly};

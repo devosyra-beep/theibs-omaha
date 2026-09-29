@@ -11,9 +11,9 @@ const report={at:new Date().toISOString(),source:'CONTROLLED_ASR_EVENTS',environ
 let server,browser,page;
 async function check(name,fn){console.log('CHECK '+name);try{await fn();report.cases.push({name,status:'PASS'});}catch(error){report.cases.push({name,status:'FAIL',error:error.message});throw error;}}
 async function state(){return page.evaluate(()=>theibsCardKeyboard.state.snapshot());}
-async function start(){await page.locator('#voice-toggle').click();await page.waitForFunction(()=>theibsCardVoice.getStatus().listening);}
+async function start(){if(!await page.locator('#voice-consent').isChecked())await page.locator('#voice-consent').check();await page.waitForFunction(()=>theibsCardVoice.getStatus().listening);}
 async function emit(segments){await page.evaluate(parts=>{const r=window.__asr.at(-1);const results=parts.map(p=>Object.assign([{transcript:p.text,confidence:.99}],{isFinal:p.final!==false}));r.onresult?.({resultIndex:0,results});},segments);}
-async function finish(){await page.locator('#voice-toggle').click();}
+async function finish(){if(await page.locator('#voice-consent').isChecked())await page.locator('#voice-consent').uncheck();await page.waitForFunction(()=>['review','cancelled'].includes(theibsCardVoice.getStatus().phase));}
 async function speak(text){await start();await emit([{text}]);await finish();}
 async function apply(){await page.locator('#voice-apply').click();await page.waitForFunction(()=>theibsCardVoice.getStatus().phase==='cancelled');}
 (async()=>{
@@ -34,11 +34,13 @@ async function apply(){await page.locator('#voice-apply').click();await page.wai
   });
   report.url=`http://127.0.0.1:${server.address().port}/app`;
   await page.goto(report.url);await page.evaluate(()=>theibsApp.ready);
-  await page.locator('#card-voice-disclosure>summary').click();await page.locator('#voice-auto-apply').uncheck();
-  await page.evaluate(()=>{document.querySelector('#auto-analysis').checked=false;theibsCardKeyboard.reset();});
+  assert.equal(await page.locator('#card-voice-disclosure').evaluate(element=>element.open),false,'voice panel starts collapsed');
+  assert.equal(await page.locator('#voice-pace').count(),0,'only complete phrase mode is available');
+  await page.locator('#card-voice-disclosure>summary').click();await page.locator('#card-voice .voice-advanced>summary').click();await page.locator('#voice-auto-apply').uncheck();
+   await page.evaluate(()=>{const input=document.querySelector('#auto-analysis');input.checked=false;input.dispatchEvent(new Event('change',{bubbles:true}));theibsCardKeyboard.reset();});
   await check('explicit remote-processing permission required before ASR creation',async()=>{
-   await page.locator('#voice-toggle').click();assert.equal(await page.evaluate(()=>__asr.length),0);
-   assert.match(await page.locator('#voice-status').innerText(),/Autorize/);await page.locator('#voice-consent').check();
+   await page.evaluate(()=>document.querySelector('#voice-toggle').click());assert.equal(await page.evaluate(()=>__asr.length),0);
+   assert.match(await page.locator('#voice-status').innerText(),/Marque Ativar comandos por voz/);await page.locator('#voice-consent').check();await page.waitForFunction(()=>__asr.length===1);await finish();
   });
   for(const count of [4,5,6])for(const locale of ['pt-BR','en-US'])await check(`PLO${count} ${locale}: batch -> canonical state -> one undo`,async()=>{
    await page.evaluate(n=>{theibsCardKeyboard.reset();document.querySelector('#variant-select').value=String(n);document.querySelector('#variant-select').dispatchEvent(new Event('change',{bubbles:true}));},count);
@@ -77,8 +79,11 @@ async function apply(){await page.locator('#voice-apply').click();await page.wai
    await page.evaluate(()=>__asr.at(-1).onstart?.());assert.equal(await page.evaluate(()=>__asr.at(-1).aborted),true);assert.equal(await page.evaluate(()=>theibsCardVoice.getStatus().listening),false);
    await page.evaluate(()=>window.__deferAsrStart=false);
   });
-  await check('provider permission/network/silence errors do not alter state',async()=>{
-   for(const code of ['not-allowed','network','no-speech','audio-capture']){const before=await state();await start();await page.evaluate(error=>__asr.at(-1).onerror?.({error}),code);assert.deepEqual(await state(),before);assert.equal(await page.evaluate(()=>theibsCardVoice.getStatus().listening),false);}
+  await check('provider errors preserve state and no-speech keeps capture ready to retry',async()=>{
+    for(const code of ['not-allowed','network','no-speech','audio-capture']){const before=await state();await start();const prior=await page.evaluate(()=>__asr.length);await page.evaluate(error=>__asr.at(-1).onerror?.({error}),code);assert.deepEqual(await state(),before);
+     if(code==='no-speech'){await page.evaluate(()=>__asr.at(-1).onend?.());await page.waitForFunction(count=>__asr.length===count+1&&theibsCardVoice.getStatus().listening,prior);}
+     else await page.waitForFunction(()=>!theibsCardVoice.getStatus().listening);
+     assert.equal(await page.evaluate(()=>theibsCardVoice.getStatus().listening),code==='no-speech');}
   });
   await check('network loss and navigation cancel queued speech',async()=>{
    const before=await state();await start();await page.evaluate(()=>window.dispatchEvent(new Event('offline')));assert.deepEqual(await state(),before);
@@ -88,25 +93,26 @@ async function apply(){await page.locator('#voice-apply').click();await page.wai
    await start();await page.evaluate(()=>document.dispatchEvent(new CustomEvent('theibs:voice-session-changed')));
    assert.equal(await page.evaluate(()=>theibsCardVoice.getStatus().listening),false);
    await page.evaluate(()=>{window.__originalVoiceSession=window.theibsVoiceSessionContext;window.theibsVoiceSessionContext=()=>({epoch:998,required:true,expired:true});});
-   const n=await page.evaluate(()=>__asr.length);await page.locator('#voice-toggle').click();assert.equal(await page.evaluate(()=>__asr.length),n);
+   const n=await page.evaluate(()=>__asr.length);await page.evaluate(()=>document.querySelector('#voice-toggle').click());assert.equal(await page.evaluate(()=>__asr.length),n);
    await page.evaluate(()=>window.theibsVoiceSessionContext=window.__originalVoiceSession);
   });
   await check('device-only mode never silently uses remote recognizer',async()=>{
-   await page.locator('#voice-processing').selectOption('device');const n=await page.evaluate(()=>__asr.length);await page.locator('#voice-toggle').click();assert.equal(await page.evaluate(()=>__asr.length),n);assert.match(await page.locator('#voice-status').innerText(),/dispositivo/);await page.locator('#voice-processing').selectOption('browser');
+   await page.locator('#voice-processing').selectOption('device');const n=await page.evaluate(()=>__asr.length);await page.locator('#voice-consent').click();await page.waitForFunction(()=>theibsCardVoice.getStatus().phase==='cancelled');assert.equal(await page.evaluate(()=>__asr.length),n);assert.equal(await page.locator('#voice-consent').isChecked(),false);assert.match(await page.locator('#voice-status').innerText(),/dispositivo/);await page.locator('#voice-processing').selectOption('browser');
   });
   await check('typed voice state -> actual Analyze canonical request and workspace re-open',async()=>{
-   await page.evaluate(()=>{theibsCardKeyboard.reset();document.querySelector('#variant-select').value='5';document.querySelector('#variant-select').dispatchEvent(new Event('change',{bubbles:true}));});
-   await speak('minhas cartas ás de espadas, rei de copas, dama de ouros, valete de paus, dez de espadas');await apply();
-   await speak('flop nove de ouros, oito de copas, sete de paus');await apply();
-   await page.locator('#open-settings').click();await page.locator('#players').fill('2');await page.locator('#opponent-input-panel').evaluate(e=>e.open=true);await page.locator('#opponentRange').fill('');await page.locator('#opponentHand').fill('2P 3P 4P 5P 6P');await page.locator('#opponent-apply').click();await page.locator('#assumeNoRake').check();await page.locator('#settings-dialog [data-close-dialog]').click();
-   const req=page.waitForRequest(r=>r.url().endsWith('/api/analyze'));
-   await page.locator('#quick-analyze').click();const payload=(await req).postDataJSON();
-   assert.deepEqual(payload.heroCards,['As','Kh','Qd','Jc','Ts']);assert.deepEqual(payload.board,['9d','8h','7c']);
-   assert.deepEqual(payload.opponentOverrides[0].range.hands,[['2c','3c','4c','5c','6c']]);
-   await page.waitForFunction(()=>!theibsApp.getState().analysisBusy,{timeout:30000});
-   assert.ok(await page.evaluate(()=>theibsApp.getState().lastAnalysis?.data?.equity));
+    await page.evaluate(()=>{theibsCardKeyboard.reset();document.querySelector('#variant-select').value='5';document.querySelector('#variant-select').dispatchEvent(new Event('change',{bubbles:true}));});
+    await page.locator('#opponent-count').selectOption('1');
+    const preflopResponse=page.waitForResponse(r=>r.url().endsWith('/api/equity')&&r.request().postDataJSON().board.length===0);
+    await speak('minhas cartas ás de espadas, rei de copas, dama de ouros, valete de paus, dez de espadas');await apply();
+    const preflop=await preflopResponse,preflopPayload=preflop.request().postDataJSON();assert.deepEqual(preflopPayload.heroCards,['As','Kh','Qd','Jc','Ts']);assert.equal((await preflop.json()).status,'OK');
+    await page.waitForFunction(()=>!theibsApp.getState().analysisBusy,{timeout:30000});
+    const flopResponse=page.waitForResponse(r=>r.url().endsWith('/api/equity')&&r.request().postDataJSON().board.length===3);
+    await speak('flop nove de ouros, oito de copas, sete de paus');await apply();const flop=await flopResponse,payload=flop.request().postDataJSON();
+    assert.deepEqual(payload.heroCards,['As','Kh','Qd','Jc','Ts']);assert.deepEqual(payload.board,['9d','8h','7c']);assert.equal(payload.players,2);
+    assert.equal((await flop.json()).status,'OK');await page.waitForFunction(()=>!theibsApp.getState().analysisBusy,{timeout:30000});
+    assert.match(await page.locator('#hero-equity').innerText(),/\d+\.\d%/);assert.match(await page.locator('#equity-range').innerText(),/Faixa 95%/);
    const saved=await state();await page.evaluate(()=>theibsApp.flushSave());report.timingBeforeReload=await page.evaluate(()=>theibsCardVoice.getMetrics());await page.reload();await page.evaluate(()=>theibsApp.ready);assert.deepEqual(await state(),saved);
-   await page.locator('#card-voice-disclosure>summary').click();await page.locator('#voice-auto-apply').uncheck();await page.locator('#voice-consent').check();
+   await page.locator('#card-voice-disclosure>summary').click();await page.locator('#card-voice .voice-advanced>summary').click();await page.locator('#voice-auto-apply').uncheck();await page.locator('#voice-consent').check();
   });
   await check('multiway hero phrase survives server acknowledgement and one undo restores cards and selection',async()=>{
    await page.evaluate(()=>{document.querySelector('#auto-analysis').checked=false;theibsCardKeyboard.reset();theibsCardKeyboard.paste('AE KC QO JP TE');});

@@ -33,11 +33,18 @@
     const hero=state.players.findIndex(p=>p.hero);
     const opponents=Array.from({length:state.players.length-1},(_,i)=>state.players[(hero+i+1)%state.players.length]);
     return opponents.map((p,i)=>{
-      const angle=Math.PI+(i+1)/(opponents.length+1)*Math.PI;
-      const x=50+45*Math.cos(angle),y=57+53*Math.sin(angle);
+      const count=opponents.length, topCount=Math.min(5,count), spread=topCount===1?0:topCount===2?20:topCount===3?28:topCount===4?34:38;
+      const position=i<topCount
+        ? [50-spread+(topCount===1?0:2*spread*i/(topCount-1)),3]
+        : [i%2===topCount%2?12:88,22+Math.floor((i-topCount)/2)*20];
+      const mobileTopCount=Math.min(5,count),mobileSpread=mobileTopCount===1?0:mobileTopCount===2?20:mobileTopCount===3?29:mobileTopCount===4?34:38;
+      const mobilePosition=i<mobileTopCount
+        ? [50-mobileSpread+(mobileTopCount===1?0:2*mobileSpread*i/(mobileTopCount-1)),3]
+        : [20+((i-mobileTopCount)%4)*20,19+Math.floor((i-mobileTopCount)/4)*20];
+      const [x,y]=position;
       const status=p.folded?'Folded':p.allIn?'All-in':state.actor===p.id?'To act':p.lastAction||'';
       const name=p.name||`Adv. ${state.players.filter(item=>!item.hero).findIndex(item=>item.id===p.id)+1}`;
-      return `<button type="button" class="opponent-place multiway-seat${p.folded?' folded':''}${state.actor===p.id?' acting':''}" style="--seat-x:${x}%;--seat-y:${y}%" data-multiway-player="${p.id}" aria-label="${esc(name)} · ${esc(p.position)}: ${esc(status)}, stack ${money(p.stack)}">${hiddenCards(holeCount)}<span class="opponent-name">${esc(name)} · ${esc(p.position)} · ${money(p.stack)}</span>${status?`<span class="multiway-seat-status">${esc(({CALL:'Called',CHECK:'Checked',BET:'Bet',RAISE:'Raised',FOLD:'Folded'})[status]||status)}</span>`:''}</button>`;
+      return `<button type="button" class="opponent-place multiway-seat${p.folded?' folded':''}${state.actor===p.id?' acting':''}" style="--seat-x:${x}%;--seat-y:${y}%;--seat-x-mobile:${mobilePosition[0]}%;--seat-y-mobile:${mobilePosition[1]}%" data-multiway-player="${p.id}" aria-label="${esc(name)} · ${esc(p.position)}: ${esc(status)}, stack ${money(p.stack)}">${hiddenCards(holeCount)}<span class="opponent-name">${esc(name)} · ${esc(p.position)} · ${money(p.stack)}</span>${status?`<span class="multiway-seat-status">${esc(({CALL:'Called',CHECK:'Checked',BET:'Bet',RAISE:'Raised',FOLD:'Folded'})[status]||status)}</span>`:''}</button>`;
     }).join('');
   }
   window.EssenceUI = { esc, cardMarkup, canonicalCard, money, trainingTable, hiddenCards, opponentSeats, multiwaySeats };

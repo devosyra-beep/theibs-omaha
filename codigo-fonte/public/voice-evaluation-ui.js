@@ -169,7 +169,7 @@
   };
   for (const id of ['language','processing','count','condition','split']) $(id).addEventListener('change',configure);
   for (const id of ['consent','remote']) $(id).addEventListener('change',()=> { if (!$(id).checked) cancel('Consentimento retirado. Captura encerrada.'); });
-  for (const id of ['voice-language','voice-processing','voice-consent','voice-auto-apply','voice-pace']) document.getElementById(id)?.addEventListener('change',()=>cancel('Configuração de voz alterada. Teste cancelado.'));
+  for (const id of ['voice-language','voice-processing','voice-consent','voice-auto-apply']) document.getElementById(id)?.addEventListener('change',()=>cancel('Configuração de voz alterada. Teste cancelado.'));
   panel.addEventListener('toggle',()=> { if (!panel.open) cancel('Teste fechado. Captura encerrada.'); });
   document.querySelector('#card-voice-disclosure')?.addEventListener('toggle',()=> { if (!document.querySelector('#card-voice-disclosure').open) cancel('Entrada por voz fechada. Teste cancelado.'); });
   document.addEventListener('theibs:voice-session-changed',()=>cancel('Sessão alterada. Teste cancelado.'));
