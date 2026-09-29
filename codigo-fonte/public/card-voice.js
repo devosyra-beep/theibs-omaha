@@ -371,6 +371,13 @@
       if (this.phase !== 'review' || token(context) !== this.context) { this.cancel(); return null; }
       this.cursor = this.proposalEnd; this.phase = 'consumed'; return this.proposal;
     }
+    discardFinal(id, context) {
+      if (id !== this.id || token(context) !== this.context || !['review', 'rejected'].includes(this.phase)) return false;
+      if (this.resultCount === null || this.segments.size !== this.resultCount ||
+          [...this.segments].some(([index, segment]) => index < 0 || index >= this.resultCount || !segment.final)) return false;
+      this.cursor = this.resultCount; this.proposal = null; this.proposalEnd = null;
+      this.error = ''; this.phase = 'listening'; return true;
+    }
     // The caller must confirm that the typed command committed successfully
     // before rebasing. Failed/async commits must cancel instead of queueing audio.
     resume(id, context) {

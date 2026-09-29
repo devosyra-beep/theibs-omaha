@@ -30,7 +30,7 @@ function summarize(row){
   const wav=path.join(fixtures,`${scenario}-${locale}.wav`),audio=fs.readFileSync(wav),row={repeat,scenario,locale,pace:scenario==='single'?'fast':'batch',audioPath:wav,audioSha256:sha(audio),expectedCards:scenario==='single'?['8c']:['As','Th'],events:[],pageErrors:[],status:'RUNNING'};
   console.log(`PROBE ${label} ${repeat}/${repeats} ${scenario} ${locale}`);
   browser=await chromium.launch({channel,headless:true,args:['--use-fake-device-for-media-stream','--use-fake-ui-for-media-stream']});row.browser=browser.version();
-  const page=await browser.newPage({viewport:{width:1440,height:1100},serviceWorkers:'block',permissions:['microphone']});page.on('pageerror',error=>row.pageErrors.push(error.message));
+  const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true,serviceWorkers:'block',permissions:['microphone']});page.on('pageerror',error=>row.pageErrors.push(error.message));
   if(assets)for(const name of Object.keys(report.assets))await page.route(`**/${name}`,route=>route.fulfill({contentType:'application/javascript',body:fs.readFileSync(report.assets[name].path)}));
   await page.route('**/__speed-audio.wav',route=>route.fulfill({contentType:'audio/wav',body:audio}));
   await page.addInitScript(()=>{
@@ -61,8 +61,8 @@ function summarize(row){
   row.fakeCaptureInventory=await page.evaluate(async()=>{const devices=await navigator.mediaDevices.enumerateDevices();return devices.filter(d=>d.kind==='audioinput').map(d=>({label:d.label,kind:d.kind}));});
   if(!row.fakeCaptureInventory.some(d=>/fake/i.test(d.label)))throw Error('Fake input inventory not confirmed; ASR refused.');
   row.audio=await page.evaluate(async()=>{const context=new AudioContext(),buffer=await context.decodeAudioData(await(await fetch('/__speed-audio.wav')).arrayBuffer()),values=buffer.getChannelData(0);let first=-1,last=-1,peak=0;for(let i=0;i<values.length;i++){peak=Math.max(peak,Math.abs(values[i]));if(Math.abs(values[i])>.015){if(first<0)first=i;last=i;}}window.__speedAudio={context,buffer};return {duration:buffer.duration,sampleRate:buffer.sampleRate,channels:buffer.numberOfChannels,peak,firstVoicedSecond:first/buffer.sampleRate,lastVoicedSecond:last/buffer.sampleRate,voiceBoundaryMethod:'abs(firstChannel)>0.015; descriptive waveform boundary, not human annotation'};});
-  await page.locator('#card-voice-disclosure').evaluate(e=>e.open=true);await page.locator('#voice-language').selectOption(locale);await page.locator('#voice-auto-apply').check();if(await page.locator('#voice-pace').count())await page.locator('#voice-pace').selectOption(row.pace);await page.locator('#voice-consent').check();
-  await page.evaluate(()=>{window.__speedCapture=true;__speedRecord('user-start');});await page.locator('#voice-toggle').click();
+  await page.locator('#card-voice-disclosure').evaluate(e=>e.open=true);await page.locator('#card-voice .voice-advanced').evaluate(e=>e.open=true);await page.locator('#voice-language').selectOption(locale);await page.locator('#voice-auto-apply').check();if(await page.locator('#voice-pace').count())await page.locator('#voice-pace').selectOption(row.pace);
+  await page.evaluate(()=>{window.__speedCapture=true;__speedRecord('user-start');});await page.locator('#voice-consent').check();
   await page.waitForFunction(()=>__speedEvents.some(e=>['error','end'].includes(e.event)),null,{timeout:15000}).catch(()=>{row.timeout=true;});
   await page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));
   row.appliedCards=await page.evaluate(()=>theibsCardKeyboard.state.cards().hero.map(TheibsCards.toCanonical));row.userMessage=await page.locator('#voice-status').innerText();row.uiMetrics=await page.evaluate(()=>theibsCardVoice.getMetrics());row.events=await page.evaluate(()=>__speedEvents);row.uiStatus=await page.evaluate(()=>theibsCardVoice.getStatus());

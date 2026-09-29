@@ -45,11 +45,12 @@
   // invalidate the hand while microphone permission is being resolved.
   for (const name of ['input', 'change']) panel.addEventListener(name, event => event.stopPropagation());
   const $ = id => panel.querySelector('#' + id), status = $('voice-status'), review = $('voice-review');
-  let run = null, committing = false, timer = null, monitor = null, restartTimer = null, sample = null, lastLedgerUndo = null;
+  let run = null, committing = false, monitor = null, restartTimer = null, sample = null, lastLedgerUndo = null;
   let captureHold = false;
   let clarification = null, clarificationTimer = null;
   const nativeCaptures = new Set(), diagnostics = [];
   let wantListening = false, operationEpoch = 0, lastApplied = '', restartContext = null;
+  let softRetryCount = 0;
   const autoApply = () => $('voice-auto-apply').checked;
   const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   let microphonePermission = 'prompt';
@@ -123,8 +124,7 @@
     if (command) current.firstValidCardAt ||= performance.now();
     endpoint.update({key:current.resultKey, eligible:Boolean(command), contextKey:session.context});
   }
-  function clearTimers() { endpoint.clear(); clearTimeout(timer); timer = null; clearInterval(monitor); monitor = null; clearTimeout(restartTimer); restartTimer = null; restartContext = null; }
-  function armIdleTimer() { clearTimeout(timer); timer = setTimeout(() => cancel('Microfone encerrado após uma pausa. As entradas já aplicadas foram mantidas.'), 20000); }
+  function clearTimers() { endpoint.clear(); clearInterval(monitor); monitor = null; clearTimeout(restartTimer); restartTimer = null; restartContext = null; }
   function cancel(message) {
     const old = run; run = null; wantListening = false; captureHold = false; operationEpoch++; session.cancel(); clearTimers(); review.hidden = true;
     $('voice-consent').checked = false;
@@ -150,6 +150,9 @@
   function parseFinal(text, locale) {
     if (clarification) {
       if (performance.now() >= clarification.expiresAt || JSON.stringify(context()) !== clarification.contextKey) throw Error('O pedido de complemento expirou. Diga o comando completo.');
+      // A player may repeat the whole card instead of answering only the
+      // missing rank or suit. Treat that as a fresh complete command.
+      try { return voice.parse(text, locale); } catch {}
       const result = voice.completeClarification(clarification.request, text, locale);
       if (result.command) return result.command;
       return { type:'clarify', clarification: result.clarification || clarification.request, error: result.error };
@@ -168,12 +171,12 @@
     const request = proposal.clarification;
     clarification = { request, contextKey:JSON.stringify(captured), expiresAt:performance.now()+15000 };
     clearTimeout(clarificationTimer);
-    clarificationTimer = setTimeout(() => cancel('O complemento expirou. Inicie a voz e diga o comando completo.'), 15000);
+    clarificationTimer = setTimeout(expireClarification, 15000);
     trace(current,'clarification-request',{missing:request.missing});
     if (current && run === current) {
       current.clarified = true;
       if (!session.resume(current.id, captured)) { cancel('Diga o comando completo novamente.'); return; }
-      endpoint.clear(); watchContext(); armIdleTimer();
+      endpoint.clear(); watchContext();
     } else session.cancel();
     say(`${proposal.error ? proposal.error+' ' : ''}${request.prompt}${audioReady() ? '' : ' Aguarde o indicador Ouvindo.'}`, Boolean(proposal.error)); controls();
     if (!run && wantListening) resumeCapture();
@@ -245,36 +248,72 @@
       speechEndToFinalMs: current.speechEndedAt ? started-current.speechEndedAt : null,
       parserMs: performance.now() - started, finalResultAt: started };
   }
-  function resumeCapture() {
-    if (!wantListening || !autoApply() || !active()) { wantListening = false; controls(); return; }
+  function resumeCapture({ retry = false, notice = '' } = {}) {
+    if (!wantListening || !$('voice-consent').checked || !active()) { cancel('Voz encerrada ao mudar a tela ou sessão.'); return; }
     // A ledger transaction or a provider end releases the old capture first.
+    clearTimeout(restartTimer);
     restartContext = JSON.stringify(context());
     restartTimer = setTimeout(() => {
       const unchanged = JSON.stringify(context()) === restartContext; restartTimer = null; restartContext = null;
       if (wantListening && unchanged) void start({ resume: true });
       else if (wantListening) cancel('Contexto alterado. Dite novamente.');
-    }, $('voice-pace').value === 'fast' ? 0 : 80);
-    controls(); say(clarification ? `${clarification.request.prompt} Retomando microfone…` : 'Retomando microfone… aguarde o indicador Ouvindo.');
+    }, retry ? Math.min(1000, 250 * 2 ** Math.min(softRetryCount++, 2)) : $('voice-pace').value === 'fast' ? 0 : 80);
+    controls(); say(notice ? `${notice} Retomando microfone…` : clarification ? `${clarification.request.prompt} Retomando microfone…` : 'Retomando microfone… aguarde o indicador Ouvindo.');
+  }
+  function retryCapture(current, message) {
+    if (run !== current || current.retryMessage) return;
+    if (!wantListening || !$('voice-consent').checked || !active() || current.hold) { cancel(message); return; }
+    current.retryMessage = message;
+    current.closing = true; endpoint.clear(); session.cancel();
+    clearInterval(monitor); monitor = null;
+    clearTimeout(clarificationTimer); clarificationTimer = null; clarification = null;
+    controls(); say(`${message} Nenhuma entrada foi anotada; aguarde Ouvindo e repita.`);
+    try { current.recognition.abort(); } catch { cancel('Não foi possível reiniciar o microfone.'); }
+  }
+  function expireClarification() {
+    const notice = 'O complemento não foi entendido. Diga a carta completa novamente.';
+    if (run && wantListening) { retryCapture(run, notice); return; }
+    if (wantListening && $('voice-consent').checked) {
+      clearTimeout(clarificationTimer); clarificationTimer = null; clarification = null;
+      session.cancel(); resumeCapture({ retry: true, notice });
+    } else cancel(notice);
+  }
+  function discardOrRetry(current, captured, message) {
+    if (session.discardFinal(current.id, captured)) {
+      endpoint.clear(); current.firstResultAt = null; current.firstValidCardAt = null;
+      clearTimeout(clarificationTimer); clarificationTimer = null; clarification = null;
+      say(`${message} Nenhuma entrada foi anotada; pode repetir.`, true);
+    } else retryCapture(current, message);
   }
   function end(current) {
     if (run !== current || current.cancelled) return;
     run = null; clearTimers();
-    if (current.automatic && !session.hasPending() && !session.error) {
-      if (!current.appliedCount && !current.clarified) { cancel('Nenhuma frase concluída foi recebida. Tente falar novamente.'); return; }
+    if (!session.hasPending() && !session.error) {
       session.cancel(); controls();
-      if (wantListening) resumeCapture(); else cancel(lastApplied || 'Microfone encerrado.');
+      if (wantListening) resumeCapture({ retry: !current.appliedCount, notice: current.appliedCount ? '' : 'Não entendi a última fala.' });
+      else cancel(lastApplied || 'Microfone encerrado.');
       return;
     }
     const started = performance.now(), captured = context();
     const proposal = session.finish(current.id, captured, current.automatic ? parseFinal : voice.parse);
     sample = timing(current, started); controls();
-    if (!proposal) { const error = session.error; cancel(); say(error || 'Fala incompleta. Diga valor e naipe novamente.', true); return; }
+    if (!proposal) {
+      const error = session.error || 'Fala incompleta.';
+      if (wantListening && $('voice-consent').checked && active()) { session.cancel(); resumeCapture({ retry: true, notice: `${error} Nenhuma entrada foi anotada.` }); }
+      else { cancel(); say(error + ' Diga valor e naipe novamente.', true); }
+      return;
+    }
     if (proposal.type === 'cancel') { cancel('Fala cancelada. Entradas anteriores mantidas.'); return; }
     if (proposal.type === 'clarify') { askForComplement(null, captured, proposal); return; }
     try { validate(proposal, captured); }
-    catch (error) { cancel(); say(error.message + ' Este lote não foi aplicado.', true); return; }
+    catch (error) {
+      if (wantListening && $('voice-consent').checked && active()) { session.cancel(); resumeCapture({ retry: true, notice: `${error.message} Este lote não foi aplicado.` }); }
+      else { cancel(); say(error.message + ' Este lote não foi aplicado.', true); }
+      return;
+    }
     if (current.automatic) { void apply({ automatic: true }); return; }
     wantListening = false;
+    $('voice-consent').checked = false;
     $('voice-transcript').textContent = session.preview(); $('voice-proposal').textContent = describe(proposal, captured);
     $('voice-apply').textContent = proposal.type==='action'?'Registrar ação conferida':'Aplicar lote conferido';
     review.hidden = false; say('Microfone encerrado. Confira o lote e aplique.'); watchContext(); controls();
@@ -293,9 +332,9 @@
     $('voice-consent').checked = optedIn;
     if (savedClarification && savedClarification.expiresAt > performance.now() && savedClarification.contextKey === JSON.stringify(context())) {
       clarification = savedClarification;
-      clarificationTimer = setTimeout(() => cancel('O complemento expirou. Diga o comando completo novamente.'), savedClarification.expiresAt-performance.now());
+      clarificationTimer = setTimeout(expireClarification, savedClarification.expiresAt-performance.now());
     }
-    if (!resume) lastAudioEndedAt = null;
+    if (!resume) { lastAudioEndedAt = null; softRetryCount = 0; }
     if (!requested) return;
     wantListening = true; captureHold = requestedHold;
     if (!Recognition || !window.isSecureContext) { cancel(); say('Reconhecimento indisponível neste navegador ou contexto. Use HTTPS e o teclado.', true); return; }
@@ -305,7 +344,6 @@
     const current = { id: session.begin(captured), startedAt: performance.now(), recognition: null, started: false, audioActive:false, cancelled: false, automatic: captured.autoApply, appliedCount: 0, hold: requestedHold, closing: false, resultKey: '', firstResultAt: null, firstValidCardAt: null, resumed:resume };
     run = current; controls(); say('Preparando microfone…'); watchContext();
     trace(current,'start-request');
-    armIdleTimer();
     try {
       // Keep the first start in the checkbox's user gesture. Mobile browsers
       // may reject microphone activation after an unnecessary async boundary.
@@ -337,7 +375,7 @@
       };
       recognizer.onaudioend = () => { current.audioActive = false; current.audioEnded = true; if (!current.cancelled) lastAudioEndedAt = performance.now(); trace(current,'audio-end'); if (run === current) controls(); };
       recognizer.onresult = event => {
-        if (run !== current || current.cancelled || committing) return;
+        if (run !== current || current.cancelled || current.retryMessage || committing) return;
         const capturedNow = context();
         if (JSON.stringify(capturedNow) !== session.context) { cancel('Contexto alterado durante a fala.'); return; }
         const started = performance.now(); current.firstResultAt ||= started;
@@ -347,26 +385,31 @@
         // Results is cumulative. Inspect every index to catch changed final
         // segments and prevent repeated provider events from applying twice.
         for (let i = 0; i < event.results.length; i++) session.accept(current.id, i, event.results[i][0].transcript, event.results[i].isFinal);
-        if (session.error) { const error = session.error; cancel(); say(error + ' Entradas anteriores mantidas.', true); return; }
+        if (session.error) { discardOrRetry(current, capturedNow, session.error); return; }
         if (current.automatic) {
           const proposal = session.prepareReady(current.id, capturedNow, parseFinal);
-          if (session.error) { const error = session.error; cancel(); say(error + ' Este lote não foi aplicado.', true); return; }
+          if (session.error) { discardOrRetry(current, capturedNow, session.error); return; }
           if (proposal?.type === 'cancel') { cancel('Fala cancelada. Entradas anteriores mantidas.'); return; }
           if (proposal?.type === 'clarify') { askForComplement(current, capturedNow, proposal); return; }
-          if (proposal) { endpoint.clear(); sample = timing(current, started); void apply({ automatic: true, current }); current.firstResultAt = null; current.firstValidCardAt = null; }
+          if (proposal) {
+            try { validate(proposal, capturedNow); }
+            catch (error) { discardOrRetry(current, capturedNow, error.message); return; }
+            endpoint.clear(); sample = timing(current, started); void apply({ automatic: true, current }); current.firstResultAt = null; current.firstValidCardAt = null;
+          }
           else { updateEndpoint(current); if (session.hasPending() && !current.closing) say('Reconhecendo… diga o valor e o naipe.'); }
         } else say(`Ouvindo: ${session.preview() || '…'} — confira o lote ao terminar.`);
       };
       recognizer.onerror = event => {
         trace(current,'error',{code:['not-allowed','service-not-allowed','audio-capture','no-speech','network','language-not-supported','aborted'].includes(event.error)?event.error:'unknown'});
-        if (run !== current) return;
+        if (run !== current || current.retryMessage) return;
+        if (event.error === 'no-speech') { retryCapture(current, 'Nenhuma fala detectada.'); return; }
         if (event.error === 'not-allowed' || event.error === 'service-not-allowed') microphonePermission = 'denied';
         const errors = { 'not-allowed': 'Permissão de microfone negada ou revogada.', 'service-not-allowed': 'Serviço de reconhecimento não autorizado.',
           'audio-capture': 'Microfone não encontrado ou ocupado.', 'no-speech': 'Nenhuma fala detectada.', network: 'Falha de rede no reconhecimento.',
           'language-not-supported': 'Idioma indisponível no reconhecedor.', aborted: 'Reconhecimento cancelado.' };
         cancel(); say((errors[event.error] || 'Falha no reconhecimento de voz.') + ' Use o teclado ou tente novamente.', true);
       };
-      recognizer.onnomatch = () => { if (run === current) { cancel(); say('A fala não foi reconhecida com clareza. Entradas anteriores mantidas.', true); } };
+      recognizer.onnomatch = () => { if (run === current) retryCapture(current, 'Não entendi a fala.'); };
       recognizer.onspeechend = () => {
         current.speechEndedAt = performance.now();
         trace(current,'speech-end');
@@ -376,7 +419,16 @@
       };
       recognizer.onspeechstart = () => { trace(current,'speech-start'); current.speechEndedAt = null; };
       current.released = new Promise(resolve => { current.release = resolve; });
-      recognizer.onend = () => { current.audioActive = false; nativeCaptures.delete(current); current.release(); trace(current,'end'); end(current); };
+      recognizer.onend = () => {
+        current.audioActive = false; nativeCaptures.delete(current); current.release(); trace(current,'end');
+        if (current.retryMessage && run === current) {
+          run = null; clearTimers(); session.cancel(); controls();
+          if (wantListening) resumeCapture({ retry: true, notice: current.retryMessage });
+          else cancel('Voz desligada. Entradas anteriores mantidas.');
+          return;
+        }
+        end(current);
+      };
       nativeCaptures.add(current);
       try { recognizer.start(); } catch (error) { nativeCaptures.delete(current); current.release(); throw error; }
     } catch (error) { if (run === current) { cancel(); say(error.message || 'Não foi possível iniciar o reconhecimento.', true); } }
@@ -428,10 +480,11 @@
         metrics.push(measured); if (metrics.length > 100) metrics.shift();
       }));
       lastApplied = `Aplicado: ${label}. ${command.type==='action'?'Ação registrada na mesa.':'Próxima posição selecionada.'} Diga “desfazer” para corrigir.`;
+      softRetryCount = 0;
       review.hidden = true; $('voice-transcript').textContent = ''; $('voice-proposal').textContent = '';
       if (automatic && current && run === current) {
         if (!session.resume(current.id, context())) throw Error('Não foi possível continuar a escuta. As entradas aplicadas foram mantidas.');
-        watchContext(); armIdleTimer(); say(lastApplied + (current.closing || !current.audioActive ? ' Aguarde o indicador Ouvindo antes da próxima fala.' : ''));
+        watchContext(); say(lastApplied + (current.closing || !current.audioActive ? ' Aguarde o indicador Ouvindo antes da próxima fala.' : ''));
       } else if (automatic && wantListening) { session.cancel(); restart = true; say(lastApplied); }
       else cancel(lastApplied);
     } catch (error) { cancel(); say(error.message, true); }

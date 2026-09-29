@@ -37,7 +37,7 @@ let server, pool, browser;
             setTimeout(() => { this.onstart?.(); this.onaudiostart?.(); }, 25);
           }
           stop() { this.onend?.(); }
-          abort() { this.aborted = true; this.onend?.(); }
+          abort() { this.aborted = true; setTimeout(() => this.onend?.(), 200); }
         };
       });
       await page.goto(`http://127.0.0.1:${server.address().port}/app`);
@@ -53,21 +53,47 @@ let server, pool, browser;
       assert.equal(await page.evaluate(() => __asr.length), 1);
       assert.equal(await page.evaluate(() => __asr[0].startedInGesture), true);
       assert.match(await page.locator('#voice-capture-state').innerText(), /Ouvindo/);
-      await page.evaluate(() => {
-        const result = Object.assign([{ transcript: 'oito de paus', confidence: .99 }], { isFinal: true });
-        __asr[0].onresult?.({ resultIndex: 0, results: [result] });
-      });
+      const emit = parts => page.evaluate(parts => {
+        const results = parts.map(text => Object.assign([{ transcript: text, confidence: .99 }], { isFinal: true }));
+        __asr.at(-1).onresult?.({ resultIndex: results.length - 1, results });
+      }, parts);
+      await emit(['palavra confusa']);
+      assert.equal(await page.evaluate(() => theibsCardKeyboard.state.snapshot().slots[0]), null);
+      assert.equal(await toggle.isChecked(), true);
+      assert.equal(await page.evaluate(() => __asr.length), 1);
+      await emit(['palavra confusa', 'oito de paus']);
       await page.waitForFunction(() => theibsCardKeyboard.state.snapshot().slots[0] === '8P');
+      await emit(['palavra confusa', 'oito de paus', 'oito de paus']);
+      assert.equal(await page.evaluate(() => theibsCardKeyboard.state.snapshot().slots[1]), null);
+      assert.equal(await toggle.isChecked(), true);
+      await emit(['palavra confusa', 'oito de paus', 'oito de paus', 'rei de copas']);
+      await page.waitForFunction(() => theibsCardKeyboard.state.snapshot().slots[1] === 'KC');
+      await emit(['palavra confusa', 'oito de paus', 'oito de paus', 'rei de copas', 'ás de']);
+      assert.equal(await page.evaluate(() => theibsCardVoice.getStatus().needsClarification), true);
+      await emit(['palavra confusa', 'oito de paus', 'oito de paus', 'rei de copas', 'ás de', 'dama de ouros']);
+      await page.waitForFunction(() => theibsCardKeyboard.state.snapshot().slots[2] === 'QO');
+      await emit(['palavra confusa', 'oito de paus', 'oito de paus', 'rei de copas', 'ás de', 'dama de ouros', 'desfazer']);
+      await page.waitForFunction(() => theibsCardKeyboard.state.snapshot().slots[2] === null);
+      assert.equal(await toggle.isChecked(), true);
+      await emit(['palavra confusa', 'oito de paus', 'oito de paus', 'rei de copas', 'ás de', 'dama de ouros', 'desfazer', 'dama de ouros']);
+      await page.waitForFunction(() => theibsCardKeyboard.state.snapshot().slots[2] === 'QO');
+      await page.evaluate(() => __asr.at(-1).onnomatch?.());
+      await page.waitForFunction(() => __asr.length === 2 && theibsCardVoice.getStatus().audioReady);
+      assert.equal(await toggle.isChecked(), true);
+      await page.evaluate(() => __asr.at(-1).onerror?.({ error: 'no-speech' }));
+      await page.waitForFunction(() => __asr.length === 3 && theibsCardVoice.getStatus().audioReady);
+      assert.equal(await toggle.isChecked(), true);
       await toggle.uncheck();
       assert.equal(await page.evaluate(() => theibsCardVoice.getStatus().listening), false);
-      assert.equal(await page.evaluate(() => __asr[0].aborted), true);
+      assert.equal(await page.evaluate(() => __asr.at(-1).aborted), true);
       await toggle.check();
+      await page.waitForFunction(() => __asr.length === 4 && theibsCardVoice.getStatus().audioReady);
       await page.evaluate(() => __asr.at(-1).onerror?.({ error: 'not-allowed' }));
       assert.equal(await toggle.isChecked(), false);
       assert.match(await page.locator('#voice-capture-state').innerText(), /Permissão negada/);
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
       assert.deepEqual(errors, []);
-      cases.push({ width, activation: 'one checkbox tap', permissionBlur: 'kept pending', recognizedEvent: 'card applied', stop: 'passed', deniedPermission: 'visible and stopped', horizontalOverflow: false });
+      cases.push({ width, activation: 'one checkbox tap', invalidAndDuplicate: 'ignored while listening', correctedCards: 'applied', fullCardAfterIncomplete: 'applied', spokenUndo: 'stays listening', noMatchAndSilence: 'restarted while enabled', stop: 'passed', deniedPermission: 'visible and stopped', horizontalOverflow: false });
       await page.close();
     }
     console.log(JSON.stringify({ status: 'PASS', layer: 'CONTROLLED_ASR_EVENTS', browser: browser.version(), cases }));

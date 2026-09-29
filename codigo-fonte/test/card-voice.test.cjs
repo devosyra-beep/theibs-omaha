@@ -249,6 +249,19 @@ test('empty provider final segments reject the whole phrase including a valid pr
  }
 });
 
+test('discarded final speech leaves the same recognizer session ready for a corrected card',()=>{
+ const context={locale:'pt-BR'},session=new RecognitionSession(),id=session.begin(context);
+ session.reconcileResultCount(id,1);session.accept(id,0,'palavra confusa',true);
+ assert.equal(session.prepareReady(id,context),null);assert.equal(session.phase,'rejected');
+ assert.equal(session.discardFinal(id,context),true);assert.equal(session.hasPending(),false);
+ session.reconcileResultCount(id,2);session.accept(id,0,'palavra confusa',true);session.accept(id,1,'oito de paus',true);
+ assert.deepEqual(session.prepareReady(id,context).cards,['8c']);
+ assert.equal(session.discardFinal(id,{locale:'en-US'}),false);
+ assert.equal(session.discardFinal(id,context),true);
+ session.reconcileResultCount(id,3);session.accept(id,2,'rei de copas',false);
+ assert.equal(session.discardFinal(id,context),false);
+});
+
 test('native ASR may shrink provisional result snapshots while final results remain immutable',()=>{
  const context={locale:'en-US'},session=new RecognitionSession();let id=session.begin(context);
  session.accept(id,0,'Ace of Spades 10 of',false);session.accept(id,1,' hearts',false);
