@@ -502,9 +502,9 @@ function renderResult(data, street) {
     if(cards.isManualInvalid())throw Error('Fix the cards in the text field.');
     const canonical=cards.canonicalForSubmit();
     return {...canonical,players:Number(value('players')),unknownOpponentModel:'UNIFORM',
-      // Quick equity uses the engine's 2-second adaptive budget, independently
-      // of the hidden Multiway sample selector or an older saved 500 setting.
-      samplingMode:'ADAPTIVE',seed:value('seed')||'42'};
+      // Leave room for network and rendering latency on the hosted free tier.
+      // The returned interval and preliminary label expose any precision loss.
+      samplingMode:'ADAPTIVE',adaptiveBudget:{timeBudgetMs:1700},seed:value('seed')||'42'};
   }
   async function analyze(event) {
     event?.preventDefault();
