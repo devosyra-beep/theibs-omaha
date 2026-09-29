@@ -38,6 +38,10 @@
   const settings=dialog('settings-dialog','Table & calculation assumptions');
   // Keep rules in Help; the main rail contains only the variant selection.
   $('#help-dialog').append($('#variant-help'));
+  const studyNotes=document.createElement('details');studyNotes.id='study-notes';
+  studyNotes.innerHTML='<summary>About this study</summary>';
+  document.querySelectorAll('.study-disclaimer').forEach(note=>studyNotes.append(note));
+  $('#help-dialog').append(studyNotes);
   $('#selected-card-label').classList.add('sr-only');
   $('.table-meta').classList.add('sr-only');
   const appearance=$('.appearance-section');

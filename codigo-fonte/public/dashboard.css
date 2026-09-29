@@ -674,3 +674,78 @@ body[data-view=analyze] #ev-value,body[data-view=analyze] #hero-equity { font-si
 #continuation-metrics div:last-child {grid-column:1 / -1;}
 #continuation-risk {padding-top:10px;border-top:1px solid var(--border);}
 body[data-view=analyze] #quick-action {overflow-wrap:anywhere;}
+
+/* The narrow layout has one navigation row and one clearly named tools menu. */
+.mobile-tools { display:none; }
+@media(max-width:700px) {
+ .app-shell { min-width:0; }
+ .primary-rail { display:grid; grid-template-columns:minmax(0,1fr); gap:8px; padding:12px 16px 10px; }
+ .rail-header { min-height:34px; }
+ #sidebar-toggle,.primary-rail .studio-footer { display:none; }
+ .main-nav { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); width:100%; gap:6px; margin:0; }
+ .nav-tab { min-width:0; min-height:44px; justify-content:center; gap:6px; padding:8px 4px; font-size:12px; }
+ .nav-tab svg { width:18px; height:18px; }
+ .topbar { height:56px; min-height:56px; padding:0 16px; gap:8px; }
+ .breadcrumb { min-width:0; }
+ #view-title { overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+ .top-actions { gap:8px; flex:none; }
+ .mobile-tools { display:block; position:relative; }
+ .mobile-tools>summary { display:flex; align-items:center; justify-content:center; gap:5px; height:44px; min-width:74px; padding:0 10px; border:1px solid var(--border); border-radius:9px; background:var(--card); color:var(--foreground); cursor:pointer; list-style:none; font-size:12px; }
+ .mobile-tools>summary::-webkit-details-marker { display:none; }
+ .mobile-tools>summary svg { width:18px; height:18px; }
+ .mobile-tools-panel { position:absolute; z-index:30; right:0; top:calc(100% + 8px); display:grid; gap:6px; width:min(260px,calc(100vw - 32px)); padding:10px; border:1px solid var(--input); border-radius:11px; background:var(--card); box-shadow:0 18px 40px #000b; }
+ .mobile-tools-panel .dashboard-tools { display:grid; gap:6px; }
+ .mobile-tools-panel button { display:flex; justify-content:flex-start; width:100%; min-height:44px; padding:8px 12px!important; font-size:13px; text-align:left; }
+ .mobile-tools-panel button.icon-button { gap:12px; }
+ .mobile-tools-panel button.icon-button::after { content:attr(aria-label); }
+ .mobile-tools-panel button[hidden] { display:none; }
+ .topbar #new-hand { width:44px; height:44px; }
+ .workspace { padding-bottom:max(24px,env(safe-area-inset-bottom)); }
+ .analysis-context-bar { margin:8px 0 12px; }
+ .analysis-context-bar #opponent-total { display:none; }
+ body[data-view=analyze] .view-heading { margin-bottom:8px; }
+ body[data-view=analyze] .view-heading .eyebrow { display:none; }
+ body[data-view=analyze] .view-heading h1 { font-size:20px; }
+ .table-surface .mesa-stage { padding:12px 4px 18px; }
+ .table-surface .poker-table { height:clamp(290px,82vw,328px); min-height:0; aspect-ratio:auto; padding:7px; }
+ .table-surface .poker-table,.table-surface .table-felt { border-radius:35% / 24%; }
+ .table-surface .table-center { padding:0; }
+ .table-surface .table-center>.eyebrow { position:absolute; top:22%; left:50%; transform:translateX(-50%); white-space:nowrap; }
+ .table-surface .table-center .pot-value { position:absolute; top:28%; left:50%; transform:translateX(-50%); margin:0; }
+ .table-surface .board-cards { position:absolute; top:41%; left:50%; transform:translateX(-50%); gap:4px; }
+ .table-surface .board-cards .playing-card { width:clamp(30px,9cqw,40px); height:clamp(42px,13cqw,56px); }
+ .table-surface .hero-position { bottom:12px; gap:3px; }
+ .table-surface .hero-cards { --hand-card-width:clamp(44px,12cqw,52px); gap:clamp(3px,1cqw,6px); }
+ .table-surface .hero-cards:has(> :nth-child(6)) { --hand-card-width:clamp(41px,11.5cqw,47px); }
+ .table-surface .hero-cards .playing-card .corner b { font-size:clamp(16px,4cqw,22px); }
+ .table-surface .hero-cards .playing-card .pip { font-size:calc(var(--hand-card-width) * .48); }
+ .table-surface .playing-card.selected,.table-surface button.playing-card.selected:hover { transform:translateY(-4px); }
+ .seat-map-note { display:none; }
+ #analysis-seats:has(> :nth-child(5)):not(:has(> :nth-child(6))) .opponent-place[data-opponent="4"] { --seat-x:7%!important; --seat-y:42%!important; }
+ #analysis-seats:has(> :nth-child(5)):not(:has(> :nth-child(6))) .opponent-place[data-opponent="5"] { --seat-x:93%!important; --seat-y:42%!important; }
+ #analysis-seats:has(> :nth-child(4)):not(:has(> :nth-child(5))) .opponent-place[data-opponent="3"] { --seat-x:6%!important; }
+ #analysis-seats:has(> :nth-child(4)):not(:has(> :nth-child(5))) .opponent-place[data-opponent="4"] { --seat-x:94%!important; }
+ .street-strip { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:3px; }
+ .street-tab { min-height:44px; padding:8px 2px; font-size:11px; }
+ .quick-decision { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:10px; margin:8px 0 10px; padding:12px 0; }
+ #quick-action { font-size:clamp(16px,5vw,20px); line-height:1.25; }
+ .quick-decision .primary-button { min-height:44px; padding:9px 11px; }
+}
+@media(min-width:701px) and (max-width:999px) {
+ body[data-view=analyze] .study-layout { grid-template-columns:minmax(0,1fr); }
+ body:is([data-view=analyze],[data-view=train]) .table-surface .mesa-stage { padding:12px 4px 18px; }
+ body:is([data-view=analyze],[data-view=train]) .table-surface .poker-table { min-height:0; }
+ body[data-view=analyze] .table-surface .hero-cards { --hand-card-width:clamp(46px,8cqw,60px); gap:6px; }
+ body[data-view=analyze] .table-surface .hero-cards:has(> :nth-child(6)) { --hand-card-width:clamp(42px,7cqw,54px); }
+ body[data-view=analyze] .table-surface .board-cards { gap:6px; }
+ body[data-view=analyze] .table-surface .board-cards .playing-card { width:clamp(40px,6.5cqw,48px); height:clamp(52px,9cqw,68px); }
+}
+@media(min-width:1000px) {
+ body[data-view=analyze] .table-column { overflow-y:auto; scrollbar-width:thin; }
+}
+@media(max-width:350px) {
+ .opponent-place .card-back { width:14px; }
+}
+#ev-scope-details { border-top:1px solid var(--border); padding-top:8px; }
+#ev-scope-details>summary { color:var(--muted); font-size:12px; cursor:pointer; min-height:28px; }
+#ev-scope-details #ev-scope { margin:4px 0; }

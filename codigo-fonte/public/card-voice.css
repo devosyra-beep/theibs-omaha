@@ -22,3 +22,37 @@
 #voice-review output,#voice-proposal{display:block;font-size:13px;overflow-wrap:anywhere;margin-bottom:10px}
 #card-voice details summary{cursor:pointer;font-size:12px}
 @media(max-width:600px){#card-voice .voice-actions button{flex:1}#card-voice .voice-options label{min-width:130px}}
+
+/* Activation and state stay visible; setup and reference material open on request. */
+#card-voice-disclosure { padding:10px 14px; }
+#card-voice-disclosure>summary { min-height:44px; display:flex; align-items:center; }
+#card-voice { padding-top:10px; margin-top:8px; }
+#card-voice .voice-heading { margin-bottom:8px; }
+#card-voice .voice-heading strong { display:none; }
+#card-voice .voice-activation { display:flex; align-items:center; gap:12px; min-height:60px; padding:10px 12px; border:1px solid #647866; border-radius:9px; background:#1b2821; cursor:pointer; }
+#card-voice .voice-activation input { flex:none; width:22px; height:22px; margin:0; accent-color:#d8b969; }
+#card-voice .voice-activation span { display:grid; gap:3px; min-width:0; }
+#card-voice .voice-activation strong { font-size:14px; color:#f2f1e8; }
+#card-voice .voice-activation small { font-size:11px; line-height:1.4; color:#c6d0ca; }
+#card-voice .voice-activation:focus-within { outline:2px solid #afe0b7; outline-offset:3px; }
+#card-voice.is-listening .voice-activation { border-color:#72d099; background:#213c2b; }
+#card-voice #voice-status { min-height:0; margin:8px 0; }
+#card-voice #voice-status:empty { display:none; }
+#card-voice button[hidden] { display:none!important; }
+#card-voice .voice-actions { margin-bottom:6px; }
+#card-voice .voice-actions button:disabled { display:none; }
+#card-voice .voice-advanced,#card-voice .voice-guide { border-top:1px solid var(--border,#343b3d); padding:8px 0; }
+#card-voice .voice-advanced>summary,#card-voice .voice-guide>summary { min-height:44px; display:flex; align-items:center; font-size:12px; color:#c6d0ca; }
+#card-voice-disclosure>summary:focus-visible,#card-voice .voice-advanced>summary:focus-visible,#card-voice .voice-guide>summary:focus-visible { outline:2px solid #afe0b7; outline-offset:2px; }
+#card-voice .voice-advanced[open]>summary,#card-voice .voice-guide[open]>summary { margin-bottom:10px; }
+#card-voice .voice-advanced .voice-options { margin-bottom:10px; }
+#card-voice .voice-advanced .voice-consent { margin:8px 0; }
+#card-voice .voice-extra-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+@media(max-width:600px){
+ #card-voice-disclosure { padding:10px 12px; }
+ #card-voice .voice-heading { align-items:flex-start; }
+ #card-voice .voice-heading strong { flex-basis:100%; }
+ #card-voice .voice-activation { min-height:68px; }
+ #card-voice .voice-actions button { flex:none; }
+ #card-voice .voice-options label { flex-basis:100%; }
+}

@@ -3,7 +3,7 @@
 (function () {
   'use strict';
   if (typeof document === 'undefined' || !window.TheibsVoiceEvaluation || !window.theibsCardVoice) return;
-  const host = document.querySelector('#card-voice');
+  const host = document.querySelector('#card-voice .voice-guide') || document.querySelector('#card-voice');
   if (!host) return;
   const api = window.TheibsVoiceEvaluation, Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   const panel = document.createElement('details'); panel.id = 'voice-evaluation';

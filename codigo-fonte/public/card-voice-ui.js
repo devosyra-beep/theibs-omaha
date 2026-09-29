@@ -25,6 +25,22 @@
   const disclosure = document.createElement('details'); disclosure.id = 'card-voice-disclosure';
   const summary = document.createElement('summary'); summary.textContent = 'Entrada por voz · PT / EN';
   disclosure.append(summary, panel); host.append(disclosure);
+  disclosure.open = true;
+  const activation=panel.querySelector('#voice-consent').closest('label'), consent=panel.querySelector('#voice-consent');
+  activation.classList.add('voice-activation');
+  const activationCopy=document.createElement('span');
+  activationCopy.innerHTML='<strong>Ativar comandos por voz</strong><small id="voice-consent-description">Ao ativar, autorizo o serviço do navegador, inclusive processamento remoto. O THEIBS não grava áudio.</small>';
+  activation.replaceChildren(consent,activationCopy);
+  const actions=panel.querySelector('.voice-actions'), advanced=document.createElement('details'), help=document.createElement('details');
+  advanced.className='voice-advanced';advanced.innerHTML='<summary>Idioma e opções</summary><div class="voice-extra-actions"></div>';
+  help.className='voice-guide';help.innerHTML='<summary>Como usar e privacidade</summary>';
+  advanced.append(panel.querySelector('.voice-options'),panel.querySelector('#voice-auto-apply').closest('label'),panel.querySelector('#voice-mode-badge'));
+  advanced.querySelector('.voice-extra-actions').append(panel.querySelector('#voice-hold'),panel.querySelector('#voice-toggle'));
+  advanced.querySelector('#voice-hold').hidden=true;
+  advanced.querySelector('#voice-toggle').hidden=true;
+  panel.querySelectorAll(':scope > .voice-help').forEach(item=>help.append(item));
+  help.append(panel.querySelector(':scope > details'));
+  panel.querySelector('.voice-heading').after(activation,panel.querySelector('#voice-status'),actions,advanced,help);
   const $ = id => panel.querySelector('#' + id), status = $('voice-status'), review = $('voice-review');
   let run = null, committing = false, timer = null, monitor = null, restartTimer = null, sample = null, lastLedgerUndo = null;
   let captureHold = false;
@@ -33,6 +49,7 @@
   let wantListening = false, operationEpoch = 0, lastApplied = '', restartContext = null;
   const autoApply = () => $('voice-auto-apply').checked;
   const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let microphonePermission = 'prompt';
   const availableDevices = new Map();
   let lastAudioEndedAt = null;
   const metrics = []; // Timing only; no text, audio, cards, identities, or persistence.
@@ -72,7 +89,7 @@
     $('voice-toggle').setAttribute('aria-pressed', String(listening));
     $('voice-cancel').disabled = !pending() && !committing; panel.classList.toggle('is-listening', audioReady());
     const phase = captureState(); panel.dataset.captureState = phase;
-    $('voice-capture-state').textContent = ({ idle:'Pronto para iniciar', starting:'Preparando microfone', listening:'● Ouvindo', clarifying:'● Ouvindo complemento', processing:'Processando · aguarde', finalizing:'Concluindo · aguarde', restarting:'Retomando · aguarde', applying:'Aplicando · aguarde', review:'Confira a entrada' })[phase];
+    $('voice-capture-state').textContent = ({ idle:!Recognition?'Voz indisponível':microphonePermission==='denied'?'Permissão negada':microphonePermission==='granted'?'Pronto para ativar':'Permissão necessária', starting:'Preparando microfone', listening:'● Ouvindo', clarifying:'● Ouvindo complemento', processing:'Processando · aguarde', finalizing:'Concluindo · aguarde', restarting:'Retomando · aguarde', applying:'Aplicando · aguarde', review:'Confira a entrada' })[phase];
     $('voice-hold').disabled = committing || !Recognition || !window.isSecureContext;
     $('voice-toggle').disabled = (committing && !listening) || !Recognition || !window.isSecureContext;
     $('voice-undo').disabled = committing || (!keyboard.state.undoStack.length && !lastLedgerUndo);
@@ -107,6 +124,7 @@
   function armIdleTimer() { clearTimeout(timer); timer = setTimeout(() => cancel('Microfone encerrado após uma pausa. As entradas já aplicadas foram mantidas.'), 20000); }
   function cancel(message) {
     const old = run; run = null; wantListening = false; captureHold = false; operationEpoch++; session.cancel(); clearTimers(); review.hidden = true;
+    $('voice-consent').checked = false;
     clearTimeout(clarificationTimer); clarificationTimer = null; clarification = null;
     $('voice-transcript').textContent = ''; $('voice-proposal').textContent = '';
     if (old) { old.cancelled = true; try { old.recognition?.abort(); } catch {} }
@@ -266,8 +284,10 @@
     if (window.theibsVoiceEvaluation?.isActive()) { say('Encerre a avaliação de voz antes de ditar para a mesa.', true); return; }
     const requested = resume ? wantListening : true, requestedHold = resume ? captureHold : hold;
     const savedClarification = resume ? clarification : null;
+    const optedIn = $('voice-consent').checked;
     disclosure.open = true;
     cancel();
+    $('voice-consent').checked = optedIn;
     if (savedClarification && savedClarification.expiresAt > performance.now() && savedClarification.contextKey === JSON.stringify(context())) {
       clarification = savedClarification;
       clarificationTimer = setTimeout(() => cancel('O complemento expirou. Diga o comando completo novamente.'), savedClarification.expiresAt-performance.now());
@@ -278,7 +298,7 @@
     if (!Recognition || !window.isSecureContext) { cancel(); say('Reconhecimento indisponível neste navegador ou contexto. Use HTTPS e o teclado.', true); return; }
     const captured = context();
     if (!captured.active || captured.invalid) { cancel(); say('A voz está disponível na entrada válida de cartas do Analyze.', true); return; }
-    if (captured.processing === 'browser' && !$('voice-consent').checked) { cancel(); say('Autorize o serviço do navegador acima antes de falar.', true); return; }
+    if (!$('voice-consent').checked) { cancel(); say('Marque Ativar comandos por voz antes de falar.', true); return; }
     const current = { id: session.begin(captured), startedAt: performance.now(), recognition: null, started: false, audioActive:false, cancelled: false, automatic: captured.autoApply, appliedCount: 0, hold: requestedHold, closing: false, resultKey: '', firstResultAt: null, firstValidCardAt: null, resumed:resume };
     run = current; controls(); say('Preparando microfone…'); watchContext();
     trace(current,'start-request');
@@ -335,6 +355,7 @@
       recognizer.onerror = event => {
         trace(current,'error',{code:['not-allowed','service-not-allowed','audio-capture','no-speech','network','language-not-supported','aborted'].includes(event.error)?event.error:'unknown'});
         if (run !== current) return;
+        if (event.error === 'not-allowed' || event.error === 'service-not-allowed') microphonePermission = 'denied';
         const errors = { 'not-allowed': 'Permissão de microfone negada ou revogada.', 'service-not-allowed': 'Serviço de reconhecimento não autorizado.',
           'audio-capture': 'Microfone não encontrado ou ocupado.', 'no-speech': 'Nenhuma fala detectada.', network: 'Falha de rede no reconhecimento.',
           'language-not-supported': 'Idioma indisponível no reconhecedor.', aborted: 'Reconhecimento cancelado.' };
@@ -357,6 +378,7 @@
   }
   function stop() {
     wantListening = false; clearTimeout(restartTimer); restartTimer = null;
+    $('voice-consent').checked = false;
     const current = run; if (!current) { cancel('Microfone encerrado. Entradas anteriores mantidas.'); return; }
     if (!current.started) { cancel('Cancelado antes de abrir o microfone.'); return; }
     current.stoppedAt ||= performance.now(); say('Encerrando microfone e aguardando a frase final…');
@@ -422,9 +444,15 @@
   $('voice-cancel').onclick = () => cancel('Fala cancelada. Entradas anteriores mantidas.');
   $('voice-apply').onclick = () => void apply();
   $('voice-undo').onclick = () => { if (committing) return; cancel(); sample = null; void apply({explicitCommand:{type:'undo'}}); };
-  for (const id of ['voice-language', 'voice-processing', 'voice-consent', 'voice-auto-apply', 'voice-pace']) $(id).addEventListener('change', () => {
+  $('voice-consent').addEventListener('change', () => {
+    if ($('voice-consent').checked) void start();
+    else cancel('Voz desligada. Entradas anteriores mantidas.');
+  });
+  for (const id of ['voice-language', 'voice-processing', 'voice-auto-apply', 'voice-pace']) $(id).addEventListener('change', () => {
     cancel('Configuração alterada. Dite novamente.');
-    $('voice-consent').parentElement.hidden = $('voice-processing').value === 'device';
+    $('voice-consent-description').textContent = $('voice-processing').value === 'device'
+      ? 'Ao ativar, autorizo o microfone para reconhecimento neste dispositivo. O THEIBS não grava áudio.'
+      : 'Ao ativar, autorizo o serviço do navegador, inclusive processamento remoto. O THEIBS não grava áudio.';
     $('voice-privacy').textContent = $('voice-processing').value === 'device'
       ? 'O reconhecimento foi configurado para este dispositivo. O THEIBS não grava áudio nem salva transcrições.'
       : 'O serviço de voz do navegador pode enviar áudio ao provedor do navegador. Destino e retenção dependem dele. O THEIBS não grava áudio nem salva transcrições.';
@@ -460,5 +488,11 @@
     getMetrics: () => metrics.map(row => ({ ...row })), capability: () => ({ secureContext: window.isSecureContext, constructorPresent: Boolean(Recognition),
       functionalRecognition: 'NOT_VERIFIED', acoustic: 'NOT_EXECUTED', localAvailabilityCheck: typeof Recognition?.available === 'function' }) };
   controls();
-  if (!Recognition) say('Voz indisponível neste navegador. O teclado permanece disponível.', true);
+  say(Recognition ? '' : 'Voz indisponível neste navegador. O teclado permanece disponível.', !Recognition);
+  if (Recognition && navigator.permissions?.query) navigator.permissions.query({name:'microphone'}).then(permission=>{
+    const update=()=>{ microphonePermission=permission.state; controls(); };
+    permission.addEventListener?.('change',update);update();
+    if (permission.state === 'prompt' && typeof navigator.permissions.request === 'function')
+      navigator.permissions.request({name:'microphone'}).then(result=>{microphonePermission=result.state;controls();}).catch(()=>{});
+  }).catch(()=>{});
 })();

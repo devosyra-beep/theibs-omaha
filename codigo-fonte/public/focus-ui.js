@@ -11,6 +11,7 @@
     calculation:'<rect x="5" y="2" width="14" height="20" rx="2"/><path d="M8 6h8M8 11h1m6 0h1m-8 4h1m6 0h1m-8 4h1m6 0h1"/>',
     assistant:'<path d="M20 11V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h2v4l5-4h2m4-5v8m-4-4h8"/>',
     plus:'<path d="M12 4v16M4 12h16"/>',
+    menu:'<path d="M4 6h16M4 12h16M4 18h16"/>',
     help:'<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 4 2c-1 .7-1.5 1-1.5 3m0 3h.01"/>',
     info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10h.01"/>',
     trash:'<path d="M3 6h18M9 6V3h6v3m-10 0 1 15h12l1-15M10 10v7m4-7v7"/>'
@@ -35,6 +36,18 @@
   }
   function change(collapsed){restore(collapsed);document.dispatchEvent(new CustomEvent('theibs:layout-preference'));}
   toggle.onclick=()=>change(document.body.dataset.sidebar!=='collapsed');
+  const topActions=$('.top-actions'), desktopTools=$('.dashboard-tools'), account=$('#open-auth'), signout=$('#header-signout'), newHand=$('#new-hand');
+  const mobileTools=document.createElement('details');mobileTools.id='mobile-tools';mobileTools.className='mobile-tools';
+  mobileTools.innerHTML=`<summary>${svg('menu')}<span>Menu</span></summary><div class="mobile-tools-panel"></div>`;
+  topActions.prepend(mobileTools);
+  const mobilePanel=mobileTools.querySelector('.mobile-tools-panel');
+  const mobileWidth=window.matchMedia('(max-width:700px)');
+  function placeTools(){
+    if(mobileWidth.matches) mobilePanel.append(desktopTools,account,signout);
+    else { topActions.insertBefore(desktopTools,mobileTools);topActions.insertBefore(account,newHand);topActions.insertBefore(signout,newHand);mobileTools.open=false; }
+  }
+  mobileWidth.addEventListener('change',placeTools);placeTools();
+  mobilePanel.addEventListener('click',event=>{if(event.target.closest('button'))mobileTools.open=false;});
   const help=$('#open-help');help.innerHTML=svg('help')+'<span class="nav-label">Keyboard & help</span>';help.title='Keyboard & help · F1';help.setAttribute('aria-label',help.title);
   const localNote=$('.rail-bottom>.micro:not(#save-status)');$('#help-dialog').append(localNote);
   const saveIndicator=document.createElement('span');saveIndicator.className='save-indicator';saveIndicator.setAttribute('role','img');$('#save-status').before(saveIndicator);
