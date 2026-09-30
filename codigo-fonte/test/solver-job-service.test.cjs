@@ -347,7 +347,44 @@ test('worker rejection, exception, unexpected exit and timeout freeze completion
       const job = await service.start('owner', inputFixture(), { budget: 'FAST' });
       const completed = await until(() => service.get('owner', job.jobId), item => item.phase === phase, 6000);
       if (name === 'timeout') assert.match(completed.reason, /Budget reached/);
+      if (phase === 'FAILED') {
+        assert.ok(Number.isFinite(completed.timing.workerMs) && completed.timing.workerMs > 0, 'an early failure still consumed worker time');
+        assert.equal(completed.timing.decisionComputeMs, completed.timing.workerMs);
+      }
       await assertCompletionFrozen(service, 'owner', completed);
     } finally { await service.close(); }
+  });
+});
+
+test('reported worker failures consume cumulative budgets without charging earlier progress twice', async t => {
+  const directory = await temporaryDirectory(t);
+  for (const publishProgress of [false, true]) await t.test(publishProgress ? 'after-progress' : 'before-first-result', async () => {
+    const workerFile = path.join(directory, `account-error-${publishProgress}.cjs`);
+    await fs.writeFile(workerFile, `
+      const {parentPort}=require('node:worker_threads');
+      parentPort.on('message',({budget})=>{
+        ${publishProgress ? "parentPort.postMessage({type:'progress',workerMs:100,result:{status:'APPROXIMATE',actions:[{id:'CHECK',frequency:1,evBB:2}]},checkpoint:{iterations:1}});" : ''}
+        setTimeout(()=>parentPort.postMessage({type:'error',error:'Synthetic budget failure',workerMs:budget.timeMs}),5);
+      });
+    `);
+    const service=createSolverService({workerFile}),input=inputFixture(),options={revisionKey:'same-decision',handId:input.multiway.handId};
+    try {
+      const fast=await service.start('owner',input,{...options,budget:'FAST'});
+      const failed=await until(()=>service.get('owner',fast.jobId),item=>item.phase==='FAILED');
+      assert.equal(failed.timing.workerMs,500);assert.equal(failed.timing.decisionComputeMs,500);
+      assert.equal(failed.result!==null,publishProgress);
+      const repeated=await service.start('owner',input,{...options,budget:'FAST'});
+      assert.equal(repeated.phase,'COMPLETE');assert.equal(repeated.timing.workerMs,0);
+      assert.equal(repeated.timing.decisionComputeMs,500);
+      const standard=await service.start('owner',input,{...options,budget:'STANDARD'});
+      const next=await until(()=>service.get('owner',standard.jobId),item=>item.phase==='FAILED');
+      assert.equal(next.timing.workerMs,2500);assert.equal(next.timing.decisionComputeMs,3000);
+      const exhausted=await service.start('owner',input,{...options,budget:'STANDARD'});
+      assert.equal(exhausted.phase,'COMPLETE');assert.equal(exhausted.timing.workerMs,0);
+      assert.match(exhausted.reason,/Cumulative calculation budget/);
+      await delay(30);
+      assert.equal(service.get('owner',failed.jobId).timing.workerMs,500,'worker exit cannot charge a reported error again');
+      assert.equal(service.get('owner',next.jobId).timing.decisionComputeMs,3000);
+    } finally {await service.close();}
   });
 });

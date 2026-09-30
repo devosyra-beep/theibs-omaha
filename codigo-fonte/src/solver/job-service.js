@@ -100,12 +100,12 @@ function createSolverService({cacheDirectory,maxJobs=24,maxQueued=2,workerFile=p
       if(!current(job,slot))return;
       if(message.type==='progress'){job.phase='REFINING';job.saveChain=job.saveChain.then(()=>save(job,message,slot));await job.saveChain;return;}
       clearTimeout(timer);
-      if(message.type==='error'){setPhase(job,'FAILED');job.reason=message.error;metrics.workerErrors++;}
+      if(message.type==='error'){account(job,Number.isFinite(message.workerMs)&&message.workerMs>=0?message.workerMs:performance.now()-slot.started);setPhase(job,'FAILED');job.reason=message.error;metrics.workerErrors++;}
       else {job.saveChain=job.saveChain.then(()=>save(job,message,slot));await job.saveChain;if(!current(job,slot))return;setPhase(job,message.paused?'QUEUED':job.result?.status==='NOT_SOLVED'?'UNSUPPORTED':'COMPLETE');if(!message.paused)metrics.completed++;}
       finish();
     });
-    worker.on('error',error=>{if(active!==slot)return;clearTimeout(timer);setPhase(job,'FAILED');job.reason=error.code==='ERR_WORKER_OUT_OF_MEMORY'?'Solver memory limit reached.':error.message;metrics.workerErrors++;finish();});
-    worker.on('exit',code=>{if(active!==slot)return;clearTimeout(timer);setPhase(job,'FAILED');job.reason=`Solver worker stopped (${code}).`;finish();});
+    worker.on('error',error=>{if(active!==slot)return;clearTimeout(timer);account(job,performance.now()-slot.started);setPhase(job,'FAILED');job.reason=error.code==='ERR_WORKER_OUT_OF_MEMORY'?'Solver memory limit reached.':error.message;metrics.workerErrors++;finish();});
+    worker.on('exit',code=>{if(active!==slot)return;clearTimeout(timer);account(job,performance.now()-slot.started);setPhase(job,'FAILED');job.reason=`Solver worker stopped (${code}).`;finish();});
     worker.postMessage({input:job.input,budget:remaining,checkpoint:job.checkpoint,cancel:cancel.buffer});
   }
   async function start(owner,input,{budget='STANDARD',revisionKey,handId,automatic=false}={}){

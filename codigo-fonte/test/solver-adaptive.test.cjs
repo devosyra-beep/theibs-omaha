@@ -25,7 +25,8 @@ function harness({actionHook,solveHook}={}){
   const game={id:'scheduler-harness',playerCount:2,meta:{key:'mathematical-context',heroInformationSet:'Hero',heroSeat:0,
     originalSeats:2,constantSum:true,treeComplete:true,chanceSupportComplete:true,limitations:[],rootActions:['A','B','C'].map(id=>({id,action:id}))}};
   const engine={VERSION:core.VERSION,solve(_game,options){
-    calls.push('global');time+=4;solveHook?.({options,setCancelled:()=>cancelled=true});
+    calls.push('global');time+=4;
+    const override=solveHook?.({options,setCancelled:()=>cancelled=true});if(override)return override;
     const iterations=(options.checkpoint?.iterations||0)+1;
     return {strategy:[{},{}],checkpoint:{iterations},iterations,additionalIterations:1,gameHash:'original-game-hash',
       solverVersion:core.VERSION,method:'CFR_PLUS',convergence:{exact:true,nashConv:0},metrics:{}};
@@ -75,6 +76,32 @@ test('cancelled empty action response preserves the complete original result and
   assert.equal(output.result.adaptation.stopReason,'FOREGROUND_PRIORITY_PAUSE');
   assert.equal(output.result.adaptation.phase,'PAUSED');
   assert.equal(output.result.adaptation.refinementRecommended,true);
+});
+
+test('certificate work waits for a completed original strategy and later resumes after initial time starvation',()=>{
+  let attempts=0;
+  const fixture=harness({solveHook(){
+    if(++attempts<=2)return {strategy:null,checkpoint:null,iterations:0,additionalIterations:0,termination:'TIME_BUDGET'};
+  }});
+  const first=fixture.run();
+  assert.equal(first.result.status,'NOT_SOLVED');assert.deepEqual(first.result.actions,[]);
+  assert.deepEqual(fixture.calls,['global','global']);
+  assert.equal(first.checkpoint.baseGameHash,null);assert.deepEqual(first.checkpoint.actionCheckpoints,{});
+  assert.deepEqual(first.checkpoint.actionCertificates,{});
+  const resumed=fixture.run({checkpoint:first.checkpoint});
+  assert.equal(resumed.result.adaptation.stopReason,'GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION');
+  assert.ok(resumed.result.actionPrecision.actions.every(row=>row.certified));
+  assert.deepEqual(fixture.calls,['global','global','global','A','B','C','C']);
+});
+
+test('a zero-iteration profile cannot start action certificates',()=>{
+  const fixture=harness({solveHook(){return {strategy:[{},{}],checkpoint:{iterations:0},iterations:0,
+    additionalIterations:0,gameHash:'original-game-hash',solverVersion:core.VERSION,
+    method:'CFR_PLUS',convergence:{exact:false,nashConv:null},metrics:{}};}});
+  const output=fixture.run();
+  assert.equal(output.result.status,'NOT_SOLVED');assert.deepEqual(output.result.actions,[]);
+  assert.deepEqual(fixture.calls,['global','global']);
+  assert.deepEqual(output.checkpoint.actionCertificates,{});
 });
 
 test('mismatched certificate context is rejected rather than compared',()=>{

@@ -79,6 +79,9 @@ function execute({input,budget,checkpoint,shouldCancel=()=>false,onProgress=()=>
   const remainingMs=()=>budget.timeMs-(now()-started),remainingIterations=()=>budget.iterations-(totalWork-initialWork);
   const ceilingReached=()=>remainingMs()<=0||remainingIterations()<=0;
   const globalMet=()=>solved?.convergence?.exact===true&&finite(solved.convergence.nashConv)&&solved.convergence.nashConv<=THRESHOLD_BB;
+  const originalReady=()=>Boolean(solved?.strategy&&globalCheckpoint&&diagnostics&&
+    Number.isSafeInteger(solved.iterations)&&solved.iterations>0&&globalCheckpoint.iterations===solved.iterations&&
+    typeof baseGameHash==='string'&&solved.gameHash===baseGameHash);
   function compatibleCertificate(row){return certificateIdentity(row)&&row.baseContextKey===baseContextKey&&ids.includes(row.id);}
   function certificateRows(){return ids.map(id=>{
     const row=actionCertificates[id];
@@ -204,8 +207,10 @@ function execute({input,budget,checkpoint,shouldCancel=()=>false,onProgress=()=>
     if(remainingMs()<8){stopReason='TIME_RESOURCE_CEILING';break;}
     let progressed=false;
     if(!globalMet())progressed=globalBatch()||progressed;
-    if(!shouldCancel()&&!ceilingReached()&&actionEligible)progressed=actionBatch()||progressed;
-    if(!progressed&&(!actionEligible||!solved?.strategy)){stopReason='NO_COMPLETE_REFINEMENT_WITHIN_REMAINING_BUDGET';break;}
+    // A time-limited global batch may return no complete strategy. Certificates
+    // must wait for its coherent profile, diagnostics and game identity.
+    if(!shouldCancel()&&!ceilingReached()&&actionEligible&&originalReady())progressed=actionBatch()||progressed;
+    if(!progressed&&(!actionEligible||!originalReady())){stopReason='NO_COMPLETE_REFINEMENT_WITHIN_REMAINING_BUDGET';break;}
   }
   if(shouldCancel())stopReason='FOREGROUND_PRIORITY_PAUSE';
   else if(!stopReason)stopReason=remainingIterations()<=0?'ITERATION_RESOURCE_CEILING':'TIME_RESOURCE_CEILING';
