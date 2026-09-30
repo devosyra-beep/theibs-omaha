@@ -10,6 +10,28 @@
   const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
   const finite = value => typeof value === 'number' && Number.isFinite(value);
   const clone = value => JSON.parse(JSON.stringify(value));
+  // These report fields are intentionally narrower than the solver response.
+  // Error objects can contain input details, hand IDs or provider messages.
+  const reasonCodes=new Set('INVALID_BUDGET INVALID_AMOUNT FEE_MODEL_REQUIRED UNSUPPORTED_FEE_MODEL FEE_EXCEEDS_POT SIZING_REQUIRED INVALID_SIZING INVALID_INPUT MULTIWAY_DISABLED VARIANT_NOT_COVERED TABLE_NOT_COVERED STREET_NOT_COVERED NO_DECISION HERO_CARDS_REQUIRED PARTIAL_HISTORY COMPLETE_RANGES_REQUIRED INVALID_RANGE_SEAT RANGE_DEFINITION_REQUIRED RANGE_BUDGET INVALID_COMBO DUPLICATE_COMBO INVALID_WEIGHT WEIGHT_PRECISION HERO_OUTSIDE_RANGE WORLD_BUDGET NO_COMPATIBLE_WORLD HERO_NO_COMPATIBLE_WORLD BUILD_TIME_BUDGET NODE_BUDGET MEMORY_BUDGET DEPTH_BUDGET UNEXPECTED_STREET PAYOFF_CONSERVATION BUDGET_BEFORE_FIRST_STRATEGY'.split(' '));
+  const reasonMessages=Object.freeze({
+    BUILD_TIME_BUDGET:'The exact tree reached its build-time budget.',NODE_BUDGET:'The exact tree exceeded the node budget.',
+    MEMORY_BUDGET:'The exact tree exceeded the memory budget.',DEPTH_BUDGET:'The tree exceeded supported decision depth.',
+    WORLD_BUDGET:'The range product exceeded the world budget.',RANGE_BUDGET:'A declared range exceeded the seat limit.',
+    BUDGET_BEFORE_FIRST_STRATEGY:'The budget ended before a complete strategy was available.'
+  });
+  const jobReasons=new Set(['State changed','Superseded by the current decision.','Cancelled by the user.',
+    'Cumulative calculation budget reached.','Budget reached; retained the last completed refinement.',
+    'Solver queue is full; retry refinement later.','Solver memory limit reached.','Service closed.']);
+  const safeJobReason=value=>typeof value!=='string'?null:jobReasons.has(value)?value:
+    /^Solver worker stopped \(\d{1,3}\)\.$/.test(value)?value:'Unlisted server reason (redacted).';
+  const safeReasons=value=>Array.isArray(value)?value.slice(0,6).map(item=>{
+    const code=reasonCodes.has(item?.code)?item.code:'UNLISTED_REASON';
+    return {code,message:reasonMessages[code]|| (code==='UNLISTED_REASON'?'Unlisted solver reason (redacted).':`Solver reason: ${code.toLowerCase().replaceAll('_',' ')}.`)};
+  }):[];
+  const buildMetricNames=['coverageMs','buildMs','nodes','publicNodes','publicDecisionNodes','publicTerminals','maxDepth',
+    'worlds','reservedMemoryBytes','publicLedgerTransitions','aggressionCapNodes','omittedSizingNodes','omittedLegalSizeCount',
+    'handRankEvaluations','handRankCacheHits','settlementReplays','settlementCacheHits'];
+  const safeBuildMetrics=metrics=>Object.fromEntries(buildMetricNames.filter(key=>finite(metrics?.[key])).map(key=>[key,metrics[key]]));
 
   function route(path) {
     const url = new URL(path, location.href);
@@ -74,6 +96,7 @@
     if (!result) return null;
     const precision = result.decisionPrecision || {}, cert = result.actionPrecision || {};
     return {status:result.status,source:result.source,method:result.method,solverVersion:result.solverVersion,
+      reasons:safeReasons(result.reasons),buildMetrics:safeBuildMetrics(result.metrics),
       actions:(result.actions || []).map(({id,action,size,frequency,evBB}) => ({id,action,size,frequency,evBB})),
       convergence:result.convergence ? {exact:result.convergence.exact,nashConv:result.convergence.nashConv,thresholdMet:result.convergence.thresholdMet} : null,
       qualification:result.qualification ? {solvedSubgame:result.qualification.solvedSubgame,strategyFrequenciesSupported:result.qualification.strategyFrequenciesSupported} : null,
@@ -90,6 +113,7 @@
   }
   function envelope(data, wall) {
     return {phase:data.phase,budget:data.budget,cacheHit:data.cache?.hit === true,updateVersion:Number.isInteger(data.updateVersion)?data.updateVersion:null,
+      jobReason:safeJobReason(data.reason),
       elapsedMs:wall,serverAcknowledgementMs:data.timing?.acknowledgementMs ?? null,
       serverFirstValueMs:data.timing?.firstValueMs ?? null,serverCompletionMs:data.timing?.completionMs ?? null,
       serverAgeMsAtObservation:data.timing?.totalMs ?? null,
@@ -299,12 +323,15 @@
     const obsolete=fixture.cancellation.obsolete,replacement=fixture.cancellation.replacement;
     status('Cancellation · supersede an obsolete decision');
     const first=await start(obsolete,'DEEP');
+    const supersedeRequestedAt=performance.now();
     const next=await complete(replacement,replacementBudget,'Cancellation · replacement decision',{automatic:replacementAutomatic,versioned});
     const old=await jsonRequest(`/api/multiway/solver/jobs/${encodeURIComponent(first.data.jobId)}`);
+    const obsoleteCancelledObservedWallMs=old.phase==='CANCELLED'?Math.round(performance.now()-supersedeRequestedAt):null;
     identity(old,obsolete);owned.delete(first.data.jobId);
     const observed=first.data.phase!=='COMPLETE';
     const superseded=observed && old.phase==='CANCELLED' && next.data.phase==='COMPLETE' && next.data.revisionKey===replacement.expectedRevisionKey && next.data.handId===replacement.input.multiway.handId && next.data.result?.gameHash!==first.data.result?.gameHash;
-    report.cancellation={supersede:{obsoleteInitialPhase:first.data.phase,obsoleteFinalPhase:old.phase,replacement:next.summary,observed,superseded},explicit:null};
+    report.cancellation={supersede:{obsoleteInitialPhase:first.data.phase,obsoleteFinalPhase:old.phase,obsoleteJobReason:safeJobReason(old.reason),replacement:next.summary,observed,superseded,
+      obsoleteCancelledObservedWallMs,measurement:'Browser wall from replacement start through the GET that observed the old job; includes replacement work, not worker-exit latency.'},explicit:null};
     check('Superseded decision cancellation',observed ? superseded : null,observed ? `Old ${old.phase}; replacement ${next.data.phase}; no old state rendered.` : 'Old job completed before replacement; cancellation was not observable.');
 
     // A fresh synthetic hand gives the explicit cancellation its own decision identity.
@@ -313,11 +340,15 @@
     fresh.expectedRevisionKey=observedState.state?.revisionKey;
     if (typeof fresh.expectedRevisionKey!=='string') throw Error('Could not prepare a fresh synthetic cancellation state.');
     const explicit=await start(fresh,'DEEP');
+    const cancelRequestedAt=performance.now();
     const cancelled=await cancel(explicit.data.jobId);
+    const explicitCancelRequestRoundtripMs=Math.round(performance.now()-cancelRequestedAt);
     const final=await jsonRequest(`/api/multiway/solver/jobs/${encodeURIComponent(explicit.data.jobId)}`);
     identity(final,fresh);
     const explicitObserved=explicit.data.phase!=='COMPLETE';
-    report.cancellation.explicit={initialPhase:explicit.data.phase,cancelResponsePhase:cancelled?.phase || null,finalPhase:final.phase,observed:explicitObserved};
+    report.cancellation.explicit={initialPhase:explicit.data.phase,cancelResponsePhase:cancelled?.phase || null,cancelResponseReason:safeJobReason(cancelled?.reason),
+      finalPhase:final.phase,finalJobReason:safeJobReason(final.reason),observed:explicitObserved,
+      cancelRequestRoundtripMs:explicitCancelRequestRoundtripMs,measurement:'Browser HTTP round trip for explicit cancel acknowledgement; not worker-exit latency.'};
     check('Explicit job cancellation',explicitObserved ? cancelled?.phase==='CANCELLED' && final.phase==='CANCELLED' : null,
       explicitObserved ? `Cancel response ${cancelled?.phase || 'unavailable'}; final ${final.phase}.` : 'Fresh job completed before cancellation; cancellation was not observable.');
   }

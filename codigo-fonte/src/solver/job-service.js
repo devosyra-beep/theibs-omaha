@@ -6,6 +6,7 @@ const BUDGETS={FAST:{timeMs:500,iterations:50},STANDARD:{timeMs:3000,iterations:
 const LIMITS={maxNodes:12000,maxWorlds:27,maxMemoryBytes:48*1024*1024,maxBuildMs:750};
 const HU_LIMITS=Object.freeze({...LIMITS,maxWorlds:144});
 const TERMINAL_PHASES=new Set(['COMPLETE','FAILED','UNSUPPORTED','CANCELLED']);
+const REUSABLE_STOPS=new Set(['GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION','FIXED_CONTINUATIONS_FULLY_EVALUATED','GLOBAL_CONVERGENCE_ACTION_CERTIFICATES_NOT_COVERED']);
 const workIterations=checkpoint=>Number.isSafeInteger(checkpoint?.workIterations)?checkpoint.workIterations:Number.isSafeInteger(checkpoint?.iterations)?checkpoint.iterations:0;
 function createSolverService({cacheDirectory,maxJobs=24,maxQueued=2,workerFile=path.join(__dirname,'job-worker.js')}={}){
   const jobs=new Map(),generations=new Map(),decisions=new Map(),cache=createSolutionCache({directory:cacheDirectory});let active=null,priority=0,closed=false,cacheWriteTail=Promise.resolve();
@@ -134,7 +135,8 @@ function createSolverService({cacheDirectory,maxJobs=24,maxQueued=2,workerFile=p
     while(decisions.size>maxJobs*2){const old=[...decisions.keys()].find(value=>![...jobs.values()].some(item=>item.decisionKey===value&&['QUEUED','BUILDING','REFINING'].includes(item.phase)));if(!old)break;decisions.delete(old);}
     // Reuse a fully stopped compatible result for automatic display. Explicit
     // refinement retains its existing budget semantics.
-    const reusable=automatic===true&&hasStrategy(found?.result)&&found.result.adaptation?.phase==='STOPPED'&&found.result.adaptation.refinementRecommended===false;
+    const reusable=automatic===true&&hasStrategy(found?.result)&&found.result.adaptation?.phase==='STOPPED'&&
+      found.result.adaptation.refinementRecommended===false&&REUSABLE_STOPS.has(found.result.adaptation.stopReason);
     const job={id,owner,key,input:normalized,budget,revisionKey,handId,started,generation,decisionKey,decision,saveChain:Promise.resolve(),consumedMs:0,runReportedMs:0,lastWorkIterations:workIterations(found?.checkpoint),result:found?.result||null,checkpoint:found?.checkpoint,cacheHit:Boolean(found),updateVersion:0,waiters:new Set(),phase:found&&(budget==='FAST'||reusable)?'COMPLETE':'QUEUED'};
     if(coverage.status!=='READY'){job.phase='UNSUPPORTED';job.result={status:'NOT_SOLVED',actions:[],reasons:coverage.reasons,qualification:{gto:false},metrics:coverage.metrics};}
     jobs.set(id,job);metrics.started++;

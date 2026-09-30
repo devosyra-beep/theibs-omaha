@@ -106,8 +106,10 @@ function execute({input,budget,checkpoint,shouldCancel=()=>false,onProgress=()=>
         treeComplete:meta.treeComplete,chanceSupportComplete:meta.chanceSupportComplete,actions:rows,focus,
         scope:'EX_ANTE_VALUE_OF_ORIGINAL_PRIOR_WITH_PRIVATE_INFORMATION_SET_COMMITMENT',
         originalConditionalProfileEVUnchanged:true,originalStrategyTreeUnchanged:true},
-      adaptation:{version:VERSION,phase:refining?'REFINING':'STOPPED',stopReason:refining?null:stopReason,
-        refinementRecommended:!shouldCancel()&&stopReason!=='FIXED_CONTINUATIONS_FULLY_EVALUATED'&&(!converged||actionEligible&&!focus.separated),
+      adaptation:{version:VERSION,phase:refining?'REFINING':stopReason==='FOREGROUND_PRIORITY_PAUSE'?'PAUSED':'STOPPED',stopReason:refining?null:stopReason,
+        // Interrupting execution does not establish mathematical completion.
+        // The service owns resume/cancel and cumulative resource ceilings.
+        refinementRecommended:stopReason!=='FIXED_CONTINUATIONS_FULLY_EVALUATED'&&(!converged||actionEligible&&!focus.separated),
         resourceCeiling:{timeMs:budget.timeMs,iterations:budget.iterations},workIterations:totalWork,
         globalIterations:solved.iterations,actionIterations:Object.values(actionCheckpoints).reduce((sum,item)=>sum+(item?.iterations||0),0),
         sizingRefinement:{mode:'FIXED_DECLARED_TREE_ADAPTIVE_CERTIFICATES',scope:'DECLARED_LEGAL_CANDIDATES_ONLY',
@@ -209,7 +211,7 @@ function execute({input,budget,checkpoint,shouldCancel=()=>false,onProgress=()=>
   else if(!stopReason)stopReason=remainingIterations()<=0?'ITERATION_RESOURCE_CEILING':'TIME_RESOURCE_CEILING';
   runCosts.totalComputeMs=now()-started;
   const final=render(false)||last||{status:'NOT_SOLVED',actions:[],qualification:{gto:false},reasons:[{code:'BUDGET_BEFORE_FIRST_STRATEGY',message:'Budget ended before a strategy could be evaluated.'}],
-    adaptation:{version:VERSION,stopReason,refinementRecommended:!shouldCancel(),resourceCeiling:{timeMs:budget.timeMs,iterations:budget.iterations}}};
+    adaptation:{version:VERSION,phase:shouldCancel()?'PAUSED':'STOPPED',stopReason,refinementRecommended:true,resourceCeiling:{timeMs:budget.timeMs,iterations:budget.iterations}}};
   return {result:final,checkpoint:saved(),workerMs:now()-started,paused:shouldCancel()};
 }
 

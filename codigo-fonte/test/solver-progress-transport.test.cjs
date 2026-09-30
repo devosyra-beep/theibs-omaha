@@ -14,7 +14,7 @@ async function fixture(t,{unfinished=false}={}){
     parentPort.on('message',({checkpoint})=>{
       const iterations=(checkpoint?.iterations||0)+1;
       const result={status:'APPROXIMATE',actions:[{id:'CHECK',evBB:2,frequency:1}],iterations,
-        adaptation:{phase:'STOPPED',refinementRecommended:${unfinished}}};
+        adaptation:{phase:'STOPPED',stopReason:'${unfinished?'TIME_RESOURCE_CEILING':'GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION'}',refinementRecommended:${unfinished}}};
       parentPort.postMessage({type:'progress',result:{...result,adaptation:{phase:'REFINING',refinementRecommended:true}},checkpoint:{iterations},workerMs:1});
       setTimeout(()=>parentPort.postMessage({type:'done',result,checkpoint:{iterations},workerMs:35}),35);
     });

@@ -73,6 +73,8 @@ test('cancelled empty action response preserves the complete original result and
   assert.equal(output.paused,true);assert.equal(output.result.actions.length,3);
   assert.equal(output.checkpoint.global.iterations,1);
   assert.equal(output.result.adaptation.stopReason,'FOREGROUND_PRIORITY_PAUSE');
+  assert.equal(output.result.adaptation.phase,'PAUSED');
+  assert.equal(output.result.adaptation.refinementRecommended,true);
 });
 
 test('mismatched certificate context is rejected rather than compared',()=>{

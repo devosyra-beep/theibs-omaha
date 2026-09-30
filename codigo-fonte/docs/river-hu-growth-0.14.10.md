@@ -49,4 +49,12 @@ Evidence: [measurements and test outcomes](benchmarks/river-hu-growth-0.14.10.js
 
 Screenshots: [conclusive desktop](benchmarks/river-01410-conclusive-desktop.png), [conclusive mobile](benchmarks/river-01410-conclusive-mobile.png), [overlap desktop](benchmarks/river-01410-overlap-desktop.png), [overlap mobile](benchmarks/river-01410-overlap-mobile.png).
 
-Production status: NOT_EXECUTED for 0.14.10. Manual Render deployment and authenticated production measurements await restored browser access. Local measurements are not production evidence. The runtime commit will be recorded with the deployment verification once that gate succeeds.
+## Initial production findings and interruption correction
+
+Runtime commit `012ab996038ab8a3ba7ebec5dca4b4a2b4f15aa7` was deployed through the existing manual Render flow as `dep-daukpt7lk1mc73d9fud0` on 2026-09-30 (33.6 seconds). Public health and engine version checks confirmed 0.14.10. The authenticated baseline suite passed 42/42 checks, including nine cache-invalidation misses, explicit cancellation and obsolete-job supersession.
+
+The first progressive hosted run did not pass its expanded-capacity gate. One 4x4 sample was cancelled with an incomplete certificate set; its exact cancellation trigger was not captured. Two 8x8 samples reached certified separation in approximately 28–29 seconds; a third remained inconclusive at its resource ceiling. All three 12x12 samples returned NOT_SOLVED/UNSUPPORTED without actions. The initial sanitized report omitted rejection reasons, so their specific cause is not yet established. These observations do not support a three-second completion claim for expanded hosted studies.
+
+Independent lifecycle review identified a separate, reproducible defect: a foreground pause could mark a cached partial snapshot STOPPED with no further refinement recommended. The correction represents interruption as PAUSED, retains the mathematical refinement requirement, and permits automatic final reuse only for known mathematical stopping reasons. Adaptive contract V4 invalidates old interruption metadata; CFR, utilities, certificates, coverage and resource budgets are unchanged. A focused regression suite covers real-solver interruption/resume, persisted paused snapshots, rejection of legacy false-final metadata, and continued reuse of legitimate terminal results.
+
+Corrected production verification remains pending. The validation page now records sanitized rejection reasons and logical cancellation round trips. These measurements do not claim worker-exit latency. Final hosted capacity must be reported separately from the locally admitted input ceiling.
