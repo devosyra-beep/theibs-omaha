@@ -232,7 +232,7 @@ body[data-view=analyze][data-multiway=on][data-multiway-phase=WAIT_BOARD] .quick
 .mw-ev-heading { display:flex; align-items:center; justify-content:space-between; gap:8px; }
 .mw-ev-heading strong { color:#fff2cf; font-size:13px; line-height:1.2; }
 .mw-ev-badge { flex:none; padding:3px 7px; border:1px solid #c9a85666; border-radius:99px; color:#e9c96f; font:10px/1.2 var(--font-sans); }
-.mw-ev-badge[data-status=partial],.mw-ev-badge[data-status=pending],.mw-ev-badge[data-status=inconclusive],.mw-ev-badge[data-status=incomparable],.mw-ev-badge[data-status=no_decision] { border-color:var(--border); color:var(--muted); }
+.mw-ev-badge[data-status=partial],.mw-ev-badge[data-status=pending],.mw-ev-badge[data-status=inconclusive],.mw-ev-badge[data-status=incomparable],.mw-ev-badge[data-status=no_decision],.mw-ev-badge[data-status=unavailable] { border-color:var(--border); color:var(--muted); }
 .mw-ev-context { margin:5px 0 8px!important; color:var(--muted); font-size:11px!important; line-height:1.4; }
 .mw-ev-table { width:100%; border-collapse:collapse; table-layout:fixed; font-size:12px; }
 .mw-ev-table th,.mw-ev-table td { min-width:0; padding:6px 5px; border-top:1px solid var(--border); vertical-align:middle; }

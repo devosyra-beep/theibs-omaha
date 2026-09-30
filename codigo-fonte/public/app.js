@@ -29,8 +29,13 @@
   const qualityName = (quality) => ({ INCONCLUSIVE_COMPARISON: 'No clear advantage between options', INCOMPLETE_COMPARISON: 'Limited comparison', MATCHED_HEURISTIC: 'Matches the previous heuristic', DIFFERENT_HEURISTIC: 'Differs from the previous heuristic', MATCHED_MODELED: 'Favored choice in this exercise', DIFFERENT_MODELED: 'Another option had higher EV', UNVERIFIED: 'Not evaluated yet' })[quality] || quality;
   const actionName = action => ({FOLD:'Fold',CALL:'Call',CHECK:'Check',BET:'Bet',RAISE:'Raise',NO_DECISION:'No recommendation'})[action] || action || '—';
   const actionWithSize = (action,size) => actionName(action)+(['BET','RAISE'].includes(action)&&Number.isFinite(size)?' to '+money(size):'');
-  const comparisonLabel = data => data.analysisStage === 'PROVISIONAL' ? 'Provisional estimate · refining' : data.ev?.decisionPrecision ? data.ev.decisionPrecision.leaderConclusive ? 'Best modeled action' : 'Current EV leader' : !data.ev?.comparisonComplete ? 'Partial comparison' : data.recommendation?.status === 'CONDITIONAL' ? 'Highest EV under assumptions' : 'Inconclusive comparison';
-  const recommendationText = data => data.analysisStage === 'PROVISIONAL' ? 'Refining…' : data.recommendation?.action ? actionName(data.recommendation.action) : 'No clear choice';
+  const comparisonLabel = data => data.analysisStage === 'PROVISIONAL' ? data.refinement ? 'Provisional estimate · refinement stopped' : 'Provisional estimate · refining' : data.ev?.decisionPrecision ? data.ev.decisionPrecision.leaderConclusive ? 'Best modeled action' : 'Current EV leader' : !data.ev?.comparisonComplete ? 'Partial comparison' : data.recommendation?.status === 'CONDITIONAL' ? 'Highest EV under assumptions' : 'Inconclusive comparison';
+  function retainedPreviewDisplay(data) {
+    if (data?.status !== 'OK' || data.analysisStage !== 'PROVISIONAL' || !['TIME_BUDGET','FAILED'].includes(data.refinement?.status)) return null;
+    return { tone:'neutral', state:'Provisional estimate · refinement stopped', title:'Preliminary estimates retained',
+      shortTitle:'Preliminary estimate', detail:`${data.refinement.reason} This preview does not supply a recommended action.`, uncertain:true, target:null };
+  }
+  const recommendationText = data => data.analysisStage === 'PROVISIONAL' ? retainedPreviewDisplay(data)?.shortTitle || 'Refining…' : data.recommendation?.action ? actionName(data.recommendation.action) : 'No clear choice';
   const numberLabel = n => Number.isFinite(n) ? Math.round(n).toLocaleString('en-US') : '—';
   const FIELD_IDS = ['position','players','potBeforeAction','amountToCall','effectiveStack','samples','seed',
     'opponentHand','opponentRange','opponentProfile','opponentProfileSource','observedFoldToBet','observedCallFrequency','observedRaiseFrequency','observedBluffFrequency',
@@ -346,7 +351,11 @@
       const error = new Error('The session changed during the response. Sign in again to continue.');
       error.code = 'AUTH_SESSION_CHANGED'; throw error;
     }
-    if (!response.ok) { const error = new Error(data.reason || `HTTP ${response.status}`); error.status = response.status; throw error; }
+    if (!response.ok) {
+      const error = new Error(data.reason || `HTTP ${response.status}`); error.status = response.status;
+      if (['TIME_BUDGET','WORKER_TIMEOUT','WORKER_FAILED','ENGINE_BUSY'].includes(data.code)) error.code = data.code;
+      throw error;
+    }
     return data;
   }
   const postJson = (url, payload, keepalive = false) => requestJson(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), keepalive });
@@ -438,7 +447,7 @@ function renderAnalysisDiagnostics(data) {
     INVALID_OR_UNAVAILABLE_MODEL:'The state or model is unavailable', PROVISIONAL:'The estimate is provisional' };
   const reasons = (d.reasonCodes || []).map(code => labels[code] || code);
   const method = d.selectionMethod === 'SHARED_EQUITY_AFFINE_DIFFERENCES' ? 'Compared differences using the same sampled equity' : 'Compared marginal uncertainty bounds';
-  const next = feedback.summary({data, action:Number(value('amountToCall'))>0?'CALL':'CHECK', multiway:!!multiway});
+  const next = retainedPreviewDisplay(data) || feedback.summary({data, action:Number(value('amountToCall'))>0?'CALL':'CHECK', multiway:!!multiway});
   return `<section class="result-detail"><strong>Decision support</strong><p>${esc(method)}. ${esc(reasons.join('. '))}</p><p>${esc(next.title)}. ${esc(next.detail)}</p><p>These values assume showdown without future betting.</p></section>`;
 }
 
@@ -455,7 +464,7 @@ function quickCallFold(data, progress) {
   if (!progress.ready) return {label:'—',detail:progress.detail};
   if (!data) return {label:'—',detail:analysisBusy?'Calculating equity…':'Waiting for equity calculation.'};
   if (data.status !== 'OK') return {label:'—',detail:data.reason || 'Calculation unavailable.'};
-  if (data.analysisStage === 'PROVISIONAL') return {label:'—',detail:'Calculating final result…'};
+  if (data.analysisStage === 'PROVISIONAL') return {label:'—',detail:retainedPreviewDisplay(data)?.detail || 'Calculating final result…'};
   if (value('potBeforeAction') === '' || value('amountToCall') === '')
     return {label:'—',detail:'Enter the pot and amount to call to compare CALL/FOLD.'};
   if (!(Number(value('amountToCall')) > 0)) return {label:'—',detail:'No bet to call for this decision.'};
@@ -476,7 +485,7 @@ function renderResult(data, street) {
   const equity = data.equity || {}; const math = data.potMath || {};
   if(data.multiwayEvaluation) {
     const model=data.multiwayEvaluation;
-    result.innerHTML=`<div class="result-label">ACTION EV · ${esc(streetName(street))}</div><details class="result-disclosure"><summary>Model & assumptions</summary><div><p>${esc(data.reason)}</p><p>Contextual continuation model · ${esc(model.samples)} joint simulations · ${Number(model.effectiveSamples).toFixed(1)} effective samples.</p><p>Hero follows the reference continuation policy. This is a heuristic model, not a solved or GTO strategy.</p><p>Intervals measure numerical uncertainty under the declared model; they do not include uncertainty about opponent behavior.</p>${(data.assumptions || []).map(item=>`<p>${esc(item)}</p>`).join('')}${(data.warnings || []).map(item=>`<p class="result-warning">${esc(item)}</p>`).join('')}</div></details>`;
+      result.innerHTML=`<div class="result-label">ACTION EV · ${esc(streetName(street))}</div>${data.refinement ? `<p class="result-warning" role="status">${esc(data.refinement.reason)}</p>` : ''}<details class="result-disclosure"><summary>Model & assumptions</summary><div><p>${esc(data.reason)}</p><p>Contextual continuation model · ${esc(model.samples)} joint simulations · ${Number(model.effectiveSamples).toFixed(1)} effective samples.</p><p>Hero follows the reference continuation policy. This is a heuristic model, not a solved or GTO strategy.</p><p>Intervals measure numerical uncertainty under the declared model; they do not include uncertainty about opponent behavior.</p>${(data.assumptions || []).map(item=>`<p>${esc(item)}</p>`).join('')}${(data.warnings || []).map(item=>`<p class="result-warning">${esc(item)}</p>`).join('')}</div></details>`;
     return;
   }
   const modeledCall = data.ev?.actions?.CALL?.status === 'MODELED' ? data.ev.actions.CALL.ev : null;
@@ -552,7 +561,8 @@ function renderResult(data, street) {
     const progress = feedback.inputProgress({count:cards.state.count,slots:cards.state.slots,manualInvalid:cards.isManualInvalid()});
     const action=Number(value('amountToCall'))>0?'CALL':'CHECK';
     const assessment=progress.ready?data?.continuationAssessment:null;
-    const continuation=window.TheibsContinuationView.describe(assessment);
+    const stoppedPreview = retainedPreviewDisplay(data);
+    const continuation=stoppedPreview || window.TheibsContinuationView.describe(assessment);
     const display=continuation||feedback.summary({data,action,progress,busy:analysisBusy,auto:multiway||$('#auto-analysis').checked,multiway:!!multiway,note});
     const facts=data?.handInsights;
     $('#nuts-badge').hidden=!(data?.status==='OK'&&facts?.made&&facts?.nuts?.unbeaten===true);
@@ -749,6 +759,9 @@ function renderResult(data, street) {
     try { payload = multiway?buildAnalysisPayload():buildQuickEquityPayload(); }
     catch (error) { const data = { status: 'NO_DECISION', reason: error.message }; renderResult(data, currentStreet()); quickAction(data); cards.announce(error.message, true); return; }
     const requestedRevision = inputRevision, inputAt = event?.type ? performance.now() : inputChangedAt;
+    const requestedSignature = snapshotModel.stable(payload), requestedSession = JSON.stringify(window.theibsVoiceSessionContext?.());
+    const requestedHandId = payload.multiway?.handId, requestedDecisionKey = multiwayState?.revisionKey;
+    let publishedSnapshot = null;
     analysisBusy = true; const controller = analysisController = new AbortController();
     if(multiway)renderMultiway();
     analyzeButton.disabled = true; $('#quick-analyze').disabled = true;
@@ -780,6 +793,7 @@ function renderResult(data, street) {
       if(metrics.analyses.length>1000)metrics.analyses.shift();
       document.dispatchEvent(new CustomEvent('theibs:analysis-painted',{detail:metrics.analyses.at(-1)}));
       if(phase==='FINAL'){renderEngineDetails();scheduleSave();}
+      if (payload.multiwayEvaluation && data.status === 'OK') publishedSnapshot = structuredClone(lastAnalysis);
       return true;
     };
     try {
@@ -809,8 +823,31 @@ function renderResult(data, street) {
       const data=await requestJson('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...payload,analysisPhase:'FINAL'}),signal:controller.signal});
       await publish(data,started,'FINAL');
     } catch (error) {
-      if(error.name==='AbortError')return;
-      if(requestedRevision===inputRevision){const data={status:'ERROR',reason:`Calculation unavailable: ${error.message}`};lastAnalysis={input:structuredClone(payload),data,street:payload.street};renderResult(data,payload.street);quickAction(data);renderCharts();}
+      if(error.name==='AbortError' || controller.signal.aborted)return;
+      if(requestedRevision===inputRevision){
+        const computationFailure = ['TIME_BUDGET','WORKER_TIMEOUT','WORKER_FAILED','ENGINE_BUSY'].includes(error.code) && ![401,403,409].includes(error.status);
+        let sameInput = false;
+        if (computationFailure && publishedSnapshot && activeView === 'analyze' &&
+          requestedSession === JSON.stringify(window.theibsVoiceSessionContext?.()) && !window.theibsVoiceSessionContext?.().expired &&
+          requestedHandId === multiway?.handId && requestedDecisionKey === multiwayState?.revisionKey &&
+          publishedSnapshot.data.observedState?.handId === requestedHandId && publishedSnapshot.data.observedState?.revisionKey === requestedDecisionKey &&
+          publishedSnapshot.data.status === 'OK' && ['PROVISIONAL','FINAL'].includes(publishedSnapshot.data.analysisStage)) {
+          try { sameInput = requestedSignature === snapshotModel.stable(buildAnalysisPayload()); } catch {}
+        }
+        if (sameInput) {
+          const timeout = ['TIME_BUDGET','WORKER_TIMEOUT'].includes(error.code);
+          const data = publishedSnapshot.data;
+          data.refinement = { status: timeout ? 'TIME_BUDGET' : 'FAILED', reason: timeout
+            ? 'Refinement reached its time budget; preliminary estimates remain available.'
+            : 'Refinement could not finish; preliminary estimates remain available.' };
+          lastAnalysis = publishedSnapshot;
+          renderResult(data,payload.street);quickAction(data);
+          renderCharts(snapshotModel.create(data,payload));renderEngineDetails();
+        } else {
+          const data={status:'ERROR',reason:`Calculation unavailable: ${error.message}`};
+          lastAnalysis={input:structuredClone(payload),data,street:payload.street};renderResult(data,payload.street);quickAction(data);renderCharts();
+        }
+      }
     } finally {
       analysisBusy=false;analysisController=null;analyzeButton.disabled=false;$('#quick-analyze').disabled=false;
       if(multiway)renderMultiway();

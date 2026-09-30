@@ -32,7 +32,7 @@ test('EV display keeps uncovered legal actions unknown and does not promote a pa
     bigBlind: 2, potBeforeDecision: 30, bestModeledAction: 'CALL', comparisonComplete: false,
     globalBestSupported: false, leaderConclusive: false, gapBestSecondBB: 1.2,
     missingLegalActions: ['RAISE'], actions: {
-      FOLD: { status: 'MODELED', ev: 0, evBB: 0, differenceToBestModeledBB: -1.2 },
+      FOLD: { status: 'MODELED', ev: 0, evBB: 0, differenceToBestModeledBB: 1.2 },
       CALL: { status: 'MODELED', ev: 2.4, evBB: 1.2, differenceToBestModeledBB: 0 },
       RAISE: { status: 'NOT_MODELED', ev: null, evBB: null, differenceToBestModeledBB: null }
     }
@@ -74,6 +74,10 @@ test('current revision, hero turn and finite EV are required before display', ()
   const unavailable = describe(current, { status: 'NO_DECISION', reason: 'Hero cards incomplete.' });
   assert.equal(unavailable.stage, 'NO_DECISION');
   assert.equal(unavailable.reason, 'Hero cards incomplete.');
+  const failed = describe(current, { status: 'ERROR', reason: 'Calculation unavailable.' });
+  assert.equal(failed.stage, 'UNAVAILABLE');
+  assert.equal(failed.reason, 'Calculation unavailable.');
+  assert.ok(failed.rows.every(row => row.evBB === null && row.differenceBB === null));
 });
 
 test('complete action EV uses contracted bb and sizing rather than inferring missing deltas', () => {
@@ -82,8 +86,8 @@ test('complete action EV uses contracted bb and sizing rather than inferring mis
     globalBestSupported: true, leaderConclusive: true, gapBestSecondBB: 0.4,
     decisionPrecision:{status:'CONCLUSIVE',leaderConclusive:true,bestActionId:'RAISE',secondActionId:'CALL',deltaEVBB:0.4,reasonCode:'SEPARATED_UNDER_FIXED_POLICY'},
     missingLegalActions: [], actions: {
-      FOLD: { status: 'MODELED', ev: 0, evBB: 0, differenceToBestModeledBB: -2.1 },
-      CALL: { status: 'MODELED', ev: 3.4, evBB: 1.7, differenceToBestModeledBB: -0.4 },
+      FOLD: { status: 'MODELED', ev: 0, evBB: 0, differenceToBestModeledBB: 2.1 },
+      CALL: { status: 'MODELED', ev: 3.4, evBB: 1.7, differenceToBestModeledBB: 0.4 },
       RAISE: { status: 'MODELED', size: 14, ev: 4.2, evBB: 2.1, differenceToBestModeledBB: 0, model: 'SCENARIO_SHOWDOWN_ONLY' }
     }
   } };
@@ -91,7 +95,7 @@ test('complete action EV uses contracted bb and sizing rather than inferring mis
   assert.equal(decision.stage, 'COMPLETE');
   assert.equal(decision.gapBestSecondBB, 0.4);
   assert.equal(decision.rows.find(row => row.action === 'RAISE').size, 14);
-  assert.equal(decision.rows.find(row => row.action === 'CALL').differenceBB, -0.4);
+  assert.equal(decision.rows.find(row => row.action === 'CALL').differenceBB, 0.4);
   assert.equal(decision.rows.find(row => row.action === 'RAISE').method, 'SCENARIO_SHOWDOWN_ONLY');
   analysis.ev.globalBestSupported = false;
   analysis.ev.leaderConclusive = false;
@@ -137,4 +141,83 @@ test('old leadership flags cannot establish precision without the new uncertaint
   assert.equal(incompatible.bestModeledAction,null);
   assert.ok(incompatible.rows.every(row=>row.differenceBB===null));
   assert.equal(incompatible.precision.reasonCode,'INCOMPATIBLE_ORIGINS');
+});
+
+test('retained previews report refinement stops without creating a ranked decision', () => {
+  const current = state();
+  const preview = { status: 'OK', analysisStage: 'PROVISIONAL', observedState: { revisionKey: current.revisionKey },
+    refinement: { status: 'TIME_BUDGET', reason: 'Refinement reached its time budget.' },
+    ev: { bigBlind: 2, bestModeledAction: 'CALL', comparisonComplete: true, globalBestSupported: true,
+      decisionPrecision: { status: 'CONCLUSIVE', leaderConclusive: true, bestActionId: 'CALL', deltaEVBB: 1.2 },
+      actions: { FOLD: { status: 'MODELED', ev: 0, evBB: 0, differenceToBestModeledBB: 1.2 },
+        CALL: { status: 'MODELED', ev: 2.4, evBB: 1.2, differenceToBestModeledBB: 0 } } } };
+  for (const status of ['TIME_BUDGET', 'FAILED']) {
+    preview.refinement.status = status;
+    const retained = describe(current, preview, { heroDraftReady: true, analysisBusy: false });
+    assert.equal(retained.stage, 'PROVISIONAL');
+    assert.equal(retained.refinement.status, status);
+    assert.equal(retained.rows.find(row => row.action === 'CALL').evBB, 1.2);
+    assert.equal(retained.bestModeledAction, null);
+    assert.equal(retained.leaderConclusive, false);
+    assert.equal(retained.globalBestSupported, false);
+    assert.equal(retained.precision, null);
+    assert.equal(retained.gapBestSecondBB, null);
+    assert.ok(retained.rows.every(row => row.differenceBB === null));
+  }
+  assert.equal(describe(current, preview, { heroDraftReady: false, analysisBusy: false }).refinement, null);
+  preview.observedState.revisionKey = 'stale-hand:1';
+  const stale = describe(current, preview, { heroDraftReady: true, analysisBusy: false });
+  assert.equal(stale.refinement, null);
+  assert.ok(stale.rows.every(row => row.evBB === null));
+});
+
+function renderDecision(analysis, solverSnapshot = null) {
+  const host = { innerHTML: '', querySelector: () => null };
+  const renderWindow = { TheibsMultiwaySolverUI: { decisionSnapshot: () => solverSnapshot, getState: () => null } };
+  const document = { querySelector: selector => selector === '#mw-decision-ev' ? host : null, body: { dataset: {} } };
+  vm.runInNewContext(source.replace('function refreshDecisionEV() {', 'window.__refreshDecisionEV = function refreshDecisionEV() {'),
+    { window: renderWindow, document, clearTimeout }, { filename: 'multiway-ui.js' });
+  renderWindow.theibsMultiwayUI.render({ enabled: true, state: state(), analysis, heroDraftReady: true, analysisBusy: false });
+  renderWindow.__refreshDecisionEV();
+  return host.innerHTML;
+}
+
+test('rendered comparison gaps are positive shortfalls and remain separate from top-two uncertainty', () => {
+  const analysis = { status: 'OK', analysisStage: 'FINAL', observedState: { revisionKey: 'hand-1:4' }, ev: {
+    bigBlind: 2, bestModeledAction: 'CALL', comparisonComplete: true, globalBestSupported: false,
+    decisionPrecision: { status: 'INCONCLUSIVE', leaderConclusive: false, bestActionId: 'CALL', deltaEVBB: 1.2 },
+    actions: { FOLD: { status: 'MODELED', ev: 0, evBB: 0, differenceToBestModeledBB: 1.2 },
+      CALL: { status: 'MODELED', ev: 2.4, evBB: 1.2, differenceToBestModeledBB: 0 } } } };
+  const html = renderDecision(analysis);
+  assert.match(html, /Below leader · bb/);
+  assert.match(html, /Fold<\/span><small>Modeled<\/small><\/th><td>0\.0<\/td><td>1\.2<\/td>/);
+  assert.match(html, /Call<\/span><small>Modeled<\/small><\/th><td>\+1\.2<\/td><td>0\.0<\/td>/);
+  assert.match(html, /ΔEV · top two: 1\.2 bb/);
+  assert.match(html, /Current EV leader: Call/);
+  assert.doesNotMatch(html, /Best modeled action/);
+  assert.match(html, /Below leader = leader EV − action EV/);
+
+  const solver = { revisionKey: 'hand-1:4', status: 'PARTIAL', actions: [
+    { id: 'FOLD', action: 'FOLD', evBB: 0, frequency: 0 }, { id: 'CALL', action: 'CALL', evBB: 1.2, frequency: 1 } ],
+    decisionPrecision: { status: 'INCONCLUSIVE', leaderConclusive: false, bestActionId: 'CALL', deltaEVBB: 1.2 } };
+  const solvedHtml = renderDecision(null, solver);
+  assert.match(solvedHtml, /Below leader · bb/);
+  assert.match(solvedHtml, /Fold<\/th><td><span>0<\/span><\/td><td>0%<\/td><td><span>1\.2<\/span><\/td>/);
+  assert.match(solvedHtml, /Current EV leader: Call/);
+});
+
+test('rendered timeout keeps preliminary values visible and generic errors are unavailable', () => {
+  const preview = { status: 'OK', analysisStage: 'PROVISIONAL', observedState: { revisionKey: 'hand-1:4' },
+    refinement: { status: 'TIME_BUDGET', reason: 'Refinement reached its time budget.' },
+    ev: { bigBlind: 2, actions: { CALL: { status: 'MODELED', ev: 2.4, evBB: 1.2 } } } };
+  const html = renderDecision(preview);
+  assert.match(html, /HEURISTIC · preliminary/);
+  assert.match(html, /Latest estimate retained\. Refinement reached its time budget\. Analyze hand to retry\./);
+  assert.match(html, /\+1\.2/);
+  assert.doesNotMatch(html, /refinement in progress|HEURISTIC · refining|Current EV leader|Best modeled action|ΔEV · top two|CONCLUSIVE/);
+  const errorHtml = renderDecision({ status: 'ERROR', reason: 'Calculation unavailable: network error.' });
+  assert.match(errorHtml, /data-status="unavailable">Calculation unavailable/);
+  assert.doesNotMatch(errorHtml, />No decision</);
+  const noDecisionHtml = renderDecision({ status: 'NO_DECISION', reason: 'Hero cards incomplete.' });
+  assert.match(noDecisionHtml, /data-status="no_decision">No decision/);
 });

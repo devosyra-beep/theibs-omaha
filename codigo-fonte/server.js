@@ -556,7 +556,8 @@ const server = http.createServer(async (request, response) => {
       }
       return json(response, 404, { status: 'ERROR', reason: 'Endpoint not found.' });
     } catch (error) {
-      return json(response, error.statusCode || 400, { status: 'ERROR', reason: error.message });
+      const code = analyzeInWorker.errorCode(error.code);
+      return json(response, error.statusCode || 400, { status: 'ERROR', reason: error.message, ...(code ? { code } : {}) });
     }
   }
   if (request.method === 'GET' && route === '/api/training/history') {

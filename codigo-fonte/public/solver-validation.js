@@ -320,7 +320,15 @@
     }
   }
   async function cancellation(fixture,{replacementBudget='FAST',replacementAutomatic=false,versioned=false}={}) {
-    const obsolete=fixture.cancellation.obsolete,replacement=fixture.cancellation.replacement;
+    const obsolete=clone(fixture.cancellation.obsolete),replacement=fixture.cancellation.replacement;
+    if(report.suite==='progressive') {
+      // The 12x12 capacity probe may be rejected during construction, before
+      // cancellation can reach it. Exercise lifecycle on the viable 8x8 slice;
+      // distinct positive weights avoid reusing a completed capacity fixture.
+      obsolete.input.ranges.forEach(range=>{range.combos=range.combos.slice(0,8).map(combo=>({...combo,weight:combo.weight+1}));});
+      obsolete.input.sizing.levels=Array.from({length:8},(_,index)=>Math.round((1+index/7)*100)/100);
+      report.scope.cancellationFixture='8x8 explicit ranges, 8 sizes; full 12x12 capacity probes remain separate.';
+    }
     status('Cancellation · supersede an obsolete decision');
     const first=await start(obsolete,'DEEP');
     const supersedeRequestedAt=performance.now();
