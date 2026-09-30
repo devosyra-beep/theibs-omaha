@@ -47,7 +47,7 @@ test('scenario EV envelope does not claim joint 95% confidence', () => {
   near(action.conditionalEvEnvelope[0], .2 * 20 + .3 * (.55 * 37 - 10) + .1 * (.45 * 41 - 10) + .4 * (.3 * 48 - 10));
   near(action.conditionalEvEnvelope[1], .2 * 20 + .3 * (.65 * 37 - 10) + .1 * (.55 * 41 - 10) + .4 * (.4 * 48 - 10));
   assert.equal(action.confidenceInterval95, undefined);
-  assert.match(action.intervalScope, /SEM_COBERTURA_CONJUNTA/);
+  assert.equal(action.intervalScope, 'MARGINAL_INTERVAL_PROPAGATION_NO_GUARANTEED_JOINT_COVERAGE');
   const missing = fixture(); delete missing.actionResponseModels.RAISE.scenarios[1].equityInterval;
   assert.equal(raise(missing).conditionalEvEnvelope, undefined);
 });

@@ -87,16 +87,21 @@
     let actor=null,actorText='',opponentMissing=false,phrase=input;
     const hero=input.match(en?/^(hero|i)(?:\s+|$)/:/^(eu|heroi)(?:\s+|$)/);
     const opponent=input.match(en?/^(opponent)(?:\s+|$)/:/^(adversario|oponente)(?:\s+|$)/);
-    const seat=input.match(/^(?:a|adv\.?)([1-9])(?:\s+|$)/);
+    const seat=input.match(/^(?:a|adv\.?)\s*([1-9])(?:\s+|$)/);
+    const spokenSeat=!seat&&input.match(/^(?:a|adv\.?)\s+(\S+)(?:\s+|$)/);
+    const spokenSeatNumber=spokenSeat?opponentNumber(spokenSeat[1],locale):null;
     if(hero){actor={kind:'hero'};actorText=hero[1];phrase=input.slice(hero[0].length);}
-    else if(seat){actor={kind:'opponent',number:Number(seat[1])};actorText=seat[0].trim();phrase=input.slice(seat[0].length);}
+    else if(seat||spokenSeatNumber!==null){
+      const match=seat||spokenSeat;
+      actor={kind:'opponent',number:seat?Number(seat[1]):spokenSeatNumber};actorText=match[0].trim();phrase=input.slice(match[0].length);
+    }
     else if(opponent){
       const rest=input.slice(opponent[0].length),word=rest.split(' ')[0],number=opponentNumber(word,locale);
       if(number!==null){actor={kind:'opponent',number};actorText=opponent[1]+' '+word;phrase=rest.slice(word.length).trim();}
       else if(!rest||Object.hasOwn(names,word)||allInPhrase(rest,en)){opponentMissing=true;actorText=opponent[1];phrase=rest;}
       else throw Error('Identify the opponent by the number shown at the table.');
     }
-    if(!hero&&!opponent&&!seat&&!Object.hasOwn(names,phrase.split(' ')[0])&&!allInPhrase(phrase,en))return null;
+    if(!hero&&!opponent&&!seat&&spokenSeatNumber===null&&!Object.hasOwn(names,phrase.split(' ')[0])&&!allInPhrase(phrase,en))return null;
     const draft={actor,actorText,opponentMissing,action:null,actionWord:'',basis:null,rawValue:'',unitText:'',unit:'chips'};
     if(!phrase)return draft;
     if(allInPhrase(phrase,en))return {...draft,action:'ALL_IN',actionWord:phrase};
@@ -152,7 +157,7 @@
     if(!utterance || utterance.length>800)throw Error('Say one complete command.');
     const normalized=actionText(utterance),en=locale==='en-US';
     if(normalized===(en?'my turn':'minha vez'))return {type:'context'};
-    if(context.phase!=='BETTING')return parse(utterance,locale);
+    if(context.phase!=='BETTING')return withCardDestination(parse(utterance,locale),context);
     if(normalized===(en?'undo':'desfazer')||normalized===(en?'cancel':'cancelar'))return parse(utterance,locale);
     if(context.pendingAmount){
       const value=parseChips(utterance,locale);
@@ -160,7 +165,7 @@
       return {type:'amount',to:value};
     }
     const draft=readAction(utterance,locale);
-    if(!draft)return parse(utterance,locale);
+    if(!draft)return withCardDestination(parse(utterance,locale),context);
     if(draft.opponentMissing)throw Error(clarificationPrompt('opponentNumber',locale));
     if(!draft.action)throw Error(clarificationPrompt('action',locale));
     const command={type:'action',actor:draft.actor,action:draft.action};
@@ -173,15 +178,49 @@
     }
     return command;
   }
+  function withCardDestination(command,context) {
+    if(command?.type!=='cards'||command.target!=='selected'||!context?.enabled)return command;
+    // The confirmed ledger determines where a bare card phrase belongs. An
+    // explicit destination still wins and is validated by the caller.
+    if(context.destination==='board'&&context.phase==='WAIT_BOARD')return {...command,target:'board'};
+    if(context.destination==='hero')return {...command,target:'hero'};
+    return command;
+  }
+  function recognitionHints(locale='pt-BR',context=null) {
+    if(!['pt-BR','en-US'].includes(locale))return [];
+    const en=locale==='en-US',hints=new Map();
+    const add=(phrase,boost)=>hints.set(phrase,Math.max(hints.get(phrase)||0,boost));
+    if(context?.enabled&&context.phase==='BETTING'){
+      if(context.pendingAmount){
+        const numbers=en?['one','two','three','four','five','six','seven','eight','nine','ten','twenty','thirty','forty','fifty','hundred','point']
+          :['um','dois','três','quatro','cinco','seis','sete','oito','nove','dez','vinte','trinta','quarenta','cinquenta','cem','cento','vírgula'];
+        numbers.forEach(word=>add(word,2));
+      }else{
+        const actions=en?{FOLD:['fold'],CHECK:['check'],CALL:['call'],BET:['bet'],RAISE:['raise']}
+          :{FOLD:['desistir'],CHECK:['passar'],CALL:['pagar','pago'],BET:['apostar','aposto'],RAISE:['aumentar','aumento']};
+        const legal=context.actionState?.legal?.actions||[];
+        for(const action of legal)for(const word of actions[action]||[])add(word,3.5);
+        if(legal.length)add('all-in',2);
+        add(en?'my turn':'minha vez',2);
+      }
+    }else{
+      const ranks=en?['two','three','four','five','six','seven','eight','nine','ten','jack','queen','king','ace']
+        :['dois','três','quatro','cinco','seis','sete','oito','nove','dez','valete','dama','rei','ás'];
+      const suits=en?['spades','hearts','diamonds','clubs']:['espadas','copas','ouros','paus'];
+      const connector=en?'of':'de';
+      for(const rank of ranks)for(const suit of suits)add(`${rank} ${connector} ${suit}`,2.5);
+      const aliases=en?['ace','jack']:['ás','valete','jota','jack'];
+      for(const alias of aliases){add(alias,2.5);for(const suit of suits)add(`${alias} ${connector} ${suit}`,4.5);}
+    }
+    return [...hints].map(([phrase,boost])=>({phrase,boost}));
+  }
   function resolveAction(command,state) {
     if(command?.type!=='action'||!state||state.phase!=='BETTING')throw Error('Voice actions require an active Multiway betting round.');
     const players=state.players||[];
     const seatNumber=command.actor?.kind==='opponent'?command.actor.number:null;
     const seatName=Number.isInteger(seatNumber)?`A${seatNumber}`:null;
-    const heroIndex=players.findIndex(p=>p.id===state.heroId);
-    const cyclicSeat=seatName&&heroIndex>=0&&seatNumber<players.length?players[(heroIndex+seatNumber)%players.length]:null;
     const player=command.actor?.kind==='hero'?players.find(p=>p.id===state.heroId)
-      :seatName?players.find(p=>p.seatName===seatName||p.name===seatName) || cyclicSeat
+      :seatName?players.find(p=>p.seatName===seatName||p.name===seatName)
       :command.actor==null?players.find(p=>p.id===state.actor):null;
     if(!player)throw Error('That player is not at this table.');
     if(player.folded||player.allIn)throw Error('That player cannot act in the current state.');
@@ -448,5 +487,5 @@
     }
     cancel() { this.id = null; this.phase = 'cancelled'; this.segments = new Map(); this.proposal = null; this.cursor = 0; this.proposalEnd = null; this.resultCount = null; }
   }
-  return { RANKS, SUITS, EN_RANKS, EN_SUITS, normalize, parse, parseContextual, parseChips, resolveAction, getClarification, completeClarification, RecognitionSession, qualityGate: Object.freeze({ acoustic: 'NOT_EXECUTED', autoApply: true, rule: 'FINAL_VALIDATED_ONLY' }) };
+  return { RANKS, SUITS, EN_RANKS, EN_SUITS, normalize, parse, parseContextual, withCardDestination, recognitionHints, parseChips, resolveAction, getClarification, completeClarification, RecognitionSession, qualityGate: Object.freeze({ acoustic: 'NOT_EXECUTED', autoApply: true, rule: 'FINAL_VALIDATED_ONLY' }) };
 });

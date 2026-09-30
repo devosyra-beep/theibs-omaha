@@ -29,6 +29,115 @@
   const legal = action => view.enabled && view.heroDraftReady !== false && !busy() && view.state?.phase === 'BETTING' && view.state.legal?.actions?.includes(action);
   const resolveCommand = command => view.enabled && view.heroDraftReady !== false && !busy() && view.state?.phase === 'BETTING' ? command.resolve(view.state) : null;
   const activeToken = () => JSON.stringify([view.state?.revisionKey ?? view.state?.revision, view.state?.actor, view.state?.street, view.state?.phase, view.state?.log?.length, view.state?.pot]);
+  const finite = value => typeof value === 'number' && Number.isFinite(value);
+  const bb = value => finite(value) ? `${value > 0 ? '+' : value < 0 ? '−' : ''}${Math.abs(value).toLocaleString('en-US', { maximumFractionDigits: 2, minimumFractionDigits: 1 })}` : '—';
+  const numericalLabel = value => ({
+    SAMPLING_INTERVAL_95: '95% sampling interval', CONDITIONAL_ENVELOPE: 'Conditional scenario range',
+    EXACT_ENUMERATION: 'Exact within the model', DECISION_REFERENCE: 'Decision reference',
+    NO_NUMERICAL_INTERVAL: 'No numerical interval', NOT_AVAILABLE: 'Unavailable',
+    FIXED_INPUT_ARITHMETIC: 'Exact arithmetic for stated inputs',
+    INVALID_INTERVAL: 'Reported interval unavailable'
+  })[value] || value;
+  const methodLabel = value => ({
+    SHOWDOWN_ONLY: 'Showdown only', SCENARIO_SHOWDOWN_ONLY: 'Modeled responses, then showdown',
+    FIXED_RESPONSE_SHOWDOWN_ONLY: 'Fixed response, then showdown', RELATIVE_DECISION_POINT: 'Decision reference'
+  })[value] || String(value).replace(/_/g, ' ').toLowerCase();
+  function describeDecisionEV(state, analysis) {
+    const current = state?.players?.find(item => item.id === state.actor);
+    if (state?.phase !== 'BETTING' || !current?.hero) return null;
+    const fresh = analysis?.status === 'OK' && analysis.analysisStage === 'FINAL' &&
+      analysis.observedState?.revisionKey === state.revisionKey;
+    const ev = fresh ? analysis.ev : null;
+    const bigBlind = finite(ev?.bigBlind) && ev.bigBlind > 0 ? ev.bigBlind : finite(state.bigBlind) && state.bigBlind > 0 ? state.bigBlind : null;
+    const rows = (state.legal?.actions || []).map(action => {
+      const item = ev?.actions?.[action];
+      const modeled = item?.status === 'MODELED' && finite(item.ev);
+      const valueBB = modeled ? finite(item.evBB) ? item.evBB : bigBlind ? item.ev / bigBlind : null : null;
+      return {
+        action, size: finite(item?.size) ? item.size : null,
+        status: !ev ? 'PENDING' : modeled ? 'MODELED' : 'NOT_MODELED',
+        evBB: valueBB,
+        differenceBB: modeled && finite(item.differenceToBestModeledBB) ? item.differenceToBestModeledBB : null,
+        method: item?.method || item?.model || null,
+        numericalQuality: item?.numericalQuality || null,
+        numericalBounds: Array.isArray(item?.numericalBounds) && item.numericalBounds.length === 2 && item.numericalBounds.every(finite) ? item.numericalBounds : null,
+        assumptions: Array.isArray(item?.assumptions) ? item.assumptions : [],
+        missingInputs: Array.isArray(item?.missingInputs) ? item.missingInputs : []
+      };
+    });
+    const modeledCount = rows.filter(row => row.status === 'MODELED' && finite(row.evBB)).length;
+    return {
+      rows, bigBlind,
+      potBeforeDecision: finite(ev?.potBeforeDecision) ? ev.potBeforeDecision : finite(state.pot) ? state.pot : null,
+      toCall: finite(state.legal?.toCall) ? state.legal.toCall : null,
+      stage: analysis?.status && analysis.status !== 'OK' ? 'NO_DECISION' : !ev ? 'PENDING' : String(ev.comparisonStatus || '').startsWith('INCOMPARABLE_') ? 'INCOMPARABLE' : !ev.comparisonComplete ? 'PARTIAL' : ev.globalBestSupported ? 'COMPLETE' : 'INCONCLUSIVE',
+      comparisonStatus: ev?.comparisonStatus || null,
+      modeledCount,
+      bestModeledAction: modeledCount ? ev.bestModeledAction : null,
+      globalBestSupported: ev?.globalBestSupported === true,
+      leaderConclusive: ev?.leaderConclusive === true,
+      gapBestSecondBB: finite(ev?.gapBestSecondBB) ? ev.gapBestSecondBB : null,
+      missingLegalActions: Array.isArray(ev?.missingLegalActions) ? ev.missingLegalActions : [],
+      assumptions: Array.isArray(ev?.assumptions) ? ev.assumptions : [],
+      warnings: Array.isArray(ev?.warnings) ? ev.warnings : [],
+      reason: analysis?.status && analysis.status !== 'OK' ? analysis.reason : null
+    };
+  }
+  function placeDecisionEV() {
+    const host = $('#mw-decision-ev');
+    if (!host) return;
+    const rail = $('#analyze-workspace .context-rail');
+    if (window.matchMedia?.('(min-width: 1000px)').matches && rail) {
+      if (host.parentElement !== rail || host !== rail.firstElementChild) rail.prepend(host);
+    } else if (host.parentElement !== controlsHost) {
+      controlsHost.insertBefore(host, $('#mw-decision-feedback'));
+    }
+  }
+  function refreshDecisionEV() {
+    placeDecisionEV();
+    const host = $('#mw-decision-ev'), decision = !view.enabled || view.heroDraftReady === false ? null : describeDecisionEV(view.state, view.analysis);
+    host.hidden = !decision;
+    if (!decision) return;
+    const priorDetails = host.querySelector('details')?.open || false;
+    const price = decision.toCall === null ? 'Call price unavailable' : `Call ${money(decision.toCall)}${decision.bigBlind ? ` (${bb(decision.toCall / decision.bigBlind)} bb)` : ''}`;
+    const pot = decision.potBeforeDecision === null ? 'Pot unavailable' : `Pot ${money(decision.potBeforeDecision)}`;
+    const badge = decision.stage === 'PENDING' ? 'Calculating' : decision.stage === 'NO_DECISION' ? 'No decision' : decision.stage === 'INCOMPARABLE' ? 'Not comparable' : decision.stage === 'COMPLETE' ? 'Actions covered' : decision.stage === 'INCONCLUSIVE' ? 'Close estimate' : 'Partial coverage';
+    const rows = decision.rows.map(row => {
+      const status = decision.stage === 'NO_DECISION' ? 'Unavailable' : row.status === 'PENDING' ? 'Calculating' : row.status === 'MODELED' ? 'Modeled' : 'Not modeled';
+      const size = row.size === null ? '' : ` <small>to ${esc(money(row.size))}</small>`;
+      const difference = row.differenceBB === null ? '—' : row.differenceBB === 0 ? '0.0' : `−${bb(Math.abs(row.differenceBB)).replace(/^\+/, '')}`;
+      return `<tr><th scope="row"><span>${esc(ACTIONS[row.action]?.label || row.action)}${size}</span><small>${status}</small></th><td>${row.evBB === null ? '—' : bb(row.evBB)}</td><td>${difference}</td></tr>`;
+    }).join('');
+    const leader = decision.bestModeledAction
+      ? decision.modeledCount === 1
+        ? `Only modeled: ${esc(ACTIONS[decision.bestModeledAction]?.label || decision.bestModeledAction)}. No action comparison yet.`
+        : `${decision.globalBestSupported ? 'Highest EV in this model' : 'Highest modeled EV'}: ${esc(ACTIONS[decision.bestModeledAction]?.label || decision.bestModeledAction)}${decision.leaderConclusive ? '' : ' · inconclusive at available precision'}`
+      : decision.stage === 'PENDING' ? 'Waiting for the current decision estimate.' : decision.stage === 'INCOMPARABLE' ? decision.comparisonStatus === 'INCOMPARABLE_ASSUMPTIONS' ? 'Action assumptions differ; EVs cannot be ranked.' : 'Opponent coverage differs; action EVs cannot be compared.' : decision.reason ? esc(decision.reason) : 'No action has modeled EV.';
+    const gap = decision.gapBestSecondBB === null ? '' : `<span>Top two: ${bb(decision.gapBestSecondBB).replace(/^\+/, '')} bb apart${decision.leaderConclusive ? '' : ' · inconclusive'}</span>`;
+    const details = [
+      ...decision.rows.map(row => {
+        if (!row.method && !row.assumptions.length && !row.missingInputs.length && !row.numericalQuality) return '';
+        const title = `${ACTIONS[row.action]?.label || row.action}${row.size === null ? '' : ` to ${money(row.size)}`}`;
+        const bounds = row.numericalBounds && decision.bigBlind ? `EV range: ${bb(row.numericalBounds[0] / decision.bigBlind)} to ${bb(row.numericalBounds[1] / decision.bigBlind)} bb` : null;
+        const facts = [row.method && `Method: ${methodLabel(row.method)}`, typeof row.numericalQuality === 'string' && `Numerical quality: ${numericalLabel(row.numericalQuality)}`, bounds,
+          ...row.assumptions, row.missingInputs.length && `Needs: ${row.missingInputs.join(', ')}`].filter(Boolean);
+        return `<li><strong>${esc(title)}</strong> · ${esc(facts.join(' · '))}</li>`;
+      }).filter(Boolean),
+      ...decision.assumptions.map(item => `<li>${esc(item)}</li>`),
+      ...decision.warnings.map(item => `<li>${esc(item)}</li>`)
+    ].join('');
+    host.innerHTML = `<div class="mw-ev-heading"><strong>Decision EV</strong><span class="mw-ev-badge" data-status="${decision.stage.toLowerCase()}">${badge}</span></div><p class="mw-ev-context">${pot} · ${price} · ${decision.bigBlind ? `1 bb = ${money(decision.bigBlind)} chips` : 'Big blind unavailable'}</p><table class="mw-ev-table"><thead><tr><th scope="col">Action</th><th scope="col">EV · bb</th><th scope="col">Δ modeled · bb</th></tr></thead><tbody>${rows}</tbody></table><div class="mw-ev-conclusion">${leader}${gap}</div>${decision.missingLegalActions.length ? `<p class="mw-ev-limit">Missing: ${esc(decision.missingLegalActions.join(', '))}. No overall best action.</p>` : ''}${details ? `<details class="mw-ev-details"${priorDetails ? ' open' : ''}><summary>Methods & limits</summary><ul>${details}</ul></details>` : ''}`;
+  }
+  function refreshDecisionFeedback() {
+    const host = $('#mw-decision-feedback'), result = view.decisionFeedback;
+    const valid = view.enabled && result && (!result.handId || !view.state?.handId || result.handId === view.state.handId);
+    host.hidden = !valid;
+    if (!valid) return;
+    const selected = `${ACTIONS[result.chosenAction]?.label || result.chosenAction || 'Action'}${finite(result.chosenSize) ? ` to ${money(result.chosenSize)}` : ''}`;
+    const loss = result.status === 'MODELED' && finite(result.lossBB) ? `EV loss ${bb(result.lossBB).replace(/^\+/, '')} bb${finite(result.lossPotPct) ? ` · ${result.lossPotPct.toLocaleString('en-US', { maximumFractionDigits: 1 })}% of the prior pot` : ''}` : 'EV loss inconclusive';
+    const content = `<strong>Recorded ${esc(selected)}</strong><span>${esc(loss)}</span>`;
+    if (host.innerHTML !== content) host.innerHTML = content;
+  }
 
   function dialog(id, title, body) {
     const node = document.createElement('dialog'); node.id = id; node.className = 'multiway-dialog';
@@ -154,6 +263,8 @@
       if (view.enabled) node.setAttribute('aria-label', `${playerName(item)}, ${item.position}, stack ${money(item.stack)}, ${money(item.streetPaid)} committed this street, ${item.folded ? 'folded' : item.allIn || item.stack === 0 ? 'all-in' : state.actor === item.id ? 'to act' : item.lastAction === 'CHECK' ? 'checked' : 'in hand'}. View seat.`);
     }
     $('#mw-size-confirm').disabled = busy();
+    refreshDecisionEV();
+    refreshDecisionFeedback();
     if (boardDialog.open) $('#mw-board-confirm').disabled = busy();
     if (seatDialog.open) refreshSeat();
   }
@@ -314,7 +425,7 @@
     if (!setupHost || !controlsHost) throw Error('Multiway containers are missing.');
     setupHost.innerHTML = `<div class="mw-quick-setup"><label>Players, including you<select id="mw-player-count"></select></label><button id="mw-toggle" type="button" class="ghost-button" aria-pressed="false">Turn on Multiway</button></div><p id="mw-quick-error" class="multiway-error" role="alert" hidden></p><details id="mw-setup-details"><summary><span>Multiway settings <small id="mw-variant-label"></small></span><span id="mw-setup-status" class="mw-chip">Off</span></summary><div class="mw-setup-fields"><div class="mw-config-grid"><label>Your position<select id="mw-hero-position" required></select></label><label>Small blind<input id="mw-small-blind" type="text" inputmode="decimal" autocomplete="off" required></label><label>Big blind<input id="mw-big-blind" type="text" inputmode="decimal" autocomplete="off" required></label><label>Starting stack per player<input id="mw-starting-stack" type="text" inputmode="decimal" autocomplete="off" required></label></div><p id="mw-position-prompt" class="mw-position-prompt" hidden role="status">New hand · choose your seat so the action order matches the table.</p><p id="mw-start-note"></p><div class="mw-setup-actions"><button id="mw-start" type="button" class="primary-button">Start Multiway</button><button id="mw-exit" type="button" class="text-button" hidden>Return to simple mode</button></div><p id="multiway-setup-error" class="multiway-error" role="alert" hidden></p></div></details>`;
     controlsHost.classList.add('multiway-controls'); controlsHost.hidden = true;
-    controlsHost.innerHTML = `<div class="mw-control-heading"><div class="mw-turn-context"><strong id="mw-actor"></strong><span id="mw-round"></span></div><span class="mw-call-amount">To call <b id="mw-to-call">—</b></span><button id="mw-undo" type="button" class="text-button" title="Undo the last confirmed event · Ctrl+Z">↶ Undo</button></div><div class="mw-action-stage"><div id="mw-actions" class="mw-action-row">${COMMANDS.map(item => `<button type="button" data-mw-command="${item.id}" data-mw-action="" disabled title="${item.key === ',' ? 'COMMA' : item.key === '.' ? 'PERIOD' : 'SEMICOLON'}"><kbd>${item.key}</kbd><span>${item.id === 'passive' ? 'Check / Call' : item.id === 'aggressive' ? 'Bet / Raise' : 'Fold'}</span></button>`).join('')}</div><div id="mw-inline-size" class="mw-inline-size" hidden><label for="mw-size" id="mw-size-label">Total this street</label><input id="mw-size" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" required><button id="mw-pot-size" type="button" class="ghost-button">Pot</button><button id="mw-allin-size" type="button" class="ghost-button">All-in</button><button id="mw-size-confirm" type="button" class="primary-button">Confirm</button><button id="mw-size-cancel" type="button" class="text-button" aria-label="Cancel amount entry">×</button></div></div><p class="mw-action-hint" id="mw-size-limits">Bet/Raise uses the total committed this street.</p><p class="mw-action-hint" id="mw-size-cost" role="status" aria-live="polite"></p><p id="mw-board-prompt" class="mw-board-prompt" role="status" aria-live="polite" hidden></p><p id="multiway-error" class="multiway-error" role="alert" hidden></p><details id="mw-history"><summary>Recent actions</summary><ol id="mw-history-list"></ol></details>`;
+    controlsHost.innerHTML = `<div class="mw-control-heading"><div class="mw-turn-context"><strong id="mw-actor"></strong><span id="mw-round"></span></div><span class="mw-call-amount">To call <b id="mw-to-call">—</b></span><button id="mw-undo" type="button" class="text-button" title="Undo the last confirmed event · Ctrl+Z">↶ Undo</button></div><div class="mw-action-stage"><div id="mw-actions" class="mw-action-row">${COMMANDS.map(item => `<button type="button" data-mw-command="${item.id}" data-mw-action="" disabled title="${item.key === ',' ? 'COMMA' : item.key === '.' ? 'PERIOD' : 'SEMICOLON'}"><kbd>${item.key}</kbd><span>${item.id === 'passive' ? 'Check / Call' : item.id === 'aggressive' ? 'Bet / Raise' : 'Fold'}</span></button>`).join('')}</div><div id="mw-inline-size" class="mw-inline-size" hidden><label for="mw-size" id="mw-size-label">Total this street</label><input id="mw-size" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" required><button id="mw-pot-size" type="button" class="ghost-button">Pot</button><button id="mw-allin-size" type="button" class="ghost-button">All-in</button><button id="mw-size-confirm" type="button" class="primary-button">Confirm</button><button id="mw-size-cancel" type="button" class="text-button" aria-label="Cancel amount entry">×</button></div></div><p class="mw-action-hint" id="mw-size-limits">Bet/Raise uses the total committed this street.</p><p class="mw-action-hint" id="mw-size-cost" role="status" aria-live="polite"></p><section id="mw-decision-ev" class="mw-decision-ev" aria-label="Decision EV by legal action" hidden></section><p id="mw-decision-feedback" class="mw-decision-feedback" role="status" hidden></p><p id="mw-board-prompt" class="mw-board-prompt" role="status" aria-live="polite" hidden></p><p id="multiway-error" class="multiway-error" role="alert" hidden></p><details id="mw-history"><summary>Recent actions</summary><ol id="mw-history-list"></ol></details>`;
     boardDialog = dialog('multiway-board-dialog', '<span id="mw-board-title">Next street</span>', '<form id="mw-board-form"><p id="mw-board-existing"></p><label><span id="mw-board-label">New cards</span><input id="mw-board-new" autocomplete="off" spellcheck="false" required></label><p class="mw-card-legend">Rank + suit: ♠ E · ♥ C · ♦ O · ♣ P. Ten = D, T or 10.</p><button id="mw-board-confirm" type="submit" class="primary-button">Deal street · Enter</button></form>');
     seatDialog = dialog('multiway-seat-dialog', '<span id="mw-seat-title">Player</span>', '<p id="mw-seat-info"></p><div class="seat-popover-actions"><button id="mw-seat-fold" type="button" class="ghost-button">Record fold</button><button id="mw-seat-undo" type="button" class="text-button" hidden>Undo latest fold</button></div><p id="mw-seat-note"></p><details id="mw-seat-edit-details"><summary>Opponent assumptions</summary><p id="mw-seat-edit-note" class="micro"></p><fieldset id="mw-seat-editor"><label>Known hand<input id="mw-seat-hand" autocomplete="off" placeholder="AE KC QO JP TE"></label><label>Range<textarea id="mw-seat-range" rows="2" placeholder="One hand per line"></textarea></label><label>Call chance (%)<input id="mw-seat-rate" type="number" min="0" max="100" step="0.1" placeholder="Unknown"></label><div class="seat-popover-actions"><button id="mw-seat-apply" type="button" class="primary-button">Apply to seat</button><button id="mw-seat-remove" type="button" class="text-button">Remove assumption</button></div></fieldset><p id="mw-seat-edit-error" class="multiway-error" role="alert" hidden></p></details>');
     seatDialog.classList.add('seat-popover');
@@ -371,7 +482,7 @@
     document.addEventListener('click', event => { const seat = event.target.closest?.('[data-multiway-player]'); if (seat) openPlayer(Number(seat.dataset.multiwayPlayer),seat); });
     document.addEventListener('pointerdown',event=>{if(seatDialog.open&&!seatDialog.contains(event.target)&&!event.target.closest?.('[data-multiway-player]'))seatDialog.close();});
     document.addEventListener('focusin',event=>{if(seatDialog.open&&!seatDialog.contains(event.target)&&!event.target.closest?.('[data-multiway-player]'))seatDialog.close();});
-    window.addEventListener('resize',()=>{if(seatDialog.open)seatDialog.close();});
+    window.addEventListener('resize',()=>{if(seatDialog.open)seatDialog.close();placeDecisionEV();});
     document.addEventListener('keydown', keydown, true);
     refresh(); return window.theibsMultiwayUI;
   }
@@ -449,6 +560,6 @@
     const parent = setupHost.closest('dialog'); if (parent && !parent.open) parent.showModal();
     setupDirty = true; position.focus({ preventScroll: true });
   }
-  window.theibsMultiwayUI = { init, render, setBusy, setError, openSetup, requestHeroPosition, openPlayer, openBoard, getDraft, voiceContext, commitVoiceBoard, commitKeyboardBoard, undoVoiceBoard, commitVoiceAction, undoVoiceAction, undoAction, cancelPendingAmount, openPendingAmount, submitPendingAmount,
+  window.theibsMultiwayUI = { init, render, setBusy, setError, openSetup, requestHeroPosition, openPlayer, openBoard, getDraft, voiceContext, commitVoiceBoard, commitKeyboardBoard, undoVoiceBoard, commitVoiceAction, undoVoiceAction, undoAction, cancelPendingAmount, openPendingAmount, submitPendingAmount, describeDecisionEV,
     getState: () => ({ enabled: view.enabled, state: view.state, config: view.config, heroDraftReady: view.heroDraftReady !== false, busy: busy(), error: view.error }) };
 })();

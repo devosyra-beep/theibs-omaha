@@ -38,7 +38,7 @@
   FIELD_IDS.push('rake-mode','rake-rate','rake-cap','rake-no-flop','rake-rounding','analysis-big-blind','analysis-equivalence');
   FIELD_IDS.push('study-mode','study-hero-contribution','study-min-raise','study-min-bet','study-accept',...Array.from({length:9},(_,i)=>['study-contribution-'+i,'study-probability-'+i]).flat());
   let activeView = 'analyze', inputRevision = 0, analysisBusy = false, trainingBusy = false;
-  let lastAnalysis = null, trainingSession = null, trainingDecisions = [];
+  let lastAnalysis = null, trainingSession = null, trainingDecisions = [], replayGeneration = 0;
   let loaded = false, revision = 0, saveTimer = null, saveBusy = false, saveDirty = false, saveBlocked = false;
   let legacyHandFlow = null;
   let toastTimer = null, priorHero = '';
@@ -56,6 +56,7 @@
   }
   let inputChangedAt = performance.now(), coachController = null, coachGeneration = 0;
   let multiway = null, multiwayState = null, multiwayAnalysis = null, multiwayYesple = null;
+  let multiwayDecisionFeedback = null;
   let simpleFoldedSeats = new Set();
   const simpleSeatCount = () => Math.max(0, Math.min(9, Number(value('players')) - 1 || 0));
   const simpleActiveSeatIds = () => Array.from({length:simpleSeatCount()},(_,id)=>id).filter(id=>!simpleFoldedSeats.has(id));
@@ -136,7 +137,8 @@
     const heroDraftReady=multiwayHeroDraftReady();
     document.body.dataset.multiwayBusy=String(multiwayBusy);
     for(const id of ['hero-slots','card-grid'])document.getElementById(id).inert=multiwayBusy;
-    window.theibsMultiwayUI.render({enabled:!!multiway,state:multiwayState,config:multiway?.config,busy:multiwayBusy||multiwayCardSyncPending,heroDraftReady});
+    window.theibsMultiwayUI.render({enabled:!!multiway,state:multiwayState,config:multiway?.config,busy:multiwayBusy||multiwayCardSyncPending,heroDraftReady,
+      analysis:lastAnalysis?.data || null,decisionFeedback:multiwayDecisionFeedback});
     syncMultiwayBoardKeyboard();
     cards.render();
     placeAnalysisFeedback();
@@ -199,6 +201,7 @@
   async function startMultiway(config) {
     if(simpleSeatDialog.open)simpleSeatDialog.close();
     return runMultiway(()=>postJson('/api/multiway/start',{config}),()=>{
+      multiwayDecisionFeedback=null;
       window.theibsOpponentInputs?.reset();
       if(!multiwayYesple)multiwayYesple={keyboard:cards.state.snapshot(),fields:Object.fromEntries(FIELD_IDS.map(id=>{const el=document.getElementById(id);return[id,el.type==='checkbox'?el.checked:el.value];}))};
       syncingMultiway=true;
@@ -209,13 +212,35 @@
   }
   async function stepMultiway(event) {
     if(!multiwayHeroDraftReady())throw Error('Complete your cards or reset the pending entry before recording an action.');
-    return runMultiway(()=>postJson('/api/multiway/step',{multiway,event,expectedRevisionKey:multiwayState?.revisionKey}));
+    const before=multiwayState, analysis=lastAnalysis?.data;
+    const isHeroDecision=event?.type==='ACT' && event.actor===before?.heroId;
+    const selected=analysis?.ev?.actions?.[event?.action];
+    const sizeMatches=!['BET','RAISE'].includes(event?.action) ||
+      (Number.isFinite(Number(event.to)) && Number.isFinite(Number(selected?.size ?? selected?.targetStreetTotal)) &&
+        Math.abs(Number(event.to)-Number(selected?.size ?? selected?.targetStreetTotal))<1e-8);
+    const validSnapshot=isHeroDecision && analysis?.status==='OK' && analysis.analysisStage==='FINAL' &&
+      analysis.observedState?.revisionKey===before.revisionKey && selected?.status==='MODELED' && sizeMatches;
+    const ev=analysis?.ev, bb=Number(multiway?.config?.bigBlind);
+    const conclusive=validSnapshot && ev?.globalBestSupported===true && ev?.leaderConclusive===true;
+    const lossBB=conclusive && Number.isFinite(selected.differenceToBestModeledBB)
+      ? Math.max(0,selected.differenceToBestModeledBB) : null;
+    const feedback=isHeroDecision ? {
+      chosenAction:event.action, chosenSize:['BET','RAISE'].includes(event.action)?Number(event.to):null,
+      status:lossBB===null?'INCONCLUSIVE':'MODELED', lossBB,
+      lossPotPct:lossBB!==null && bb>0 && before.pot>0 ? 100*lossBB*bb/before.pot : null,
+      bestAction:ev?.bestModeledAction || null, analysisId:validSnapshot?analysis.analysisId:null,
+      priorPot:before.pot, bigBlind:bb, handId:before.handId, revisionKey:before.revisionKey,
+      coverage:validSnapshot ? ev.comparisonStatus : 'NOT_MODELED'
+    } : null;
+    return runMultiway(()=>postJson('/api/multiway/step',{multiway,event,expectedRevisionKey:before?.revisionKey}),()=>{
+      multiwayDecisionFeedback=feedback;
+    });
   }
   async function exitMultiway() {
     if(multiwayBusy)return;
     multiwayRevision++;
     clearTimeout(multiwayCardTimer);
-    multiway=null;multiwayState=null;multiwayAnalysis=null;multiwayCardSyncPending=false;multiwayCardSyncFailed=false;
+    multiway=null;multiwayState=null;multiwayAnalysis=null;multiwayDecisionFeedback=null;multiwayCardSyncPending=false;multiwayCardSyncFailed=false;
     if(multiwayYesple){
       for(const [id,saved] of Object.entries(multiwayYesple.fields||{})){const el=document.getElementById(id);if(!el||!FIELD_IDS.includes(id))continue;if(el.type==='checkbox')el.checked=saved===true;else el.value=String(saved);}
       syncingMultiway=true;cards.restore(multiwayYesple.keyboard);syncingMultiway=false;
@@ -314,10 +339,15 @@ function renderEvTable(ev) {
     const detail = item.missingInputs?.length ? `Missing: ${item.missingInputs.join(', ')}` : (item.assumptions || []).join(' · ');
     return `<tr><td>${esc(action)}</td><td class="ev-number ${item.ev > 0 && item.status === 'MODELED' ? 'positive' : ''}">${esc(evValue)}</td><td><span class="ev-status ${String(item.status).toLowerCase()}">${esc(status)}</span></td><td>${esc(detail || '—')}</td></tr>`;
   }).join('');
-  const summary = ev.bestModeledAction ? `${ev.comparisonComplete?'Highest EV among evaluated actions/sizes':'Partial comparison · highest calculated EV'}: ${ev.bestModeledAction}` : 'No action has modeled EV.';
+  const modeledCount=Object.values(ev.actions).filter(item=>item.status==='MODELED'&&Number.isFinite(item.ev)).length;
+  const summary=String(ev.comparisonStatus||'').startsWith('INCOMPARABLE_')
+    ? 'Action EVs use incompatible assumptions; no shared ranking.'
+    : ev.bestModeledAction
+      ? `${ev.globalBestSupported?'Best modeled action':'Highest point estimate in a partial or inconclusive comparison'}: ${ev.bestModeledAction}`
+      : modeledCount?'Modeled EV is available, but these actions cannot be ranked together.':'No action has modeled EV.';
   const breakdown=Object.values(ev.actions).filter(a=>a.scenarioBreakdown?.length).map(a=>{
     const groups=new Map();for(const s of a.scenarioBreakdown){const n=s.callers.length,g=groups.get(n)||{n,probability:0,weightedEv:0};g.probability+=s.probability;g.weightedEv+=s.weightedEv;groups.set(n,g);}
-    return `<details><summary>Scenarios for ${esc(a.action)} · ${a.scenarioBreakdown.length} possible responses</summary><p class="micro">Probabilities are user assumptions. No re-raise or future betting.</p><table class="ev-table"><thead><tr><th>Callers</th><th>Probability</th><th>EV contribution</th></tr></thead><tbody>${[...groups.values()].sort((a,b)=>a.n-b.n).map(g=>`<tr><td>${g.n}</td><td>${percent(g.probability)}</td><td>${money(g.weightedEv)}</td></tr>`).join('')}</tbody></table>${a.conditionalEvEnvelope?`<p>Conditional range: ${money(a.conditionalEvEnvelope[0])} to ${money(a.conditionalEvEnvelope[1])} chips. It propagates scenario intervals; it is not to joint 95% guarantee.</p>`:''}</details>`;
+    return `<details><summary>Scenarios for ${esc(a.action)} · ${a.scenarioBreakdown.length} possible responses</summary><p class="micro">Probabilities are user assumptions. No re-raise or future betting.</p><table class="ev-table"><thead><tr><th>Callers</th><th>Probability</th><th>EV contribution</th></tr></thead><tbody>${[...groups.values()].sort((a,b)=>a.n-b.n).map(g=>`<tr><td>${g.n}</td><td>${percent(g.probability)}</td><td>${money(g.weightedEv)}</td></tr>`).join('')}</tbody></table>${a.conditionalEvEnvelope?`<p>Conditional range: ${money(a.conditionalEvEnvelope[0])} to ${money(a.conditionalEvEnvelope[1])} chips. It propagates scenario intervals; it is not a joint 95% guarantee.</p>`:''}</details>`;
   }).join('');
   return `<section class="ev-block"><div class="ev-heading"><span>EV by action</span><span>${esc(summary)}</span></div><div class="ev-table-wrap"><table class="ev-table"><thead><tr><th>Action</th><th>EV</th><th>Status</th><th>Assumptions / missing inputs</th></tr></thead><tbody>${rows}</tbody></table></div>${breakdown}${(ev.warnings || []).map((warning) => `<div class="result-warning">${esc(warning)}</div>`).join('')}</section>`;
 }
@@ -370,7 +400,7 @@ function renderResult(data, street) {
   const equity = data.equity || {}; const math = data.potMath || {};
   const modeledCall = data.ev?.actions?.CALL?.status === 'MODELED' ? data.ev.actions.CALL.ev : null;
   const simpleDecision=quickCallFold(data,feedback.inputProgress({count:cards.state.count,slots:cards.state.slots,manualInvalid:cards.isManualInvalid()}));
-  result.innerHTML = `<div class="result-top"><div><div class="result-label">${multiway?comparisonLabel(data):'CALL / FOLD'} · ${streetName(street)}</div><div class="result-action">${esc(multiway?recommendationText(data):simpleDecision.label)}</div></div></div>
+  result.innerHTML = `<div class="result-top"><div><div class="result-label">${multiway?'ACTION EV · CURRENT DECISION':'CALL / FOLD'} · ${streetName(street)}</div>${multiway?'':`<div class="result-action">${esc(simpleDecision.label)}</div>`}</div></div>
     <details class="result-disclosure"><summary>Why? View calculations & assumptions</summary><div><p class="result-reason">${esc(data.reason)}</p><span class="confidence">${esc(data.confidence)}</span><div class="result-metrics"><div class="mini-metric"><small>Equity</small><strong>${percent(equity.equity)}</strong></div><div class="mini-metric"><small>Pot odds</small><strong>${percent(math.potOdds)}</strong></div><div class="mini-metric"><small>EV call</small><strong>${money(modeledCall)}</strong></div><div class="mini-metric"><small>SPR</small><strong>${math.spr == null ? '—' : Number(math.spr).toFixed(1)}</strong></div></div>${renderAnalysisDiagnostics(data)}${renderEvTable(data.ev)}${renderStrategyPanel(data.strategy)}<div class="result-detail">${esc(equity.method)} · ${esc(equity.samples)} samples · ${esc(equity.opponents)} opponent(s) · legal: ${(data.legalActions || []).map(esc).join(' / ')}<br>${(data.assumptions || []).map(esc).join(' · ')}${equity.confidenceInterval95 ? `<br>95% Monte Carlo CI: ${percent(equity.confidenceInterval95[0])}–${percent(equity.confidenceInterval95[1])} (does not include range uncertainty)` : ''}</div>${(data.warnings || []).map((warning) => `<div class="result-warning">${esc(warning)}</div>`).join('')}</div></details>`;
 }
 
@@ -446,9 +476,9 @@ function renderResult(data, street) {
     const facts=data?.handInsights;
     $('#nuts-badge').hidden=!(data?.status==='OK'&&facts?.made&&facts?.nuts?.unbeaten===true);
     $('#hand-facts-content').innerHTML=facts?`<p><strong>${esc(facts.made?madeName(facts.made):'Preflop')}</strong>${facts.made?`<br>Your cards used: ${facts.made.usedHeroCards.map(esc).join(' + ')}`:`<br>${facts.privatePairs.length} paired group(s) · ${facts.suited.length} suit(s) with two or more cards`}</p>${facts.nuts?`<p>${facts.nuts.unbeaten?'Nuts on the current board; ties are possible.':'Your hand can be beaten on the current board.'}</p>`:''}${facts.nextCard?`<p>Next card: <b>${facts.nextCard.flushCards.length}</b> complete a flush · <b>${facts.nextCard.straightCards.length}</b> complete a straight.</p><p class="micro">Improving does not guarantee a win; these are not clean outs.</p>`:''}${facts.blockers.map(b=>`<p>${esc(b.detail)}</p>`).join('')}`:'Complete the cards to see made hand, draws and blockers. You do not need to record actions.';
-    $('#quick-action').textContent = data?.status === 'OK' ? recommendationText(data) : data ? 'NO_DECISION' : '—';
-    $('#quick-action-note').textContent = note || (data?.status === 'OK' ? data.ev?.comparisonComplete?comparisonLabel(data):'Partial · missing '+(data.ev?.missingLegalActions||[]).join(', ') : data?.reason || 'Complete your cards.');
-    if(continuation){$('#quick-action').textContent=continuation.shortTitle;$('#quick-action-note').textContent='Current decision · BET/RAISE not compared';}
+    $('#quick-action').textContent = multiway ? 'Action estimates' : data?.status === 'OK' ? recommendationText(data) : data ? 'NO_DECISION' : '—';
+    $('#quick-action-note').textContent = multiway ? 'Compare only modeled actions in the table.' : note || (data?.status === 'OK' ? data.ev?.comparisonComplete?comparisonLabel(data):'Partial · missing '+(data.ev?.missingLegalActions||[]).join(', ') : data?.reason || 'Complete your cards.');
+    if(continuation&&!multiway){$('#quick-action').textContent=continuation.shortTitle;$('#quick-action-note').textContent='Current decision · BET/RAISE not compared';}
     const model=data?.status==='OK'?data.ev?.actions?.[action]:null;
     const ev=model?.status==='MODELED'?model.ev:null;
     const interval=model?.confidenceInterval95;
@@ -485,7 +515,7 @@ function renderResult(data, street) {
       const hand=assessment.handContext;
       risk.textContent=(hand?.nutsOnCurrentBoard?'Nuts on this board; ties are still possible. ':hand?.madeHand?`${hand.madeHand} on this board. `:'')+(hand?.futureBoardCards?'Future cards and bets can change the decision.':'Reassess if the price or active players change.');risk.hidden=false;
     }
-    if(!progress.ready){$('#quick-action').textContent='Waiting for cards';$('#quick-action-note').textContent=progress.detail;}
+    if(!progress.ready&&!multiway){$('#quick-action').textContent='Waiting for cards';$('#quick-action-note').textContent=progress.detail;}
     const simpleDecision=quickCallFold(data,progress);
     $('#quick-action-status').textContent=multiway?'':simpleDecision.detail;
     if(!multiway){$('#quick-action').textContent=simpleDecision.label;$('#quick-action-note').textContent=simpleDecision.detail;}
@@ -551,6 +581,7 @@ function renderResult(data, street) {
   }
   function invalidateAnalysis() {
     inputRevision += 1; lastAnalysis = null; inputChangedAt = performance.now();
+    if(multiway)renderMultiway();
     let input; try { input = buildAnalysisPayload(true); } catch { input = null; }
     snapshotModel.invalidate(snapshots, input, engineStatus?.version);
     renderStreetCards();
@@ -643,6 +674,7 @@ function renderResult(data, street) {
       const snapshot=data.status==='OK'?snapshotModel.create(data,payload):null;
       if (phase==='FINAL') {
         lastAnalysis = { signature: snapshotModel.stable(payload), data, street: payload.street };
+        if(multiway)renderMultiway();
         if(snapshot) {
           const index=snapshots.findIndex(item=>item.street===payload.street);
           if(index>=0)snapshots.splice(index,1,snapshot);else snapshots.push(snapshot);
@@ -747,6 +779,22 @@ function renderResult(data, street) {
     const details=[...new Set([...notes,...(context.assumptions||[]),...(context.warnings||[])])].filter(Boolean);
     return `<div class="training-calculation"><div class="training-calculation-metrics"><span>Equity <strong>${percent(context.equity?.value)}</strong></span><span>To call <strong>${money(context.amountToCall)}</strong></span></div><table class="ev-table"><thead><tr><th>Evaluated option</th><th>EV · chips</th><th>Estimated range</th></tr></thead><tbody>${rowsHtml}</tbody></table><details><summary>How it was calculated</summary>${details.map(text=>`<p>${esc(text)}</p>`).join('')}${context.equity?`<p>${esc(context.equity.samples)} simulations · equity ${percent(context.equity.value)}${context.equity.confidenceInterval95?' · range '+context.equity.confidenceInterval95.map(percent).join(' to '):''}.</p>`:''}</details></div>`;
   }
+  function trainingOptionTable(evaluation, bigBlind) {
+    const candidates=Array.isArray(evaluation?.candidates)?evaluation.candidates:[];
+    if(!candidates.length)return '';
+    const bb=Number(bigBlind),ranked=[...candidates].filter(item=>Number.isFinite(item.ev)).sort((a,b)=>b.ev-a.ev);
+    const best=ranked[0],separated=evaluation.leadership?.status==='SEPARATED';
+    const signed=n=>`${n>0?'+':''}${n.toFixed(2)}`;
+    const rows=ranked.map(item=>{
+      const gap=bb>0&&best?Math.max(0,(best.ev-item.ev)/bb):null;
+      return `<tr><td>${esc(actionWithSize(item.action,item.size))}</td><td>${bb>0?esc(signed(item.ev/bb)):'—'}</td><td>${gap===null?'—':esc(gap.toFixed(2))}${!separated&&gap!==null?' <small>inconclusive</small>':''}</td></tr>`;
+    }).join('');
+    return `<div class="training-options"><p class="micro">${separated?'Leader separated within this exercise model.':'Point estimates overlap within available sample precision.'} EV is incremental from this decision.</p><table class="ev-table"><thead><tr><th>Action</th><th>EV · bb</th><th>Δ modeled · bb</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  }
+  function trainingLossSummary(quality = {}) {
+    const value=(number,suffix)=>Number.isFinite(number)?`${Number(number).toFixed(2)}${suffix}`:'Inconclusive';
+    return `<dl class="training-loss-summary"><div><dt>Top-two gap</dt><dd>${value(quality.gapBestSecondBB,' bb')}</dd></div><div><dt>Chosen loss</dt><dd>${value(quality.evLossBB,' bb')}</dd></div><div><dt>Loss / prior pot</dt><dd>${value(quality.evLossPotPct,'%')}</dd></div></dl>`;
+  }
   function renderCoachAnswer(target, answer, context) {
     const summary=answer?.summary;
     if(!summary){target.textContent=answer?.answer||'Could not explain this hand.';return;}
@@ -755,7 +803,7 @@ function renderResult(data, street) {
   }
   function renderTrainingReview() {
     $('#training-review').innerHTML = trainingDecisions.length ? trainingDecisions.map((item) => {
-      return `<details class="review-item"><summary><strong>${esc(streetName(item.context.street))}</strong> · ${esc(actionWithSize(item.chosenAction,item.chosenSize))}</summary><p>${esc(qualityName(item.quality.label))}${item.quality.evLoss == null ? '' : ` · EV difference ${money(item.quality.evLoss)} chips`}</p>${trainingCalculation(item.context,item.summary?.details||[])}</details>`;
+      return `<details class="review-item"><summary><strong>${esc(streetName(item.context.street))}</strong> · ${esc(actionWithSize(item.chosenAction,item.chosenSize))}</summary><p>${esc(qualityName(item.quality.label))}</p>${trainingLossSummary(item.quality)}${trainingOptionTable(item.context.trainingEvaluation,item.context.bigBlind)}${trainingCalculation(item.context,item.summary?.details||[])}</details>`;
     }).join('') : 'No decisions recorded in this hand.';
   }
   function renderTrainingSession() {
@@ -779,7 +827,7 @@ function renderResult(data, street) {
   function showTrainingFeedback(feedback) {
     const target = $('#training-feedback'); target.classList.remove('hidden');
     const qualityLabel=qualityName(feedback.quality.label);
-    target.innerHTML = `<div class="training-feedback-head"><span class="result-label">Your decision · ${esc(streetName(feedback.context.street))}</span><button type="button" class="text-button" id="open-training-details">View calculation</button></div><strong class="feedback-action">${esc(actionWithSize(feedback.chosenAction,feedback.chosenSize))}</strong><p>${esc(qualityLabel)}</p>${feedback.summary?.headline&&feedback.summary.headline!==qualityLabel?`<p class="feedback-conclusion">${esc(feedback.summary.headline)}</p>`:''}`;
+    target.innerHTML = `<div class="training-feedback-head"><span class="result-label">Your decision · ${esc(streetName(feedback.context.street))}</span><button type="button" class="text-button" id="open-training-details">View calculation</button></div><strong class="feedback-action">${esc(actionWithSize(feedback.chosenAction,feedback.chosenSize))}</strong><p>${esc(qualityLabel)}</p>${trainingLossSummary(feedback.quality)}${trainingOptionTable(feedback.context.trainingEvaluation,feedback.context.bigBlind)}${feedback.summary?.headline&&feedback.summary.headline!==qualityLabel?`<p class="feedback-conclusion">${esc(feedback.summary.headline)}</p>`:''}`;
     $('#training-details-text').innerHTML=trainingCalculation(feedback.context,feedback.summary?.details||[feedback.note].filter(Boolean));
     $('#open-training-details').onclick=()=>$('#training-details-dialog').showModal();
   }
@@ -841,6 +889,13 @@ function renderResult(data, street) {
     }
     if(coachController===controller)coachController=null;
   }
+  function renderHistoryDecision(item) {
+    const quality=item.qualityDetails || {};
+    const replay=item.replayable
+      ? `<button type="button" class="ghost-button" data-replay-decision="${esc(item.decisionId)}">Repeat this decision</button>`
+      : '<span class="micro">Replay is unavailable for this older record.</span>';
+    return `<details class="history-hand"><summary><span class="history-hand-cards">${(item.heroCards || []).map((card) => window.EssenceUI.canonicalCard(card, { small: true })).join('')}</span><span class="history-hand-meta">${esc(item.variant?.replace('_HIGH', '') || 'PLO5')} · ${esc(streetName(item.street))}</span><span class="history-hand-action">${esc(actionWithSize(item.chosenAction,item.chosenSize))}</span></summary><div><p>Original decision: <strong>${esc(actionWithSize(item.chosenAction,item.chosenSize))}</strong>. ${esc(qualityName(item.quality))}</p>${trainingLossSummary(quality)}${trainingOptionTable(item.trainingEvaluation,item.bigBlind)}<p class="micro">Evaluated from the cards and public state known at that decision; later cards were not used.</p><p class="micro">${esc(new Date(item.timestamp).toLocaleString('en-US'))} · ${esc(item.position || 'Position not recorded')}</p>${replay}</div></details>`;
+  }
   async function renderHistory() {
     try {
       const data = await requestJson('/api/training/history'), summary = data.summary;
@@ -854,7 +909,7 @@ function renderResult(data, street) {
         const points = totals.map((number, index) => `${20 + (totals.length === 1 ? 150 : index * 300 / (totals.length - 1))},${145 - (number - low) * 120 / span}`).join(' ');
         $('#history-outcomes').innerHTML = `<h3>Known simulated results · play chips</h3><svg class="history-svg" viewBox="0 0 340 165" role="img" aria-label="Cumulative results line"><line x1="20" y1="145" x2="320" y2="145" stroke="currentColor" opacity="0.1"/><polyline points="${esc(points)}" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linejoin="round"/></svg><div class="history-legend">${data.historyScope?.timelineTruncated?"Recent window · ":""}${timeline.length} known result(s) in latest cohort (${esc(cohortOutcomes.at(-1)?.cohort?.variant||"unknown variant")} · build ${esc(cohortOutcomes.at(-1)?.cohort?.engineBuild||"unknown")}) · ${otherCohorts} results from other cohorts excluded · ${unknownOutcomes} unknown, excluded · result ${money(cumulative)}. This is a subtotal of known simulated results, not decision quality or expected profit.</div>`;
       } else $('#history-outcomes').innerHTML = `<h3>Known simulated results · play chips</h3><p class="muted">${allOutcomes.length ? `${unknownOutcomes} unknown result(s) in latest cohort; no values plotted. ${otherCohorts} results from other cohorts excluded.` : 'Complete a simulated hand to start the timeline.'}</p>`;
-      $('#history-recent').innerHTML = `<h3>Latest 20 decisions</h3>${data.recent.length ? data.recent.map((item) => `<details class="history-hand"><summary><span class="history-hand-cards">${(item.heroCards || []).map((c) => window.EssenceUI.canonicalCard(c, { small: true })).join('')}</span><span class="history-hand-meta">${esc(item.variant?.replace('_HIGH', '') || 'PLO5')} · ${esc(streetName(item.street))}</span><span class="history-hand-action">${esc(actionWithSize(item.chosenAction,item.chosenSize))}</span></summary><div><p>Your action: <strong>${esc(actionWithSize(item.chosenAction,item.chosenSize))}</strong> · highest calculated EV: <strong>${esc(actionWithSize(item.recommendedAction,item.recommendedSize))}</strong></p><p>${esc(qualityName(item.quality))}${item.evLoss == null ? '' : ` · EV difference ${money(item.evLoss)} chips`}</p><p class="micro">${esc(new Date(item.timestamp).toLocaleString('en-US'))} · ${esc(item.position || 'Position not recorded')}</p></div></details>`).join('') : '<p class="muted">No decisions recorded yet.</p>'}`;
+      $('#history-recent').innerHTML = `<h3>Latest 20 decisions</h3>${data.recent.length ? data.recent.map(renderHistoryDecision).join('') : '<p class="muted">No decisions recorded yet.</p>'}`;
       $('#history-trends').innerHTML = `<h3>Simulator trends</h3>${data.trends.map((item) => `<div class="trend-row"><strong>${esc(({ PASSIVE: 'Passive', AGGRESSIVE: 'Aggressive', MIXED: 'Mixed' })[item.opponentStyle])}</strong><p>Bets ${item.observedBets}/${item.opportunities} · smoothed rate ${percent(item.smoothedBetRate)} · confidence ${esc(item.confidence)}</p></div>`).join('')}<p class="micro">Simulated opponent data, not real players. The sample and model limit conclusions.</p><hr><p class="micro">Next exercise: ${esc(summary.nextExercise?.street || 'waiting for data')}. ${esc(summary.nextExercise?.reason || '')}</p>${summary.nextExercise ? `<button id="practice-suggestion" class="ghost-button" type="button" data-street="${esc(summary.nextExercise.street)}">Practice this street →</button>` : ''}`;
       if(data.observedHands?.length) $('#history-recent').insertAdjacentHTML('afterbegin', '<h3>Tracked hands</h3>'+data.observedHands.map(event=>{
         const hand=event.hand, hero=hand.state.players[hand.state.heroId];
@@ -1060,6 +1115,26 @@ function renderResult(data, street) {
   $('#training-ask').addEventListener('click', askCoach);
   $('#training-size').addEventListener('input',()=>{if($('#training-coach').textContent)$('#training-coach').textContent='Size changed. Request to new analysis.';});
   $('#refresh-history').addEventListener('click', renderHistory);
+  $('#history-recent').addEventListener('click', async (event) => {
+    const button=event.target.closest('button[data-replay-decision]');
+    if(!button || trainingBusy)return;
+    const decisionId=button.dataset.replayDecision, generation=++replayGeneration;
+    const sourceRevision=inputRevision, sourceSession=trainingSession?.id || null;
+    const authContext=JSON.stringify(window.theibsVoiceSessionContext?.());
+    const current=()=>generation===replayGeneration && activeView==='history' && inputRevision===sourceRevision &&
+      (trainingSession?.id || null)===sourceSession && authContext===JSON.stringify(window.theibsVoiceSessionContext?.()) &&
+      !window.theibsVoiceSessionContext?.().expired;
+    button.disabled=true;
+    try {
+      const data=await postJson('/api/training/replay',{decisionId});
+      if(!current())return;
+      trainingSession=data.session;trainingDecisions=[];
+      $('#training-feedback').classList.add('hidden');$('#training-coach').textContent='';
+      showView('train');renderTrainingSession();scheduleSave();
+      toast('Saved decision restored. It will be evaluated again under the current exercise model.');
+    } catch(error) { if(current())toast(error.message); }
+    finally { button.disabled=false; }
+  });
   $('#history-trends').addEventListener('click', (event) => { const button = event.target.closest('#practice-suggestion'); if (button) { $('#training-street').value = button.dataset.street; showView('train'); startTraining(); } });
   $('#import-button').addEventListener('click', async () => {
     const output = $('#import-result'), button = $('#import-button'); button.disabled = true;
@@ -1084,7 +1159,7 @@ function renderResult(data, street) {
   const setupHost=document.createElement('section');setupHost.id='multiway-setup';$('#settings-dialog .dialog-content').prepend(setupHost);
   const nutsBadge=document.createElement('div');nutsBadge.id='nuts-badge';nutsBadge.className='nuts-badge';nutsBadge.hidden=true;nutsBadge.innerHTML='<span class="nuts-dot" aria-hidden="true"></span><span class="nuts-label">NUTS</span>';nutsBadge.setAttribute('role','status');nutsBadge.setAttribute('aria-label','Nuts: best possible hand on the current board. Ties are possible.');nutsBadge.title='Best possible hand on the current board. Ties are possible; future cards can change the hand.';$('#analyze-workspace .insight-panel').after(nutsBadge);
   const controlsHost=document.createElement('section');controlsHost.id='multiway-controls';$('.quick-decision').before(controlsHost);
-  window.theibsMultiwayUI.init({getContext:multiwayContext,onSettled:()=>{syncMultiwayBoardKeyboard();cards.render();},handlers:{start:startMultiway,act:event=>stepMultiway({type:'ACT',...event}),markFold:event=>stepMultiway({type:'MARK_FOLD',...event}),board:event=>stepMultiway({type:'BOARD',...event}),undo:()=>runMultiway(()=>postJson('/api/multiway/undo',{multiway,expectedRevisionKey:multiwayState?.revisionKey})),exit:exitMultiway}});
+  window.theibsMultiwayUI.init({getContext:multiwayContext,onSettled:()=>{syncMultiwayBoardKeyboard();cards.render();},handlers:{start:startMultiway,act:event=>stepMultiway({type:'ACT',...event}),markFold:event=>stepMultiway({type:'MARK_FOLD',...event}),board:event=>stepMultiway({type:'BOARD',...event}),undo:()=>runMultiway(()=>postJson('/api/multiway/undo',{multiway,expectedRevisionKey:multiwayState?.revisionKey}),()=>{multiwayDecisionFeedback=null;}),exit:exitMultiway}});
   window.theibsMultiwayImage.init();
    window.theibsOpponentInputs.init({getContext:()=>({mode:multiway?'MULTIWAY':'SIMPLE',variant:`PLO${cards.state.count}_HIGH`,count:cards.state.count,position:multiway?multiway.config.heroPosition:value('position'),busy:multiwayBusy,players:multiwayState&&multiway?multiwayState.players.filter(p=>!p.hero).map((p,index)=>({seatId:p.id,label:`OPP. ${index+1} · ${p.position}`,folded:p.folded})):Array.from({length:simpleSeatCount()},(_,seatId)=>({seatId,label:`OPP. ${seatId+1}`,folded:simpleFoldedSeats.has(seatId)}))}),onChange:()=>{invalidateAnalysis();scheduleSave();}});
   updateTableContext(); renderMultiway();renderStreetCards(); renderCharts(); quickAction(null); updateBoardHelp(); renderTrainingSession();

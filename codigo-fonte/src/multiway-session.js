@@ -6,6 +6,7 @@ const { holeCount } = require('./variants');
 const { evaluateStrategy } = require('./strategy-engine');
 const { applyExploit } = require('./exploit-engine');
 const { hasOverrides, prepareOpponentOverrides } = require('./opponent-overrides');
+const { enrichActionEV } = require('./action-ev-presentation');
 
 const SOURCE = 'USER_OBSERVED_ACTIONS';
 const object = value => value && typeof value === 'object' && !Array.isArray(value);
@@ -126,7 +127,7 @@ function prepareAnalysis(raw, supplied) {
   const observed = envelope(raw), { state } = observed, reasons = [...observed.analysis.reasons];
   if(hasOverrides(supplied)&&observed.analysis.available)supplied=prepareOpponentOverrides({...supplied,...observed.analysis.input},{observed:true,
     seats:state.players.filter(player=>!player.hero&&!player.folded).map(player=>({seatId:player.id,contribution:player.streetPaid,stackRemaining:player.stack}))});
-  const input = { ...supplied, ...observed.analysis.input }, blockedActions = {}, warnings = [...observed.analysis.warnings];
+  const input = { ...supplied, ...observed.analysis.input, multiwayComparison: true }, blockedActions = {}, warnings = [...observed.analysis.warnings];
   if (supplied.futureStreetModel?.type === 'SHOWDOWN_ONLY') {
     // With no future bets there are no new contributions. A manual what-if
     // pot cannot overwrite the observed ledger under this model.
@@ -178,31 +179,58 @@ function prepareAnalysis(raw, supplied) {
     blockedActions.CALL = `Responses are not modeled for seats ${unmatched.map(player => player.position).join(', ')} that still owe chips; calling or folding was not assumed.`;
   }
   for (const [action, reason] of Object.entries(blockedActions)) warnings.push(`${action}: ${reason}`);
-  return { observed, input, blockedActions, warnings, available: reasons.length === 0, reasons };
+  const scopedSeats = new Map((input.opponentModelScope?.seats || []).map(seat => [String(seat.seatId), seat]));
+  const opponentHypotheses = opponents.map(player => {
+    const scope = scopedSeats.get(String(player.id));
+    const responses = Object.entries(input.actionResponseModels || {}).filter(([, model]) =>
+      model.opponents?.some(opponent => String(opponent.seatId) === String(player.id)))
+      .map(([action, model]) => ({ action, model: model.type, origin: model.source }));
+    if (input.aggressionStudy?.enabled && input.aggressionStudy.opponents?.some(opponent => String(opponent.seatId) === String(player.id))) {
+      responses.push({ action: state.heroToCall ? 'RAISE' : 'BET', model: 'INDEPENDENT_CALL_STUDY',
+        origin: input.aggressionStudy.source || 'USER_SUPPLIED_HYPOTHESIS' });
+    }
+    return { playerId: player.id, seat: player.seatName, position: player.position,
+      situation: { street: state.street, currentBet: state.currentBet, streetContribution: player.streetPaid,
+        toCall: Math.max(0, state.currentBet - player.streetPaid), stackRemaining: player.stack },
+      cards: { model: scope?.cardsModel || 'UNIFORM_UNKNOWN', origin: scope?.cardsSource || 'UNIFORM_UNKNOWN' },
+      responses: responses.length ? responses : [{ action: null, model: scope?.responseModel || 'UNKNOWN',
+        origin: scope?.responseSource || 'UNKNOWN' }] };
+  });
+  return { observed, input, blockedActions, warnings, opponentHypotheses, available: reasons.length === 0, reasons };
 }
 
 function blockedResult(prepared) {
   return { status: 'NO_DECISION', contractVersion: 'THEIBS_DECISION_V1',
     reason: prepared.reasons.map(item => item.message).join(' '), reasonCodes: prepared.reasons.map(item => item.code),
     state: prepared.observed.analysis.input, observedState: prepared.observed.state,
-    observedSource: SOURCE, warnings: prepared.warnings };
+    observedSource: SOURCE, opponentHypotheses: prepared.opponentHypotheses, warnings: prepared.warnings };
 }
 
 function guardResult(result, prepared) {
   result.observedState = prepared.observed.state;
   result.observedSource = SOURCE;
   result.observedOpponentIds = prepared.observed.analysis.activeOpponentIds;
+  result.opponentHypotheses = prepared.opponentHypotheses;
   result.warnings = [...new Set([...(result.warnings || []), ...prepared.warnings])];
-  if (result.status !== 'OK' || !Object.keys(prepared.blockedActions).length) return result;
+  if (result.status !== 'OK') return result;
+  if (!Object.keys(prepared.blockedActions).length) {
+    enrichActionEV(result.ev, { ...prepared.input, legalActions: result.legalActions }, result.equity);
+    if (!result.ev.globalBestSupported) {
+      result.recommendedAction = 'NO_DECISION';
+      result.strategy.finalAction = 'NO_DECISION';
+      result.strategy.exploit.finalAction = 'NO_DECISION';
+    }
+    if (result.ev.comparisonStatus === 'INCOMPARABLE_ASSUMPTIONS') {
+      result.reason = 'Action EVs use unlinked opponent ranges, response assumptions or costs. Their values are shown separately; no shared ranking is available.';
+    }
+    return result;
+  }
   for (const [action, reason] of Object.entries(prepared.blockedActions)) if (result.legalActions.includes(action)) {
     result.ev.actions[action] = { action, legal: true, status: 'NOT_MODELED', ev: null, model: null,
       missingInputs: [reason], assumptions: [], warnings: [reason] };
   }
-  const modeled = result.legalActions.map(action => result.ev.actions[action]).filter(item => item.status === 'MODELED' && Number.isFinite(item.ev));
-  modeled.sort((a, b) => b.ev - a.ev);
-  result.ev.missingLegalActions = result.legalActions.filter(action => result.ev.actions[action].status !== 'MODELED');
-  result.ev.comparisonComplete = result.ev.missingLegalActions.length === 0;
-  result.ev.bestModeledAction = modeled[0]?.action || null;
+  enrichActionEV(result.ev, { ...prepared.input, legalActions: result.legalActions }, result.equity);
+  const modeled = result.ev.comparableActions.map(action => result.ev.actions[action]);
   result.ev.positiveEvAction = modeled.find(item => item.ev > 0)?.action || null;
   result.ev.status = modeled.length ? 'MODELED' : 'NOT_MODELED';
   result.ev.confidence = 'LOW';
@@ -213,16 +241,18 @@ function guardResult(result, prepared) {
     confidence: exploit.confidence, conflicts: exploit.conflicts, warnings: [...new Set([...baseline.warnings, ...exploit.warnings])] };
   result.baselineAction = baseline.action;
   result.recommendedAction = exploit.finalAction;
-  if (modeled.length === 1 && modeled[0].action === 'FOLD' && result.ev.missingLegalActions.includes('CALL')) {
-    // Fold's zero is a reference point, not evidence to recommend abandoning a
-    // hand when no continuing action has been modeled at all.
+  if (!result.ev.comparisonComplete || !result.ev.leaderConclusive) {
+    // A nominal or partial leader is useful for the table, but does not
+    // establish a globally preferred play for this decision.
     result.recommendedAction = 'NO_DECISION';
     result.strategy.finalAction = 'NO_DECISION';
     result.strategy.exploit.finalAction = 'NO_DECISION';
   }
   result.confidence = exploit.confidence;
   result.potMath.evCall = result.ev.actions.CALL.status === 'MODELED' ? result.ev.actions.CALL.ev : null;
-  result.reason = result.ev.comparisonComplete ? result.reason : `Partial comparison: ${result.ev.missingLegalActions.join(', ')} remain unavailable because the necessary responses were not modeled. ${modeled.length ? 'The leader among calculated actions does not establish the best overall play.' : 'No action can be recommended.'}`;
+  result.reason = result.ev.comparisonStatus === 'INCOMPARABLE_ASSUMPTIONS'
+    ? 'Action EVs use unlinked opponent ranges, response assumptions or costs. Their values are shown separately; no shared ranking is available.'
+    : result.ev.comparisonComplete ? result.reason : `Partial comparison: ${result.ev.missingLegalActions.join(', ')} remain unavailable because the necessary responses were not modeled. ${modeled.length ? 'The leader among calculated actions does not establish the best overall play.' : 'No action can be recommended.'}`;
   result.warnings = [...new Set([...result.warnings, ...baseline.warnings, ...exploit.warnings])];
   return result;
 }

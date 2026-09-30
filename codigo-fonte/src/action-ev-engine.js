@@ -1,4 +1,5 @@
 const { normalizeRakeSchedule, calculateRake } = require('./rake-model');
+const { enrichActionEV } = require('./action-ev-presentation');
 const ACTIONS = ['FOLD', 'CHECK', 'CALL', 'BET', 'RAISE'];
 
 function numberOrNull(value, label) {
@@ -295,7 +296,7 @@ function calculateScenarioEV(action, input, model, rake) {
       targetStreetTotal: target, heroContribution, heroCost, scenarioBreakdown,
       ...(completeEnvelope ? {
         conditionalEvEnvelope: [envelopeLow, envelopeHigh],
-        intervalScope: 'PROPAGACAO_DE_INTERVALOS_MARGINAIS_SEM_COBERTURA_CONJUNTA_GARANTIDA'
+        intervalScope: 'MARGINAL_INTERVAL_PROPAGATION_NO_GUARANTEED_JOINT_COVERAGE'
       } : {}),
       assumptions: [
         'Response probabilities are fixed assumptions, not validated strategic frequencies.',
@@ -395,7 +396,7 @@ function calculateActionEV(input = {}) {
     ? [...new Set(input.legalActions.map((action) => String(action).toUpperCase()))]
     : [];
   if (legalActions.length === 0) {
-    return {
+    return enrichActionEV({
       status: 'NO_DECISION',
       model: null,
       actions: Object.fromEntries(ACTIONS.map((action) => [action, notLegalResult(action)])),
@@ -406,7 +407,7 @@ function calculateActionEV(input = {}) {
       confidence: 'LOW',
       assumptions: [],
       warnings: ['There are no legal actions to compare.']
-    };
+    }, input);
   }
   const equity = equityValue(input);
   const rake = rakeInfo(input);
@@ -425,7 +426,7 @@ function calculateActionEV(input = {}) {
   const warnings = [];
   if (incomplete) warnings.push('The comparison is incomplete: some legal actions lack sufficient assumptions.');
   for (const result of Object.values(actions)) warnings.push(...result.warnings);
-  return {
+  return enrichActionEV({
     status: modeled.length > 0 ? 'MODELED' : 'NOT_MODELED',
     model: modeled.length > 0 ? 'ACTION_COMPARISON' : null,
     unit: 'chips',
@@ -437,7 +438,7 @@ function calculateActionEV(input = {}) {
     confidence: modeled.length > 0 && !incomplete ? 'MEDIUM' : 'LOW',
     assumptions: [rake.assumption].filter(Boolean),
     warnings: [...new Set(warnings)]
-  };
+  }, input);
 }
 
 module.exports = {

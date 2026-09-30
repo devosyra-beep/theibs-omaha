@@ -3,6 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const { createSession, publicSession, applyAction } = require('./src/training-simulator');
+const { replayPlan, replayDecision } = require('./src/training-replay');
 const { evaluateSession, validateChoice } = require('./src/training-analysis');
 const { snapshotForCoach, answerDoubt, localCoachAnswer, enrichCoachAnswer, prepareScenario, coachSummary } = require('./src/coach');
 const llama = require('./src/llama-config');
@@ -374,11 +375,28 @@ const server = http.createServer(async (request, response) => {
         sessionOwners.set(session.id, auth.user.id);
         return json(response, 200, { status: 'OK', session: publicSession(session) });
       }
+      if (route === '/api/training/replay') {
+        const decisionId = String(payload.decisionId || '');
+        if (!/^[0-9a-f-]{36}$/i.test(decisionId)) throw Error('Select a recorded decision to replay.');
+        const recorded = readEvents(userStoragePath(auth, 'training-events.jsonl'))
+          .find(event => event.type === 'DECISION' && event.decisionId === decisionId);
+        if (!recorded?.replayPlan) return json(response, 404, { status: 'ERROR', reason: 'This decision has no replayable snapshot.' });
+        const { session, publicState } = replayDecision(recorded.replayPlan);
+        if (sessions.size >= 100) {
+          const oldest = sessions.keys().next().value;
+          sessions.delete(oldest); sessionOwners.delete(oldest);
+        }
+        sessions.set(session.id, session);
+        sessionOwners.set(session.id, auth.user.id);
+        return json(response, 200, { status: 'OK', session: publicState,
+          sourceDecisionId: decisionId, originalAnalysisId: recorded.context?.analysisId || null });
+      }
       if (route === '/api/training/act' || route === '/api/training/doubt' || route === '/api/training/review') {
         const session = sessions.get(String(payload.sessionId || ''));
         if (!session || !ownerMatches(auth, payload.sessionId)) return json(response, 404, { status: 'ERROR', reason: 'Session not found. Start a new training hand.' });
         if (route === '/api/training/review') {
-          return json(response, 200, { status: 'OK', session: publicSession(session), decisions: session.decisions });
+          return json(response, 200, { status: 'OK', session: publicSession(session),
+            decisions: session.decisions.map(({ replayPlan: _privateReplayPlan, ...decision }) => decision) });
         }
         if (session.finished) return json(response, 400, { status: 'ERROR', reason: 'This hand has ended. Start another hand.' });
         if (route === '/api/training/doubt' && session.mode === 'CHALLENGE') {
@@ -420,13 +438,15 @@ const server = http.createServer(async (request, response) => {
           applyAction(nextSession, chosenAction, payload.size);
           const chosenSize = ['BET', 'RAISE'].includes(chosenAction) ? Number(payload.size) : null;
           const summary = coachSummary(snapshot);
-          const event = { type: 'DECISION', sessionId: session.id, street: session.street, revision: session.events.length,
+          const event = { type: 'DECISION', decisionId: crypto.randomUUID(), sessionId: session.id, street: session.street, revision: session.events.length,
+            replayPlan: replayPlan(session),
             context: snapshot, chosenAction, chosenSize, chosenOptionId: quality.chosenOptionId || null,
             recommendedAction: snapshot.recommendation, recommendedSize: quality.recommendedSize ?? null, summary,
             quality: quality.label, evLoss: quality.evLoss, qualityDetails: quality,
             engineVersion: analysis.contractVersion || null, engineBuild: analysis.engineBuild || null, rangeSource: snapshot.rangeSource,
             rangeVersion: snapshot.ranges[0]?.version || null, source: 'TRAINING_POLICY_ROLLOUT', opponentPolicyVersion: session.policyVersion };
-          nextSession.decisions.push(event);
+          const { replayPlan: _privateReplayPlan, ...publicDecision } = event;
+          nextSession.decisions.push(publicDecision);
           const events = [event];
           if (nextSession.finished) events.push({ type: 'HAND_COMPLETE', sessionId: session.id,
             opponentStyle: nextSession.opponentStyle, policyVersion: nextSession.policyVersion, opponentActions: nextSession.history.filter((item) => item.actor === 'OPPONENT'), outcome: nextSession.outcome });

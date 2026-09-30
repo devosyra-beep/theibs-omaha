@@ -1,6 +1,6 @@
 'use strict';
 
-const CACHE = 'theibs-shell-v0.14.5-billing-mobile-20260930';
+const CACHE = 'theibs-shell-v0.14.6-multiway-ev-20260930';
 const SHELL = [
   '/', '/landing.html', '/landing.css', '/landing.js', '/landing-assets/theibs-logo.png', '/landing-assets/osyra-studio.svg',
   '/landing-assets/theibs-app.png', '/landing-assets/theibs-training.png', '/app', '/styles.css', '/dashboard.css', '/multiway.css', '/pwa.js', '/auth-session.js', '/auth-ui.js',

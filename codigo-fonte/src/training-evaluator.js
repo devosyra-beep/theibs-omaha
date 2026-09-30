@@ -218,7 +218,8 @@ function evaluateTraining(input) {
     intervalMethod: 'HOEFFDING_FIXED_N', scope: 'SHOWDOWN_EQUITY_UNIFORM_NOT_ACTION_EV' };
   const basic = { variant: config.variant, heroCards: config.heroCards, board: state.board,
     position: 'BTN', players: 2, potBeforeAction: state.pot, amountToCall: state.heroToCall,
-    effectiveStack: Math.min(heroStack, opponentStack + state.heroToCall), heroContribution: state.players[0].streetPaid };
+    effectiveStack: Math.min(heroStack, opponentStack + state.heroToCall), heroContribution: state.players[0].streetPaid,
+    bigBlind: state.bigBlind };
   const ev = { actions: actionEV, comparisonComplete: true, missingLegalActions: [],
     bestModeledAction: recommended.action, confidence: 'LOW', assumptions, warnings: [] };
   const potMath = calculatePotMath({ ...basic, equity: equity.equity, callModel: actionEV.CALL });

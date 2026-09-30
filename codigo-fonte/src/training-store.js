@@ -113,6 +113,9 @@ function trainingDecisionQuality(result, chosenAction, chosenSize) {
       (['BET', 'RAISE'].includes(option.action) && !Number.isFinite(option.size)))) return { label: 'INCOMPLETE_COMPARISON', evLoss: null };
   const ranked = [...candidates].sort((a, b) => b.ev - a.ev), best = ranked[0];
   const nominalEvDifference = Math.max(0, best.ev - chosen.ev);
+  const bigBlind = Number(result.state?.bigBlind);
+  const potBeforeDecision = Number(result.state?.potBeforeAction);
+  const nominalGapBestSecondBB = ranked.length > 1 && bigBlind > 0 ? (best.ev - ranked[1].ev) / bigBlind : null;
   const boundsValid = option => Array.isArray(option.confidenceInterval95) && option.confidenceInterval95.length === 2 &&
     option.confidenceInterval95.every(Number.isFinite) && option.confidenceInterval95[0] <= option.ev && option.confidenceInterval95[1] >= option.ev;
   const separated = ranked.length > 1 && ranked.every(boundsValid) &&
@@ -121,9 +124,14 @@ function trainingDecisionQuality(result, chosenAction, chosenSize) {
   const reference = { nominalEvDifference, referenceScope: 'TRAINING_POLICY_ROLLOUT',
     leadershipStatus: separated ? 'SEPARATED' : evaluation.leadership?.status === 'SEPARATED' ? 'MISSING_BOUNDS' : evaluation.leadership?.status || 'MISSING_BOUNDS',
     evaluationId: evaluation.evaluationId || null, chosenOptionId: chosen.optionId, recommendedOptionId: best.optionId,
-    chosenSize: aggressive ? chosen.size : null, recommendedSize: best.size ?? null, chosenEV: chosen.ev, bestEV: best.ev };
+    chosenSize: aggressive ? chosen.size : null, recommendedSize: best.size ?? null, chosenEV: chosen.ev, bestEV: best.ev,
+    nominalGapBestSecondBB, gapBestSecondBB: separated ? nominalGapBestSecondBB : null,
+    potBeforeDecision: Number.isFinite(potBeforeDecision) ? potBeforeDecision : null };
   if (!separated) return { label: 'INCONCLUSIVE_COMPARISON', evLoss: null, ...reference };
-  return { label: nominalEvDifference === 0 ? 'MATCHED_MODELED' : 'DIFFERENT_MODELED', evLoss: nominalEvDifference, ...reference };
+  return { label: nominalEvDifference === 0 ? 'MATCHED_MODELED' : 'DIFFERENT_MODELED', evLoss: nominalEvDifference,
+    evLossBB: bigBlind > 0 ? nominalEvDifference / bigBlind : null,
+    evLossPotPct: potBeforeDecision > 0 ? 100 * nominalEvDifference / potBeforeDecision : null,
+    ...reference };
 }
 
 const positiveNumber = value => Number.isFinite(value) && value > 0 ? value : null;

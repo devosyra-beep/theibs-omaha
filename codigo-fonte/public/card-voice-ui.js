@@ -218,7 +218,7 @@
       // missing rank or suit. Treat that as a fresh complete command.
       try { return voice.parseContextual(text, locale, multiway); } catch {}
       const result = voice.completeClarification(clarification.request, text, locale);
-      if (result.command) return result.command;
+      if (result.command) return voice.withCardDestination(result.command, multiway);
       return { type:'clarify', clarification: result.clarification || clarification.request, error: result.error };
     }
     try { return voice.parseContextual(text, locale, multiway); }
@@ -334,27 +334,11 @@
     }
     return finishing?session.finish(id,captured,parseFinal):session.prepareReady(id,captured,parseFinal);
   }
-  function applySpeechHints(recognizer, locale) {
+  function applySpeechHints(recognizer, locale, multiway) {
     const Phrase = window.SpeechRecognitionPhrase || window.webkitSpeechRecognitionPhrase;
     if (!('phrases' in recognizer) || typeof Phrase !== 'function') return false;
-    const english = locale === 'en-US';
-    const ranks = english
-      ? ['two','three','four','five','six','seven','eight','nine','ten','jack','queen','king','ace']
-      : ['dois','três','quatro','cinco','seis','sete','oito','nove','dez','valete','dama','rei','ás'];
-    const suits = english ? ['spades','hearts','diamonds','clubs'] : ['espadas','copas','ouros','paus'];
-    const connector = english ? 'of' : 'de';
-    const hints = new Map();
-    const add = (phrase, boost) => hints.set(phrase, Math.max(hints.get(phrase) || 0, boost));
-    for (const rank of ranks) for (const suit of suits) add(`${rank} ${connector} ${suit}`, 2.5);
-    const rankAliases = english
-      ? [['ace',['ace'],4.5],['jack',['jack'],4.5]]
-      : [['ás',['ás','as','a','ace'],4.5],['valete',['valete','valet','vale te','jota','jack'],4.5]];
-    for (const [, aliases, boost] of rankAliases) for (const alias of aliases) {
-      add(alias, 2.5);
-      for (const suit of suits) add(`${alias} ${connector} ${suit}`, boost);
-    }
     try {
-      recognizer.phrases = [...hints].map(([phrase, boost]) => new Phrase(phrase, boost));
+      recognizer.phrases = voice.recognitionHints(locale, multiway).map(({phrase, boost}) => new Phrase(phrase, boost));
       return true;
     } catch {
       return false;
@@ -483,7 +467,7 @@
       if (run !== current || JSON.stringify(context()) !== session.context) { suspend('The table context changed before listening began.'); return; }
       const recognizer = new Recognition(); current.recognition = recognizer;
       recognizer.lang = captured.locale; recognizer.continuous = true; recognizer.interimResults = true; recognizer.maxAlternatives = 1;
-      current.contextBiasing = applySpeechHints(recognizer, captured.locale);
+      current.contextBiasing = applySpeechHints(recognizer, captured.locale, captured.multiway);
       if (captured.processing === 'device') recognizer.processLocally = true;
       else if ('processLocally' in recognizer) recognizer.processLocally = false;
       recognizer.onstart = () => {

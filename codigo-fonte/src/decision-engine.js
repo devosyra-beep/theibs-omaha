@@ -4,6 +4,7 @@ const { legalActions } = require('./action-validator');
 const { normalizeGameState } = require('./game-state');
 const { resolveOpponentRanges } = require('./range-engine');
 const { calculateActionEV } = require('./action-ev-engine');
+const { enrichActionEV } = require('./action-ev-presentation');
 const { evaluateStrategy } = require('./strategy-engine');
 const { applyExploit } = require('./exploit-engine');
 const { describeHand } = require('./hand-insights');
@@ -102,9 +103,10 @@ function decide(input) {
     const bounds=equity.confidenceInterval95.map(q=>calculateActionEV({...normalizedInput,equity:q,legalActions:actions}));
     for(const action of ['CALL','CHECK'])if(ev.actions[action]?.status==='MODELED'&&!ev.actions[action].scenarioBreakdown){
       ev.actions[action].confidenceInterval95=bounds.map(b=>b.actions[action].ev);
-      ev.actions[action].intervalScope='SOMENTE_ERRO_AMOSTRAL_COM_PREMISSAS_FIXAS';
+      ev.actions[action].intervalScope='SAMPLING_ERROR_ONLY_FIXED_ASSUMPTIONS';
     }
   }
+  enrichActionEV(ev, { ...normalizedInput, legalActions: actions }, equity);
   warnings.push(...ev.warnings);
   if (actions.length === 0) return { status: 'NO_DECISION', contractVersion: 'THEIBS_DECISION_V1', reason: 'No legal action is available.', state: inputState.state, ranges: rangeModel.publicRanges, equity, potMath: math, ev, legalActions: actions, warnings };
   const strategyInput = { ...normalizedInput, equity, potMath: math, ev, legalActions: actions, state: inputState.state };

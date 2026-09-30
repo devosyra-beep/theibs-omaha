@@ -51,8 +51,8 @@
   }
   function actionState(command) {
     const players = [{ id:'hero', hero:true, name:'Hero', position:'BTN', streetPaid:0, stack:100 },
-      { id:'v1', hero:false, name:'ADV.1', position:'SB', streetPaid:0, stack:100 },
-      { id:'v2', hero:false, name:'ADV.2', position:'BB', streetPaid:0, stack:100 }];
+      { id:'v1', hero:false, seatName:'A1', name:'ADV.1', position:'SB', streetPaid:0, stack:100 },
+      { id:'v2', hero:false, seatName:'A2', name:'ADV.2', position:'BB', streetPaid:0, stack:100 }];
     const unopened = ['BET','CHECK'].includes(command.action);
     return { phase:'BETTING', players, heroId:'hero', actor:command.actor.kind === 'hero' ? 'hero' : `v${command.actor.number}`,
       currentBet:unopened ? 0 : 4, bigBlind:2,

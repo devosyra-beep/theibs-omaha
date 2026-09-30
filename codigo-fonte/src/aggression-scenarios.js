@@ -33,6 +33,10 @@ function studySettings(input,rangeModel) {
 
 function buildStudyModels(input,settings,baseEquity) {
   if(!settings)return {input,summary:null};
+  // The simple study uses the same uniform prior and fixed response policy
+  // for every generated action at this decision. This declaration permits
+  // comparison with the base showdown-only check under those assumptions.
+  const comparisonContextId='THEIBS_UNIFORM_INDEPENDENT_RESPONSE_STUDY_V1';
   const {n,H,C,R,action,opponents,samplesPerCount}=settings,started=performance.now();
   const equities=new Map([[n,baseEquity]]);
   const sizes=new Set([n]);
@@ -48,7 +52,8 @@ function buildStudyModels(input,settings,baseEquity) {
     const e=equities.get(branch.callers.length);
     return {...branch,equity:e.equity,equityOpponentIds:branch.callers.map(c=>c.id),equitySource:'CALCULATED_CONDITIONAL',...(e.confidenceInterval95?{equityInterval:e.confidenceInterval95,equityIntervalLevel:.95}:{})};
   };
-  const common={type:'SCENARIO_SHOWDOWN_ONLY',source:settings.hypothesisSource||'HEURISTIC_PRESET',heroContribution:H,opponents:opponents.map(({callProbability,...o})=>o)};
+  const common={type:'SCENARIO_SHOWDOWN_ONLY',source:settings.hypothesisSource||'HEURISTIC_PRESET',comparisonContextId,
+    heroContribution:H,opponents:opponents.map(({callProbability,...o})=>o)};
   const aggressive={...common,action,targetStreetTotal:R,scenarios:branches.map(attach)};
   const models={...input.actionResponseModels,[action]:aggressive};
   const callAdditional=opponent=>{
@@ -61,7 +66,7 @@ function buildStudyModels(input,settings,baseEquity) {
   };
   if(C>0)models.CALL={...common,action:'CALL',targetStreetTotal:H+C,scenarios:[attach({id:'all-complete-current-price',probability:1,callers:opponents.map(o=>({id:o.id,additional:callAdditional(o)}))})]};
   return {
-    input:{...input,heroContribution:H,minBet:settings.minBet,minRaiseTo:settings.minRaiseTo,actionResponseModels:models},
+    input:{...input,comparisonContextId,heroContribution:H,minBet:settings.minBet,minRaiseTo:settings.minRaiseTo,actionResponseModels:models},
     summary:{source:settings.hypothesisSource||'EXPLICIT_INDEPENDENT_UNIFORM_HYPOTHESIS',action,targetStreetTotal:R,heroAdditional:R-H,branchCount:branches.length,samplesPerCount,totalSamples:[...equities.values()].reduce((s,e)=>s+e.samples,0),additionalCalculationMs:performance.now()-started,equitiesByCallerCount:[...equities].sort((a,b)=>a[0]-b[0]).map(([count,e])=>({callers:count,equity:e.equity,samples:e.samples,interval:e.confidenceInterval95})),assumptions:['Random hands; the decision to call is independent of cards and other opponents.','For CALL, players who still owe chips match the current price; nobody reraises.','For BET/RAISE, entered call probabilities apply; players who do not call fold.','Everyone covers the proposed size; no side pots, reraises or future bets.','Probabilities are study assumptions, not learned frequencies or GTO.']}
   };
 }

@@ -22,6 +22,7 @@ function recommendationFor(data) {
   if (data.status === 'OK' && pointLeader) {
     if (data.analysisStage === 'PROVISIONAL') status = 'PROVISIONAL';
     else if (missingOpponentModel || !data.ev?.comparisonComplete) status = 'INCOMPLETE';
+    else if (data.ev?.globalBestSupported === false || data.recommendedAction === 'NO_DECISION') status = 'INCONCLUSIVE';
     else if (leader?.status !== 'SEPARATED' || !data.legalActions?.includes(pointLeader)
       || data.ev?.actions?.[pointLeader]?.status !== 'MODELED') status = 'INCONCLUSIVE';
     else if (data.strategy?.finalSource === 'EXPLOIT_ADJUSTMENT') status = 'UNVERIFIED_ADJUSTMENT';

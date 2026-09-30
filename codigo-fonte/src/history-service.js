@@ -11,14 +11,16 @@ if (!isMainThread && workerData?.kind === 'THEIBS_HISTORY') {
     try {
       const events = readEvents(filePath), timeline = outcomeTimeline(events);
       const recent = events.filter(event => event.type === 'DECISION').slice(-recentLimit).reverse().map(event => ({
-        timestamp: event.timestamp, street: event.street, chosenAction: event.chosenAction,
+        timestamp: event.timestamp, street: event.street, decisionId: event.decisionId || null,
+        replayable: Boolean(event.decisionId && event.replayPlan), chosenAction: event.chosenAction,
         recommendedAction: event.recommendedAction, quality: event.quality, evLoss: event.evLoss,
         qualityDetails: event.qualityDetails || null, chosenSize: event.chosenSize ?? null,
         recommendedSize: event.recommendedSize ?? null, summary: event.summary || null,
         trainingEvaluation: event.context?.trainingEvaluation || null,
         analysisId: event.context?.analysisId || null, provenance: event.context?.provenance || null,
         heroCards: event.context?.heroCards || [], board: event.context?.board || [],
-        position: event.context?.position || null, variant: event.context?.variant || null
+        position: event.context?.position || null, variant: event.context?.variant || null,
+        potBeforeDecision: event.context?.pot ?? null, bigBlind: event.context?.bigBlind ?? null
       }));
       parentPort.postMessage({ id, value: { summary: summarize(events), recent,
         observedHands: events.filter(event => event.type === 'OBSERVED_HAND').slice(-10).reverse(),
