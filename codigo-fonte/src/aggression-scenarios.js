@@ -6,24 +6,24 @@ const { calculateEquity } = require('./equity-engine');
 function studySettings(input,rangeModel) {
   const raw=input.aggressionStudy;
   if(!raw?.enabled)return null;
-  if(raw.assumptionsAccepted!==true)throw Error('Confirme as premissas do cenário de bet/raise.');
-  if(rangeModel.ranges.some(r=>r.kind!=='UNIFORM'))throw Error('O cenário simples de bet/raise exige mãos aleatórias para todos. Ranges de continuação específicos precisam de cenários avançados.');
+  if(raw.assumptionsAccepted!==true)throw Error('Confirm the bet/raise scenario assumptions.');
+  if(rangeModel.ranges.some(r=>r.kind!=='UNIFORM'))throw Error('The simple bet/raise scenario requires random hands for everyone. Specific continuation ranges need advanced scenarios.');
   const n=rangeModel.ranges.length,H=Number(raw.heroContribution),C=Number(input.amountToCall),P=Number(input.potBeforeAction);
-  if(raw.heroContribution==null||raw.heroContribution===''||!Number.isFinite(H)||H<0)throw Error('Informe sua contribuição atual na rodada.');
-  if(!Array.isArray(raw.opponents)||raw.opponents.length!==n)throw Error('Informe contribuição e chance de call de cada adversário ativo.');
-  if(raw.opponents.some(o=>o.callProbability==null||o.callProbability===''||o.contribution==null||o.contribution===''))throw Error('Preencha contribuição e chance de call de todos os adversários ativos.');
+  if(raw.heroContribution==null||raw.heroContribution===''||!Number.isFinite(H)||H<0)throw Error('Enter your current street contribution.');
+  if(!Array.isArray(raw.opponents)||raw.opponents.length!==n)throw Error('Enter the contribution and call chance of each active opponent.');
+  if(raw.opponents.some(o=>o.callProbability==null||o.callProbability===''||o.contribution==null||o.contribution===''))throw Error('Fill in the contribution and call chance for all active opponents.');
   const opponents=raw.opponents.map((o,i)=>({id:raw.source==='USER_SUPPLIED_HYPOTHESIS'?`seat-${o.seatId}`:`opponent-${i+1}`,contribution:Number(o.contribution),callProbability:Number(o.callProbability),stackRemaining:Number(input.effectiveStack)}));
-  if(opponents.some(o=>!Number.isFinite(o.contribution)||o.contribution<0||o.contribution>H+C+1e-8||!Number.isFinite(o.callProbability)||o.callProbability<0||o.callProbability>1))throw Error('Contribuições devem estar entre zero e a aposta atual; chances de call entre 0% e 100%.');
-  if(Math.abs(Math.max(H,...opponents.map(o=>o.contribution))-H-C)>1e-8)throw Error('A maior contribuição adversária precisa corresponder ao valor para pagar mais sua contribuição.');
-  if(H+opponents.reduce((s,o)=>s+o.contribution,0)>P+1e-8)throw Error('As contribuições desta rodada não podem ultrapassar o pote atual.');
+  if(opponents.some(o=>!Number.isFinite(o.contribution)||o.contribution<0||o.contribution>H+C+1e-8||!Number.isFinite(o.callProbability)||o.callProbability<0||o.callProbability>1))throw Error('Contributions must be between zero and the current bet; call chances between 0% and 100%.');
+  if(Math.abs(Math.max(H,...opponents.map(o=>o.contribution))-H-C)>1e-8)throw Error('The highest opponent contribution must equal your contribution plus the amount to call.');
+  if(H+opponents.reduce((s,o)=>s+o.contribution,0)>P+1e-8)throw Error('This street’s contributions cannot exceed the current pot.');
   const isRaise=H+C>0,action=isRaise?'RAISE':'BET',R=Number(isRaise?input.raiseTo:input.betSize);
-  if(!Number.isFinite(R)||R<=H+C)throw Error('Informe o total proposto de bet/raise na rodada.');
+  if(!Number.isFinite(R)||R<=H+C)throw Error('Enter the proposed street total for bet/raise.');
   const heroCost=R-H,maximum=Math.min(Number(input.effectiveStack),isRaise?P+2*C:P);
-  if(heroCost>maximum+1e-8)throw Error(`O custo adicional excede o pot-limit/stack (${maximum.toFixed(2)} fichas).`);
+  if(heroCost>maximum+1e-8)throw Error(`The additional cost exceeds the pot limit or stack (${maximum.toFixed(2)} chips).`);
   const min=raw.minRaiseTo===undefined||raw.minRaiseTo===''?2*(H+C):Number(raw.minRaiseTo);
-  if(isRaise&&(!Number.isFinite(min)||min<=H+C||R<min))throw Error(`Raise abaixo do mínimo informado/conservador (${min.toFixed(2)} no total).`);
+  if(isRaise&&(!Number.isFinite(min)||min<=H+C||R<min))throw Error(`Raise is below the entered or conservative minimum (${min.toFixed(2)} total).`);
   const minBet=Number(raw.minBet);
-  if(!isRaise&&(!Number.isFinite(minBet)||minBet<=0||heroCost<minBet))throw Error('Informe o mínimo legal de bet; a aposta proposta deve atingir esse mínimo.');
+  if(!isRaise&&(!Number.isFinite(minBet)||minBet<=0||heroCost<minBet))throw Error('Enter the legal minimum bet; the proposed bet must reach it.');
   // stackRemaining is a declared covering-stack hypothesis; cover opponent
   // costs as well even when their current contribution is lower than hero's.
   for(const o of opponents)o.stackRemaining=Math.max(Number(input.effectiveStack),R-o.contribution);
@@ -62,7 +62,7 @@ function buildStudyModels(input,settings,baseEquity) {
   if(C>0)models.CALL={...common,action:'CALL',targetStreetTotal:H+C,scenarios:[attach({id:'all-complete-current-price',probability:1,callers:opponents.map(o=>({id:o.id,additional:callAdditional(o)}))})]};
   return {
     input:{...input,heroContribution:H,minBet:settings.minBet,minRaiseTo:settings.minRaiseTo,actionResponseModels:models},
-    summary:{source:settings.hypothesisSource||'EXPLICIT_INDEPENDENT_UNIFORM_HYPOTHESIS',action,targetStreetTotal:R,heroAdditional:R-H,branchCount:branches.length,samplesPerCount,totalSamples:[...equities.values()].reduce((s,e)=>s+e.samples,0),additionalCalculationMs:performance.now()-started,equitiesByCallerCount:[...equities].sort((a,b)=>a[0]-b[0]).map(([count,e])=>({callers:count,equity:e.equity,samples:e.samples,interval:e.confidenceInterval95})),assumptions:['Mãos aleatórias; decisão de pagar independente das cartas e dos outros adversários.','No call, quem ainda deve fichas completa o preço atual; ninguém reaumenta.','No bet/raise, probabilidades de call informadas; quem não paga desiste.','Todos cobrem o tamanho proposto; sem potes laterais, reaumentos ou apostas futuras.','Probabilidades são hipóteses de estudo, não frequências aprendidas ou GTO.']}
+    summary:{source:settings.hypothesisSource||'EXPLICIT_INDEPENDENT_UNIFORM_HYPOTHESIS',action,targetStreetTotal:R,heroAdditional:R-H,branchCount:branches.length,samplesPerCount,totalSamples:[...equities.values()].reduce((s,e)=>s+e.samples,0),additionalCalculationMs:performance.now()-started,equitiesByCallerCount:[...equities].sort((a,b)=>a[0]-b[0]).map(([count,e])=>({callers:count,equity:e.equity,samples:e.samples,interval:e.confidenceInterval95})),assumptions:['Random hands; the decision to call is independent of cards and other opponents.','For CALL, players who still owe chips match the current price; nobody reraises.','For BET/RAISE, entered call probabilities apply; players who do not call fold.','Everyone covers the proposed size; no side pots, reraises or future bets.','Probabilities are study assumptions, not learned frequencies or GTO.']}
   };
 }
 module.exports={studySettings,buildStudyModels};

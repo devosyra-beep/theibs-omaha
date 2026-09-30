@@ -20,9 +20,12 @@
   function hiddenCards(count) {
     return `<span class="opponent-cards" role="img" aria-label="${count} face-down cards">${Array.from({length:count},()=>'<i class="card-back" aria-hidden="true"></i>').join('')}</span>`;
   }
-  function opponentSeats(count, holeCount) {
+  function opponentSeats(count, holeCount, foldedSeats = new Set()) {
     const positions = count === 1 ? [[50,0]] : count === 2 ? [[24,13],[76,13]] : count === 3 ? [[50,0],[12,36],[88,36]] : count === 4 ? [[29,10],[71,10],[10,43],[90,43]] : count === 5 ? [[50,0],[23,16],[77,16],[9,49],[91,49]] : Array.from({length:count},(_,i)=>{const a=Math.PI+(i/(count-1))*Math.PI;return [50+43*Math.cos(a),44+36*Math.sin(a)];});
-    return positions.map(([x,y],i)=>`<div class="opponent-place${count>5?' dense':''}" style="--seat-x:${x}%;--seat-y:${y}%" data-opponent="${i+1}" title="Opponent ${i+1}: ${holeCount} unknown cards. Illustrative position.">${hiddenCards(holeCount)}<span class="opponent-name">ADV. ${i+1}</span></div>`).join('');
+    return positions.map(([x,y],i)=>{
+      const folded=foldedSeats.has(i);
+      return `<button type="button" class="opponent-place simple-seat${count>5?' dense':''}${folded?' folded':''}" style="--seat-x:${x}%;--seat-y:${y}%" data-opponent="${i+1}" data-simple-seat="${i}" aria-haspopup="dialog" aria-label="Opponent ${i+1}, ${folded?'folded':'active'}. Edit seat." title="Opponent ${i+1} · ${folded?'folded':'active'}">${hiddenCards(holeCount)}<span class="opponent-name">OPP. ${i+1}</span><span class="simple-seat-status">${folded?'Folded':'Active'}</span></button>`;
+    }).join('');
   }
   function trainingTable(session, count = 5) {
     if (!session) return `<div class="table-mode-line"><span class="eyebrow">TRAINING · 1 OPPONENT · 2 PLAYERS</span></div><div class="mesa-stage"><div class="poker-table"><div class="table-felt"><div class="table-center"><span class="eyebrow">LOCAL TRAINING</span><strong class="table-placeholder">Your next decision.</strong><span class="table-note">Choose an exercise and start a hand.</span></div><div class="hero-position"><div class="hero-cards">${Array.from({ length: count }, () => cardMarkup(null)).join('')}</div><div class="seat hero-seat">YOU · —</div></div></div></div></div>`;
@@ -44,7 +47,7 @@
       const [x,y]=position;
       const status=p.folded?'Folded':p.allIn?'All-in':state.actor===p.id?'To act':p.lastAction||'';
       const checked=!p.folded&&!p.allIn&&state.actor!==p.id&&p.lastAction==='CHECK';
-      const name=p.name||`Adv. ${state.players.filter(item=>!item.hero).findIndex(item=>item.id===p.id)+1}`;
+      const name=(p.name||`Opp. ${state.players.filter(item=>!item.hero).findIndex(item=>item.id===p.id)+1}`).replace(/^Adv\./i,'Opp.');
       return `<button type="button" class="opponent-place multiway-seat${p.folded?' folded':''}${state.actor===p.id?' acting to-act':''}${checked?' checked':''}" style="--seat-x:${x}%;--seat-y:${y}%;--seat-x-mobile:${mobilePosition[0]}%;--seat-y-mobile:${mobilePosition[1]}%" data-multiway-player="${p.id}" aria-label="${esc(name)} · ${esc(p.position)}: ${esc(status)}, stack ${money(p.stack)}">${hiddenCards(holeCount)}<span class="opponent-name">${esc(name)} · ${esc(p.position)} · ${money(p.stack)}</span>${status?`<span class="multiway-seat-status">${esc(({CALL:'Called',CHECK:'Checked',BET:'Bet',RAISE:'Raised',FOLD:'Folded','To act':'TO ACT'})[status]||status)}</span>`:''}</button>`;
     }).join('');
   }

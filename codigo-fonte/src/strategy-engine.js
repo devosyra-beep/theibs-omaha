@@ -99,44 +99,44 @@ function evaluateStrategy(context = {}) {
   if (equityValue === null) missingFactors.push('equity');
   if (!comparisonComplete) missingFactors.push('completeActionEV');
 
-  if (boardState.paired) factors.push({ code: 'PAIRED_BOARD', value: true, detail: 'Board pareado; a categoria da mão depende das combinações disponíveis.' });
-  if (boardState.monotone) factors.push({ code: 'MONOTONE_BOARD', value: true, detail: 'Três cartas do mesmo naipe no board; verificar flushes e blockers.' });
-  if (boardState.connected) factors.push({ code: 'CONNECTED_BOARD', value: true, detail: 'Board conectado; verificar sequências possíveis.' });
-  if (position) factors.push({ code: 'POSITION', value: position, detail: `Posição informada: ${position}. A posição relativa depende dos adversários ativos.` });
-  if (players !== null && players > 2) factors.push({ code: 'MULTIWAY', value: players, detail: `${players} jogadores informados; participantes e respostas fazem parte das premissas do cenário.` });
+  if (boardState.paired) factors.push({ code: 'PAIRED_BOARD', value: true, detail: 'Paired board; the hand category depends on available combinations.' });
+  if (boardState.monotone) factors.push({ code: 'MONOTONE_BOARD', value: true, detail: 'Three board cards share a suit; check possible flushes and blockers.' });
+  if (boardState.connected) factors.push({ code: 'CONNECTED_BOARD', value: true, detail: 'Connected board; check possible straights.' });
+  if (position) factors.push({ code: 'POSITION', value: position, detail: `Entered position: ${position}. Relative position depends on active opponents.` });
+  if (players !== null && players > 2) factors.push({ code: 'MULTIWAY', value: players, detail: `${players} players entered; participants and responses are scenario assumptions.` });
   const potOdds = numeric(potMath.potOdds);
   if (equityValue !== null && potOdds !== null && Number(input.amountToCall) > 0) {
-    factors.push({ code: 'POT_ODDS_COMPARISON', value: equityValue - potOdds, detail: 'Comparação do preço com equity de showdown; não compara por si só o EV de raise.' });
+    factors.push({ code: 'POT_ODDS_COMPARISON', value: equityValue - potOdds, detail: 'Compares the price with showdown equity; this alone does not compare raise EV.' });
   }
 
   if (action === 'NO_DECISION') {
     reasonCodes.push(legalActions.length ? 'NO_MODELED_ACTION' : 'NO_LEGAL_ACTION');
-    warnings.push('Nenhuma ação legal tem EV calculado para comparação.');
+    warnings.push('No legal action has calculated EV for comparison.');
   } else {
     reasonCodes.push(comparisonComplete ? 'BEST_MODELED_EV' : 'BEST_AVAILABLE_MODELED_EV');
-    factors.push({ code: 'MODELED_EV', value: bestEV, detail: `${action} tem o maior EV entre as ações calculadas neste cenário.` });
+    factors.push({ code: 'MODELED_EV', value: bestEV, detail: `${action} has the highest EV among actions calculated in this scenario.` });
     for (const candidate of comparedActions) assumptions.push(...(ev.actions[candidate].assumptions || []));
   }
   if (!comparisonComplete) {
     reasonCodes.push('EV_MODEL_INCOMPLETE');
-    if (missingLegalActions.length) warnings.push(`Comparação parcial: falta calcular ${missingLegalActions.join(', ')}. O líder entre as ações calculadas não define a melhor ação geral.`);
+    if (missingLegalActions.length) warnings.push(`Partial comparison: ${missingLegalActions.join(', ')} still needs calculation. The leader among calculated actions does not establish the best overall action.`);
   }
   if (tiedActions.length > 1) {
     reasonCodes.push('MODELED_EV_TIE');
-    warnings.push(`Empate de EV entre ${tiedActions.join(', ')}; a ordem exibida não é uma preferência estratégica.`);
+    warnings.push(`EV tie between ${tiedActions.join(', ')}; display order is not a strategic preference.`);
   }
   if (leadership.status === 'OVERLAPPING') {
     reasonCodes.push('EV_LEADERSHIP_OVERLAP');
-    warnings.push(`Liderança nominal de ${action} inconclusiva: as faixas de EV se sobrepõem ou se tocam com alternativas. Mais amostras podem reduzir apenas a incerteza amostral, não o erro das premissas.`);
+    warnings.push(`Nominal lead by ${action} is inconclusive: EV intervals overlap or touch alternatives. More samples may reduce sampling uncertainty, but not assumption error.`);
   } else if (leadership.status === 'MISSING_BOUNDS') {
     reasonCodes.push('EV_LEADERSHIP_UNASSESSED');
-    warnings.push(`A separação do líder nominal não foi verificada: faltam faixas de EV válidas para ${leadership.missingBoundsActions.join(', ')}.`);
+    warnings.push(`The nominal leader's separation was not verified: valid EV intervals are missing for ${leadership.missingBoundsActions.join(', ')}.`);
   } else if (leadership.status === 'SEPARATED') {
     reasonCodes.push('EV_LEADER_SEPARATED_WITHIN_BOUNDS');
-    assumptions.push('O líder está separado nas faixas fornecidas sob premissas fixas; isso não atribui confiança conjunta de 95% nem valida o modelo adversário.');
+    assumptions.push('The leader is separated within the supplied intervals under fixed assumptions; this does not assign joint 95% confidence or validate the opponent model.');
   }
-  assumptions.push('Comparação limitada às ações e aos tamanhos avaliados sob as premissas informadas.');
-  warnings.push('O resultado não é uma solução de solver nem uma estratégia ótima validada.');
+  assumptions.push('Comparison is limited to evaluated actions and sizes under the entered assumptions.');
+  warnings.push('The result is not a solver solution or a validated optimal strategy.');
 
   return {
     action,

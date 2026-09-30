@@ -7,8 +7,8 @@ const { fingerprint } = require('./analysis-contract');
 // cards, actual opponent style, or hidden session can enter the decision input.
 function buildAnalyzeInput(observation, settings = {}) {
   const o=observation, legal=o.legal;
-  if(!o||!legal||!Array.isArray(legal.actions))throw Error('Observação pública e ações legais são obrigatórias.');
-  if(Number(o.players)!==2||!['BTN','BB'].includes(o.position))throw Error('Este adaptador econômico inicial exige HU e posição BTN ou BB.');
+  if(!o||!legal||!Array.isArray(legal.actions))throw Error('Public observation and legal actions are required.');
+  if(Number(o.players)!==2||!['BTN','BB'].includes(o.position))throw Error('This initial economic adapter requires heads-up play and BTN or BB position.');
   const H=Number(o.heroContribution),C=Number(o.amountToCall),P=Number(o.potBeforeAction);
   const actions=legal.actions.filter(a=>a!=='FOLD'||C>0);
   // A legal opening all-in can be smaller than the nominal big blind. The
@@ -26,16 +26,16 @@ function buildAnalyzeInput(observation, settings = {}) {
   if(schedule)input.rakeSchedule={...schedule};
   else if(settings.rake!=null)input.rake=settings.rake;
   else if(settings.assumeNoRake===true)input.assumeNoRake=true;
-  else throw Error('O experimento deve declarar custos; zero não é presumido.');
+  else throw Error('The experiment must declare costs; zero is not assumed.');
   const aggressive=actions.includes('RAISE')?'RAISE':actions.includes('BET')?'BET':null;
   if(settings.study===true&&aggressive){
     const probability=Number(settings.callProbability),fraction=Number(settings.sizeFraction);
-    if(settings.callProbability==null||!Number.isFinite(probability)||probability<0||probability>1)throw Error('Declare a probabilidade sintética de call.');
-    if(settings.sizeFraction==null||!Number.isFinite(fraction)||fraction<=0||fraction>1)throw Error('Declare fração de pote entre zero exclusivo e um.');
+    if(settings.callProbability==null||!Number.isFinite(probability)||probability<0||probability>1)throw Error('Specify the synthetic call probability.');
+    if(settings.sizeFraction==null||!Number.isFinite(fraction)||fraction<=0||fraction>1)throw Error('Specify a pot fraction greater than zero and at most one.');
     const min=Number(legal.minTo),max=Number(legal.maxTo);
     const target=Math.min(max,Math.max(min,Math.round((H+C+(P+C)*fraction)*100)/100));
     if(aggressive==='RAISE')input.raiseTo=target;else input.betSize=target-H;
-    if(!Array.isArray(o.opponents)||o.opponents.length!==1)throw Error('Contribuição pública adversária obrigatória.');
+    if(!Array.isArray(o.opponents)||o.opponents.length!==1)throw Error('Public opponent contribution is required.');
     input.aggressionStudy={enabled:true,assumptionsAccepted:true,heroContribution:H,minRaiseTo:min,minBet,
       opponents:o.opponents.map(p=>({contribution:Number(p.contribution),callProbability:probability}))};
   }
@@ -48,11 +48,11 @@ function fallbackAction(input, mode) {
   if(mode==='CHECK_CALL'&&actions.includes('CALL'))return 'CALL';
   if(actions.includes('FOLD'))return 'FOLD';
   if(actions.includes('CALL'))return 'CALL';
-  throw Error('Nenhuma ação passiva legal para fallback.');
+  throw Error('No legal passive action is available for fallback.');
 }
 
 function decideAnalyzePolicy(input,{decideFn=decide,selection='SUPPORTED',fallback='CHECK_FOLD',deadlineMs=3000}={}){
-  if(!['SUPPORTED','POINT_LEADER'].includes(selection)||!['CHECK_FOLD','CHECK_CALL'].includes(fallback)||!Number.isFinite(deadlineMs)||deadlineMs<=0)throw Error('Configuração inválida da política Analyze.');
+  if(!['SUPPORTED','POINT_LEADER'].includes(selection)||!['CHECK_FOLD','CHECK_CALL'].includes(fallback)||!Number.isFinite(deadlineMs)||deadlineMs<=0)throw Error('Invalid Analyze policy configuration.');
   const start=performance.now();let result,error=null;
   try{result=decideFn(input);}catch(e){error=e.message;}
   const elapsedMs=performance.now()-start,timedOut=elapsedMs>deadlineMs;

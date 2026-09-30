@@ -17,7 +17,7 @@ test('raise to and raise by remain explicit and resolve to different ledger tota
   assert.deepEqual(to,{type:'action',actor:{kind:'hero'},action:'RAISE',to:5});
   assert.deepEqual(by,{type:'action',actor:{kind:'hero'},action:'RAISE',by:5});
   assert.equal(resolveAction(to,state).to,5);
-  assert.throws(()=>resolveAction(by,state),/entre/,'2 + 5 exceeds this table pot limit 6; do not clamp');
+  assert.throws(()=>resolveAction(by,state),/between/,'2 + 5 exceeds this table pot limit 6; do not clamp');
   assert.equal(resolveAction({...by,by:3},state).to,5);
   assert.throws(()=>parse(en?'hero raise five':'eu aumento cinco',locale),/total/);
   assert.throws(()=>resolveAction({...by,to:5},state));
@@ -33,7 +33,7 @@ test('explicit chip and BB units convert using the observed big blind and preser
  }
  const command=parse('hero raise by two BB','en-US');assert.equal(command.unit,'bb');
  for(const bigBlind of [undefined,0,NaN,Infinity])assert.throws(()=>resolveAction(command,{...state,bigBlind}));
- assert.throws(()=>resolveAction({...command,by:.01},{...state,bigBlind:.25,legal:{actions:['RAISE'],minTo:2,maxTo:10}}),/decimais/);
+ assert.throws(()=>resolveAction({...command,by:.01},{...state,bigBlind:.25,legal:{actions:['RAISE'],minTo:2,maxTo:10}}),/decimal places/);
  for(const [text,locale]of[['hero raise to five dollars','en-US'],['hero raise to five blinds','en-US'],['eu aumento para cinco reais','pt-BR'],['eu aumento para cinco euros','pt-BR'],['eu aumento para dois 50','pt-BR']])assert.throws(()=>parse(text,locale),text);
  assert.throws(()=>parseChips('one','xx'));
 });
@@ -52,7 +52,7 @@ test('all-in aggressive sizing is the entire stack, subject to pot limit and reo
   const command=parse(locale==='pt-BR'?'eu all-in':'I am all-in',locale);
   const short=mw.start({...config,stacks:[6,100]});assert.deepEqual(resolveAction(command,short.state),{actor:0,action:'RAISE',to:6});
   const after=mw.step(short.multiway,{type:'ACT',...resolveAction(command,short.state)});assert.equal(after.state.players[0].stack,0);
-  assert.throws(()=>resolveAction(command,mw.start(config).state),/entre/,'full 100 exceeds max 6; must not silently bet max');
+  assert.throws(()=>resolveAction(command,mw.start(config).state),/between/,'full 100 exceeds max 6; must not silently bet max');
   assert.throws(()=>resolveAction(command,{...short.state,legal:{...short.state.legal,actions:['CALL','FOLD']}}),/legal/);
   assert.throws(()=>resolveAction({...command,to:6},short.state));assert.throws(()=>resolveAction({...command,unit:'bb'},short.state));
   assert.throws(()=>resolveAction(command,{...short.state,players:short.state.players.map(p=>({...p,stack:undefined}))}));
@@ -74,8 +74,8 @@ test('all-in can become an opening bet or a legal short raise through actual led
 test('all-in still requires an explicit existing actor on turn and an active betting state',()=>{
  const state=mw.start({...config,stacks:[6,100]}).state;
  assert.throws(()=>parse('all-in'));assert.equal(getClarification('all-in').missing,'actor');
- assert.throws(()=>resolveAction(parse('adversário um all-in'),state),/vez/);
- assert.throws(()=>resolveAction(parse('adversário nove all-in'),state),/existe/);
+ assert.throws(()=>resolveAction(parse('adversário um all-in'),state),/turn/);
+ assert.throws(()=>resolveAction(parse('adversário nove all-in'),state),/not at this table/);
  assert.throws(()=>resolveAction(parse('eu all-in'),{...state,phase:'WAIT_BOARD'}));
  for(const field of ['folded','allIn'])assert.throws(()=>resolveAction(parse('eu all-in'),{...state,players:state.players.map(p=>p.hero?{...p,[field]:true}:p)}));
  for(const text of ['eu all-in dez','eu all-in e pago','eu all-in BB'])assert.throws(()=>parse(text));

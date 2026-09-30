@@ -11,23 +11,23 @@ function configPath(env = process.env) {
 }
 function validateConfig(raw = {}) {
   const provider = String(raw.provider || 'none').toLowerCase();
-  if (!['none', 'ollama'].includes(provider)) throw Error('Provedor local inválido.');
+  if (!['none', 'ollama'].includes(provider)) throw Error('Invalid local provider.');
   const model = String(raw.model || '').trim();
-  if (model && !/^[a-zA-Z0-9][a-zA-Z0-9._:/-]{0,127}$/.test(model)) throw Error('Nome do modelo inválido.');
+  if (model && !/^[a-zA-Z0-9][a-zA-Z0-9._:/-]{0,127}$/.test(model)) throw Error('Invalid model name.');
   let url;
-  try { url = new URL(String(raw.baseUrl || 'http://127.0.0.1:11434')); } catch { throw Error('Endpoint local inválido.'); }
+  try { url = new URL(String(raw.baseUrl || 'http://127.0.0.1:11434')); } catch { throw Error('Invalid local endpoint.'); }
   if (url.protocol !== 'http:' || !['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname)
-    || url.username || url.password || url.search || url.hash || url.pathname !== '/') throw Error('Use somente a origem HTTP local do Ollama, sem senha, caminho ou parâmetros.');
+    || url.username || url.password || url.search || url.hash || url.pathname !== '/') throw Error('Use only the local Ollama HTTP origin, without a password, path, or parameters.');
   const timeoutMs = Number(raw.timeoutMs ?? 45000);
-  if (!Number.isInteger(timeoutMs) || timeoutMs < 3000 || timeoutMs > 60000) throw Error('Timeout deve ficar entre 3000 e 60000 ms.');
+  if (!Number.isInteger(timeoutMs) || timeoutMs < 3000 || timeoutMs > 60000) throw Error('Timeout must be between 3000 and 60000 ms.');
   return { provider, model, baseUrl: url.origin, timeoutMs };
 }
 function readConfig(env = process.env, file = configPath(env)) {
   if (fs.existsSync(file)) {
     const text = fs.readFileSync(file, 'utf8');
-    if (text.length > 16000) throw Error('Configuração local excessiva; arquivo preservado.');
+    if (text.length > 16000) throw Error('Local configuration is too large; file preserved.');
     const raw = JSON.parse(text);
-    if (raw.schemaVersion !== 1) throw Error('Versão de configuração local inválida; arquivo preservado.');
+    if (raw.schemaVersion !== 1) throw Error('Invalid local configuration version; file preserved.');
     return { config: validateConfig(raw), source: 'FILE' };
   }
   return { config: validateConfig({ provider: env.THEIBS_LLM_PROVIDER || 'none', model: env.THEIBS_LLM_MODEL || '',
@@ -49,7 +49,7 @@ function publicState(selected = readConfig()) {
   const { config, source } = selected, key = configKey(config);
   return { config, source, availability: checks.get(key) || {
     state: config.provider === 'none' ? 'DISABLED' : 'NOT_CHECKED', checkedAt: null, probe: null, models: [],
-    reason: config.provider === 'none' ? 'Treinador local selecionado.' : 'Configuração salva; disponibilidade ainda não verificada.'
+    reason: config.provider === 'none' ? 'Local coach selected.' : 'Configuration saved; availability has not been checked.'
   }, lastInference: inferences.get(key) || null };
 }
 async function checkAvailability(selected = readConfig(), fetchImpl = fetch, timeoutMs = 4000) {
@@ -60,27 +60,27 @@ async function checkAvailability(selected = readConfig(), fetchImpl = fetch, tim
     const response = await fetchImpl(new URL('/api/tags', config.baseUrl), { signal: AbortSignal.timeout(timeoutMs), redirect: 'error' });
     if (!response.ok) throw Error(`HTTP ${response.status}`);
     const data = await response.json();
-    if (!Array.isArray(data.models)) throw Error('Resposta de modelos inválida.');
+    if (!Array.isArray(data.models)) throw Error('Invalid models response.');
     const models = data.models.map(item => String(item.name || item.model || '')).filter(name => /^[a-zA-Z0-9][a-zA-Z0-9._:/-]{0,127}$/.test(name));
     const installed = models.includes(config.model) || (!config.model.includes(':') && models.includes(`${config.model}:latest`));
     result = { state: config.provider === 'none' ? 'DISABLED' : installed ? 'AVAILABLE' : 'MODEL_MISSING', models,
-      reason: config.provider === 'none' ? 'Ollama respondeu; selecione e salve um modelo para utilizá-lo.' : installed
-        ? 'Ollama respondeu e o modelo está instalado. A geração de texto será verificada ao perguntar.' : 'Ollama respondeu, mas o modelo selecionado não está instalado.',
+      reason: config.provider === 'none' ? 'Ollama responded; select and save a model to use it.' : installed
+        ? 'Ollama responded and the model is installed. Text generation will be checked when you ask a question.' : 'Ollama responded, but the selected model is not installed.',
       serviceReachable: true };
   } catch (error) {
     result = { state: 'UNAVAILABLE', models: [], serviceReachable: false,
-      reason: error.name === 'TimeoutError' ? 'Ollama não respondeu à verificação em 4 segundos.' : 'Não foi possível acessar o Ollama local.' };
+      reason: error.name === 'TimeoutError' ? 'Ollama did not respond to the check within 4 seconds.' : 'Could not reach local Ollama.' };
   }
   checks.set(configKey(config), { ...result, checkedAt, probe: 'MODEL_LIST' });
   return publicState(selected);
 }
 async function startLocalServer(selected = readConfig()) {
   const config = validateConfig(selected.config);
-  if (!['http://127.0.0.1:11434', 'http://localhost:11434'].includes(config.baseUrl)) throw Error('Início automático disponível somente para o Ollama local na porta 11434.');
+  if (!['http://127.0.0.1:11434', 'http://localhost:11434'].includes(config.baseUrl)) throw Error('Automatic startup is available only for local Ollama on port 11434.');
   const current = await checkAvailability(selected, fetch, 500);
   if (current.availability.serviceReachable) return { ...current, start: 'ALREADY_RUNNING' };
   const executable = path.join(process.env.LOCALAPPDATA || '', 'Programs', 'Ollama', 'ollama.exe');
-  if (process.platform !== 'win32' || !process.env.LOCALAPPDATA || !fs.existsSync(executable)) throw Error('Ollama não encontrado na instalação local esperada.');
+  if (process.platform !== 'win32' || !process.env.LOCALAPPDATA || !fs.existsSync(executable)) throw Error('Ollama was not found in the expected local installation.');
   const { spawn } = require('node:child_process');
   await new Promise((resolve, reject) => {
     const child = spawn(executable, ['serve'], { windowsHide: true, detached: true, stdio: 'ignore',
@@ -94,7 +94,7 @@ async function startLocalServer(selected = readConfig()) {
     state = await checkAvailability(selected, fetch, 650);
     if (state.availability.serviceReachable) return { ...state, start: 'STARTED' };
   }
-  return { ...state, start: 'STARTING', reason: 'Processo iniciado, mas o serviço ainda não respondeu; verifique novamente em instantes.' };
+  return { ...state, start: 'STARTING', reason: 'Process started, but the service has not responded yet; check again shortly.' };
 }
 function runtimeConfig(env = process.env) {
   // Existing callers/tests may explicitly provide a legacy environment object.
@@ -105,8 +105,8 @@ function runtimeConfig(env = process.env) {
 async function chat(config, messages, { format, fetchImpl = fetch, maxTokens = 192, signal } = {}) {
   config = validateConfig(config);
   signal?.throwIfAborted();
-  if (config.provider !== 'ollama' || !config.model) throw Error('Escolha e salve um modelo local.');
-  if (inferenceBusy) { const error = Error('O modelo local já está respondendo outra pergunta.'); error.code = 'LLM_BUSY'; throw error; }
+  if (config.provider !== 'ollama' || !config.model) throw Error('Choose and save a local model.');
+  if (inferenceBusy) { const error = Error('The local model is already answering another question.'); error.code = 'LLM_BUSY'; throw error; }
   inferenceBusy = true;
   const started = performance.now(), key = configKey(config);
   const combinedSignal = signal ? AbortSignal.any([signal, AbortSignal.timeout(config.timeoutMs)]) : AbortSignal.timeout(config.timeoutMs);
@@ -120,13 +120,13 @@ async function chat(config, messages, { format, fetchImpl = fetch, maxTokens = 1
     if (!response.ok) throw Error(`Ollama HTTP ${response.status}`);
     const data = await response.json(), answer = String(data?.message?.content || '').trim();
     combinedSignal.throwIfAborted();
-    if (!answer) throw Error('O modelo retornou uma resposta vazia.');
+    if (!answer) throw Error('The model returned an empty response.');
     const inference = { state: 'SUCCEEDED', checkedAt: new Date().toISOString(), elapsedMs: performance.now() - started };
     inferences.set(key, inference);
     return { text: answer.slice(0, 6000), inference };
   } catch (error) {
     inferences.set(key, { state: signal?.aborted ? 'CANCELLED' : 'FAILED', checkedAt: new Date().toISOString(), elapsedMs: performance.now() - started,
-      reason: error.name === 'TimeoutError' ? `O modelo não concluiu em ${config.timeoutMs / 1000}s; pode estar carregando.` : 'A geração local falhou.' });
+      reason: error.name === 'TimeoutError' ? `The model did not finish within ${config.timeoutMs / 1000}s; it may still be loading.` : 'Local text generation failed.' });
     throw error;
   } finally { inferenceBusy = false; }
 }

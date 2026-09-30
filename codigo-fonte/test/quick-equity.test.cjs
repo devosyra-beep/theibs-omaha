@@ -14,9 +14,19 @@ for (const count of [4,5,6]) test(`equity-only PLO${count} works without a pot o
   assert.ok(result.equity.equity >= 0 && result.equity.equity <= 1);
   assert.equal(result.equity.confidenceInterval95.length,2);
   assert.deepEqual(result.warnings,[]);
-  assert.match(result.assumptions.join(' '),/mãos legais equiprováveis/);
+  assert.match(result.assumptions.join(' '),/legal hands equally likely/);
   assert.equal('ev' in result,false);
   assert.equal('recommendation' in result,false);
+  assert.equal(result.handInsights.made,null);
+});
+
+test('equity-only includes descriptive hand context on a completed board',()=>{
+  const result=calculateQuickEquity({variant:'PLO4_HIGH',heroCards:['As','Ah','2d','3c'],board:['Ad','Qh','Qs','Ks','4c'],
+    players:2,unknownOpponentModel:'UNIFORM',samples:50,seed:42});
+  assert.equal(result.status,'OK');
+  assert.equal(result.handInsights.made.label,'full house');
+  assert.ok(result.handInsights.nuts.strongerExamples.length>0);
+  assert.equal('ev' in result,false);
 });
 
 test('equity-only reports incomplete opponent coverage', () => {
@@ -24,7 +34,7 @@ test('equity-only reports incomplete opponent coverage', () => {
     position:'BTN',players:3,effectiveStack:100,opponentHands:[['2s','3h','4d','5c']],samples:50,seed:42});
   assert.equal(result.status,'OK');
   assert.equal(result.equity.opponents,1);
-  assert.match(result.warnings.join(' '),/cobertura parcial/);
+  assert.match(result.warnings.join(' '),/partial table coverage/);
 });
 
 test('adaptive quick equity exposes a wider interval when its time budget ends', () => {

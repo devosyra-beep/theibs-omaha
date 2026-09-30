@@ -39,7 +39,7 @@ function harness({release=async()=>{},availability='available',audioStarts=true}
 
 test('evaluation never opens the microphone until an explicit click and both browser consents',async()=>{
   const h=harness();assert.equal(h.instances.length,0);assert.equal(h.active(),false);
-  await h.start();assert.equal(h.instances.length,0);assert.match(h.$('status').textContent,/consentimento/);
+  await h.start();assert.equal(h.instances.length,0);assert.match(h.$('status').textContent,/consent/);
   h.$('consent').checked=true;await h.start();assert.equal(h.instances.length,0);
   h.$('remote').checked=true;await h.start();assert.equal(h.instances.length,1);assert.equal(h.active(),true);
 });
@@ -67,8 +67,8 @@ test('a hanging release or device check times out before capture and late resolu
 
 test('listening is announced only after native audio capture starts',async()=>{
   const h=harness({audioStarts:false});h.consent();await h.start();const rec=h.instances[0];
-  assert.doesNotMatch(h.$('status').textContent,/^Ouvindo/);h.advance(20);rec.onaudiostart();assert.match(h.$('status').textContent,/^Ouvindo/);
-  rec.onaudioend();assert.match(h.$('status').textContent,/Áudio encerrado/);rec.emit('ás de espadas');rec.end();assert.equal(h.status().total.timing.startupMs.p50,20);
+  assert.doesNotMatch(h.$('status').textContent,/^Listening/);h.advance(20);rec.onaudiostart();assert.match(h.$('status').textContent,/^Listening/);
+  rec.onaudioend();assert.match(h.$('status').textContent,/Audio capture ended/);rec.emit('ás de espadas');rec.end();assert.equal(h.status().total.timing.startupMs.p50,20);
 });
 
 test('partial results never score; a replayed final scores once without changing the actual hand',async()=>{
@@ -82,7 +82,7 @@ test('partial results never score; a replayed final scores once without changing
 test('cancel rejects late finals and keeps ownership until native end acknowledgment',async()=>{
   const h=harness();h.consent();await h.start();const rec=h.instances[0];h.$('cancel').click();
   assert.equal(rec.aborts,1);assert.equal(h.active(),true);assert.equal(h.status().total.cancellations,1);
-  rec.emit('ás de espadas');h.advance(3100);assert.equal(h.active(),true);assert.match(h.$('status').textContent,/Recarregue/);
+  rec.emit('ás de espadas');h.advance(3100);assert.equal(h.active(),true);assert.match(h.$('status').textContent,/Reload/);
   await h.start();assert.equal(h.instances.length,1);rec.end();assert.equal(h.active(),false);assert.equal(h.status().total.exact,0);
 });
 
@@ -101,7 +101,7 @@ test('timeout remains in accuracy denominator and never promotes a provisional c
 
 test('device mode checks availability and never falls back or installs',async()=>{
   const h=harness({availability:'downloadable'});h.$('consent').checked=true;h.$('processing').value='device';h.$('processing').fire('change');await h.start();
-  assert.equal(h.instances.length,0);assert.equal(h.status().total.startFailures,1);assert.match(h.$('status').textContent,/Nenhum pacote/);
+  assert.equal(h.instances.length,0);assert.equal(h.status().total.startFailures,1);assert.match(h.$('status').textContent,/No language package/);
   const ready=harness();ready.$('consent').checked=true;ready.$('processing').value='device';ready.$('processing').fire('change');await ready.start();
   assert.equal(ready.instances.length,1);assert.equal(ready.instances[0].processLocally,true);
 });

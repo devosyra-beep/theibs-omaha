@@ -36,7 +36,7 @@
       if(words.length===1 && Object.hasOwn(values,words[0]))return values[words[0]];
       if(words.length===3 && words[1]===joiner)words=[words[0],words[2]];
       if(words.length===2 && values[words[0]]>=20 && values[words[0]]%10===0 && values[words[1]]>=1 && values[words[1]]<=9)return values[words[0]]+values[words[1]];
-      throw Error('Número ambíguo. Diga o valor completo, sem arredondar ou juntar números.');
+      throw Error('Ambiguous number. Say the complete amount without rounding or combining numbers.');
     };
     const chunk = words => {
       if(!words.length)return 0;
@@ -44,34 +44,34 @@
       if(en && words[1]==='hundred' && values[words[0]]>=1 && values[words[0]]<=9){hundreds=100*values[words[0]];words=words.slice(2);}
       else if(!en && Object.hasOwn(HUNDREDS_PT,words[0])){
         const prefix=words[0];hundreds=HUNDREDS_PT[prefix];words=words.slice(1);
-        if(prefix==='cem' && words.length)throw Error('Use cento e... para valores acima de cem.');
-        if(prefix==='cento' && !words.length)throw Error('Complete o valor depois de cento.');
+        if(prefix==='cem' && words.length)throw Error('For amounts above one hundred, say “cento e…” in Portuguese.');
+        if(prefix==='cento' && !words.length)throw Error('Complete the amount after “cento”.');
       }
-      if(hundreds && words[0]===joiner){words=words.slice(1);if(!words.length)throw Error('Valor incompleto depois da conjunção.');}
+      if(hundreds && words[0]===joiner){words=words.slice(1);if(!words.length)throw Error('The amount is incomplete after the conjunction.');}
       return hundreds+(words.length?small(words):0);
     };
     const parts=text.split(' '), scale=en?'thousand':'mil', at=parts.indexOf(scale);
     if(at<0)return chunk(parts);
-    if(parts.lastIndexOf(scale)!==at)throw Error('Escala numérica repetida.');
+    if(parts.lastIndexOf(scale)!==at)throw Error('The number scale was repeated.');
     const thousands=at===0&&!en?1:chunk(parts.slice(0,at));
-    if(thousands<1||thousands>999)throw Error('Valor fora do intervalo de entrada.');
-    const rest=parts.slice(at+1);if(rest[0]===joiner){rest.shift();if(!rest.length)throw Error('Valor incompleto depois da conjunção.');}
+    if(thousands<1||thousands>999)throw Error('The amount is outside the supported range.');
+    const rest=parts.slice(at+1);if(rest[0]===joiner){rest.shift();if(!rest.length)throw Error('The amount is incomplete after the conjunction.');}
     return thousands*1000+chunk(rest);
   }
   function parseChips(text, locale = 'pt-BR') {
-    if(!['pt-BR','en-US'].includes(locale))throw Error('Escolha Português ou English.');
+    if(!['pt-BR','en-US'].includes(locale))throw Error('Choose Portuguese or English as the recognition language.');
     const input=String(text||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/(?<=[a-z])-(?=[a-z])/g,' ').replace(/\s+/g,' ').trim();
     const en=locale==='en-US', separator=en?'.':',';
     if(new RegExp(`^\\d{1,6}(?:\\${separator}\\d{1,2})?$`).test(input))return Number(input.replace(',','.'));
-    if(/[\d.,]/.test(input))throw Error(en?'Use an ungrouped value with at most two decimal places.':'Use valor sem separador de milhar e no máximo duas casas decimais.');
-    const parts=input.split(en?' point ':' virgula ');if(parts.length>2)throw Error('Separador decimal repetido.');
+    if(/[\d.,]/.test(input))throw Error('Use an ungrouped amount with at most two decimal places.');
+    const parts=input.split(en?' point ':' virgula ');if(parts.length>2)throw Error('The decimal separator was repeated.');
     const whole=spokenInteger(parts[0],locale);let cents=0;
     if(parts.length===2){
       const words=parts[1].split(' '),values=en?NUMBER_EN:NUMBER_PT;
       if(words.length<=2&&words.every(w=>Object.hasOwn(values,w)&&values[w]<10))cents=Number(words.map(w=>values[w]).join('').padEnd(2,'0'));
-      else {cents=spokenInteger(parts[1],locale);if(cents<10||cents>99)throw Error('Diga um ou dois dígitos decimais.');}
+      else {cents=spokenInteger(parts[1],locale);if(cents<10||cents>99)throw Error('Say one or two decimal digits.');}
     }
-    if(!Number.isInteger(whole)||whole<0||whole>999999)throw Error('Valor fora do intervalo de entrada.');
+    if(!Number.isInteger(whole)||whole<0||whole>999999)throw Error('The amount is outside the supported range.');
     return (whole*100+cents)/100;
   }
   const actionText = text => String(text||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/,(?!\d)|(?<!\d),/g,' ').replace(/[;:!?]/g,' ').replace(/\s+/g,' ').trim().replace(/\.$/,'');
@@ -92,22 +92,22 @@
       const rest=input.slice(opponent[0].length),word=rest.split(' ')[0],number=opponentNumber(word,locale);
       if(number!==null){actor={kind:'opponent',number};actorText=opponent[1]+' '+word;phrase=rest.slice(word.length).trim();}
       else if(!rest||Object.hasOwn(names,word)||allInPhrase(rest,en)){opponentMissing=true;actorText=opponent[1];phrase=rest;}
-      else throw Error('Identifique o adversário pelo número mostrado em ADV.');
+      else throw Error('Identify the opponent by the number shown at the table.');
     }
     if(!hero&&!opponent&&!Object.hasOwn(names,phrase.split(' ')[0])&&!allInPhrase(phrase,en))return null;
     const draft={actor,actorText,opponentMissing,action:null,actionWord:'',basis:null,rawValue:'',unitText:'',unit:'chips'};
     if(!phrase)return draft;
     if(allInPhrase(phrase,en))return {...draft,action:'ALL_IN',actionWord:phrase};
     const first=phrase.split(' ')[0],action=Object.hasOwn(names,first)?names[first]:null;
-    if(!action)throw Error('Diga uma ação: fold, check, call, bet, raise ou all-in.');
+    if(!action)throw Error('Say an action: fold, check, call, bet, raise, or all-in.');
     let rest=phrase.slice(first.length).trim();Object.assign(draft,{action,actionWord:first});
     if(['FOLD','CHECK','CALL'].includes(action)){
-      if(rest)throw Error(action==='CALL'?(en?'Say call without a value; the amount comes from the table.':'Diga pagar/call sem valor; o preço vem da mesa.'):'Fold/check não aceitam valor ou outra ação na mesma frase.');
+      if(rest)throw Error(action==='CALL'?'Say call without an amount; the price comes from the table.':'Fold and check cannot include an amount or another action in the same phrase.');
       return draft;
     }
     const basis=rest.match(en?/^(to|by)(?:\s+|$)/:/^(para|em)(?:\s+|$)/);
     if(basis){draft.basis=['to','para'].includes(basis[1])?'to':'by';rest=rest.slice(basis[0].length);}
-    if(action==='BET'&&draft.basis==='by')throw Error('Bet aceita um valor total; incremento exige raise/aumentar em.');
+    if(action==='BET'&&draft.basis==='by')throw Error('Bet uses a total amount; use raise by for an increment.');
     if(action==='BET')draft.basis='to';
     const unit=rest.match(/(?:^|\s)(chips?|fichas?|bbs?|big blinds?)$/);
     if(unit){draft.unitText=unit[1];draft.unit=/^(?:bb|big blind)/.test(unit[1])?'bb':'chips';rest=rest.slice(0,unit.index).trim();}
@@ -142,40 +142,40 @@
     return command;
   }
   function resolveAction(command,state) {
-    if(command?.type!=='action'||!state||state.phase!=='BETTING')throw Error('Ações por voz exigem uma rodada de apostas ativa no Multiway.');
+    if(command?.type!=='action'||!state||state.phase!=='BETTING')throw Error('Voice actions require an active Multiway betting round.');
     const players=state.players||[];
     const player=command.actor?.kind==='hero'?players.find(p=>p.id===state.heroId)
       :command.actor?.kind==='opponent'&&Number.isInteger(command.actor.number)?players.filter(p=>!p.hero)[command.actor.number-1]:null;
-    if(!player)throw Error('Esse jogador não existe nesta mesa.');
-    if(player.folded||player.allIn)throw Error('Esse jogador não pode agir neste estado.');
-    if(player.id!==state.actor)throw Error('Não é a vez desse jogador. Nada foi registrado.');
+    if(!player)throw Error('That player is not at this table.');
+    if(player.folded||player.allIn)throw Error('That player cannot act in the current state.');
+    if(player.id!==state.actor)throw Error('It is not that player’s turn. Nothing was recorded.');
     const money=value=>Number.isFinite(value)&&value>=0&&Math.abs(value*100-Math.round(value*100))<=1e-7;
     let action=command.action,to=command.to;
     if(action==='ALL_IN'){
-      if(command.to!==undefined||command.by!==undefined||command.unit!==undefined)throw Error('All-in usa somente o stack observado, sem valor ou unidade adicional.');
-      if(!money(player.stack)||player.stack<=0||!money(player.streetPaid))throw Error('Stack/contribuição do jogador indisponíveis para all-in.');
+      if(command.to!==undefined||command.by!==undefined||command.unit!==undefined)throw Error('All-in uses the observed stack without an additional amount or unit.');
+      if(!money(player.stack)||player.stack<=0||!money(player.streetPaid))throw Error('The player’s stack or contribution is unavailable for all-in.');
       if(state.legal?.actions?.includes('CALL')&&money(state.legal.toCall)&&Math.abs(state.legal.toCall-player.stack)<1e-9)action='CALL';
       else{
-        if(!money(state.currentBet))throw Error('Aposta atual indisponível para all-in.');
+        if(!money(state.currentBet))throw Error('The current bet is unavailable for all-in.');
         action=state.currentBet>0?'RAISE':'BET';to=Math.round((player.streetPaid+player.stack)*100)/100;
       }
     } else if(command.by!==undefined){
-      if(action!=='RAISE'||command.to!==undefined||!money(state.currentBet)||!money(command.by)||command.by<=0)throw Error('Incremento inválido ou aposta atual indisponível.');
+      if(action!=='RAISE'||command.to!==undefined||!money(state.currentBet)||!money(command.by)||command.by<=0)throw Error('Invalid raise increment or unavailable current bet.');
       to=command.by;
     }
-    if(command.unit!==undefined&&!['chips','bb'].includes(command.unit))throw Error('Unidade inválida: use fichas/chips ou BB.');
+    if(command.unit!==undefined&&!['chips','bb'].includes(command.unit))throw Error('Invalid unit: use chips or BB.');
     if(command.unit==='bb'){
-      if(!['BET','RAISE'].includes(action)||!money(state.bigBlind)||state.bigBlind<=0||!money(to))throw Error('Big blind ou valor indisponível para conversão.');
+      if(!['BET','RAISE'].includes(action)||!money(state.bigBlind)||state.bigBlind<=0||!money(to))throw Error('Big blind or amount unavailable for conversion.');
       to*=state.bigBlind;
     }
     if(command.by!==undefined)to+=state.currentBet;
-    if(!state.legal?.actions?.includes(action))throw Error('A ação não é legal neste estado da mesa.');
+    if(!state.legal?.actions?.includes(action))throw Error('This action is not legal in the current table state.');
     if(['BET','RAISE'].includes(action)){
-      if(!Number.isFinite(state.legal.minTo)||!Number.isFinite(state.legal.maxTo))throw Error('Limites legais da aposta indisponíveis.');
-      if(!Number.isFinite(to)||to<state.legal.minTo-1e-9||to>state.legal.maxTo+1e-9)throw Error(`Use total entre ${state.legal.minTo} e ${state.legal.maxTo} fichas nesta street.`);
-      if(!money(to))throw Error('Use no máximo duas casas decimais de fichas.');
+      if(!Number.isFinite(state.legal.minTo)||!Number.isFinite(state.legal.maxTo))throw Error('Legal bet limits are unavailable.');
+      if(!Number.isFinite(to)||to<state.legal.minTo-1e-9||to>state.legal.maxTo+1e-9)throw Error(`Use a total between ${state.legal.minTo} and ${state.legal.maxTo} chips this street.`);
+      if(!money(to))throw Error('Use at most two decimal places for chips.');
       to=Math.round(to*100)/100;
-    } else if(command.to!==undefined||command.by!==undefined||command.unit!==undefined)throw Error('Essa ação não aceita valor ou unidade.');
+    } else if(command.to!==undefined||command.by!==undefined||command.unit!==undefined)throw Error('This action does not accept an amount or unit.');
     return {actor:player.id,action,...(['BET','RAISE'].includes(action)?{to}:{})};
   }
   function cardsFrom(text, locale) {
@@ -185,22 +185,22 @@
     while (i < words.length) {
       if (cards.length && words[i] === (english ? 'and' : 'e')) i++;
       const rankWord = words[i++], rank = Object.hasOwn(ranks,rankWord) ? ranks[rankWord] : null;
-      if (!rank) throw Error('Valor da carta não reconhecido. Diga, por exemplo, ás de espadas.');
+      if (!rank) throw Error(english ? 'Card rank not recognized. Say, for example, “ace of spades”.' : 'Card rank not recognized. Say, for example, “ás de espadas”.');
       if (words[i] === (english ? 'of' : 'de')) i++;
       const suitWord = words[i++], suit = Object.hasOwn(suits,suitWord) ? suits[suitWord] : null;
-      if (!suit) throw Error('Naipe ausente ou ambíguo. Use espadas, copas, ouros ou paus.');
+      if (!suit) throw Error(english ? 'Suit missing or ambiguous. Use spades, hearts, diamonds, or clubs.' : 'Suit missing or ambiguous. Use “espadas”, “copas”, “ouros”, or “paus”.');
       cards.push(rank + suit);
     }
-    if (!cards.length) throw Error('Diga pelo menos uma carta completa.');
-    if (new Set(cards).size !== cards.length) throw Error('A frase contém a mesma carta duas vezes.');
+    if (!cards.length) throw Error('Say at least one complete card.');
+    if (new Set(cards).size !== cards.length) throw Error('The phrase contains the same card twice.');
     return cards;
   }
   function parse(text, locale = 'pt-BR') {
-    if (!['pt-BR', 'en-US'].includes(locale)) throw Error('Escolha Português ou English.');
-    if(String(text||'').length>800)throw Error('Frase longa demais. Dite uma entrada por vez.');
+    if (!['pt-BR', 'en-US'].includes(locale)) throw Error('Choose Portuguese or English as the recognition language.');
+    if(String(text||'').length>800)throw Error('Phrase too long. Say one entry at a time.');
     const action=parseAction(text,locale);if(action)return action;
     const input = normalize(text);
-    if (!input || input.length > 800) throw Error('Frase vazia ou longa demais. Dite um lote de cartas.');
+    if (!input || input.length > 800) throw Error('Phrase empty or too long. Say a batch of cards.');
     const english = locale === 'en-US', targets = english ? EN_TARGETS : TARGETS;
     if (input === (english ? 'cancel' : 'cancelar')) return { type: 'cancel' };
     if (input === (english ? 'undo' : 'desfazer')) return { type: 'undo' };
@@ -209,15 +209,15 @@
       : /^(selecionar|corrigir) carta (\S+)(?: (?:da|do) (mao|board|mesa))?(?: para (.+))?$/);
     if (match) {
       const index = (english ? EN_ORDINALS : ORDINALS)[match[2]];
-      if (index === undefined) throw Error('Use posições de um a seis.');
+      if (index === undefined) throw Error('Use card positions one through six.');
       const target = match[3] ? targets[match[3]] : 'selectedScope';
       if (match[1] === (english ? 'select' : 'selecionar') && !match[4]) return { type: 'select', target, index };
       if (match[1] === (english ? 'correct' : 'corrigir') && match[4]) {
         const cards = cardsFrom(match[4], locale);
-        if (cards.length !== 1) throw Error('Uma correção aceita exatamente uma carta.');
+        if (cards.length !== 1) throw Error('A correction accepts exactly one card.');
         return { type: 'correct', target, index, card: cards[0] };
       }
-      throw Error('Use selecionar carta três ou corrigir carta três para dama de ouros.');
+      throw Error(english ? 'Say “select card three” or “correct card three to queen of diamonds”.' : 'Say “selecionar carta três” or “corrigir carta três para dama de ouros”.');
     }
     for (const name of Object.keys(targets)) {
       if (input === name) return { type: 'target', target: targets[name] };
@@ -232,10 +232,10 @@
       amount:'What is the amount? Use chips or explicit BB.',amountTail:'Finish the amount after the words already spoken.',
       suit:'Which suit: spades, hearts, diamonds or clubs?',rank:'Which card rank: ace, two through ten, jack, queen or king?'
     }:{
-      actor:'Quem agiu? Diga eu ou adversário e o número ADV.',opponentNumber:'Qual adversário? Diga o número ADV.',
-      action:'Qual ação: fold, check, call, bet, raise ou all-in?',raiseBasis:'Aumentar para o total ou em um incremento? Diga para ou em e o valor, se faltar.',
-      amount:'Qual o valor? Use fichas ou BB explícito.',amountTail:'Complete o valor depois das palavras já ditas.',
-      suit:'Qual o naipe: espadas, copas, ouros ou paus?',rank:'Qual o valor da carta: ás, dois a dez, valete, dama ou rei?'
+      actor:'Who acted? Say “eu” or “adversário” and its table number.',opponentNumber:'Which opponent? Say the number shown at the table.',
+      action:'Which action? Say fold, check, call, bet, raise, or all-in.',raiseBasis:'Raise to a total or by an increment? Say “para” or “em”, then the amount if needed.',
+      amount:'What is the amount? Use chips or explicit BB.',amountTail:'Complete the amount after the words already spoken.',
+      suit:'Which suit? Say “espadas”, “copas”, “ouros”, or “paus”.',rank:'Which rank? Say “ás”, “dois” through “dez”, “valete”, “dama”, or “rei”.'
     };
     return prompts[missing];
   }
@@ -268,10 +268,10 @@
   }
   function completeClarification(pending,text,locale=pending?.locale) {
     const failure=message=>({command:null,clarification:pending||null,error:message});
-    if(!pending||pending.kind!=='voice-clarification'||pending.version!==1||typeof pending.source!=='string')return failure('Esclarecimento inválido. Dite o comando novamente.');
-    if(locale!==pending.locale)return failure('O idioma mudou. Dite o comando novamente.');
+    if(!pending||pending.kind!=='voice-clarification'||pending.version!==1||typeof pending.source!=='string')return failure('Invalid follow-up. Say the command again.');
+    if(locale!==pending.locale)return failure('The recognition language changed. Say the command again.');
     const verified=getClarification(pending.source,locale);
-    if(!verified||verified.missing!==pending.missing)return failure('Esclarecimento inválido ou já completo. Dite o comando novamente.');
+    if(!verified||verified.missing!==pending.missing)return failure('Invalid or already completed follow-up. Say the command again.');
     if(typeof text!=='string'||!text.trim()||text.length>800)return failure(clarificationPrompt(pending.missing,locale));
     const en=locale==='en-US',reply=actionText(text);
     if(reply===(en?'cancel':'cancelar'))return {command:{type:'cancel'},clarification:null,error:null};
@@ -290,7 +290,7 @@
       else if(pending.missing==='raiseBasis'){
         const basis=reply.match(en?/^(to|by)(?:\s+|$)/:/^(para|em)(?:\s+|$)/);
         if(!basis)throw Error(clarificationPrompt('raiseBasis',locale));
-        if(draft.rawValue&&reply.slice(basis[0].length).trim())throw Error(en?'The value is already known; say only to or by.':'O valor já foi informado; diga somente para ou em.');
+        if(draft.rawValue&&reply.slice(basis[0].length).trim())throw Error(en?'The amount is already known; say only “to” or “by”.':'The amount is already known; say only “para” or “em”.');
         combined=[actorPrefix,reply,draft.rawValue,draft.unitText].filter(Boolean).join(' ');
       }else if(pending.missing==='amount'||pending.missing==='amountTail'){
         combined=[actorPrefix,basisWord,pending.missing==='amountTail'?draft.rawValue:'',reply,draft.unitText].filter(Boolean).join(' ');
@@ -302,7 +302,7 @@
         const rank=normalize(text),gap=cardGap(pending.source,locale);
         if(!Object.hasOwn(en?EN_RANKS:RANKS,rank))throw Error(clarificationPrompt('rank',locale));
         combined=[gap.prefix,rank,en?'of':'de',gap.suit].filter(Boolean).join(' ');
-      }else throw Error('Esclarecimento inválido.');
+      }else throw Error('Invalid follow-up.');
       try{return {command:parse(combined,locale),clarification:null,error:null};}
       catch(error){
         const clarification=getClarification(combined,locale);
@@ -322,22 +322,22 @@
     reject(message) { this.error = message; this.phase = 'rejected'; this.proposal = null; this.proposalEnd = null; }
     accept(id, index, text, final) {
       if (id !== this.id || this.phase !== 'listening') return false;
-      if (!Number.isInteger(index) || index < 0 || index > 100 || (this.resultCount !== null && index >= this.resultCount)) { this.reject('Segmento de voz fora do intervalo. Dite novamente.'); return false; }
+      if (!Number.isInteger(index) || index < 0 || index > 100 || (this.resultCount !== null && index >= this.resultCount)) { this.reject('Speech segment is out of range. Say the command again.'); return false; }
       text = String(text);
       const old = this.segments.get(index);
       if (old?.final) {
-        if (old.text !== text || !final) this.reject('O reconhecedor alterou um segmento final. Dite novamente.');
+        if (old.text !== text || !final) this.reject('The recognizer changed a final segment. Say the command again.');
         return false;
       }
       this.segments.set(index, { text, final: Boolean(final) }); return true;
     }
     reconcileResultCount(id, count) {
       if (id !== this.id || this.phase !== 'listening') return false;
-      if (!Number.isInteger(count) || count < 0 || count > 101) { this.reject('Quantidade de segmentos de voz inválida. Dite novamente.'); return false; }
+      if (!Number.isInteger(count) || count < 0 || count > 101) { this.reject('Invalid speech segment count. Say the command again.'); return false; }
       // SpeechRecognitionEvent.results is a snapshot: a provider can merge or
       // remove provisional results. Final segments must never disappear.
       for (const [index, segment] of this.segments) if (index >= count) {
-        if (segment.final) { this.reject('O reconhecedor removeu um segmento final. Dite novamente.'); return false; }
+        if (segment.final) { this.reject('The recognizer removed a final segment. Say the command again.'); return false; }
         this.segments.delete(index);
       }
       this.resultCount = count;
@@ -350,23 +350,23 @@
     finish(id, context, parseCommand = parse) { return this.prepare(id, context, true, parseCommand); }
     prepare(id, context, finishing, parseCommand = parse) {
       if (id !== this.id || this.phase !== 'listening') return null;
-      if (token(context) !== this.context) { this.reject('O contexto mudou. Nenhuma entrada pendente foi aplicada.'); return null; }
+      if (token(context) !== this.context) { this.reject('The table context changed. No pending entry was applied.'); return null; }
       if (this.error) return null;
       const segments = [...this.segments].sort((a, b) => a[0] - b[0]);
       if (segments.some(([, s]) => !s.final)) {
-        if (finishing) this.reject('A fala ficou incompleta. Dite novamente.');
+        if (finishing) this.reject('The phrase is incomplete. Say it again.');
         return null;
       }
-      if ((this.resultCount !== null && segments.length !== this.resultCount) || segments.some(([index], i) => index !== i)) { this.reject('Faltou um segmento da frase. Dite novamente.'); return null; }
+      if ((this.resultCount !== null && segments.length !== this.resultCount) || segments.some(([index], i) => index !== i)) { this.reject('A phrase segment is missing. Say the command again.'); return null; }
       if (!this.hasPending()) {
         if (finishing) {
           if (this.cursor) this.phase = 'finished';
-          else this.reject('A fala ficou incompleta. Dite novamente.');
+          else this.reject('The phrase is incomplete. Say it again.');
         }
         return null;
       }
       const pending = segments.slice(this.cursor);
-      if (pending.some(([, s]) => !s.text.trim())) { this.reject('O serviço do navegador devolveu texto vazio. Confira idioma, microfone e disponibilidade do serviço; nenhum lote foi aplicado.'); return null; }
+      if (pending.some(([, s]) => !s.text.trim())) { this.reject('The browser speech service returned empty text. Check the recognition language, microphone, and service availability; no batch was applied.'); return null; }
       try {
         this.proposal = parseCommand(pending.map(([, s]) => s.text).join(', '), context.locale);
         this.proposalEnd = segments.length; this.phase = 'review'; return this.proposal;

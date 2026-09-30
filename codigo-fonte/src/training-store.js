@@ -9,7 +9,7 @@ function appendEvent(event, filePath = DEFAULT_PATH) {
 
 function appendEvents(events, filePath = DEFAULT_PATH) {
   if (!Array.isArray(events) || !events.length || events.some(event => !event || typeof event !== 'object' || !['DECISION', 'DOUBT', 'HAND_COMPLETE', 'IMPORT', 'OBSERVED_HAND'].includes(event.type))) {
-    throw new Error('Evento de treino inválido.');
+    throw new Error('Invalid training event.');
   }
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
   fs.appendFileSync(filePath, events.map(event => JSON.stringify({ ...event, timestamp: event.timestamp || new Date().toISOString() }) + '\n').join(''), 'utf8');
@@ -106,7 +106,7 @@ function trainingDecisionQuality(result, chosenAction, chosenSize) {
   const aggressive = ['BET', 'RAISE'].includes(chosenAction);
   const chosen = candidates.find(option => option.action === chosenAction && (!aggressive ||
     (chosenSize != null && Number.isFinite(Number(chosenSize)) && Math.abs(option.size - Number(chosenSize)) < 1e-8)));
-  if (!legal.includes(chosenAction) || !chosen) return { label: 'UNVERIFIED', evLoss: null, reason: 'Ação ou tamanho escolhido não foi avaliado.' };
+  if (!legal.includes(chosenAction) || !chosen) return { label: 'UNVERIFIED', evLoss: null, reason: 'The chosen action or size was not evaluated.' };
   if (!legal.every(action => candidates.some(option => option.action === action)) ||
     new Set(candidates.map(option => option.optionId)).size !== candidates.length ||
     candidates.some(option => !legal.includes(option.action) || !Number.isFinite(option.ev) ||
@@ -274,7 +274,7 @@ function opponentTendencies(events, style) {
     opportunities: n, observedBets: bets,
     smoothedBetRate: n ? (bets + 2) / (n + 4) : null,
     prior: 'Beta(2,2)', confidence: n >= 30 ? 'MEDIUM' : 'LOW',
-    warning: `Taxa descritiva do simulador ${policyVersion}; não é previsão calibrada de um jogador real. Versões anteriores não são misturadas.`
+    warning: `Descriptive simulator rate for ${policyVersion}; this is not a calibrated prediction of a real player. Earlier versions are not combined.`
   };
 }
 

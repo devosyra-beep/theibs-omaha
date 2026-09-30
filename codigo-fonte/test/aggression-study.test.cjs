@@ -39,7 +39,7 @@ test('BTN versus SB/BB compares fold, call and the stated raise under explicit a
   near(d.potMath.potAfterCall, 3);
   near(d.potMath.potOdds, 1 / 3);
   assert.equal(d.scenarioSummary.source, 'EXPLICIT_INDEPENDENT_UNIFORM_HYPOTHESIS');
-  assert.match(d.scenarioSummary.assumptions.join(' '), /independente.*cartas/);
+  assert.match(d.scenarioSummary.assumptions.join(' '), /independent.*cards/);
   const byCount = d.scenarioSummary.equitiesByCallerCount;
   assert.deepEqual(byCount.map(x => x.callers), [1, 2]);
   for (const branch of raise.scenarioBreakdown.filter(b => b.callers.length)) {
@@ -117,12 +117,12 @@ test('invalid contributions, probabilities and player counts are rejected before
 
 test('study hypotheses require consent and uniform ranges for every opponent', () => {
   const input = buttonBlinds(); input.aggressionStudy.assumptionsAccepted = false;
-  assert.throws(() => studySettings(input, uniformModel()), /premissas/);
+  assert.throws(() => studySettings(input, uniformModel()), /assumptions/);
   assert.equal(decide(input).status, 'NO_DECISION');
   input.aggressionStudy.assumptionsAccepted = true;
   input.opponentHands = [['2s', '3s', '4s', '5s', '6s', '7s']];
   assert.equal(decide(input).status, 'NO_DECISION');
-  assert.throws(() => studySettings(input, { ranges: [{ kind: 'UNIFORM' }, { kind: 'EXPLICIT' }] }), /aleatórias/);
+  assert.throws(() => studySettings(input, { ranges: [{ kind: 'UNIFORM' }, { kind: 'EXPLICIT' }] }), /random hands/);
 });
 
 test('study sizes must respect the explicit minimum, pot limit and remaining stack', () => {
@@ -147,10 +147,10 @@ test('opening bets require a legal minimum and compare to check under the same s
   Object.assign(input, { amountToCall: 0, potBeforeAction: 10, betSize: 2 });
   input.aggressionStudy.opponents.forEach(o => o.contribution = 0);
   delete input.aggressionStudy.minBet;
-  assert.throws(() => studySettings(input, uniformModel()), /mínim|minBet/i);
+  assert.throws(() => studySettings(input, uniformModel()), /minimum|minBet/i);
   input.aggressionStudy.minBet = 1;
   input.betSize = 0.5;
-  assert.throws(() => studySettings(input, uniformModel()), /mínim|minBet/i);
+  assert.throws(() => studySettings(input, uniformModel()), /minimum|minBet/i);
   input.betSize = 2;
   const d = decide(input);
   assert.equal(d.status, 'OK', d.reason);

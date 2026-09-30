@@ -17,9 +17,9 @@ function outcomeRates(winsIncludingTies, ties, samples) {
 
 function integerOption(value, fallback, min, max, label) {
   const raw = value === undefined ? fallback : value;
-  if (!['number', 'string'].includes(typeof raw) || (typeof raw === 'string' && !raw.trim())) throw Error(`${label} deve ser um inteiro entre ${min} e ${max}.`);
+  if (!['number', 'string'].includes(typeof raw) || (typeof raw === 'string' && !raw.trim())) throw Error(`${label} must be an integer between ${min} and ${max}.`);
   const number = Number(raw);
-  if (!Number.isSafeInteger(number) || number < min || number > max) throw Error(`${label} deve ser um inteiro entre ${min} e ${max}.`);
+  if (!Number.isSafeInteger(number) || number < min || number > max) throw Error(`${label} must be an integer between ${min} and ${max}.`);
   return number;
 }
 
@@ -104,10 +104,10 @@ function sampleRangeIds(range,rng) {
 
 function monteCarloEquity(input) {
   const started=performance.now();
-  if (input.samplingMode !== undefined && !['FIXED', 'ADAPTIVE'].includes(input.samplingMode)) throw Error('samplingMode deve ser FIXED ou ADAPTIVE.');
+  if (input.samplingMode !== undefined && !['FIXED', 'ADAPTIVE'].includes(input.samplingMode)) throw Error('samplingMode must be FIXED or ADAPTIVE.');
   const adaptive=input.samplingMode==='ADAPTIVE';
   const budget=input.adaptiveBudget ?? {};
-  if (typeof budget !== 'object' || Array.isArray(budget)) throw Error('adaptiveBudget deve ser um objeto.');
+  if (typeof budget !== 'object' || Array.isArray(budget)) throw Error('adaptiveBudget must be an object.');
   const maxSamples=integerOption(budget.maxSamples,500000,256,500000,'adaptiveBudget.maxSamples');
   const timeBudgetMs=integerOption(budget.timeBudgetMs,2000,1,2000,'adaptiveBudget.timeBudgetMs');
   fast.initialize();
@@ -223,7 +223,7 @@ function monteCarloEquity(input) {
 function calculateEquity(input) {
   if (Array.isArray(input.opponentHands) && input.opponentHands.length > 0) {
     const boardLength = Array.isArray(input.board) ? input.board.length : 0;
-    // Pré-flop has too many exact runouts for a responsive live workflow.
+    // Preflop has too many exact runouts for a responsive live workflow.
     if (boardLength < 3) {
       return monteCarloEquity({
         ...input,

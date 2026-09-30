@@ -7,40 +7,40 @@ const WORKSPACE_PATH = process.env.THEIBS_WORKSPACE_PATH || path.join(path.dirna
 
 function validateSimpleBackup(backup) {
   if (backup == null) return;
-  if (typeof backup !== 'object' || Array.isArray(backup)) throw new Error('Backup do modo Simples inválido. O arquivo foi preservado.');
+  if (typeof backup !== 'object' || Array.isArray(backup)) throw new Error('Invalid Simple mode backup. The file was preserved.');
   const cards = new CardKeyboardState();
-  if (!cards.restore(backup.keyboard)) throw new Error('Cartas do backup do modo Simples inválidas: ' + cards.error);
-  if (!backup.fields || typeof backup.fields !== 'object' || Array.isArray(backup.fields)) throw new Error('Configurações do backup do modo Simples inválidas.');
+  if (!cards.restore(backup.keyboard)) throw new Error('Invalid cards in Simple mode backup: ' + cards.error);
+  if (!backup.fields || typeof backup.fields !== 'object' || Array.isArray(backup.fields)) throw new Error('Invalid Simple mode backup settings.');
 }
 
 function readWorkspace(file = WORKSPACE_PATH) {
   if (!fs.existsSync(file)) return { revision: 0, workspace: null };
   const text = fs.readFileSync(file, 'utf8');
-  if (Buffer.byteLength(text) > 512000) throw new Error('Arquivo de rascunho excede o limite. O arquivo foi preservado.');
+  if (Buffer.byteLength(text) > 512000) throw new Error('Draft file exceeds the size limit. The file was preserved.');
   const stored = JSON.parse(text);
-  if (!Number.isInteger(stored.revision) || stored.revision < 0) throw new Error('Revisão do rascunho inválida. O arquivo foi preservado.');
+  if (!Number.isInteger(stored.revision) || stored.revision < 0) throw new Error('Invalid draft revision. The file was preserved.');
   if (stored.workspace?.multiway != null) require('./multiway-session').validateRecord(stored.workspace.multiway);
   validateSimpleBackup(stored.workspace?.multiwaySimple);
   return stored;
 }
 function validateWorkspace(workspace) {
-  if (!workspace || typeof workspace !== 'object' || Array.isArray(workspace) || workspace.schemaVersion !== 1) throw new Error('Formato de rascunho não suportado.');
+  if (!workspace || typeof workspace !== 'object' || Array.isArray(workspace) || workspace.schemaVersion !== 1) throw new Error('Unsupported draft format.');
   const cards = new CardKeyboardState();
   if (!cards.restore(workspace.keyboard)) throw new Error(cards.error);
-  if (!workspace.fields || typeof workspace.fields !== 'object' || Array.isArray(workspace.fields)) throw new Error('Configurações inválidas.');
-  if (!workspace.ui || !['roxo', 'verde', 'azul', 'preto'].includes(workspace.ui.felt) || !['classico', 'cores'].includes(workspace.ui.deck)) throw new Error('Preferências visuais inválidas.');
-  if (!Array.isArray(workspace.snapshots) || workspace.snapshots.length > 4) throw new Error('Snapshot de análises inválido.');
+  if (!workspace.fields || typeof workspace.fields !== 'object' || Array.isArray(workspace.fields)) throw new Error('Invalid settings.');
+  if (!workspace.ui || !['roxo', 'verde', 'azul', 'preto'].includes(workspace.ui.felt) || !['classico', 'cores'].includes(workspace.ui.deck)) throw new Error('Invalid visual preferences.');
+  if (!Array.isArray(workspace.snapshots) || workspace.snapshots.length > 4) throw new Error('Invalid analysis snapshot.');
   if (workspace.handFlow) require('./hand-flow').replay(workspace.handFlow.config,workspace.handFlow.events);
   if (workspace.multiway != null) require('./multiway-session').validateRecord(workspace.multiway);
   validateSimpleBackup(workspace.multiwaySimple);
-  if (Buffer.byteLength(JSON.stringify(workspace)) > 480000) throw new Error('Rascunho muito grande.');
+  if (Buffer.byteLength(JSON.stringify(workspace)) > 480000) throw new Error('Draft is too large.');
   return workspace;
 }
 function saveWorkspace(workspace, expectedRevision, file = WORKSPACE_PATH) {
   validateWorkspace(workspace);
   const previous = readWorkspace(file);
   if (!Number.isInteger(expectedRevision) || previous.revision !== expectedRevision) {
-    const error = new Error('O rascunho mudou em outra janela. Recarregue antes de salvar; nenhum dado foi sobrescrito.');
+    const error = new Error('The draft changed in another window. Reload before saving; no data was overwritten.');
     error.statusCode = 409; throw error;
   }
   const stored = { revision: previous.revision + 1, updatedAt: new Date().toISOString(), workspace };

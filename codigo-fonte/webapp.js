@@ -34,12 +34,12 @@ server.once('error', async error => {
       if (response.ok) { openBrowser(origin); process.exit(0); }
     } catch {}
   }
-  console.error(`THEIBS não iniciou: ${error.message}`);
+  console.error(`THEIBS failed to start: ${error.message}`);
   process.exitCode = 1;
 });
 
 server.listen(port, '127.0.0.1', () => {
-  console.log(`THEIBS WebApp disponível em ${origin}`);
+  console.log(`THEIBS WebApp available at ${origin}`);
   console.log(`Dados locais em ${dataRoot}`);
   console.log('Mantenha esta janela aberta. Pressione Ctrl+C para encerrar.');
   openBrowser(origin);

@@ -29,9 +29,18 @@ function describeHand(heroInput,boardInput=[]) {
   if(made.categoryRank<4&&[4,8].includes(next.categoryRank))straightCards.push(card.code);
  }
  let nuts=null;
- if(made){let stronger=0,tied=0;
-  for(const pair of combinations(unseen,2)){const other=bestCurrent(pair,board),cmp=compareScores(other.score,made.score);if(cmp>0)stronger++;else if(cmp===0)tied++;}
-  nuts={unbeaten:stronger===0,strongerPrivatePairs:stronger,tiedPrivatePairs:tied,scope:board.length===5?'river':'current board, without predicting future cards'};
+ if(made){let stronger=0,tied=0;const representatives=new Map();
+  for(const pair of combinations(unseen,2)){
+   const other=bestCurrent(pair,board),cmp=compareScores(other.score,made.score);
+   if(cmp>0){
+    stronger++;
+    const previous=representatives.get(other.categoryRank);
+    if(!previous||compareScores(other.score,previous.score)>0)
+     representatives.set(other.categoryRank,{score:other.score,label:other.label,privateCards:pair.map(card=>card.code)});
+   }else if(cmp===0)tied++;
+  }
+  const strongerExamples=[...representatives.entries()].sort((a,b)=>b[0]-a[0]).map(([,item])=>({label:item.label,privateCards:item.privateCards}));
+  nuts={unbeaten:stronger===0,strongerPrivatePairs:stronger,tiedPrivatePairs:tied,strongerExamples,scope:board.length===5?'river':'current board, without predicting future cards'};
  }
  const drawSet=[...new Set([...flushCards,...straightCards])];
  return {version:'HAND_INSIGHTS_V1',made,privatePairs:Object.entries(ranks).filter(([,n])=>n>=2).map(([rank,count])=>({rank,count})),suited,blockers,nuts,

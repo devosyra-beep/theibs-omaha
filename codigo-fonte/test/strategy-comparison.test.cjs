@@ -87,7 +87,7 @@ test('exact equity and complete action values do not imply validated optimal str
   assert.equal(result.leadership.status, 'MISSING_BOUNDS');
   assert.equal(result.score, null);
   assert.equal(result.optimalityScope, 'EVALUATED_ACTIONS_AND_SIZES_UNDER_ASSUMPTIONS');
-  assert.match(result.warnings.join(' '), /não é uma solução de solver/);
+  assert.match(result.warnings.join(' '), /not a solver solution/);
 });
 
 test('an exact EV tie is exposed instead of implying a unique strategic choice', () => {

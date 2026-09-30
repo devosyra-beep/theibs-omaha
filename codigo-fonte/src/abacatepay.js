@@ -7,19 +7,19 @@ const DEFAULT_HMAC_KEY = 't9dXRhHHo3yDEj5pVDYz0frf7q6bMKyMRmxxCPIPp3RCplBfXRxqlC
 
 function required(env, name) {
   const value = String(env[name] || '').trim();
-  if (!value) throw new Error(`${name} ausente no servidor.`);
+  if (!value) throw new Error(`${name} is missing on the server.`);
   return value;
 }
 
 function safePublicOrigin(env) {
   const value = required(env, 'THEIBS_PUBLIC_ORIGIN').replace(/\/+$/, '');
   const url = new URL(value);
-  if (url.protocol !== 'https:' && !['localhost', '127.0.0.1'].includes(url.hostname)) throw new Error('THEIBS_PUBLIC_ORIGIN deve usar HTTPS.');
+  if (url.protocol !== 'https:' && !['localhost', '127.0.0.1'].includes(url.hostname)) throw new Error('THEIBS_PUBLIC_ORIGIN must use HTTPS.');
   return url.origin;
 }
 
 async function createPaymentCheckout(user, env = process.env, fetchImpl = fetch) {
-  if (!user?.id) throw new Error('Usuário autenticado ausente.');
+  if (!user?.id) throw new Error('Authenticated user is missing.');
   const apiKey = required(env, 'ABACATEPAY_API_KEY');
   const productId = required(env, 'ABACATEPAY_PRODUCT_ID');
   const origin = safePublicOrigin(env);
@@ -35,7 +35,7 @@ async function createPaymentCheckout(user, env = process.env, fetchImpl = fetch)
   const text = await response.text();
   let payload;
   try { payload = text ? JSON.parse(text) : null; } catch { payload = null; }
-  if (!response.ok || !payload?.success || !payload?.data?.url) throw new Error(payload?.error || `Checkout indisponível (${response.status}).`);
+  if (!response.ok || !payload?.success || !payload?.data?.url) throw new Error(payload?.error || `Checkout unavailable (${response.status}).`);
   return { id: payload.data.id, url: payload.data.url, status: payload.data.status || 'PENDING', devMode: payload.data.devMode === true };
 }
 

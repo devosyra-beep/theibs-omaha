@@ -5,6 +5,7 @@
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (typeof document === 'undefined') return;
   const { CardKeyboardState, CARD_RANKS, CARD_SUITS, parsePortugueseCards, normalizeKeyboardRank } = api;
+  const suitEnglish = {C:'hearts',O:'diamonds',E:'spades',P:'clubs'};
   const state = new CardKeyboardState(5);
   const $ = (selector) => document.querySelector(selector);
   const heroInput = $('#heroCards'), boardInput = $('#board');
@@ -130,7 +131,7 @@
       }
     });
     if (!deckButtons.length) {
-      grid.innerHTML = CARD_SUITS.map((suit) => `<div class="card-row"><div class="card-suit${['C', 'O'].includes(suit.code) ? ' red' : ''}" data-suit="${suit.code}" aria-hidden="true">${suit.symbol}<small>${suit.code}</small></div><div class="card-ranks">${[...CARD_RANKS].map((rank) => `<button type="button" class="card-key${['C', 'O'].includes(suit.code) ? ' red' : ''}" data-card="${rank + suit.code}" data-suit="${suit.code}" aria-label="${rank === 'T' ? '10' : rank} de ${suit.name}">${rank === 'T' ? '10' : rank}<small>${suit.code}</small></button>`).join('')}</div></div>`).join('');
+      grid.innerHTML = CARD_SUITS.map((suit) => `<div class="card-row"><div class="card-suit${['C', 'O'].includes(suit.code) ? ' red' : ''}" data-suit="${suit.code}" aria-hidden="true">${suit.symbol}<small>${suit.code}</small></div><div class="card-ranks">${[...CARD_RANKS].map((rank) => `<button type="button" class="card-key${['C', 'O'].includes(suit.code) ? ' red' : ''}" data-card="${rank + suit.code}" data-suit="${suit.code}" aria-label="${rank === 'T' ? '10' : rank} of ${suitEnglish[suit.code]}">${rank === 'T' ? '10' : rank}<small>${suit.code}</small></button>`).join('')}</div></div>`).join('');
       deckButtons = [...grid.querySelectorAll('[data-card]')];
     }
     const deckState = `${state.selected}:${manualInvalid}:${state.slots.join('|')}`;
@@ -307,9 +308,9 @@
     applyReviewedHero(heroCards, expectedRevision) {
       if (document.body.dataset.multiway !== 'on' || document.body.dataset.multiwayBusy === 'true' ||
           $('#analyze-workspace').classList.contains('hidden') || manualInvalid || expectedRevision !== revision)
-        return { ok: false, error: 'A mão mudou. Confira a imagem e tente novamente.' };
+        return { ok: false, error: 'The hand changed. Check the image and try again.' };
       if (!Array.isArray(heroCards) || heroCards.length !== state.count)
-        return { ok: false, error: `Confirme as ${state.count} cartas privadas.` };
+        return { ok: false, error: `Confirm all ${state.count} hole cards.` };
       let hero;
       try { hero = heroCards.map(api.fromCanonical); }
       catch (error) { return { ok: false, error: error.message }; }
@@ -327,7 +328,7 @@
         draft.undoStack = state.undoStack.map(entry => ({ ...entry, slots: [...entry.slots] }));
         if (!draft.applyCommand(command) || (command.type !== 'cards' && draft.selected >= state.count) ||
             JSON.stringify(draft.slots.slice(state.count)) !== JSON.stringify(state.slots.slice(state.count))) {
-          return { ok: false, error: 'No Multiway, use o comando da street e a transação do board.' };
+          return { ok: false, error: 'In Multiway, use the street command and board transaction.' };
         }
       }
       if (!state.applyCommand(command)) return { ok: false, error: state.error };

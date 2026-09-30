@@ -11,41 +11,41 @@ const object = value => value && typeof value === 'object' && !Array.isArray(val
 const MAX_PLAYERS = { PLO4_HIGH: 10, PLO5_HIGH: 6, PLO6_HIGH: 5 };
 
 function canonicalConfig(raw) {
-  if (!object(raw)) throw Error('Informe a configuração da mesa Multiway.');
+  if (!object(raw)) throw Error('Enter the Multiway table configuration.');
   const variant = raw.variant || 'PLO5_HIGH', count = holeCount(variant), playerCount = Number(raw.playerCount);
   if (!Number.isInteger(playerCount) || playerCount < 2 || playerCount > MAX_PLAYERS[variant]) {
-    throw Error(`Multiway PLO${count} aceita entre 2 e ${MAX_PLAYERS[variant]} jogadores no total.`);
+    throw Error(`Multiway PLO${count} accepts 2 to ${MAX_PLAYERS[variant]} total players.`);
   }
   const heroPosition = String(raw.heroPosition || '').toUpperCase();
-  if (!(POSITIONS[playerCount].includes(heroPosition) || (playerCount === 2 && heroPosition === 'BTN'))) throw Error('Posição do herói incompatível com a mesa.');
+  if (!(POSITIONS[playerCount].includes(heroPosition) || (playerCount === 2 && heroPosition === 'BTN'))) throw Error('Hero position is incompatible with this table.');
   const heroCards = cardCodes(normalizeCards(raw.heroCards || []));
-  if (heroCards.length && heroCards.length !== count) throw Error(`Informe todas as ${count} cartas privadas ou deixe a mão vazia até completá-la.`);
-  if (raw.stacks !== undefined && (!Array.isArray(raw.stacks) || raw.stacks.length !== playerCount)) throw Error('Informe um stack para cada assento.');
+  if (heroCards.length && heroCards.length !== count) throw Error(`Enter all ${count} hole cards or leave the hand empty until complete.`);
+  if (raw.stacks !== undefined && (!Array.isArray(raw.stacks) || raw.stacks.length !== playerCount)) throw Error('Enter a stack for each seat.');
   return { variant, playerCount, heroPosition, startingStack: raw.startingStack,
     smallBlind: raw.smallBlind, bigBlind: raw.bigBlind, heroCards,
     ...(raw.stacks ? { stacks: [...raw.stacks] } : {}) };
 }
 
 function canonicalEvent(raw) {
-  if (!object(raw)) throw Error('Evento Multiway inválido.');
+  if (!object(raw)) throw Error('Invalid Multiway event.');
   if (raw.type === 'BOARD') return { type: 'BOARD', cards: cardCodes(normalizeCards(raw.cards || [])) };
   if (raw.type === 'SETTLE') {
-    if (!Array.isArray(raw.winners)) throw Error('Informe os vencedores de cada pote.');
+    if (!Array.isArray(raw.winners)) throw Error('Enter the winners of each pot.');
     return { type: 'SETTLE', winners: raw.winners.map(ids => {
-      if (!Array.isArray(ids) || ids.some(id => !Number.isInteger(id))) throw Error('Assentos vencedores inválidos.');
+      if (!Array.isArray(ids) || ids.some(id => !Number.isInteger(id))) throw Error('Invalid winning seats.');
       return [...ids];
     }), rake: raw.rake ?? 0 };
   }
-  if (!['ACT', 'MARK_FOLD'].includes(raw.type) || !Number.isInteger(raw.actor)) throw Error('Evento ou assento Multiway inválido.');
+  if (!['ACT', 'MARK_FOLD'].includes(raw.type) || !Number.isInteger(raw.actor)) throw Error('Invalid Multiway event or seat.');
   if (raw.type === 'MARK_FOLD') return { type: 'MARK_FOLD', actor: raw.actor };
   const action = String(raw.action || '').toUpperCase();
-  if (!['FOLD', 'CALL', 'CHECK', 'BET', 'RAISE'].includes(action)) throw Error('Ação Multiway inválida.');
+  if (!['FOLD', 'CALL', 'CHECK', 'BET', 'RAISE'].includes(action)) throw Error('Invalid Multiway action.');
   return { type: 'ACT', actor: raw.actor, action, ...(['BET', 'RAISE'].includes(action) ? { to: raw.to } : {}) };
 }
 
 function validateRecord(raw) {
-  if (!object(raw) || raw.schemaVersion !== 1 || typeof raw.enabled !== 'boolean') throw Error('Registro Multiway inválido.');
-  if (!Array.isArray(raw.events) || raw.events.length > 500) throw Error('O Multiway aceita até 500 eventos por mão.');
+  if (!object(raw) || raw.schemaVersion !== 1 || typeof raw.enabled !== 'boolean') throw Error('Invalid Multiway record.');
+  if (!Array.isArray(raw.events) || raw.events.length > 500) throw Error('Multiway accepts up to 500 events per hand.');
   const record = { schemaVersion: 1, enabled: raw.enabled, config: canonicalConfig(raw.config), events: raw.events.map(canonicalEvent) };
   replay(record.config, record.events);
   return record;
@@ -55,18 +55,18 @@ function envelope(raw) {
   const multiway = validateRecord(raw), state = replay(multiway.config, multiway.events);
   const hero = state.players[state.heroId], opponents = state.players.filter(player => !player.hero && !player.folded);
   const reasons = [], warn = (code, message) => reasons.push({ code, message });
-  if (!multiway.enabled) warn('DISABLED', 'O modo Multiway está desligado.');
-  if (state.phase === 'WAIT_BOARD') warn('WAIT_BOARD', 'A rodada acabou. Informe as cartas da próxima rodada.');
-  else if (state.phase === 'SHOWDOWN') warn('SHOWDOWN', 'A mão está no showdown; informe o resultado dos potes.');
-  else if (state.phase === 'FINISHED') warn('FINISHED', 'A mão foi encerrada. Inicie outra mesa para analisar.');
-  else if (state.actor !== state.heroId) warn('NOT_HERO_TURN', 'Registre a ação do jogador da vez antes de analisar sua decisão.');
-  if (hero.folded) warn('HERO_FOLDED', 'Você saiu desta mão.');
-  if (state.hasSidePots) warn('SIDE_POTS_UNSUPPORTED', 'Potes laterais são registrados, mas seu EV ainda não é calculado.');
-  if (state.players.some(player => !player.folded && player.stack === 0)) warn('ALL_IN_UNSUPPORTED', 'Há um jogador ativo em all-in; o cálculo simplificado está bloqueado.');
+  if (!multiway.enabled) warn('DISABLED', 'Multiway mode is off.');
+  if (state.phase === 'WAIT_BOARD') warn('WAIT_BOARD', 'The betting round ended. Enter the next street’s cards.');
+  else if (state.phase === 'SHOWDOWN') warn('SHOWDOWN', 'The hand is at showdown; enter the pot results.');
+  else if (state.phase === 'FINISHED') warn('FINISHED', 'The hand is complete. Start another table to analyze.');
+  else if (state.actor !== state.heroId) warn('NOT_HERO_TURN', 'Record the current player’s action before analyzing your decision.');
+  if (hero.folded) warn('HERO_FOLDED', 'You folded this hand.');
+  if (state.hasSidePots) warn('SIDE_POTS_UNSUPPORTED', 'Side pots are recorded, but their EV is not yet calculated.');
+  if (state.players.some(player => !player.folded && player.stack === 0)) warn('ALL_IN_UNSUPPORTED', 'An active player is all-in; the simplified calculation is blocked.');
   if (state.phase === 'BETTING' && state.actor === state.heroId && state.heroToCall > 0 && state.heroToCall >= hero.stack) {
-    warn('CALL_REACHES_ALL_IN', 'O call coloca o herói em all-in; o cálculo simplificado está bloqueado.');
+    warn('CALL_REACHES_ALL_IN', 'Calling puts you all-in; the simplified calculation is blocked.');
   }
-  if (multiway.config.heroCards.length !== holeCount(multiway.config.variant)) warn('HERO_CARDS_INCOMPLETE', 'Complete suas cartas privadas antes de analisar.');
+  if (multiway.config.heroCards.length !== holeCount(multiway.config.variant)) warn('HERO_CARDS_INCOMPLETE', 'Complete your hole cards before analyzing.');
   const availableActions = state.actor === state.heroId ? state.legal.actions.filter(action => action !== 'FOLD' || state.heroToCall > 0) : [];
   const input = { variant: multiway.config.variant, heroCards: [...multiway.config.heroCards], board: [...state.board],
     street: state.street, position: multiway.config.playerCount === 2 && multiway.config.heroPosition === 'BTN' ? 'BTN' : hero.position,
@@ -74,8 +74,8 @@ function envelope(raw) {
     effectiveStack: hero.stack, heroContribution: hero.streetPaid,
     availableActions, minRaiseTo: state.legal.minTo, maxRaiseTo: state.legal.maxTo, minBet: state.bigBlind, bigBlind: state.bigBlind,
     actionHistory: state.log, sidePots: state.hasSidePots };
-  const warnings = ['As ações e contribuições foram informadas pelo usuário. Elas não determinam as cartas ou as frequências de resposta adversárias.'];
-  if (multiway.events.some(event => event.type === 'MARK_FOLD')) warnings.push('Há saída registrada fora da ordem: o histórico observado é parcial; nenhuma ação intermediária foi inventada.');
+  const warnings = ['Actions and contributions were entered by the user. They do not determine opponent cards or response frequencies.'];
+  if (multiway.events.some(event => event.type === 'MARK_FOLD')) warnings.push('An out-of-turn fold was recorded: the observed history is partial; no intervening action was invented.');
   return { status: 'OK', multiway, state: { ...state, revision: multiway.events.length, source: SOURCE },
     analysis: { available: reasons.length === 0, reasons, input, source: SOURCE,
       activeOpponentIds: opponents.map(player => player.id), warnings } };
@@ -85,9 +85,9 @@ function start(config) { return envelope({ schemaVersion: 1, enabled: true, conf
 function step(raw, rawEvent, expectedRevision) {
   const record = validateRecord(raw);
   if (expectedRevision !== undefined && expectedRevision !== record.events.length) {
-    const error = Error('A revisão Multiway mudou; atualize o estado antes de registrar.'); error.statusCode = 409; throw error;
+    const error = Error('Multiway revision changed; refresh the state before recording.'); error.statusCode = 409; throw error;
   }
-  if (!record.enabled) throw Error('Ative o Multiway para registrar ações.');
+  if (!record.enabled) throw Error('Turn on Multiway to record actions.');
   return envelope({ ...record, events: [...record.events, canonicalEvent(rawEvent)] });
 }
 
@@ -112,7 +112,7 @@ function prepareAnalysis(raw, supplied) {
   if (hasSpecific) {
     const modelCount = supplied.opponentHands?.length || supplied.opponentRanges?.length || 1;
     if (!sameSeats(supplied.opponentSeatIds, activeIds) || supplied.opponentSeatIds.length !== modelCount) {
-      reasons.push({ code: 'RANGE_SEAT_MAPPING_REQUIRED', message: 'Associe as mãos/ranges aos IDs dos adversários ativos; o modelo anterior não pode ser transferido após uma saída.' });
+      reasons.push({ code: 'RANGE_SEAT_MAPPING_REQUIRED', message: 'Assign hands/ranges to active opponent IDs; the previous model cannot transfer after a fold.' });
     }
   }
   // Unscoped scalar response assumptions could silently transfer to a different
@@ -121,7 +121,7 @@ function prepareAnalysis(raw, supplied) {
   input.actionResponseModels = {};
   for (const [action, model] of Object.entries(supplied.actionResponseModels || {})) {
     if (!sameSeats(model?.opponents?.map(player => player.seatId), activeIds)) {
-      blockedActions[action] = 'O modelo de resposta não identifica exatamente os assentos adversários ativos.';
+      blockedActions[action] = 'The response model does not identify exactly the active opponent seats.';
       continue;
     }
     input.actionResponseModels[action] = { ...model, heroContribution: hero.streetPaid, minRaiseTo: state.legal.minTo,
@@ -132,12 +132,12 @@ function prepareAnalysis(raw, supplied) {
   if (supplied.aggressionStudy?.enabled) {
     const rawStudy = supplied.aggressionStudy, action = state.heroToCall + hero.streetPaid > 0 ? 'RAISE' : 'BET';
     if (!sameSeats(rawStudy.opponents?.map(player => player.seatId), activeIds)) {
-      blockedActions[action] = 'As probabilidades de resposta precisam identificar cada assento ativo; nenhuma associação por índice foi presumida.';
+      blockedActions[action] = 'Response probabilities must identify each active seat; no association by index was assumed.';
       delete input.aggressionStudy;
     } else {
       const target = Number(action === 'RAISE' ? input.raiseTo : input.betSize);
       if (Number.isFinite(target) && opponents.some(player => target - player.streetPaid > player.stack + 1e-8)) {
-        blockedActions[action] = 'O tamanho proposto exige pagamento parcial ou pote lateral; este cenário simplificado não cobre essa situação.';
+        blockedActions[action] = 'The proposed size requires a partial payment or side pot; this simplified scenario does not cover that situation.';
         delete input.aggressionStudy;
       } else {
         const bySeat = new Map(rawStudy.opponents.map(player => [player.seatId, player]));
@@ -149,7 +149,7 @@ function prepareAnalysis(raw, supplied) {
   }
   const unmatched = opponents.filter(player => player.streetPaid + 1e-8 < state.currentBet);
   if (state.heroToCall > 0 && unmatched.length && !studyValid && !input.actionResponseModels.CALL) {
-    blockedActions.CALL = `Falta modelar a resposta dos assentos ${unmatched.map(player => player.position).join(', ')} que ainda devem fichas; pagar ou desistir não foi presumido.`;
+    blockedActions.CALL = `Responses are not modeled for seats ${unmatched.map(player => player.position).join(', ')} that still owe chips; calling or folding was not assumed.`;
   }
   for (const [action, reason] of Object.entries(blockedActions)) warnings.push(`${action}: ${reason}`);
   return { observed, input, blockedActions, warnings, available: reasons.length === 0, reasons };
@@ -196,7 +196,7 @@ function guardResult(result, prepared) {
   }
   result.confidence = exploit.confidence;
   result.potMath.evCall = result.ev.actions.CALL.status === 'MODELED' ? result.ev.actions.CALL.ev : null;
-  result.reason = result.ev.comparisonComplete ? result.reason : `Comparação parcial: faltam ${result.ev.missingLegalActions.join(', ')} porque as respostas necessárias não foram modeladas. ${modeled.length ? 'O líder entre as ações calculadas não define a melhor jogada geral.' : 'Nenhuma ação pode ser indicada.'}`;
+  result.reason = result.ev.comparisonComplete ? result.reason : `Partial comparison: ${result.ev.missingLegalActions.join(', ')} remain unavailable because the necessary responses were not modeled. ${modeled.length ? 'The leader among calculated actions does not establish the best overall play.' : 'No action can be recommended.'}`;
   result.warnings = [...new Set([...result.warnings, ...baseline.warnings, ...exploit.warnings])];
   return result;
 }

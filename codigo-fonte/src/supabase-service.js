@@ -20,14 +20,14 @@ function settings(env = process.env) {
 
 function validateSettings(config, { admin = false } = {}) {
   if (!config.required) return;
-  if (!/^https:\/\/[^/]+\.supabase\.(co|net)$/.test(config.url)) throw new Error('SUPABASE_URL inválida ou ausente.');
-  if (!config.publishableKey) throw new Error('SUPABASE_PUBLISHABLE_KEY ausente.');
+  if (!/^https:\/\/[^/]+\.supabase\.(co|net)$/.test(config.url)) throw new Error('SUPABASE_URL is invalid or missing.');
+  if (!config.publishableKey) throw new Error('SUPABASE_PUBLISHABLE_KEY is missing.');
   // Only publishable keys may reach publicConfig and the browser. Reject a
   // misplaced server secret (including legacy service-role JWTs) before use.
   if (!/^sb_publishable_[A-Za-z0-9_-]+$/.test(config.publishableKey)) {
     throw new Error('SUPABASE_PUBLISHABLE_KEY must be a publishable key starting with sb_publishable_.');
   }
-  if (admin && !config.secretKey) throw new Error('SUPABASE_SECRET_KEY ausente no servidor.');
+  if (admin && !config.secretKey) throw new Error('SUPABASE_SECRET_KEY is missing on the server.');
   if (admin && !/^sb_secret_[A-Za-z0-9_-]+$/.test(config.secretKey)) {
     throw new Error('SUPABASE_SECRET_KEY must be a server key starting with sb_secret_.');
   }
@@ -55,7 +55,7 @@ function bearerToken(request) {
 async function readJson(response) {
   const text = await response.text();
   if (!text) return null;
-  try { return JSON.parse(text); } catch { throw new Error(`Resposta inválida do serviço (${response.status}).`); }
+  try { return JSON.parse(text); } catch { throw new Error(`Invalid service response (${response.status}).`); }
 }
 
 async function authenticateRequest(request, env = process.env, fetchImpl = fetch) {
@@ -63,8 +63,8 @@ async function authenticateRequest(request, env = process.env, fetchImpl = fetch
   if (!config.required) return { user: { id: 'local', email: null, created_at: new Date(0).toISOString() }, local: true };
   validateSettings(config);
   const token = bearerToken(request);
-  if (!token) { const error = new Error('Entre para continuar.'); error.statusCode = 401; throw error; }
-  const unavailable = () => Object.assign(new Error('O serviço de autenticação está temporariamente indisponível. Tente novamente.'), { statusCode: 503, code: 'AUTH_SERVICE_UNAVAILABLE' });
+  if (!token) { const error = new Error('Sign in to continue.'); error.statusCode = 401; throw error; }
+  const unavailable = () => Object.assign(new Error('Authentication is temporarily unavailable. Please try again.'), { statusCode: 503, code: 'AUTH_SERVICE_UNAVAILABLE' });
   let response;
   try {
     response = await fetchImpl(`${config.url}/auth/v1/user`, {
@@ -76,8 +76,8 @@ async function authenticateRequest(request, env = process.env, fetchImpl = fetch
     // An outage/rate limit must not masquerade as a rejected login: the web
     // client only refreshes/retries on 401. No protected handler has run yet.
     await response.body?.cancel().catch(() => {});
-    if (response.status === 401) throw Object.assign(new Error('Sessão inválida ou expirada.'), { statusCode: 401, code: 'AUTH_REJECTED' });
-    if (response.status === 403) throw Object.assign(new Error('O serviço de autenticação não permitiu este acesso.'), { statusCode: 403, code: 'AUTH_FORBIDDEN' });
+    if (response.status === 401) throw Object.assign(new Error('Session is invalid or expired.'), { statusCode: 401, code: 'AUTH_REJECTED' });
+    if (response.status === 403) throw Object.assign(new Error('Authentication service denied this access.'), { statusCode: 403, code: 'AUTH_FORBIDDEN' });
     throw unavailable();
   }
   let data;
@@ -97,13 +97,13 @@ async function fetchEntitlement(userId, env = process.env, fetchImpl = fetch) {
   const url = `${config.url}/rest/v1/theibs_entitlements?user_id=eq.${encodeURIComponent(userId)}&select=*&limit=1`;
   const response = await fetchImpl(url, { headers: adminHeaders(config), signal: AbortSignal.timeout(10000) });
   const data = await readJson(response);
-  if (!response.ok) throw new Error(`Não foi possível consultar o acesso (${response.status}).`);
+  if (!response.ok) throw new Error(`Could not check access (${response.status}).`);
   return Array.isArray(data) ? data[0] || null : null;
 }
 
 async function accessFor(auth, env = process.env, fetchImpl = fetch, now = Date.now()) {
   const config = settings(env);
-  if (!config.required) return { allowed: true, state: 'LOCAL', reason: 'Modo local.', user: auth.user };
+  if (!config.required) return { allowed: true, state: 'LOCAL', reason: 'Local mode.', user: auth.user };
   const entitlement = await fetchEntitlement(auth.user.id, env, fetchImpl);
   return { ...evaluateAccess({ user: auth.user, entitlement, now, trialDays: config.trialDays,
     lifetimeEmails: config.lifetimeEmails, lifetimeUserIds: config.lifetimeUserIds }),
@@ -118,7 +118,7 @@ async function insertPaymentEvent(event, env = process.env, fetchImpl = fetch) {
     signal: AbortSignal.timeout(10000)
   });
   const data = await readJson(response);
-  if (!response.ok) throw new Error(`Não foi possível registrar o evento (${response.status}).`);
+  if (!response.ok) throw new Error(`Could not record the event (${response.status}).`);
   return Array.isArray(data) && data.length > 0;
 }
 
@@ -128,7 +128,7 @@ async function upsertEntitlement(record, env = process.env, fetchImpl = fetch) {
     method: 'POST', headers: adminHeaders(config, { 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates,return=minimal' }),
     body: JSON.stringify([{ ...record, updated_at: new Date().toISOString() }]), signal: AbortSignal.timeout(10000)
   });
-  if (!response.ok) { await response.text(); throw new Error(`Não foi possível atualizar o acesso (${response.status}).`); }
+  if (!response.ok) { await response.text(); throw new Error(`Could not update access (${response.status}).`); }
 }
 
 module.exports = { settings, publicConfig, validateSettings, bearerToken, authenticateRequest, fetchEntitlement, accessFor,

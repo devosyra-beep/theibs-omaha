@@ -29,7 +29,7 @@ test('rake enters call/check EV before ranking and the displayed price is net of
   assert.ok(Math.abs(a.potMath.potOdds-2/11.4)<1e-10);
   assert.equal(a.provenance.rake.mode,'PERCENT_CAPPED_SCHEDULE');
   const ambiguous=decide({...base,rakeSchedule:schedule});
-  assert.equal(ambiguous.status,'NO_DECISION');assert.match(ambiguous.reason,/somente/);
+  assert.equal(ambiguous.status,'NO_DECISION');assert.match(ambiguous.reason,/only/);
 });
 test('folded aggression charges no-flop-no-drop and caller branch charges its own pot',()=>{
   const raw={...base,board:[],assumeNoRake:false,rakeSchedule:schedule,equity:.5,legalActions:['FOLD','CALL','RAISE'],raiseTo:6,foldEquity:.5,continuationEquity:.5,minRaiseTo:4};
@@ -68,14 +68,14 @@ test('matched decimal contribution has zero CALL addition; real negative contrib
   assert.ok(Math.abs(branch.heroCost-46.19)<1e-10);assert.ok(Math.abs(branch.potAtShowdown-171.58)<1e-10);
   assert.ok(Math.abs(call.ev-(result.equity.equity*171.58-46.19))<1e-10);
   const invalid=decide({...input,aggressionStudy:{...input.aggressionStudy,opponents:[{contribution:81.80,callProbability:.5}]}});
-  assert.equal(invalid.status,'NO_DECISION');assert.match(invalid.reason,/Contribuições/);
+  assert.equal(invalid.status,'NO_DECISION');assert.match(invalid.reason,/Contributions/);
   const {studySettings,buildStudyModels}=require('../src/aggression-scenarios');
   const settings=studySettings(input,{ranges:[{kind:'UNIFORM'}]});
   settings.opponents[0].contribution=81.80;
   const raw=buildStudyModels(input,settings,{method:'EXACT',equity:.5,samples:1}).input;
   assert.ok(raw.actionResponseModels.CALL.scenarios[0].callers[0].additional<-.009);
   const invalidCall=calculateActionEV({...raw,equity:.5,legalActions:['FOLD','CALL','RAISE']}).actions.CALL;
-  assert.equal(invalidCall.status,'NOT_MODELED');assert.match(invalidCall.warnings.join(' '),/contribuição.*incompatível/);
+  assert.equal(invalidCall.status,'NOT_MODELED');assert.match(invalidCall.warnings.join(' '),/Contribution.*incompatible/);
 });
 test('HU BB option preserves real CHECK/RAISE with zero call and previously posted blind',()=>{
   const a=decide({...base,board:[],position:'BB',potBeforeAction:4,amountToCall:0,heroContribution:2,effectiveStack:98,
@@ -129,7 +129,7 @@ test('public adapter does not copy hidden state and supports both physical seats
   const settings={study:true,callProbability:.5,sizeFraction:.5,assumeNoRake:true,samples:256,equitySeed:314159};
   const a=buildAnalyzeInput(observation,settings),b=buildAnalyzeInput({...observation,futureBoard:['3c'],seed:1111,opponentCards:['Ad'],nested:{other:'world'}},settings);
   assert.deepEqual(a,b);assert.equal(a.seed,314159);assert.equal(a.opponentCards,undefined);
-  assert.throws(()=>buildAnalyzeInput(observation,{...settings,assumeNoRake:false}),/custos/);
+  assert.throws(()=>buildAnalyzeInput(observation,{...settings,assumeNoRake:false}),/declare costs/);
   const result=decideAnalyzePolicy(a,{fallback:'CHECK_FOLD',deadlineMs:3000});
   assert.ok(a.availableActions.includes(result.action));assert.match(result.inputHash,/^[a-f0-9]{64}$/);
 });

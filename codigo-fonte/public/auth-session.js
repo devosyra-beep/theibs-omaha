@@ -3,7 +3,7 @@
 (function(root,factory){const api=factory();if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.TheibsAuthSession=api;})(typeof window!=='undefined'?window:globalThis,function(){
   'use strict';
   const STORAGE_KEY='theibs.auth.session.v1',EARLY_MS=60000;
-  function authError(code='AUTH_REQUIRED'){const e=new Error(code==='AUTH_SESSION_CHANGED'?'A sessão mudou. Entre novamente antes de continuar.':'Sua sessão expirou ou não pôde ser renovada. Entre novamente para continuar.');e.code=code;return e;}
+  function authError(code='AUTH_REQUIRED'){const e=new Error(code==='AUTH_SESSION_CHANGED'?'Your session changed. Sign in again before continuing.':'Your session expired or could not be renewed. Sign in again to continue.');e.code=code;return e;}
   function claims(token){try{return JSON.parse(atob(String(token).split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));}catch{return {};}}
   function identity(value){if(!value?.access_token)return null;const jwt=claims(value.access_token),sub=jwt.sub||value.user?.id;return sub?`${sub}:${jwt.session_id||'-'}`:`opaque:${value.access_token}`;}
   function create({config,fetch:send,storage,baseUrl,now=Date.now,onChange=()=>{},withLock=null,timers=true,refreshTimeoutMs=8000}){

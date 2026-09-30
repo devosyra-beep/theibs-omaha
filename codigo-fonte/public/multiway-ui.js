@@ -24,7 +24,7 @@
   const busy = () => localBusy || view.busy;
   const context = () => options.getContext?.() || {};
   const player = id => view.state?.players?.find(item => item.id === id);
-  const playerName = item => item?.hero ? 'You' : item?.name || 'Opponent';
+  const playerName = item => item?.hero ? 'You' : (item?.name || 'Opponent').replace(/^Adv\./i,'Opp.');
   const actor = () => player(view.state?.actor);
   const inAnalysis = () => document.body.dataset.view === 'analyze' && !$('#analyze-workspace')?.classList.contains('hidden');
   const legal = action => view.enabled && !busy() && view.state?.phase === 'BETTING' && view.state.legal?.actions?.includes(action);
@@ -40,7 +40,7 @@
   function setError(message = '') {
     view.error = String(message || '');
     if (!initialized) return;
-    for (const node of document.querySelectorAll('#multiway-error,[data-mw-error],#multiway-setup-error')) {
+    for (const node of document.querySelectorAll('#multiway-error,[data-mw-error],#multiway-setup-error,#mw-quick-error')) {
       node.textContent = view.error; node.hidden = !view.error;
     }
   }
@@ -115,6 +115,9 @@
     $('#mw-setup-status').textContent = view.enabled ? 'On' : 'Off';
     $('#mw-exit').hidden = !view.enabled; $('#mw-exit').disabled = busy();
     $('#mw-start').textContent = view.enabled ? 'Start new hand' : 'Start Multiway'; $('#mw-start').disabled = busy();
+    $('#mw-toggle').textContent=view.enabled?'Multiway on · Turn off':'Turn on Multiway';
+    $('#mw-toggle').setAttribute('aria-pressed',String(view.enabled));
+    $('#mw-toggle').disabled=busy();
     controlsHost.setAttribute('aria-busy', String(busy()));
     const logs = (state?.log || []).slice(-6);
     $('#mw-history-list').innerHTML = logs.map(event => {
@@ -184,11 +187,35 @@
     const turnFold = item.id === view.state.actor && view.state.legal?.actions?.includes('FOLD');
     $('#mw-seat-fold').disabled = busy() || !(turnFold || item.canMarkFold);
     $('#mw-seat-fold').textContent = turnFold ? "Record fold · it is this player's turn" : 'Record observed fold';
-    $('#mw-seat-note').textContent = item.folded ? 'The fold is already recorded.' : item.allIn || item.stack === 0 ? 'An all-in player remains eligible for the pot.' : item.markFoldReason === 'UNMATCHED_CONTRIBUTION' ? 'Record responses to the largest bet first.' : !turnFold && !item.canMarkFold ? "Wait for this player's turn to record another action." : 'Use this only for a fold you observed.';
+    $('#mw-seat-note').textContent = item.folded ? 'Fold recorded. Undo reverses events in order; a recent fold can be undone here.' : item.allIn || item.stack === 0 ? 'An all-in player remains eligible for the pot.' : item.markFoldReason === 'UNMATCHED_CONTRIBUTION' ? 'Record responses to the largest bet first.' : !turnFold && !item.canMarkFold ? "Wait for this player's turn to record another action." : 'Use this only for a fold you observed.';
+    const latest=window.theibsApp?.getState().multiway?.events?.at(-1);
+    const undoFold=item.folded&&latest?.actor===item.id&&(latest.type==='MARK_FOLD'||latest.type==='ACT'&&latest.action==='FOLD');
+    $('#mw-seat-undo').hidden=!undoFold;
+    $('#mw-seat-undo').disabled=busy()||!undoFold;
+    $('#mw-seat-editor').disabled=busy()||item.folded;
+    $('#mw-seat-remove').disabled=busy()||item.folded||!window.theibsOpponentInputs?.seatEditor(item.id).hasOverride;
+    $('#mw-seat-edit-note').textContent=item.folded?'Undo the latest fold to edit this player.':'Optional hand/range and call probability for this seat only.';
   }
-  function openPlayer(id) {
-    if (!view.enabled || !inAnalysis() || busy() || !player(Number(id)) || document.querySelector('dialog[open]')) return;
-    selectedPlayer = Number(id); setError(''); refreshSeat(); seatDialog.showModal();
+  function placeSeatDialog(anchor) {
+    if(!anchor)return;
+    const rect=anchor.getBoundingClientRect(),width=seatDialog.offsetWidth,height=seatDialog.offsetHeight;
+    const left=Math.max(8,Math.min(window.innerWidth-width-8,rect.left+rect.width/2-width/2));
+    const top=rect.bottom+10+height<=window.innerHeight-8?rect.bottom+10:Math.max(8,rect.top-height-10);
+    seatDialog.style.left=`${left}px`;seatDialog.style.top=`${top}px`;
+  }
+  function openPlayer(id, anchor = null) {
+    if (!view.enabled || !inAnalysis() || busy() || !player(Number(id)) || [...document.querySelectorAll('dialog[open]')].some(node=>node!==seatDialog)) return;
+    if(seatDialog.open)seatDialog.close();
+    selectedPlayer = Number(id); setError('');
+    const editor=window.theibsOpponentInputs?.seatEditor(selectedPlayer);
+    $('#mw-seat-hand').value=editor?.hand||'';
+    $('#mw-seat-range').value=editor?.rangeText||'';
+    $('#mw-seat-rate').value=editor?.rateText||'';
+    $('#mw-seat-edit-error').hidden=true;
+    refreshSeat();seatDialog.show();
+    placeSeatDialog(anchor||document.querySelector(`[data-multiway-player="${id}"]`));
+    const focusTarget=player(selectedPlayer).folded?seatDialog.querySelector('[data-mw-close]'):$('#mw-seat-fold');
+    focusTarget.focus({preventScroll:true});
   }
   function keydown(event) {
     if (!view.enabled || !inAnalysis() || busy() || event.defaultPrevented || event.repeat || event.isComposing || event.ctrlKey || event.altKey || event.metaKey || document.querySelector('dialog[open]')) return;
@@ -203,13 +230,15 @@
     if (initialized) { fillSetup(); refresh(); return window.theibsMultiwayUI; }
     setupHost = $(settings.setupSelector || '#multiway-setup'); controlsHost = $(settings.controlsSelector || '#multiway-controls');
     if (!setupHost || !controlsHost) throw Error('Multiway containers are missing.');
-    setupHost.innerHTML = `<details id="mw-setup-details"><summary><span>Multiway <small id="mw-variant-label"></small></span><span id="mw-setup-status" class="mw-chip">Off</span></summary><div class="mw-setup-fields"><div class="mw-config-grid"><label>Players, including you<select id="mw-player-count"></select></label><label>Your position<select id="mw-hero-position" required></select></label><label>Small blind<input id="mw-small-blind" type="number" min="0.01" step="0.01" required></label><label>Big blind<input id="mw-big-blind" type="number" min="0.01" step="0.01" required></label><label>Starting stack per player<input id="mw-starting-stack" type="number" min="0.01" step="0.01" required></label></div><p id="mw-position-prompt" class="mw-position-prompt" hidden role="status">New hand · choose your seat so the action order matches the table.</p><p id="mw-start-note"></p><div class="mw-setup-actions"><button id="mw-start" type="button" class="primary-button">Start Multiway</button><button id="mw-exit" type="button" class="text-button" hidden>Return to simple mode</button></div><p id="multiway-setup-error" class="multiway-error" role="alert" hidden></p></div></details>`;
+    setupHost.innerHTML = `<div class="mw-quick-setup"><label>Players, including you<select id="mw-player-count"></select></label><button id="mw-toggle" type="button" class="ghost-button" aria-pressed="false">Turn on Multiway</button></div><p id="mw-quick-error" class="multiway-error" role="alert" hidden></p><details id="mw-setup-details"><summary><span>Multiway settings <small id="mw-variant-label"></small></span><span id="mw-setup-status" class="mw-chip">Off</span></summary><div class="mw-setup-fields"><div class="mw-config-grid"><label>Your position<select id="mw-hero-position" required></select></label><label>Small blind<input id="mw-small-blind" type="number" min="0.01" step="0.01" required></label><label>Big blind<input id="mw-big-blind" type="number" min="0.01" step="0.01" required></label><label>Starting stack per player<input id="mw-starting-stack" type="number" min="0.01" step="0.01" required></label></div><p id="mw-position-prompt" class="mw-position-prompt" hidden role="status">New hand · choose your seat so the action order matches the table.</p><p id="mw-start-note"></p><div class="mw-setup-actions"><button id="mw-start" type="button" class="primary-button">Start Multiway</button><button id="mw-exit" type="button" class="text-button" hidden>Return to simple mode</button></div><p id="multiway-setup-error" class="multiway-error" role="alert" hidden></p></div></details>`;
     controlsHost.classList.add('multiway-controls'); controlsHost.hidden = true;
     controlsHost.innerHTML = `<div class="mw-control-heading"><strong id="mw-actor"></strong><span id="mw-round"></span><button id="mw-undo" type="button" class="text-button" title="Undo the last observed action">↶ Undo</button></div><div class="mw-action-row">${COMMANDS.map(item => `<button type="button" data-mw-command="${item.id}" data-mw-action="" disabled title="${item.key ? item.key === ',' ? 'COMMA' : item.key === '.' ? 'PERIOD' : item.key === ';' ? 'SEMICOLON' : item.key.toUpperCase() : item.id === 'leave' ? 'Fold' : ''}">${item.key ? `<kbd>${item.key === ',' ? ',' : item.key === '.' ? '.' : item.key === ';' ? ';' : item.key.toUpperCase()}</kbd>` : ''}<span>${item.id === 'call' ? 'Call' : item.id === 'check' ? 'Check' : item.id === 'aggressive' ? 'Bet / Raise' : 'Fold'}</span></button>`).join('')}</div><p id="mw-board-prompt" class="mw-board-prompt" role="status" aria-live="polite" hidden></p><p id="multiway-error" class="multiway-error" role="alert" hidden></p><details id="mw-history"><summary>Recent actions</summary><ol id="mw-history-list"></ol></details>`;
     setupHost.querySelector('.mw-setup-fields').append(controlsHost.querySelector('#mw-history'));
     sizeDialog = dialog('multiway-size-dialog', '<span id="mw-size-title">Bet amount</span>', '<form id="mw-size-form"><label>Total this street<input id="mw-size" type="number" step="0.01" inputmode="decimal" required></label><p id="mw-size-limits"></p><p id="mw-size-cost"></p><button id="mw-size-confirm" type="submit" class="primary-button">Confirm total · Enter</button></form>');
     boardDialog = dialog('multiway-board-dialog', '<span id="mw-board-title">Next street</span>', '<form id="mw-board-form"><p id="mw-board-existing"></p><label><span id="mw-board-label">New cards</span><input id="mw-board-new" autocomplete="off" spellcheck="false" required></label><p class="mw-card-legend">Rank + suit: ♠ E · ♥ C · ♦ O · ♣ P. Ten = D, T or 10.</p><button id="mw-board-confirm" type="submit" class="primary-button">Deal street · Enter</button></form>');
-    seatDialog = dialog('multiway-seat-dialog', '<span id="mw-seat-title">Player</span>', '<p id="mw-seat-info"></p><p id="mw-seat-note"></p><button id="mw-seat-fold" type="button" class="ghost-button">Record fold</button>');
+    seatDialog = dialog('multiway-seat-dialog', '<span id="mw-seat-title">Player</span>', '<p id="mw-seat-info"></p><div class="seat-popover-actions"><button id="mw-seat-fold" type="button" class="ghost-button">Record fold</button><button id="mw-seat-undo" type="button" class="text-button" hidden>Undo latest fold</button></div><p id="mw-seat-note"></p><details id="mw-seat-edit-details"><summary>Opponent assumptions</summary><p id="mw-seat-edit-note" class="micro"></p><fieldset id="mw-seat-editor"><label>Known hand<input id="mw-seat-hand" autocomplete="off" placeholder="AE KC QO JP TE"></label><label>Range<textarea id="mw-seat-range" rows="2" placeholder="One hand per line"></textarea></label><label>Call chance (%)<input id="mw-seat-rate" type="number" min="0" max="100" step="0.1" placeholder="Unknown"></label><div class="seat-popover-actions"><button id="mw-seat-apply" type="button" class="primary-button">Apply to seat</button><button id="mw-seat-remove" type="button" class="text-button">Remove assumption</button></div></fieldset><p id="mw-seat-edit-error" class="multiway-error" role="alert" hidden></p></details>');
+    seatDialog.classList.add('seat-popover');
+    seatDialog.setAttribute('aria-labelledby','mw-seat-title');
     initialized = true; fillSetup(true);
     setupHost.addEventListener('input', () => { setupDirty = true; });
     $('#mw-player-count').addEventListener('change', () => { setupDirty = true; fillPositions(); });
@@ -222,6 +251,11 @@
       if (await invoke('start', draft)) { setupDirty = false; positionPrompted = false; $('#mw-position-prompt').hidden = true; $('#mw-setup-details').open = false; }
     };
     $('#mw-exit').onclick = () => invoke('exit'); $('#mw-undo').onclick = () => invoke('undo');
+    $('#mw-toggle').onclick=()=>{
+      if(busy())return;
+      if(!view.enabled){const invalid=[...setupHost.querySelectorAll('input,select')].find(input=>!input.checkValidity());if(invalid){$('#mw-setup-details').open=true;invalid.reportValidity();invalid.focus();return;}}
+      if(view.enabled)void invoke('exit');else $('#mw-start').click();
+    };
     controlsHost.addEventListener('click', event => { const button = event.target.closest('[data-mw-command]'); if (button && !button.disabled && button.dataset.mwAction) void action(button.dataset.mwAction); });
     $('#mw-size').addEventListener('input', sizeHelp);
     $('#mw-size-form').onsubmit = async event => {
@@ -246,7 +280,16 @@
       if (!isTurn && !item.canMarkFold) return;
       if (await invoke(isTurn ? 'act' : 'markFold', { actor: item.id, ...(isTurn ? { action: 'FOLD' } : {}) })) seatDialog.close();
     };
-    document.addEventListener('click', event => { const seat = event.target.closest?.('[data-multiway-player]'); if (seat) openPlayer(Number(seat.dataset.multiwayPlayer)); });
+    $('#mw-seat-undo').onclick=async()=>{const item=player(selectedPlayer),latest=window.theibsApp?.getState().multiway?.events?.at(-1);if(item?.folded&&latest?.actor===item.id&&(latest.type==='MARK_FOLD'||latest.type==='ACT'&&latest.action==='FOLD')&&await invoke('undo'))seatDialog.close();};
+    $('#mw-seat-apply').onclick=()=>{
+      try{window.theibsOpponentInputs.applySeat(selectedPlayer,{hand:$('#mw-seat-hand').value,rangeText:$('#mw-seat-range').value,rateText:$('#mw-seat-rate').value});$('#mw-seat-edit-error').hidden=true;refreshSeat();}
+      catch(error){$('#mw-seat-edit-error').textContent=error.message;$('#mw-seat-edit-error').hidden=false;}
+    };
+    $('#mw-seat-remove').onclick=()=>{window.theibsOpponentInputs.removeSeat(selectedPlayer);$('#mw-seat-hand').value='';$('#mw-seat-range').value='';$('#mw-seat-rate').value='';refreshSeat();};
+    document.addEventListener('click', event => { const seat = event.target.closest?.('[data-multiway-player]'); if (seat) openPlayer(Number(seat.dataset.multiwayPlayer),seat); });
+    document.addEventListener('pointerdown',event=>{if(seatDialog.open&&!seatDialog.contains(event.target)&&!event.target.closest?.('[data-multiway-player]'))seatDialog.close();});
+    document.addEventListener('focusin',event=>{if(seatDialog.open&&!seatDialog.contains(event.target)&&!event.target.closest?.('[data-multiway-player]'))seatDialog.close();});
+    window.addEventListener('resize',()=>{if(seatDialog.open)seatDialog.close();});
     document.addEventListener('keydown', keydown);
     refresh(); return window.theibsMultiwayUI;
   }

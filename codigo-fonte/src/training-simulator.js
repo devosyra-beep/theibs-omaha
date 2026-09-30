@@ -35,13 +35,13 @@ function advanceToHero(s,{setup=false}={}){
   const action=setup?{action:legal.toCall?'CALL':'CHECK'}:chooseOpponent({cards:s.villainCards,board:s.board,legal,pot:s.pot,style:s.opponentStyle,streetRaises:s.history.filter(e=>e.street===s.street&&e.actor==='OPPONENT'&&e.action==='RAISE').length,random:()=>rng.next()});
   push(s,{type:'ACT',actor:1,...action});
  }
- throw Error('Treino excedeu o limite de ações automáticas.');
+ throw Error('Training exceeded the automatic action limit.');
 }
 function createSession(options={}){
  const seed=Number(options.seed??42),startingStack=Number(options.startingStack??100),style=String(options.opponentStyle||'MIXED').toUpperCase(),mode=String(options.mode||'GUIDED').toUpperCase(),target=String(options.targetStreet||'PREFLOP').toUpperCase();
- if(!Number.isInteger(seed)||!Number.isFinite(seed))throw Error('Seed inválida.');
- if(!Number.isInteger(startingStack)||startingStack<20||startingStack>10000)throw Error('Stack inicial deve ser inteiro entre 20 e 10000.');
- if(!['PASSIVE','AGGRESSIVE','MIXED'].includes(style)||!['GUIDED','CHALLENGE'].includes(mode)||!STREETS.includes(target))throw Error('Configuração de treino inválida.');
+ if(!Number.isInteger(seed)||!Number.isFinite(seed))throw Error('Invalid seed.');
+ if(!Number.isInteger(startingStack)||startingStack<20||startingStack>10000)throw Error('Starting stack must be an integer from 20 to 10000.');
+ if(!['PASSIVE','AGGRESSIVE','MIXED'].includes(style)||!['GUIDED','CHALLENGE'].includes(mode)||!STREETS.includes(target))throw Error('Invalid training configuration.');
  const variant=options.variant||'PLO5_HIGH',count=holeCount(variant),deck=shuffle(seed);
  const s={id:randomUUID(),targetStreet:target,seed,startingStack,opponentStyle:style,mode,variant,heroCards:deck.slice(0,count),villainCards:deck.slice(count,count*2),boardAll:deck.slice(count*2,count*2+5),events:[],decisions:[],showdownOccurred:false,outcome:null,startedAt:new Date().toISOString(),policyVersion:'HEURISTIC_OPPONENT_V2'};
  s.config={variant,playerCount:2,heroPosition:'BTN',startingStack,smallBlind:1,bigBlind:2,heroCards:s.heroCards};sync(s);
@@ -54,7 +54,7 @@ function createSession(options={}){
 function legalDecision(s){const x=s.state.legal;if(s.finished||s.state.actor!==0)return {actions:[],minSize:null,maxSize:null};return {actions:x.actions.filter(a=>a!=='FOLD'||x.toCall>0),minSize:x.minTo??null,maxSize:x.maxTo??null};}
 function publicSession(s){const l=legalDecision(s);return {id:s.id,revision:s.events.length,variant:s.variant,mode:s.mode,opponentStyle:s.opponentStyle,street:s.street,heroCards:s.heroCards,board:s.board,position:'BTN',pot:s.pot,heroStack:s.heroStack,opponentStack:s.villainStack,amountToCall:s.amountToCall,legalActions:l.actions,minSize:l.minSize,maxSize:l.maxSize,sizeCandidates:s.finished?[]:sizeCandidates(s.state),history:s.history,finished:s.finished,outcome:s.outcome,policyVersion:s.policyVersion,...(s.showdownOccurred?{opponentCards:s.villainCards}:{})};}
 function applyAction(s,actionInput,sizeInput){
- const action=String(actionInput||'').toUpperCase();if(!legalDecision(s).actions.includes(action))throw Error('Ação ilegal para o estado atual.');
+ const action=String(actionInput||'').toUpperCase();if(!legalDecision(s).actions.includes(action))throw Error('Action is not legal in the current state.');
  const event={type:'ACT',actor:0,action,...(['BET','RAISE'].includes(action)?{to:Number(sizeInput)}:{})};
  push(s,event);advanceToHero(s);return publicSession(s);
 }

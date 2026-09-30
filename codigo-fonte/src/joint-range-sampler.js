@@ -30,13 +30,13 @@ function enumerateJointRanges(ranges, baseBlocked, limits = {}) {
   }
   visit(0, 0);
   if (exceeded) {
-    const error = Error('Orçamento de amostragem conjunta esgotado; a compatibilidade dos ranges não foi determinada. Simplifique os ranges ou amplie o estudo.');
+    const error = Error('Joint sampling budget exhausted; range compatibility was not determined. Simplify the ranges or expand the study.');
     error.code = 'JOINT_SAMPLING_BUDGET_EXCEEDED';
     error.samplerDiagnostics = { enumerationComplete: false, enumerationNodes: nodes, compatibleJointsFound: entries.length };
     throw error;
   }
   if (!entries.length) {
-    const error = Error('Ranges incompatíveis entre si: enumeração completa não encontrou combinação conjunta legal.');
+    const error = Error('Incompatible ranges: complete enumeration found no legal joint combination.');
     error.code = 'INCOMPATIBLE_RANGES';
     error.samplerDiagnostics = { enumerationComplete: true, enumerationNodes: nodes, compatibleJoints: 0 };
     throw error;
@@ -47,7 +47,7 @@ function enumerateJointRanges(ranges, baseBlocked, limits = {}) {
   let totalWeight = 0;
   for (const entry of entries) {
     entry.weight = Math.exp(entry.logWeight - maximumLogWeight);
-    if (entry.weight === 0) throw Error('Pesos conjuntos excedem a precisão numérica; reescale ou simplifique os ranges.');
+    if (entry.weight === 0) throw Error('Joint weights exceed numeric precision; rescale or simplify the ranges.');
     totalWeight += entry.weight;
     entry.cumulative = totalWeight;
   }

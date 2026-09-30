@@ -90,7 +90,7 @@ test('undo by replay restores the same positions, actor, stacks and pot exactly'
 });
 
 test('strict action order remains strict and observations reject invalid, hero, folded and completed seats', () => {
-  assert.throws(() => replay(config, [act(3, 'FOLD')]), /fora de vez/);
+  assert.throws(() => replay(config, [act(3, 'FOLD')]), /out of turn/);
   assert.throws(() => replay(config, [exit(2)]), error => error.code === 'HERO_USE_ACTION');
   assert.throws(() => replay(config, [exit(9)]), error => error.code === 'INVALID_SEAT');
   assert.throws(() => replay(config, [exit('3')]), error => error.code === 'INVALID_SEAT');

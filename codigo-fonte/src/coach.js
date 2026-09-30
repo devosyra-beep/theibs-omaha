@@ -283,8 +283,8 @@ function coachSummary(snapshot, question = 'Decision summary', options = {}) {
   if (['decision','price'].includes(topic) && snapshot.continuationAssessment) {
     const a=snapshot.continuationAssessment, view=require('../public/continuation-view').describe(a);
     const points=[view.detail];
-    if(!['UNAVAILABLE','PROVISIONAL'].includes(a.status)&&Number.isFinite(a.equity))points.push('Equity no modelo: '+percent(a.equity)+(Number.isFinite(a.breakEvenEquity)?'; necessária para este CALL: '+percent(a.breakEvenEquity):'')+'.');
-    points.push('O sinal vale para esta decisão, com as cartas e os custos informados, supondo nenhuma aposta futura. Não compara BET/RAISE nem garante vitória.');
+    if(!['UNAVAILABLE','PROVISIONAL'].includes(a.status)&&Number.isFinite(a.equity))points.push('Modeled equity: '+percent(a.equity)+(Number.isFinite(a.breakEvenEquity)?'; required for this CALL: '+percent(a.breakEvenEquity):'')+'.');
+    points.push('This signal applies to this decision with the entered cards and costs, assuming no future bets. It does not compare BET/RAISE or guarantee a win.');
     return {headline:view.title,points,details:explanationDetails(snapshot,['decision','price','equity'],options.similarCases)};
   }
   const headings = { made: 'What your cards make', draws: 'How your hand can improve', blockers: 'What your cards block', nuts: 'Can your hand be beaten?', equity: 'Your expected share of the pot', price: 'The cost to call', ev_raise: 'The raise in this scenario', ev_bet: 'The bet in this scenario', ev_fold: 'What folding means now', ev_check: 'What checking means now', opponents: 'Who is included in the calculation', tendency: 'How the training opponent plays' };

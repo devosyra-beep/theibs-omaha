@@ -57,8 +57,8 @@ test('arbitrary legal size is separately evaluated with identical worlds for com
     assert.equal(same.ev, candidate.ev);
     assert.deepEqual(same.terminalOutcomes, candidate.terminalOutcomes);
   }
-  assert.throws(() => evaluateTraining(trainingEvaluationInput(session, { samples: 32, chosenSize: 7 })), /entre/);
-  assert.throws(() => evaluateTraining(trainingEvaluationInput(session, { samples: 32, chosenAction: 'RAISE' })), /tamanho/);
+  assert.throws(() => evaluateTraining(trainingEvaluationInput(session, { samples: 32, chosenSize: 7 })), /between/);
+  assert.throws(() => evaluateTraining(trainingEvaluationInput(session, { samples: 32, chosenAction: 'RAISE' })), /size/);
 });
 
 test('river value uses incremental cost, actual winner and conserved chips', () => {

@@ -3,7 +3,7 @@
   const $=s=>document.querySelector(s), form=$('#analysis-form');
   $('#samples').prepend(new Option('Adaptive · target up to 3s','adaptive'));
   const opponentsBar=document.createElement('div');opponentsBar.className='analysis-context-bar';
-  opponentsBar.innerHTML='<label for="opponent-count">Número de adversários <select id="opponent-count"></select></label><span id="opponent-total" class="sr-only"></span>';
+  opponentsBar.innerHTML='<label for="opponent-count">Number of opponents <select id="opponent-count"></select></label><span id="opponent-total" class="sr-only"></span>';
   $('#analyze-workspace .table-column').prepend(opponentsBar);
   for(const event of ['input','change'])$('#opponent-count').addEventListener(event,()=>{$('#players').value=Number($('#opponent-count').value)+1;});
   document.body.dataset.view='analyze';
@@ -35,7 +35,7 @@
     el.addEventListener('click',event=>{if(event.target===el)closeDialog(el);});
     return el;
   }
-  const settings=dialog('settings-dialog','Table & calculation assumptions');
+  const settings=dialog('settings-dialog','Table & tools');
   // Keep rules in Help; the main rail contains only the variant selection.
   $('#help-dialog').append($('#variant-help'));
   const studyNotes=document.createElement('details');studyNotes.id='study-notes';
@@ -53,18 +53,49 @@
   const visualSettings=document.createElement('section');visualSettings.className='settings-visuals';
   const visualTitle=document.createElement('h3');visualTitle.textContent='Game & appearance';
   visualSettings.append(visualTitle,$('.variant-section'),appearance,$('#open-help'));
+  const settingsShortcuts=document.createElement('nav');settingsShortcuts.className='settings-shortcuts';
+  settingsShortcuts.setAttribute('aria-label','Tools and assistance');
+  settingsShortcuts.innerHTML='<button id="settings-cards" type="button" class="ghost-button">Cards & keyboard</button><button id="settings-voice" type="button" class="ghost-button">Voice · PT-BR / EN-US</button><button id="settings-support" type="button" class="ghost-button">Support</button><button id="settings-license" type="button" class="ghost-button">License & access</button>';
+  visualSettings.append(settingsShortcuts);
   settings.querySelector('.dialog-content').append(visualSettings);
   $('#analysis-form .context-rail').querySelectorAll('.controls-panel,.form-actions').forEach(el=>settings.querySelector('.dialog-content').append(el));
   const entry=dialog('entry-dialog','Paste or edit cards');entry.querySelector('.dialog-content').append($('.raw-entry'));$('.raw-entry').open=true;
   const result=dialog('analysis-dialog','Calculation & street history');
   for(const el of [$('#empty-state'),$('#result'),$('.timeline-card')])result.querySelector('.dialog-content').append(el);
   const bar=document.createElement('div');bar.className='dashboard-tools';
-  bar.innerHTML='<button id="open-settings" type="button" class="ghost-button" data-dialog-target="#settings-dialog" commandfor="settings-dialog" command="show-modal">Configure table</button><button id="open-analysis" type="button" class="ghost-button" data-dialog-target="#analysis-dialog" commandfor="analysis-dialog" command="show-modal">View calculation</button><button id="open-engine" type="button" class="ghost-button" data-dialog-target="#engine-dialog" commandfor="engine-dialog" command="show-modal">Assistant</button>';
+  bar.innerHTML='<button id="open-settings" type="button" class="ghost-button" data-dialog-target="#settings-dialog" commandfor="settings-dialog" command="show-modal">Configure table</button><button id="open-analysis" type="button" class="ghost-button" data-dialog-target="#analysis-dialog" commandfor="analysis-dialog" command="show-modal">View calculation</button><button id="open-engine" type="button" class="ghost-button" data-dialog-target="#engine-dialog" commandfor="engine-dialog" command="show-modal">Assistant</button><button id="open-support" type="button" class="ghost-button">Support</button><button id="open-license" type="button" class="ghost-button">License</button>';
   $('.top-actions').prepend(bar);
   $('#open-settings').addEventListener('click',()=>openDialog(settings));
   $('#open-analysis').addEventListener('click',()=>openDialog(result));
   const engine=dialog('engine-dialog','Hand assistant');document.body.append(engine);
   $('#open-engine').addEventListener('click',()=>openDialog(engine));
+  const support=dialog('support-dialog','Help & support');document.body.append(support);
+  support.querySelector('.dialog-content').innerHTML=`<p class="micro">Find keyboard and card entry instructions while staying at the table.</p>
+    <div class="support-options"><button id="support-keyboard" type="button" class="ghost-button">Keyboard & cards</button></div>
+    <details><summary>Technical issues</summary><p>Check your connection and session status. If microphone access is blocked, update your browser permission; voice will resume when it is available. Note the error message and displayed version before requesting help.</p></details>
+    <p class="micro">Direct contact is not configured in this release. This panel does not send messages or create support tickets.</p>`;
+  const license=dialog('license-dialog','License & access');document.body.append(license);
+  license.querySelector('.dialog-content').innerHTML='<p>Review your account access. When purchases are enabled, use the existing secure checkout in Account & access.</p><p id="license-status" class="license-status" role="status">Checking availability…</p><button id="license-account" type="button" class="ghost-button">View account & access</button><p class="micro">Opening this panel does not start a payment.</p>';
+  const openLicense=async()=>{
+    openDialog(license);
+    const status=$('#license-status'),account=$('#license-account');
+    status.textContent='Checking availability…';
+    try{
+      const response=await fetch('/api/public-config',{cache:'no-store'});
+      if(!response.ok)throw Error('Configuration unavailable.');
+      const config=(await response.json()).auth||{};
+      account.disabled=!config.required||$('#open-auth').hidden;
+      status.textContent=!config.required?'License management is available in the hosted web app.':config.billingEnabled?'Purchase and license status are available in Account & access.':'You can review access in Account & access. Online purchases are not enabled yet.';
+    }catch{account.disabled=true;status.textContent='Availability could not be checked right now.';}
+  };
+  $('#open-support').addEventListener('click',()=>openDialog(support));
+  $('#open-license').addEventListener('click',openLicense);
+  $('#license-account').addEventListener('click',()=>{closeDialog(license);requestAnimationFrame(()=>$('#open-auth').click());});
+  $('#support-keyboard').addEventListener('click',()=>{closeDialog(support);requestAnimationFrame(()=>openDialog($('#help-dialog')));});
+  $('#settings-cards').addEventListener('click',()=>{closeDialog(settings);requestAnimationFrame(()=>openDialog(entry));});
+  $('#settings-voice').addEventListener('click',()=>{closeDialog(settings);requestAnimationFrame(()=>{const panel=$('#card-voice-disclosure');if(panel){panel.open=true;panel.scrollIntoView({block:'nearest',behavior:'smooth'});panel.querySelector('summary')?.focus();}});});
+  $('#settings-support').addEventListener('click',()=>{closeDialog(settings);requestAnimationFrame(()=>openDialog(support));});
+  $('#settings-license').addEventListener('click',()=>{closeDialog(settings);requestAnimationFrame(openLicense);});
   engine.querySelector('.dialog-content').innerHTML=`<section id="llama-controls" aria-label="Hand assistant">
     <p id="llama-status" role="status">Checking the web assistant…</p>
     <p class="micro">The web service provides the explanation. No model installation is required on your computer.</p><details id="llama-setup" hidden><summary>Server model configuration</summary>
@@ -95,16 +126,16 @@
   $('#assumeNoRake').checked=true;
   const scenarios=document.createElement('details');scenarios.className='panel controls-panel';scenarios.id='raise-model-panel';
   scenarios.innerHTML=`<summary><span>Compare bet / raise</span></summary>
-    <p>Estudo opcional de BET / RAISE. Informe taxas somente no painel individual de adversários; nenhuma taxa será preenchida automaticamente.</p>
+    <p>Optional BET / RAISE study. Set call probabilities in each opponent panel; none are filled in automatically.</p>
     <label hidden>Response model<select id="study-mode"><option value="OFF">Off · partial comparison</option><option value="UNIFORM">Study scenario · random hands</option></select></label>
-    <p class="micro">Sem as hipóteses necessárias, equity e CALL disponíveis continuam sendo calculados. Ranges específicos de continuação ainda não são suportados neste estudo simplificado.</p>
+    <p class="micro">Without the required assumptions, available equity and CALL are still calculated. This simplified study does not support specific continuation ranges.</p>
     <p class="micro">Samples: the selected count applies to each number of callers. Adaptive mode uses 5K per count; select Deep for 50K per count.</p>
     <div class="form-grid"><label>You already committed this street<input id="study-hero-contribution" type="number" min="0" step="0.01" value="0"></label><label>Minimum legal raise (total)<input id="study-min-raise" type="number" min="0" step="0.01" placeholder="Optional · conservative limit"></label></div>
     <div id="study-sizes" class="form-grid"></div>
     <label>Minimum legal bet (table blind)<input id="study-min-bet" type="number" min="0.01" step="0.01" value="1"></label>
-    <p class="micro">No modo Simples, preencha os aportes desta street quando quiser modelar a aposta. No Multiway, os aportes vêm das ações que você registrou.</p>
+    <p class="micro">In Simple mode, enter contributions for this street to study a bet. In Multiway, contributions come from the actions you recorded.</p>
     <div class="study-opponent-heading"><span>Active opponent</span><span>Committed this street</span></div>
-    ${Array.from({length:9},(_,i)=>`<div class="study-opponent-row" data-study-opponent="${i}"><strong>ADV. ${i+1}</strong><label class="sr-only" for="study-contribution-${i}">OPP. contribution ${i+1}</label><input id="study-contribution-${i}" type="number" min="0" step="0.01" placeholder="Não informado"><input id="study-probability-${i}" type="hidden" value=""></div>`).join('')}
+    ${Array.from({length:9},(_,i)=>`<div class="study-opponent-row" data-study-opponent="${i}"><strong>ADV. ${i+1}</strong><label class="sr-only" for="study-contribution-${i}">OPP. contribution ${i+1}</label><input id="study-contribution-${i}" type="number" min="0" step="0.01" placeholder="Not entered"><input id="study-probability-${i}" type="hidden" value=""></div>`).join('')}
     <label hidden><input id="study-accept" type="checkbox"> Legacy explicit study acceptance</label>
     <p class="micro">Equity is recalculated for each caller count. Call probabilities are independent of cards. This mode requires random hands for everyone. Bet/raise amounts are street totals; the engine subtracts what you already committed. The big blind option supports CHECK/RAISE when its posted contribution and the legal raise minimum are provided.</p>`;
   settings.querySelector('.dialog-content').append(scenarios);
@@ -116,7 +147,7 @@
   $('#rake').closest('label').firstChild.textContent='Total rake removed from the pot';
   $('#rake').closest('.controls-panel').querySelector('p.micro').textContent='Rake applies to the whole comparison. The fold/continuation-equity fields above belong to the simple heads-up model. For multiple opponents, use Compare bet / raise.';
   for(const id of ['foldEquity','continuationEquity'])$('#'+id).closest('label').hidden=true;
-  $('#rake').closest('.controls-panel').querySelector('p.micro').textContent='Custos entram antes da comparação. Hipóteses de resposta são opcionais e pertencem a cada adversário; dados ausentes não viram probabilidades presumidas.';
+  $('#rake').closest('.controls-panel').querySelector('p.micro').textContent='Costs enter before the comparison. Response assumptions belong to individual opponents; missing values are never treated as assumed probabilities.';
   $('#opponentHand').closest('.controls-panel').querySelector('p.micro').textContent='Optional: enter a hand or range to refine the estimate. A behavioral profile does not replace a range.';
   $('#empty-state p').textContent='Complete your cards and choose the number of opponents. Simple analysis estimates equity against random hands.';
   $('#open-help').title='F1: keyboard, suits and actions';

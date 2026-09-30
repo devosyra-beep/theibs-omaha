@@ -161,7 +161,7 @@ test('legacy heads-up raiseTo deducts prior hero contribution, with warning when
   near(result.ev, .2 * 10 + .8 * (.6 * (10 + 10 + 7) - 10));
   assert.equal(result.heroCost, 10);
   const omitted = { ...input }; delete omitted.heroContribution;
-  assert.match(raise(omitted).warnings.join(' '), /assumida como zero/);
+  assert.match(raise(omitted).warnings.join(' '), /assumed to be zero/);
   const multiway = { ...input, players: 3, opponentResponseModel: { type: 'ALL_FOLD_OR_ONE_CALLER' } };
   assert.equal(raise(multiway).status, 'NOT_MODELED');
 });

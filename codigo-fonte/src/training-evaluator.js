@@ -33,13 +33,13 @@ function publicConfig(config) {
   const result = { variant: config.variant, playerCount: 2, heroPosition: 'BTN',
     startingStack: config.startingStack, smallBlind: config.smallBlind, bigBlind: config.bigBlind,
     heroCards: cardCodes(normalizeCards(config.heroCards)) };
-  if (result.heroCards.length !== holeCount(result.variant)) throw Error('Cartas do herói incompletas para a variante.');
+  if (result.heroCards.length !== holeCount(result.variant)) throw Error('Player cards are incomplete for the variant.');
   if (config.stacks) result.stacks = [...config.stacks];
   return result;
 }
 
 function publicEvents(events) {
-  if (!Array.isArray(events)) throw Error('Histórico público ausente.');
+  if (!Array.isArray(events)) throw Error('Public history is missing.');
   return events.map(event => {
     if (event.type === 'BOARD') return { type: 'BOARD', cards: cardCodes(normalizeCards(event.cards)) };
     if (event.type !== 'ACT') throw Error('Evaluation history must end before the hand result.');
@@ -77,7 +77,7 @@ function normalizeInput(input) {
   }
   const chosenAction = input.chosenAction ? String(input.chosenAction).toUpperCase() : null;
   if (chosenAction && !actions.includes(chosenAction)) throw Error('The selected action is not legal.');
-  if (['BET', 'RAISE'].includes(chosenAction) && input.chosenSize == null) throw Error('Informe o tamanho da aposta escolhida.');
+  if (['BET', 'RAISE'].includes(chosenAction) && input.chosenSize == null) throw Error('Enter the size of the chosen bet.');
   const chosenOptionId = chosenAction ? optionId(chosenAction, input.chosenSize) : null;
   const fingerprint = createHash('sha256').update('THEIBS_POLICY_ROLLOUT_V1\n' + JSON.stringify({ config, events, opponentStyle })).digest('hex');
   return { config, events, state, opponentStyle, samples, actions, candidates, chosenOptionId,

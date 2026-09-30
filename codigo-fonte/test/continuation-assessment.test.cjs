@@ -88,8 +88,8 @@ test('HTTP final/preview/cache and coach retain the same scope, uncertainty and 
  // The coach deliberately computes/loads the FINAL budget, even if a caller
  // supplies PREVIEW. It must match that final identity, never relabel preview.
  const preliminary=await post('/api/analysis/doubt',{input:{...input,analysisPhase:'PREVIEW'},question:'Posso continuar?',responseMode:'LOCAL_FIRST'});assert.deepEqual(preliminary.context.continuationAssessment,final.continuationAssessment);assert.equal(preliminary.context.analysisId,final.analysisId);assert.notEqual(preliminary.context.analysisId,preview.analysisId);
- assert.match(preliminary.answer.summary.headline,/favorável/i);
- const follow=await post('/api/analysis/doubt',{input,question:'Vale seguir nesta mão?',responseMode:'LOCAL_FIRST'});assert.match(follow.answer.summary.headline,/favorável/i);assert.match(follow.answer.summary.points.join(' '),/Não compara BET\/RAISE/);
+ assert.match(preliminary.answer.summary.headline,/favorable/i);
+ const follow=await post('/api/analysis/doubt',{input,question:'Vale seguir nesta mão?',responseMode:'LOCAL_FIRST'});assert.match(follow.answer.summary.headline,/favorable/i);assert.match(follow.answer.summary.points.join(' '),/does not compare BET\/RAISE/);
 });
 test('HTTP Multiway unmodeled outstanding contributions remain blocked after worker calculation and in coach',async()=>{
  const config={variant:'PLO5_HIGH',playerCount:3,heroPosition:'BTN',startingStack:100,smallBlind:1,bigBlind:2,heroCards:positive.heroCards};

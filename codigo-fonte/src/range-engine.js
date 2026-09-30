@@ -69,45 +69,45 @@ const DEFEND_BY_POSITION = {
 
 function normalizeProfileValue(value, allowed, field) {
   const normalized = String(value || '').trim().toUpperCase();
-  if (!allowed.includes(normalized)) throw new Error(`${field} inválido: ${value}.`);
+  if (!allowed.includes(normalized)) throw new Error(`Invalid ${field}: ${value}.`);
   return normalized;
 }
 
 function normalizeWeight(value, index) {
-  if (!['number', 'string'].includes(typeof value) || (typeof value === 'string' && !value.trim())) throw new Error(`Peso inválido no índice ${index}.`);
+  if (!['number', 'string'].includes(typeof value) || (typeof value === 'string' && !value.trim())) throw new Error(`Invalid weight at index ${index}.`);
   const weight = Number(value);
-  if (!Number.isFinite(weight) || weight < 0) throw new Error(`Peso inválido no índice ${index}.`);
+  if (!Number.isFinite(weight) || weight < 0) throw new Error(`Invalid weight at index ${index}.`);
   return weight;
 }
 
 function normalizeRange(range, index = 0, count = 5) {
   if (!range || typeof range !== 'object' || Array.isArray(range)) {
-    throw new Error(`Range ${index + 1} deve ser um objeto.`);
+    throw new Error(`Range ${index + 1} must be an object.`);
   }
   if (range.kind === 'UNIFORM') return {
     kind:'UNIFORM', id:String(range.id || `unknown-${index+1}`), version:'1', source:'UNIFORM_UNKNOWN',
-    position:null, action:null, note:'Todas as mãos legais são equiprováveis; modelo-base sem leitura de comportamento.',
+    position:null, action:null, note:'All legal hands are equally likely; the baseline model does not infer behavior.',
     hands:[], weights:[], normalizedWeights:[], totalWeight:1, handCount:null, holeCount:count
   };
   if (!Array.isArray(range.hands) || range.hands.length === 0) {
-    throw new Error(`Range ${index + 1} deve conter pelo menos uma mão.`);
+    throw new Error(`Range ${index + 1} must contain at least one hand.`);
   }
   const hands = range.hands.map((hand) => {
     const normalized = normalizeCards(hand, 'range hand');
-    if (normalized.length !== count) throw new Error(`Cada mão de um range PLO${count} deve conter ${count} cartas.`);
+    if (normalized.length !== count) throw new Error(`Each hand in a PLO${count} range must contain ${count} cards.`);
     return normalized;
   });
-  if (range.weights !== undefined && !Array.isArray(range.weights)) throw new Error('weights deve ser um array.');
+  if (range.weights !== undefined && !Array.isArray(range.weights)) throw new Error('weights must be an array.');
   const weights = range.weights === undefined
     ? hands.map(() => 1)
     : range.weights.map((weight, weightIndex) => normalizeWeight(weight, weightIndex));
-  if (weights.length !== hands.length) throw new Error('weights deve ter o mesmo tamanho de hands.');
+  if (weights.length !== hands.length) throw new Error('weights must have the same length as hands.');
   const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
-  if (!Number.isFinite(totalWeight) || totalWeight <= 0) throw new Error('A soma dos pesos do range deve ser finita e maior que zero.');
-  const position = range.position == null ? null : normalizeProfileValue(range.position, POSITIONS, 'Posição do range');
-  const action = range.action == null ? null : normalizeProfileValue(range.action, ACTIONS, 'Ação do range');
+  if (!Number.isFinite(totalWeight) || totalWeight <= 0) throw new Error('The range weight total must be finite and greater than zero.');
+  const position = range.position == null ? null : normalizeProfileValue(range.position, POSITIONS, 'range position');
+  const action = range.action == null ? null : normalizeProfileValue(range.action, ACTIONS, 'range action');
   const normalizedWeights = weights.map((weight) => weight / totalWeight);
-  if (weights.some((weight, i) => weight > 0 && normalizedWeights[i] === 0)) throw new Error('Pesos excedem a precisão numérica; reescale ou simplifique o range.');
+  if (weights.some((weight, i) => weight > 0 && normalizedWeights[i] === 0)) throw new Error('Weights exceed numeric precision; rescale or simplify the range.');
   return {
     id: String(range.id || `range-${index + 1}`),
     version: String(range.version || RANGE_VERSION),
@@ -125,7 +125,7 @@ function normalizeRange(range, index = 0, count = 5) {
 
 function normalizeRanges(ranges, count = 5) {
   if (!Array.isArray(ranges) || ranges.length === 0) {
-    throw new Error('opponentRanges deve conter pelo menos um range.');
+    throw new Error('opponentRanges must contain at least one range.');
   }
   return ranges.map((range, index) => normalizeRange(range, index, count));
 }
@@ -150,14 +150,14 @@ function serializeRange(range) {
 function rangeHandsForProfile(position, action) {
   const catalog = action === 'DEFEND' ? DEFEND_BY_POSITION : OPEN_BY_POSITION;
   const hands = catalog[position];
-  if (!hands) throw new Error(`Não existe range inicial para ${position}/${action}.`);
+  if (!hands) throw new Error(`No starter range exists for ${position}/${action}.`);
   return hands.map((hand) => [...hand]);
 }
 
 function getDefaultRange(profile = {}) {
   const profileObject = typeof profile === 'string' ? { position: profile } : profile;
-  const position = normalizeProfileValue(profileObject.position, POSITIONS, 'Posição do range');
-  const action = normalizeProfileValue(profileObject.action || 'OPEN', ['OPEN', 'DEFEND'], 'Ação do range');
+  const position = normalizeProfileValue(profileObject.position, POSITIONS, 'range position');
+  const action = normalizeProfileValue(profileObject.action || 'OPEN', ['OPEN', 'DEFEND'], 'range action');
   const hands = rangeHandsForProfile(position, action);
   const weights = hands.map((_, index) => Math.max(0.5, 1 - index * 0.05));
   return {
@@ -166,7 +166,7 @@ function getDefaultRange(profile = {}) {
     source: RANGE_SOURCE,
     position,
     action,
-    note: 'Range inicial heurístico para estudo; não representa uma solução GTO.',
+    note: 'Heuristic starter range for study; it is not a GTO solution.',
     hands,
     weights
   };
@@ -193,7 +193,7 @@ function resolveProvidedRanges(input = {}) {
       ranges,
       publicRanges: ranges.map(serializeRange),
       warnings: [],
-      assumptions: ['Mão(s) adversária(s) informada(s) manualmente.']
+      assumptions: ['Opponent hand(s) entered manually.']
     };
   }
   if (Array.isArray(input.opponentRanges) && input.opponentRanges.length > 0) {
@@ -203,36 +203,36 @@ function resolveProvidedRanges(input = {}) {
       ranges,
       publicRanges: ranges.map(serializeRange),
       warnings: [],
-      assumptions: ['Range(s) adversário(s) informado(s) manualmente; pesos normalizados.']
+      assumptions: ['Opponent range(s) entered manually; weights normalized.']
     };
   }
   if (input.opponentRangeProfile) {
-    if (count !== 5) throw new Error('Catálogo inicial disponível somente em PLO5; informe mão ou range explícito da variante escolhida.');
+    if (count !== 5) throw new Error('The starter catalog is available only for PLO5; enter an explicit hand or range for the selected variant.');
     const ranges = [normalizeRange(getDefaultRange(input.opponentRangeProfile))];
     return {
       mode: 'DEFAULT_PROFILE',
       ranges,
       publicRanges: ranges.map(serializeRange),
-      warnings: ['Range inicial heurístico: não é uma solução GTO e deve ser refinado com dados da mesa.'],
-      assumptions: [`Range inicial ${ranges[0].position}/${ranges[0].action} usado como premissa explícita.`]
+      warnings: ['Heuristic starter range: it is not a GTO solution and should be refined with table data.'],
+      assumptions: [`Starter range ${ranges[0].position}/${ranges[0].action} used as an explicit assumption.`]
     };
   }
-  throw new Error('Forneça opponentHands, opponentRanges ou opponentRangeProfile.');
+  throw new Error('Provide opponentHands, opponentRanges or opponentRangeProfile.');
 }
 
 function resolveOpponentRanges(input = {}) {
   const provided = input.opponentHands?.length || input.opponentRanges?.length || input.opponentRangeProfile;
   if (input.unknownOpponentModel !== 'UNIFORM') return resolveProvidedRanges(input);
   const count=holeCount(input.variant), opponents=Number(input.players)-1;
-  if (!Number.isInteger(opponents)||opponents<1||(opponents+1)*count+5>52) throw Error('Quantidade de oponentes inválida para esta variante.');
+  if (!Number.isInteger(opponents)||opponents<1||(opponents+1)*count+5>52) throw Error('Invalid opponent count for this variant.');
   const model=provided ? resolveProvidedRanges(input) : {ranges:[],warnings:[],assumptions:[]};
-  if(model.ranges.length>opponents) throw Error('Há mais ranges informados do que adversários na mão.');
+  if(model.ranges.length>opponents) throw Error('More ranges were entered than opponents in the hand.');
   const ranges=[...model.ranges];
   while(ranges.length<opponents) ranges.push(normalizeRange({kind:'UNIFORM'},ranges.length,count));
   const unknown=ranges.filter(r=>r.kind==='UNIFORM').length;
   return { mode:unknown?'EXPLICIT_RANGE':model.mode,ranges,publicRanges:ranges.map(serializeRange),
-    warnings:[...model.warnings,...(unknown?['Estimativa contra mãos aleatórias; ações observadas ainda não calibram automaticamente os ranges.']:[])],
-    assumptions:[...model.assumptions,...(unknown?[`${unknown} adversário(s) desconhecido(s) modelado(s) com todas as mãos legais equiprováveis.`]:[])] };
+    warnings:[...model.warnings,...(unknown?['Estimate against random hands; observed actions do not automatically calibrate ranges.']:[])],
+    assumptions:[...model.assumptions,...(unknown?[`${unknown} unknown opponent(s) modeled with all legal hands equally likely.`]:[])] };
 }
 
 module.exports = {

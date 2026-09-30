@@ -13,18 +13,18 @@ const { sharedEquityLeadership } = require('./analyze-inference');
 
 function actionReason(action, strategy) {
   const base = action === 'FOLD'
-    ? 'A linha abandona quando a equity ou o cenário não justificam continuar.'
+    ? 'This line folds when the equity or scenario does not justify continuing.'
     : action === 'RAISE'
-      ? 'A linha aplica pressão ou valor quando a estratégia e as premissas sustentam a agressão.'
+      ? 'This line applies pressure or seeks value when the strategy and assumptions support aggression.'
       : action === 'BET'
-        ? 'A linha aposta para capturar valor ou pressão sob as premissas informadas.'
+        ? 'This line bets for value or pressure under the stated assumptions.'
         : action === 'CALL'
-          ? 'A linha continua para realizar equity dentro do preço e das premissas atuais.'
+          ? 'This line continues to realize equity at the current price and under the current assumptions.'
           : action === 'CHECK'
-            ? 'A linha conserva a realização de equity e controla o pote.'
-            : 'Não há uma ação determinável com os dados atuais.';
+            ? 'This line preserves equity realization and controls the pot.'
+            : 'No action can be determined from the current data.';
   if (strategy?.exploit?.finalSource === 'EXPLOIT_ADJUSTMENT') {
-    return `${base} Ajuste exploitativo aplicado sobre a estratégia-base.`;
+    return `${base} An exploitative adjustment was applied to the baseline strategy.`;
   }
   return base;
 }
@@ -36,7 +36,7 @@ function decide(input) {
     return {
       status: 'NO_DECISION',
       contractVersion: 'THEIBS_DECISION_V1',
-      reason: inputState.errors[0] || 'Estado da mão inválido.',
+      reason: inputState.errors[0] || 'Invalid hand state.',
       state: inputState.state,
       errors: inputState.errors,
       warnings
@@ -51,7 +51,7 @@ function decide(input) {
   if (missingCore.length > 0) {
     return {
       status: 'NO_DECISION', contractVersion: 'THEIBS_DECISION_V1',
-      reason: `Dados essenciais ausentes: ${missingCore.join(', ')}.`,
+      reason: `Missing essential data: ${missingCore.join(', ')}.`,
       state: inputState.state, missingInputs: missingCore, warnings
     };
   }
@@ -59,7 +59,7 @@ function decide(input) {
     return {
       status: 'NO_DECISION',
       contractVersion: 'THEIBS_DECISION_V1',
-      reason: 'Stack efetivo é necessário para validar as ações e calcular SPR.',
+      reason: 'Effective stack is required to validate actions and calculate SPR.',
       state: inputState.state,
       warnings
     };
@@ -71,7 +71,7 @@ function decide(input) {
     return {
       status: 'NO_DECISION',
       contractVersion: 'THEIBS_DECISION_V1',
-      reason: 'Range adversário ausente ou inválido.',
+      reason: 'Opponent range is missing or invalid.',
       state: inputState.state,
       errors: [error.message],
       warnings
@@ -90,9 +90,9 @@ function decide(input) {
     equity = calculateEquity(equityInput);
     if(study){const prepared=buildStudyModels(normalizedInput,study,equity);normalizedInput=prepared.input;scenarioSummary=prepared.summary;}
   } catch (error) {
-    return { status: 'NO_DECISION', contractVersion: 'THEIBS_DECISION_V1', reason: 'Um range adversário válido é necessário para calcular equity.', state: inputState.state, ranges: rangeModel.publicRanges, warnings: [...warnings, error.message] };
+    return { status: 'NO_DECISION', contractVersion: 'THEIBS_DECISION_V1', reason: 'A valid opponent range is required to calculate equity.', state: inputState.state, ranges: rangeModel.publicRanges, warnings: [...warnings, error.message] };
   }
-  if (normalizedInput.players && normalizedInput.players - 1 !== equity.opponents) warnings.push(`Equity calculada contra ${equity.opponents} oponente(s) modelado(s); a mesa informada tem ${normalizedInput.players - 1} adversário(s). Não representa automaticamente o cenário multiway completo.`);
+  if (normalizedInput.players && normalizedInput.players - 1 !== equity.opponents) warnings.push(`Equity was calculated against ${equity.opponents} modeled opponent(s); the reported table has ${normalizedInput.players - 1} opponent(s). This does not automatically represent the full multiway scenario.`);
   const actions = legalActions(normalizedInput);
   let ev;
   try { ev = calculateActionEV({ ...normalizedInput, equity: equity.equity, legalActions: actions }); }
@@ -106,19 +106,19 @@ function decide(input) {
     }
   }
   warnings.push(...ev.warnings);
-  if (actions.length === 0) return { status: 'NO_DECISION', contractVersion: 'THEIBS_DECISION_V1', reason: 'Nenhuma ação legal disponível.', state: inputState.state, ranges: rangeModel.publicRanges, equity, potMath: math, ev, legalActions: actions, warnings };
+  if (actions.length === 0) return { status: 'NO_DECISION', contractVersion: 'THEIBS_DECISION_V1', reason: 'No legal action is available.', state: inputState.state, ranges: rangeModel.publicRanges, equity, potMath: math, ev, legalActions: actions, warnings };
   const strategyInput = { ...normalizedInput, equity, potMath: math, ev, legalActions: actions, state: inputState.state };
   const baseline = evaluateStrategy({ input: strategyInput, equity, potMath: math, ev, legalActions: actions, state: inputState.state });
   const epsilonBB=normalizedInput.practicalEquivalenceBB,bb=Number(normalizedInput.bigBlind);
-  if(epsilonBB!=null&&(!Number.isFinite(Number(epsilonBB))||Number(epsilonBB)<0||!Number.isFinite(bb)||bb<=0))return {status:'NO_DECISION',reason:'Equivalência prática exige epsilon não negativo e bigBlind positivo.',state:inputState.state,warnings};
-  if(normalizedInput.selectionInference!==undefined&&!['MARGINAL','SHARED_EQUITY_PAIRED'].includes(normalizedInput.selectionInference))return {status:'NO_DECISION',reason:'selectionInference inválida.',state:inputState.state,warnings};
+  if(epsilonBB!=null&&(!Number.isFinite(Number(epsilonBB))||Number(epsilonBB)<0||!Number.isFinite(bb)||bb<=0))return {status:'NO_DECISION',reason:'Practical equivalence requires nonnegative epsilon and positive bigBlind.',state:inputState.state,warnings};
+  if(normalizedInput.selectionInference!==undefined&&!['MARGINAL','SHARED_EQUITY_PAIRED'].includes(normalizedInput.selectionInference))return {status:'NO_DECISION',reason:'Invalid selectionInference.',state:inputState.state,warnings};
   const paired=normalizedInput.selectionInference==='MARGINAL'?null:sharedEquityLeadership({ev,equity,study,marginal:baseline.leadership,epsilonChips:epsilonBB==null?null:Number(epsilonBB)*bb});
   if(paired){
     baseline.leadership=paired;
     baseline.reasonCodes=baseline.reasonCodes.filter(code=>!['EV_LEADERSHIP_OVERLAP','EV_LEADER_SEPARATED_WITHIN_BOUNDS'].includes(code));
     baseline.reasonCodes.push(paired.status==='SEPARATED'?'EV_LEADER_SEPARATED_PAIRED':'EV_LEADERSHIP_PAIRED_INCONCLUSIVE');
-    baseline.warnings=baseline.warnings.filter(text=>!text.startsWith('Liderança nominal de'));
-    baseline.assumptions.push('Diferenças de EV compartilham uma única equity no cenário HU uniforme; intervalo conjunto condicionado às premissas fixas, sem erro de modelo.');
+    baseline.warnings=baseline.warnings.filter(text=>!text.startsWith('Nominal lead by '));
+    baseline.assumptions.push('EV differences share one equity estimate in the uniform heads-up scenario; the joint interval is conditional on fixed assumptions and excludes model error.');
     baseline.confidence=paired.status==='SEPARATED'?'MEDIUM':'LOW';
   }
   let exploit;
@@ -128,7 +128,7 @@ function decide(input) {
     return {
       status: 'NO_DECISION',
       contractVersion: 'THEIBS_DECISION_V1',
-      reason: 'Perfil exploitativo inválido.',
+      reason: 'Invalid exploitative profile.',
       state: inputState.state,
       ranges: rangeModel.publicRanges,
       equity,
@@ -167,8 +167,8 @@ function decide(input) {
     ...(normalizedInput.opponentModelScope?{opponentModelScope:normalizedInput.opponentModelScope}:{}),
     handInsights: describeHand(normalizedInput.heroCards, normalizedInput.board),
     legalActions: actions,
-    reason: !ev.comparisonComplete ? `Comparação parcial: ${recommendedAction} lidera apenas entre as ações calculadas. Faltam ${(ev.missingLegalActions||[]).join(', ')}; não é uma conclusão sobre a melhor jogada geral.` : baseline.leadership.status !== 'SEPARATED' ? `${recommendedAction} está no topo dos valores calculados, mas a liderança é inconclusiva: empate, sobreposição ou ausência de faixas válidas. Isso não sustenta uma preferência segura entre as alternativas.` : `${recommendedAction} tem o maior EV e está separado nas faixas fornecidas entre os tamanhos e as hipóteses informados. Isso não prova a melhor estratégia fora desse modelo.`,
-    assumptions: [`${equity.method} contra ${equity.opponents} oponente(s)`, ...rangeModel.assumptions, ...(baseline.assumptions || []), 'EV de ações futuras depende das premissas individuais; não há árvore completa turn/river.'],
+    reason: !ev.comparisonComplete ? `Partial comparison: ${recommendedAction} leads only among modeled actions. Missing: ${(ev.missingLegalActions||[]).join(', ')}; this is not a conclusion about the best overall play.` : baseline.leadership.status !== 'SEPARATED' ? `${recommendedAction} leads the calculated values, but its lead is inconclusive because of a tie, overlap, or missing valid intervals. This does not support a confident preference among the alternatives.` : `${recommendedAction} has the highest EV and is separated within the supplied intervals across the stated sizes and assumptions. This does not establish the best strategy outside this model.`,
+    assumptions: [`${equity.method} against ${equity.opponents} opponent(s)`, ...rangeModel.assumptions, ...(baseline.assumptions || []), 'Future action EV depends on separate assumptions; there is no complete turn/river tree.'],
     warnings
   }, normalizedInput);
 }

@@ -9,17 +9,17 @@
   function describe(assessment) {
     if (!assessment) return null;
     const views = {
-      FAVORABLE: {tone:'positive',state:'CALL favorável no modelo',title:'Preço favorável para pagar',shortTitle:'CALL favorável',detail:'Mesmo o limite inferior do EV calculado é positivo, com os custos informados. Isso avalia este CALL contra desistir.',uncertain:false},
-      UNFAVORABLE: {tone:'negative',state:'CALL desfavorável no modelo',title:'Preço desfavorável para pagar',shortTitle:'CALL desfavorável',detail:'Até o limite superior do EV calculado é negativo. Neste modelo, pagar custa mais do que a participação esperada no pote.',uncertain:false},
-      UNCERTAIN: {tone:'neutral',state:'Margem incerta',title:'Ainda sem margem para concluir',shortTitle:'Margem incerta',detail:'A faixa de EV toca zero ou não há limites válidos. Um valor pontual positivo não basta para dar sinal verde.',uncertain:true,target:'precision',label:'Ver precisão'},
-      FREE_CHECK: {tone:'neutral',state:'CHECK sem custo agora',title:'Você pode dar CHECK sem pagar',shortTitle:'CHECK sem custo',detail:'Não há aposta para cobrir nesta decisão. Isso não significa mão forte: reavalie se vier uma aposta ou outra carta.',uncertain:false},
-      PROVISIONAL: {tone:'pending',state:'Prévia · aguardando resultado',title:'Calculando a margem do CALL',shortTitle:'Calculando…',detail:'Esta é uma prévia. O sinal só aparece após o cálculo final.',uncertain:true},
-      UNAVAILABLE: {tone:'pending',state:'Sem avaliação do CALL',title:'Faltam dados para avaliar este preço',shortTitle:'CALL indisponível',detail:'A equity pode estar disponível, mas o CALL ainda não tem um modelo válido para esta decisão.',uncertain:true,target:'calculation',label:'Ver o que falta'}
+      FAVORABLE: {tone:'positive',state:'CALL favorable in this model',title:'Favorable price to call',shortTitle:'Favorable CALL',detail:'Even the lower bound of calculated EV is positive with the entered costs. This evaluates CALL against folding.',uncertain:false},
+      UNFAVORABLE: {tone:'negative',state:'CALL unfavorable in this model',title:'Unfavorable price to call',shortTitle:'Unfavorable CALL',detail:'Even the upper bound of calculated EV is negative. In this model, calling costs more than the expected share of the pot.',uncertain:false},
+      UNCERTAIN: {tone:'neutral',state:'Uncertain margin',title:'Not enough margin to conclude yet',shortTitle:'Uncertain margin',detail:'The EV range touches zero or has no valid bounds. A positive point estimate alone is not enough to recommend a call.',uncertain:true,target:'precision',label:'View precision'},
+      FREE_CHECK: {tone:'neutral',state:'Free CHECK now',title:'You can CHECK for free',shortTitle:'Free CHECK',detail:'There is no bet to call in this decision. This does not mean your hand is strong: reassess if a bet or another card arrives.',uncertain:false},
+      PROVISIONAL: {tone:'pending',state:'Preview · awaiting result',title:'Calculating CALL margin',shortTitle:'Calculating…',detail:'This is a preview. A signal appears only after the final calculation.',uncertain:true},
+      UNAVAILABLE: {tone:'pending',state:'No CALL assessment',title:'More data is needed to assess this price',shortTitle:'CALL unavailable',detail:'Equity may be available, but CALL does not yet have a valid model for this decision.',uncertain:true,target:'calculation',label:'See what is missing'}
     };
     const view = {...(views[assessment.status] || views.UNAVAILABLE),target:views[assessment.status]?.target || null};
-    if(assessment.reasonCodes?.includes('COSTS_REQUIRED'))Object.assign(view,{detail:'Informe o rake da mesa ou confirme explicitamente custo zero. Sem isso, não há sinal de EV líquido.',target:'costs',label:'Informar custos'});
-    if(assessment.reasonCodes?.includes('INCOMPLETE_OPPONENT_COVERAGE'))view.detail='O cálculo não cobre todos os adversários desta mesa. Complete a cobertura antes de interpretar o CALL.';
-    if(assessment.boundsKind==='CONDITIONAL_ENVELOPE')view.detail+=' As faixas dependem das hipóteses de resposta fornecidas; não são uma probabilidade de lucro.';
+    if(assessment.reasonCodes?.includes('COSTS_REQUIRED'))Object.assign(view,{detail:'Enter the table rake or explicitly confirm zero cost. Without this, there is no net EV signal.',target:'costs',label:'Enter costs'});
+    if(assessment.reasonCodes?.includes('INCOMPLETE_OPPONENT_COVERAGE'))view.detail='The calculation does not cover every opponent at this table. Complete coverage before interpreting CALL.';
+    if(assessment.boundsKind==='CONDITIONAL_ENVELOPE')view.detail+=' The ranges depend on the entered response assumptions; they are not a probability of profit.';
     return view;
   }
   return {describe};

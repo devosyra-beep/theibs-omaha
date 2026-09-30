@@ -19,7 +19,7 @@
     const hasBounds = Array.isArray(bounds) && bounds.length === 2 && bounds.every(Number.isFinite);
     const halfWidth = hasBounds ? Math.max(equity.equity - bounds[0], bounds[1] - equity.equity) : null;
     return {
-      range: hasBounds ? `${percent(bounds[0])}–${percent(bounds[1])}` : 'Exata neste modelo',
+      range: hasBounds ? `${percent(bounds[0])}–${percent(bounds[1])}` : 'Exact in this model',
       preliminary: equity?.method !== 'EXACT' && (equity?.stopReason === 'TIME_BUDGET' || equity?.stopReason === 'SAMPLE_LIMIT' || halfWidth === null || halfWidth > .010001)
     };
   };
@@ -47,15 +47,54 @@
   const webBuild = document.querySelector('meta[name="theibs-web-build"]')?.content;
   function engineVersionError() {
     return webBuild && engineStatus?.version && webBuild !== engineStatus.version
-      ? `Versões incompatíveis: interface ${webBuild}, motor ${engineStatus.version}. Recarregue a página. Se persistir, aguarde a atualização do serviço antes de calcular.` : '';
+      ? `Version mismatch: interface ${webBuild}, engine ${engineStatus.version}. Reload the page. If this persists, wait for the service update before calculating.` : '';
   }
   function renderEngineVersion() {
     const warning = document.getElementById('engine-build-warning'), error = engineVersionError();
     warning.hidden = !error; warning.textContent = error;
-    document.getElementById('view-title').title = `Interface ${webBuild || '—'} · motor ${engineStatus?.version || 'indisponível'}`;
+    document.getElementById('view-title').title = `Interface ${webBuild || '—'} · engine ${engineStatus?.version || 'unavailable'}`;
   }
   let inputChangedAt = performance.now(), coachController = null, coachGeneration = 0;
   let multiway = null, multiwayState = null, multiwayAnalysis = null, multiwayYesple = null;
+  let simpleFoldedSeats = new Set();
+  const simpleSeatCount = () => Math.max(0, Math.min(9, Number(value('players')) - 1 || 0));
+  const simpleActiveSeatIds = () => Array.from({length:simpleSeatCount()},(_,id)=>id).filter(id=>!simpleFoldedSeats.has(id));
+  const simpleActivePlayers = () => simpleActiveSeatIds().length + 1;
+  const simpleSeatDialog=document.createElement('dialog');
+  simpleSeatDialog.id='simple-seat-dialog';simpleSeatDialog.className='seat-popover';
+  simpleSeatDialog.setAttribute('aria-labelledby','simple-seat-title');
+  simpleSeatDialog.innerHTML='<div class="seat-popover-head"><strong id="simple-seat-title"></strong><button type="button" class="text-button" data-seat-close aria-label="Close opponent controls">×</button></div><p id="simple-seat-detail" class="micro"></p><button id="simple-seat-toggle" type="button" class="ghost-button"></button>';
+  document.body.append(simpleSeatDialog);
+  let selectedSimpleSeat=null;
+  function placeSimpleSeatDialog(anchor){
+    const rect=anchor.getBoundingClientRect(), width=simpleSeatDialog.offsetWidth, height=simpleSeatDialog.offsetHeight;
+    const left=Math.max(8,Math.min(window.innerWidth-width-8,rect.left+rect.width/2-width/2));
+    const top=rect.bottom+10+height<=window.innerHeight-8?rect.bottom+10:Math.max(8,rect.top-height-10);
+    simpleSeatDialog.style.left=`${left}px`;simpleSeatDialog.style.top=`${top}px`;
+  }
+  function openSimpleSeat(id,anchor){
+    if(multiway||activeView!=='analyze'||!Number.isInteger(id)||id<0||id>=simpleSeatCount())return;
+    const another=document.querySelector('dialog[open]');if(another&&another!==simpleSeatDialog)return;
+    if(simpleSeatDialog.open)simpleSeatDialog.close();
+    selectedSimpleSeat=id;
+    const folded=simpleFoldedSeats.has(id);
+    $('#simple-seat-title').textContent=`OPP. ${id+1}`;
+    $('#simple-seat-detail').textContent=folded?'Folded · this seat remains on the table.':'Active · included in the next equity calculation.';
+    $('#simple-seat-toggle').textContent=folded?'Mark active':'Mark folded';
+    simpleSeatDialog.show();placeSimpleSeatDialog(anchor);
+    $('#simple-seat-toggle').focus({preventScroll:true});
+  }
+  simpleSeatDialog.querySelector('[data-seat-close]').onclick=()=>simpleSeatDialog.close();
+  $('#simple-seat-toggle').onclick=()=>{
+    const id=selectedSimpleSeat;if(id===null)return;
+    if(simpleFoldedSeats.has(id))simpleFoldedSeats.delete(id);else simpleFoldedSeats.add(id);
+    simpleSeatDialog.close();updateTableContext();invalidateAnalysis();scheduleSave();
+    document.querySelector(`[data-simple-seat="${id}"]`)?.focus({preventScroll:true});
+  };
+  document.addEventListener('click',event=>{const seat=event.target.closest?.('[data-simple-seat]');if(seat)openSimpleSeat(Number(seat.dataset.simpleSeat),seat);});
+  document.addEventListener('pointerdown',event=>{if(simpleSeatDialog.open&&!simpleSeatDialog.contains(event.target)&&!event.target.closest?.('[data-simple-seat]'))simpleSeatDialog.close();});
+  document.addEventListener('focusin',event=>{if(simpleSeatDialog.open&&!simpleSeatDialog.contains(event.target)&&!event.target.closest?.('[data-simple-seat]'))simpleSeatDialog.close();});
+  window.addEventListener('resize',()=>{if(simpleSeatDialog.open)simpleSeatDialog.close();});
   let multiwayBusy = false, syncingMultiway = false, multiwayCardTimer = null, multiwayCardSnapshot = null, multiwayRevision = 0, multiwayBoardEntryToken = null;
   const multiwayLocked = ['variant-select','players','opponent-count','position','potBeforeAction','amountToCall','effectiveStack','study-mode'];
   const multiwayManualModels = ['opponentProfile','opponentProfileSource','observedFoldToBet','observedCallFrequency','observedRaiseFrequency','observedBluffFrequency','betSize','raiseTo','foldEquity','continuationEquity','study-hero-contribution','study-min-raise','study-min-bet','study-accept',...Array.from({length:9},(_,i)=>['study-contribution-'+i,'study-probability-'+i]).flat()];
@@ -93,10 +132,10 @@
     syncMultiwayBoardKeyboard();
     cards.render();
     placeAnalysisFeedback();
-    if(!analysisBusy)$('#quick-analyze').innerHTML=multiway?'Analyze hand <span>↗</span>':'Calcular equity <span>↗</span>';
-    $('#analysis-form .view-heading h1').textContent=multiway?'Every card, a decision.':'Suas cartas. Sua equity.';
-    $('#analysis-form .view-heading .eyebrow').textContent=multiway?'MANUAL ANALYSIS':'ANÁLISE DE EQUITY';
-    $('#analysis-seats').setAttribute('aria-label',multiway?'Table seats; click an opponent to record to fold.':'Opponents with face-down cards; illustrative positions.');
+    if(!analysisBusy)$('#quick-analyze').innerHTML=multiway?'Analyze hand <span>↗</span>':'Calculate equity <span>↗</span>';
+    $('#analysis-form .view-heading h1').textContent=multiway?'Every card, a decision.':'Your cards. Your equity.';
+    $('#analysis-form .view-heading .eyebrow').textContent=multiway?'MANUAL ANALYSIS':'EQUITY ANALYSIS';
+    $('#analysis-seats').setAttribute('aria-label',multiway?'Opponent seats; select a player to record a fold or edit assumptions.':'Opponent seats; select a player to mark active or folded.');
     for(const id of multiwayLocked) { const el=document.getElementById(id);el.disabled=!!multiway;el.title=multiway?'Defined by Multiway tracking. Exit the mode to edit freely.':''; }
     for(const id of multiwayManualModels){const el=document.getElementById(id);el.disabled=!!multiway;el.title=multiway?'Free-form assumptions from simple mode. Multiway models must identify each seat.':'';}
     window.theibsOpponentInputs?.refresh();
@@ -128,22 +167,23 @@
   async function runMultiway(operation, beforeAccept) {
     const entryView=activeView, entryRevision=multiwayRevision;
     await window.theibsAuth?.ensureSession?.();
-    if(entryView!==activeView||entryRevision!==multiwayRevision)throw Error('Contexto alterado durante a confirmação da sessão. Repita a ação no contexto atual.');
+    if(entryView!==activeView||entryRevision!==multiwayRevision)throw Error('Context changed during session confirmation. Repeat the action in the current context.');
     if(engineVersionError()) throw Error(engineVersionError());
-    if(multiwayBusy) throw Error('Aguarde o registro da ação atual.');
+    if(multiwayBusy) throw Error('Wait for the current action to be recorded.');
     multiwayRevision++;
     const captured = multiwayRequestContext();
     clearTimeout(multiwayCardTimer);
     multiwayCardSnapshot=cards.state.snapshot();multiwayBusy=true;invalidateAnalysis();renderMultiway();
     try {
       const data=await operation();
-      if (!currentMultiwayRequest(captured)) throw Error('Contexto ou sessão alterados. A resposta foi descartada; nenhuma ação nova foi aplicada.');
+      if (!currentMultiwayRequest(captured)) throw Error('Context or session changed. The response was discarded; no new action was applied.');
       if(data) { beforeAccept?.(); acceptMultiway(data); }
     }
     catch(error){window.theibsMultiwayUI.setError(error.message);throw error;}
     finally{multiwayBusy=false;multiwayCardSnapshot=null;renderMultiway();if(currentMultiwayRequest(captured))scheduleAnalysis();}
   }
   async function startMultiway(config) {
+    if(simpleSeatDialog.open)simpleSeatDialog.close();
     return runMultiway(()=>postJson('/api/multiway/start',{config}),()=>{
       window.theibsOpponentInputs?.reset();
       if(!multiwayYesple)multiwayYesple={keyboard:cards.state.snapshot(),fields:Object.fromEntries(FIELD_IDS.map(id=>{const el=document.getElementById(id);return[id,el.type==='checkbox'?el.checked:el.value];}))};
@@ -187,7 +227,7 @@
     // Receiving headers does not finish the request: identity may change while
     // the response body is arriving or while another request is being awaited.
     if (protectedRequest && (session !== JSON.stringify(window.theibsVoiceSessionContext?.()) || window.theibsVoiceSessionContext?.().expired)) {
-      const error = new Error('A sessão mudou durante a resposta. Entre novamente para continuar.');
+      const error = new Error('The session changed during the response. Sign in again to continue.');
       error.code = 'AUTH_SESSION_CHANGED'; throw error;
     }
     if (!response.ok) { const error = new Error(data.reason || `HTTP ${response.status}`); error.status = response.status; throw error; }
@@ -221,7 +261,7 @@ function renderCharts(latest) {
   document.querySelector('#hero-equity').textContent = equity == null ? '—' : percent(equity);
   document.querySelector('#hero-method').textContent = latest ? `${latest.method} · ${latest.samples} samples` : 'Waiting for hand';
   document.querySelector('#equity-range').textContent = activeView === 'analyze' && !multiway
-    ? latest ? `${quickEquityPrecision(latest).preliminary ? 'Estimativa preliminar · ' : ''}Faixa 95%: ${quickEquityPrecision(latest).range}` : 'Aguardando cartas'
+    ? latest ? `${quickEquityPrecision(latest).preliminary ? 'Preliminary estimate · ' : ''}95% range: ${quickEquityPrecision(latest).range}` : 'Waiting for cards'
     : '';
   document.querySelector('#chart-total').textContent = latest ? streetName(latest.street) : '—';
   document.querySelector('#win-percent').textContent = latest ? percent(latest.winRate) : '—';
@@ -256,7 +296,7 @@ function renderEvTable(ev) {
     if (!item) return '';
     const evValue = item.ev == null ? '—' : `${item.ev > 0 ? '+' : ''}${money(item.ev)}`;
     const status = ({MODELED:'Calculated',NOT_MODELED:'Pending assumptions',NOT_LEGAL:'Unavailable'})[item.status]||item.status;
-    const detail = item.missingInputs?.length ? `Falta: ${item.missingInputs.join(', ')}` : (item.assumptions || []).join(' · ');
+    const detail = item.missingInputs?.length ? `Missing: ${item.missingInputs.join(', ')}` : (item.assumptions || []).join(' · ');
     return `<tr><td>${esc(action)}</td><td class="ev-number ${item.ev > 0 && item.status === 'MODELED' ? 'positive' : ''}">${esc(evValue)}</td><td><span class="ev-status ${String(item.status).toLowerCase()}">${esc(status)}</span></td><td>${esc(detail || '—')}</td></tr>`;
   }).join('');
   const summary = ev.bestModeledAction ? `${ev.comparisonComplete?'Highest EV among evaluated actions/sizes':'Partial comparison · highest calculated EV'}: ${ev.bestModeledAction}` : 'No action has modeled EV.';
@@ -292,17 +332,17 @@ function renderStrategyPanel(strategy) {
 
 function quickCallFold(data, progress) {
   if (!progress.ready) return {label:'—',detail:progress.detail};
-  if (!data) return {label:'—',detail:analysisBusy?'Calculando equidade…':'Aguardando cálculo da equidade.'};
-  if (data.status !== 'OK') return {label:'—',detail:data.reason || 'Cálculo indisponível.'};
-  if (data.analysisStage === 'PROVISIONAL') return {label:'—',detail:'Calculando resultado final…'};
+  if (!data) return {label:'—',detail:analysisBusy?'Calculating equity…':'Waiting for equity calculation.'};
+  if (data.status !== 'OK') return {label:'—',detail:data.reason || 'Calculation unavailable.'};
+  if (data.analysisStage === 'PROVISIONAL') return {label:'—',detail:'Calculating final result…'};
   if (value('potBeforeAction') === '' || value('amountToCall') === '')
-    return {label:'—',detail:'Informe pote e valor a pagar para comparar CALL/FOLD.'};
-  if (!(Number(value('amountToCall')) > 0)) return {label:'—',detail:'Sem aposta para pagar nesta decisão.'};
+    return {label:'—',detail:'Enter the pot and amount to call to compare CALL/FOLD.'};
+  if (!(Number(value('amountToCall')) > 0)) return {label:'—',detail:'No bet to call for this decision.'};
   const assessment=data.continuationAssessment;
   if (assessment?.status === 'FAVORABLE') return {label:'CALL',detail:'Margem positiva no modelo atual.'};
-  if (assessment?.status === 'UNFAVORABLE') return {label:'FOLD',detail:'CALL desfavorável no modelo atual.'};
-  if (assessment?.status === 'UNCERTAIN') return {label:'—',detail:'Margem incerta; sem sugestão de CALL/FOLD.'};
-  return {label:'—',detail:'CALL/FOLD indisponível com os dados atuais.'};
+  if (assessment?.status === 'UNFAVORABLE') return {label:'FOLD',detail:'CALL is unfavorable in the current model.'};
+  if (assessment?.status === 'UNCERTAIN') return {label:'—',detail:'Uncertain margin; no CALL/FOLD suggestion.'};
+  return {label:'—',detail:'CALL/FOLD unavailable with the current data.'};
 }
 
 function renderResult(data, street) {
@@ -339,6 +379,7 @@ function renderResult(data, street) {
     if(Number(value('players'))>maxPlayers){$('#players').value=String(maxPlayers);toast(`PLO${cards.state.count}: table adjusted to you + ${maxPlayers-1} opponents.`);}
     const players = Number(value('players'));
     const opponents = Number.isInteger(players) && players >= 2 && players <= 10 ? players - 1 : 0;
+    simpleFoldedSeats = new Set([...simpleFoldedSeats].filter(id=>id>=0&&id<opponents));
     document.querySelectorAll('[data-study-opponent]').forEach(row=>row.hidden=Number(row.dataset.studyOpponent)>=opponents);
     const maxOpponents=maxPlayers-1;
     const opponentSelect=$('#opponent-count');
@@ -346,8 +387,39 @@ function renderResult(data, street) {
     if(opponents>maxOpponents)opponentSelect.add(new Option(`${opponents} · · exceeds the deck`,String(opponents)));
     opponentSelect.value=String(opponents);
     $('#opponent-total').title='Opponent positions are illustrative; their cards remain unknown.';
-    $('#opponent-total').textContent=opponents?`You + ${opponents} opponent${opponents===1?'':'s'} = ${players} players`:'Enter opponents';
-    $('#analysis-seats').innerHTML = window.EssenceUI.opponentSeats(opponents,cards.state.count);
+    const active=simpleActiveSeatIds().length;
+    $('#opponent-total').textContent=opponents?`${active} active of ${opponents} opponent${opponents===1?'':'s'} · ${players} seats`:'Enter opponents';
+    $('#analysis-seats').innerHTML = window.EssenceUI.opponentSeats(opponents,cards.state.count,simpleFoldedSeats);
+  }
+  const handBeatersDetails=document.createElement('details');
+  handBeatersDetails.id='equity-beaters-details';
+  handBeatersDetails.className='equity-beaters-details';
+  handBeatersDetails.innerHTML='<summary>More possible examples</summary><ul></ul>';
+  $('#equity-scope').after(handBeatersDetails);
+  function handName(label){return ({'high card':'High card','one pair':'One pair','two pair':'Two pair','three of a kind':'Three of a kind',straight:'Straight',flush:'Flush','full house':'Full house','four of a kind':'Four of a kind','straight flush':'Straight flush'})[label]||label;}
+  function madeName(made){
+    const rank=value=>({14:'ace',13:'king',12:'queen',11:'jack',10:'ten',9:'nine',8:'eight',7:'seven',6:'six',5:'five',4:'four',3:'three',2:'two'})[value]||String(value);
+    const plural=value=>({14:'aces',13:'kings',12:'queens',11:'jacks',10:'tens',9:'nines',8:'eights',7:'sevens',6:'sixes',5:'fives',4:'fours',3:'threes',2:'twos'})[value]||String(value);
+    const [,first,second]=made.score||[];
+    return ({0:`High card (${rank(first)})`,1:`Pair of ${plural(first)}`,2:`Two pair (${plural(first)} and ${plural(second)})`,3:`Three of a kind (${plural(first)})`,4:`Straight (${rank(first)} high)`,6:`Full house (${plural(first)} over ${plural(second)})`,7:`Four of a kind (${plural(first)})`,8:`Straight flush (${rank(first)} high)`})[made.categoryRank]||handName(made.label);
+  }
+  function renderHandScope(data){
+    const scope=$('#equity-scope'),facts=data?.status==='OK'?data.handInsights:null;
+    const examples=Array.isArray(facts?.nuts?.strongerExamples)?facts.nuts.strongerExamples:[];
+    const suit={s:'♠',h:'♥',d:'♦',c:'♣'};
+    const cardText=card=>`${card[0]==='T'?'10':card[0]}${suit[card[1]]||''}`;
+    const exampleText=item=>`${handName(item.label)} with ${(item.privateCards||[]).map(cardText).join(' + ')} (example)`;
+    if(!multiway&&!simpleActiveSeatIds().length)scope.textContent='All opponents folded · reactivate a seat to calculate.';
+    else if(!facts)scope.textContent='Waiting for cards to identify the hand.';
+    else if(!facts.made)scope.textContent='Preflop · no made hand on the board yet.';
+    else if(facts.nuts?.unbeaten)scope.textContent=`${madeName(facts.made)} · current-board nuts${facts.nuts.tiedPrivatePairs?' · ties possible':''}.`;
+    else if(examples.length)scope.textContent=`${madeName(facts.made)} · can be beaten on this board by ${exampleText(examples[0])}.`;
+    else scope.textContent=`${madeName(facts.made)} · ${facts.nuts?.strongerPrivatePairs||0} possible private-card pairs beat it on this board.`;
+    if(facts?.nextCard)scope.textContent+=' Current board only; the next card can change this.';
+    scope.title='Possible private-card pairs on the current board. Examples are not observed cards or an exhaustive list. Flop and turn can change.';
+    handBeatersDetails.hidden=examples.length<=1;
+    handBeatersDetails.querySelector('ul').replaceChildren(...examples.slice(1).map(item=>{const li=document.createElement('li');li.textContent=exampleText(item);return li;}));
+    if(examples.length<=1)handBeatersDetails.open=false;
   }
   function quickAction(data, note) {
     document.body.dataset.equityOnly=String(!multiway&&(value('potBeforeAction')===''||value('amountToCall')===''));
@@ -358,10 +430,10 @@ function renderResult(data, street) {
     const display=continuation||feedback.summary({data,action,progress,busy:analysisBusy,auto:$('#auto-analysis').checked,multiway:!!multiway,note});
     const facts=data?.handInsights;
     $('#nuts-badge').hidden=!(data?.status==='OK'&&facts?.made&&facts?.nuts?.unbeaten===true);
-    $('#hand-facts-content').innerHTML=facts?`<p><strong>${esc(facts.made?.label||'Preflop')}</strong>${facts.made?`<br>Your cards used: ${facts.made.usedHeroCards.map(esc).join(' + ')}`:`<br>${facts.privatePairs.length} paired group(s) · ${facts.suited.length} suit(s) with two or more cards`}</p>${facts.nuts?`<p>${facts.nuts.unbeaten?'Nuts on the current board; ties are possible.':'Your hand can be beaten on the current board.'}</p>`:''}${facts.nextCard?`<p>Next card: <b>${facts.nextCard.flushCards.length}</b> complete a flush · <b>${facts.nextCard.straightCards.length}</b> complete a straight.</p><p class="micro">Improving does not guarantee a win; these are not clean outs.</p>`:''}${facts.blockers.map(b=>`<p>${esc(b.detail)}</p>`).join('')}`:'Complete the cards to see made hand, draws and blockers. You do not need to record actions.';
+    $('#hand-facts-content').innerHTML=facts?`<p><strong>${esc(facts.made?madeName(facts.made):'Preflop')}</strong>${facts.made?`<br>Your cards used: ${facts.made.usedHeroCards.map(esc).join(' + ')}`:`<br>${facts.privatePairs.length} paired group(s) · ${facts.suited.length} suit(s) with two or more cards`}</p>${facts.nuts?`<p>${facts.nuts.unbeaten?'Nuts on the current board; ties are possible.':'Your hand can be beaten on the current board.'}</p>`:''}${facts.nextCard?`<p>Next card: <b>${facts.nextCard.flushCards.length}</b> complete a flush · <b>${facts.nextCard.straightCards.length}</b> complete a straight.</p><p class="micro">Improving does not guarantee a win; these are not clean outs.</p>`:''}${facts.blockers.map(b=>`<p>${esc(b.detail)}</p>`).join('')}`:'Complete the cards to see made hand, draws and blockers. You do not need to record actions.';
     $('#quick-action').textContent = data?.status === 'OK' ? recommendationText(data) : data ? 'NO_DECISION' : '—';
     $('#quick-action-note').textContent = note || (data?.status === 'OK' ? data.ev?.comparisonComplete?comparisonLabel(data):'Partial · missing '+(data.ev?.missingLegalActions||[]).join(', ') : data?.reason || 'Complete your cards.');
-    if(continuation){$('#quick-action').textContent=continuation.shortTitle;$('#quick-action-note').textContent='Decisão atual · sem comparar BET/RAISE';}
+    if(continuation){$('#quick-action').textContent=continuation.shortTitle;$('#quick-action-note').textContent='Current decision · BET/RAISE not compared';}
     const model=data?.status==='OK'?data.ev?.actions?.[action]:null;
     const ev=model?.status==='MODELED'?model.ev:null;
     const interval=model?.confidenceInterval95;
@@ -378,7 +450,7 @@ function renderResult(data, street) {
     $('#analysis-next-detail').textContent=display.detail;
     const scope=data?.opponentModelScope;
     if(!continuation&&scope&&data.ev?.missingLegalActions?.some(item=>['BET','RAISE'].includes(item))){
-      const message={MISSING_SEAT_CALL_PROBABILITIES:'As respostas dos adversários não foram presumidas. O estudo de BET/RAISE é opcional; a equity e o CALL disponíveis continuam válidos dentro do modelo mostrado.',INDEPENDENT_STUDY_NOT_ACCEPTED:'As taxas individuais estão registradas. Para comparar BET/RAISE, confirme as hipóteses no estudo opcional.',SPECIFIC_RANGE_CONTINUATION_UNSUPPORTED:'O range individual foi usado na equity e no CALL. BET/RAISE com ranges específicos de continuação ainda não está disponível.',MISSING_SEAT_CONTRIBUTIONS:'Para estudar a aposta, informe os aportes desta street em Compare bet / raise. Os demais cálculos continuam disponíveis.',MISSING_LEGAL_MINIMUM:'Para estudar a aposta, informe seu mínimo legal em Compare bet / raise.'}[scope.aggression?.reasonCode];
+      const message={MISSING_SEAT_CALL_PROBABILITIES:'Opponent responses were not assumed. The BET/RAISE study is optional; the available equity and CALL remain valid within the displayed model.',INDEPENDENT_STUDY_NOT_ACCEPTED:'Individual rates are recorded. Confirm the assumptions in the optional study to compare BET/RAISE.',SPECIFIC_RANGE_CONTINUATION_UNSUPPORTED:'The individual range was used for equity and CALL. BET/RAISE with specific continuation ranges is not yet available.',MISSING_SEAT_CONTRIBUTIONS:'To study this bet, enter this street’s contributions in Compare bet / raise. Other calculations remain available.',MISSING_LEGAL_MINIMUM:'To study this bet, enter your legal minimum in Compare bet / raise.'}[scope.aggression?.reasonCode];
       if(message)$('#analysis-next-detail').textContent=message;
     }
     $('#analysis-next-action').hidden=!display.target;
@@ -390,23 +462,21 @@ function renderResult(data, street) {
       const add=(label,text)=>{const pair=document.createElement('div'),name=document.createElement('dt'),number=document.createElement('dd');name.textContent=label;number.textContent=text;pair.append(name,number);metricsHost.append(pair);};
       const pp=n=>`${n>0?'+':''}${n.toLocaleString('pt-BR',{maximumFractionDigits:2})} p.p.`;
       if(Number.isFinite(assessment.equity))add('Equity no modelo',percent(assessment.equity));
-      if(Number.isFinite(assessment.breakEvenEquity))add('Equity necessária',percent(assessment.breakEvenEquity));
-      if(Number.isFinite(assessment.amountToCall))add('Para pagar agora',money(assessment.amountToCall)+' fichas');
-      if(Number.isFinite(assessment.conservativeMarginPP))add('Margem pelo limite inferior',pp(assessment.conservativeMarginPP));
-      if(assessment.evBounds)add(assessment.boundsKind==='CONDITIONAL_ENVELOPE'?'Faixa nas hipóteses':assessment.boundsKind==='EXACT_MODEL_VALUE'?'EV exato neste modelo':'Intervalo amostral de EV (95%)',assessment.evBounds.map(money).join(' a ')+' fichas');
+      if(Number.isFinite(assessment.breakEvenEquity))add('Required equity',percent(assessment.breakEvenEquity));
+      if(Number.isFinite(assessment.amountToCall))add('Amount to call now',money(assessment.amountToCall)+' chips');
+      if(Number.isFinite(assessment.conservativeMarginPP))add('Lower-bound margin',pp(assessment.conservativeMarginPP));
+      if(assessment.evBounds)add(assessment.boundsKind==='CONDITIONAL_ENVELOPE'?'Range under assumptions':assessment.boundsKind==='EXACT_MODEL_VALUE'?'Exact EV in this model':'Sample EV interval (95%)',assessment.evBounds.map(money).join(' to ')+' chips');
       metricsHost.hidden=!metricsHost.children.length;
       const hand=assessment.handContext;
-      risk.textContent=(hand?.nutsOnCurrentBoard?'Nuts neste board; empates ainda são possíveis. ':hand?.madeHand?`${hand.madeHand} neste board. `:'')+(hand?.futureBoardCards?'Novas cartas e apostas podem mudar a decisão.':'Reavalie se o preço ou os jogadores ativos mudarem.');risk.hidden=false;
+      risk.textContent=(hand?.nutsOnCurrentBoard?'Nuts on this board; ties are still possible. ':hand?.madeHand?`${hand.madeHand} on this board. `:'')+(hand?.futureBoardCards?'Future cards and bets can change the decision.':'Reassess if the price or active players change.');risk.hidden=false;
     }
     if(!progress.ready){$('#quick-action').textContent='Waiting for cards';$('#quick-action-note').textContent=progress.detail;}
     const simpleDecision=quickCallFold(data,progress);
     $('#quick-action-status').textContent=multiway?'':simpleDecision.detail;
     if(!multiway){$('#quick-action').textContent=simpleDecision.label;$('#quick-action-note').textContent=simpleDecision.detail;}
     const modeled=data?.status==='OK'?data.equity?.opponents:null;
-    const tableOpponents=Number(value('players'))-1;
-    const randomModel=data?.ranges?.some(range=>range.kind==='UNIFORM');
-    $('#equity-scope').textContent=modeled==null?`${tableOpponents} adversário${tableOpponents===1?'':'s'} aleatório${tableOpponents===1?'':'s'}`
-      : `${modeled}${modeled===tableOpponents?'':` de ${tableOpponents}`} adversário${modeled===1?'':'s'} · ${randomModel?'mãos aleatórias':'modelo informado'}`;
+    const tableOpponents=multiway?Number(value('players'))-1:simpleActiveSeatIds().length;
+    renderHandScope(data);
     const random=data?.ranges?.some(range=>range.kind==='UNIFORM');
     $('#ev-assumption').textContent=data?.status==='OK'
       ? `${random?'Random hands':'Entered model'} · ${data.equity.opponents} opponent(s) · no future betting${$('#assumeNoRake').checked?' · rake zero':''}${ev==null?' · EV depends on the assumptions shown in the calculation':''}.`
@@ -414,17 +484,17 @@ function renderResult(data, street) {
     if(interval)$('#ev-assumption').textContent+=` 95% sample range: ${money(interval[0])} to ${money(interval[1])} chips${uncertain?' · crosses zero':''}. Does not cover range error.`;
     if(envelope)$('#ev-assumption').textContent+=` Conditional range: ${money(envelope[0])} to ${money(envelope[1])} chips. Depends on response assumptions.`;
     if(data?.scenarioSummary)$('#ev-assumption').textContent+=` Active scenario · ${data.scenarioSummary.totalSamples.toLocaleString('en-US')} total simulations. On to call, everyone completes the price.`;
-    if(data?.status==='OK' && data.equity.opponents !== Number(value('players'))-1)$('#ev-assumption').textContent=`WARNING: calculated against ${data.equity.opponents} of ${Number(value('players'))-1} table opponents. Models are missing for the others. `+$('#ev-assumption').textContent;
+    if(data?.status==='OK' && data.equity.opponents !== tableOpponents)$('#ev-assumption').textContent=`WARNING: calculated against ${data.equity.opponents} of ${tableOpponents} table opponents. Models are missing for the others. `+$('#ev-assumption').textContent;
     if($('#ev-critical-warning')) {
-      const mismatch=data?.status==='OK'&&data.equity.opponents!==Number(value('players'))-1;
-      $('#ev-critical-warning').textContent=mismatch?`Calculation covers only ${data.equity.opponents} of ${Number(value('players'))-1} opponents.`:'';
+      const mismatch=data?.status==='OK'&&data.equity.opponents!==tableOpponents;
+      $('#ev-critical-warning').textContent=mismatch?`Calculation covers only ${data.equity.opponents} of ${tableOpponents} opponents.`:'';
       $('#ev-critical-warning').hidden=!mismatch;
     }
     if(data?.equity?.samplingMode==='ADAPTIVE')$('#ev-assumption').textContent+=` ${data.equity.samples.toLocaleString('en-US')} simulations · ${(data.equity.elapsedMs/1000).toFixed(2)} s · ${({PRECISION:'precision reached',CALL_EV_SIGN:'call EV sign separated from zero',TIME_BUDGET:'time limit',SAMPLE_LIMIT:'sample limit'})[data.equity.stopReason]}.`;
     $('#ev-alternatives').innerHTML=data?.status==='OK'?['FOLD','CALL','CHECK','BET','RAISE'].filter(a=>data.ev?.actions?.[a]?.legal).map(a=>{const item=data.ev.actions[a],n=item.status==='MODELED'?item.ev:null;return `<span>${a}<b class="${n>0?'positive':n<0?'negative':''}">${n==null?'—':(n>0?'+':'')+money(n)}</b></span>`;}).join(''):'';
   }
   const feedbackHost=document.createElement('section');feedbackHost.id='analysis-input-feedback';feedbackHost.className='analysis-input-feedback';
-  feedbackHost.innerHTML='<div role="status" aria-live="polite"><strong id="analysis-next-title"></strong><p id="analysis-next-detail" class="micro"></p><dl id="continuation-metrics" hidden></dl><p id="continuation-risk" class="micro" hidden></p></div><details id="ev-scope-details"><summary>Limites do cálculo</summary><p id="ev-scope" class="micro">Leitura do preço atual, sem comparar BET/RAISE. Depende do modelo de cartas e supõe nenhuma aposta futura. Não garante vitória nem lucro.</p></details><button id="analysis-next-action" type="button" class="text-button" hidden></button>';
+  feedbackHost.innerHTML='<div role="status" aria-live="polite"><strong id="analysis-next-title"></strong><p id="analysis-next-detail" class="micro"></p><dl id="continuation-metrics" hidden></dl><p id="continuation-risk" class="micro" hidden></p></div><details id="ev-scope-details"><summary>Calculation limits</summary><p id="ev-scope" class="micro">Assessment at the current price, without comparing BET/RAISE. It depends on the card model and assumes no future bets. It does not guarantee a win or profit.</p></details><button id="analysis-next-action" type="button" class="text-button" hidden></button>';
   $('#ev-summary').append(feedbackHost);
   function placeAnalysisFeedback(){
     const host=$('#analysis-input-feedback');
@@ -513,12 +583,14 @@ function renderResult(data, street) {
     }
     const canonical = allowIncomplete ? { variant: `PLO${cards.state.count}_HIGH`, street: currentStreet(),
       heroCards: cards.state.cards().hero.map(window.TheibsCards.toCanonical), board: cards.state.cards().board.map(window.TheibsCards.toCanonical) } : cards.canonicalForSubmit();
+    const activeSeats=simpleActiveSeatIds();
+    if (!activeSeats.length) throw Error('All opponents are folded. Reactivate a seat to calculate equity.');
     const payload = { ...canonical,
-      position: value('position'), players: value('players'), potBeforeAction: value('potBeforeAction'), amountToCall: value('amountToCall'), effectiveStack: value('effectiveStack'), samples: value('samples'), seed: value('seed') || '42',
+      position: value('position'), players: simpleActivePlayers(), potBeforeAction: value('potBeforeAction'), amountToCall: value('amountToCall'), effectiveStack: value('effectiveStack'), samples: value('samples'), seed: value('seed') || '42',
       unknownOpponentModel:'UNIFORM', ...window.theibsOpponentInputs.payload(), futureStreetModel:{type:'SHOWDOWN_ONLY'},
       betSize:value('betSize'),raiseTo:value('raiseTo'),...costPayload(),
       heroContribution:value('study-hero-contribution'),minRaiseTo:value('study-min-raise'),minBet:value('study-min-bet'),
-      opponentContributions:Array.from({length:Number(value('players'))-1},(_,seatId)=>({seatId,contribution:value('study-contribution-'+seatId)})).filter(item=>item.contribution!=='')
+      opponentContributions:activeSeats.map((seatId,index)=>({seatId:index,contribution:value('study-contribution-'+seatId)})).filter(item=>item.contribution!=='')
     };
     if(payload.samples==='adaptive'){payload.samples=50000;payload.samplingMode='ADAPTIVE';}
     return payload;
@@ -527,8 +599,9 @@ function renderResult(data, street) {
     if(window.theibsVoiceSessionContext?.().expired)throw Error('Session changed or expired. Sign in again before analyzing.');
     if(engineVersionError())throw Error(engineVersionError());
     if(cards.isManualInvalid())throw Error('Fix the cards in the text field.');
+    if(!simpleActiveSeatIds().length)throw Error('All opponents are folded. Reactivate a seat to calculate equity.');
     const canonical=cards.canonicalForSubmit();
-    return {...canonical,players:Number(value('players')),unknownOpponentModel:'UNIFORM',
+    return {...canonical,players:simpleActivePlayers(),unknownOpponentModel:'UNIFORM',
       // Leave room for network and rendering latency on the hosted free tier.
       // The returned interval and preliminary label expose any precision loss.
       samplingMode:'ADAPTIVE',adaptiveBudget:{timeBudgetMs:1700},seed:value('seed')||'42'};
@@ -547,7 +620,7 @@ function renderResult(data, street) {
     analyzeButton.disabled = true; $('#quick-analyze').disabled = true;
     analyzeButton.textContent = 'Calculating…'; $('#quick-analyze').textContent = 'Calculating…';
     quickAction(null, 'The engine is calculating this hand…');
-    if(!multiway)$('#equity-range').textContent='Calculando…';
+    if(!multiway)$('#equity-range').textContent='Calculating…';
     const publish = async (data, started, phase) => {
       if (requestedRevision !== inputRevision || controller.signal.aborted) return false;
       data.clientTiming={httpElapsedMs:performance.now()-started,scope:'HTTP_ROUND_TRIP_AND_SECOND_FRAME_PROXY'};
@@ -583,8 +656,8 @@ function renderResult(data, street) {
           renderCharts({...data.equity,street:payload.street});quickAction(data);
           emptyState.classList.add('hidden');result.classList.remove('hidden');
           const precision=quickEquityPrecision(data.equity);
-          const stopLabel=({PRECISION:'Precisão-alvo atingida',TIME_BUDGET:'Limite de tempo atingido',SAMPLE_LIMIT:'Limite de amostras atingido'})[data.equity.stopReason]||'Cálculo concluído';
-          result.innerHTML=`<div class="result-top"><div><div class="result-label">EQUITY · ${esc(streetName(payload.street))}</div><div class="result-action">${percent(data.equity.equity)}</div></div></div><p class="micro">${precision.preliminary?'Estimativa preliminar · ':''}Faixa 95%: ${esc(precision.range)} · ${esc($('#equity-scope').textContent)}</p><details class="result-disclosure"><summary>Detalhes</summary><div><p>${esc(data.equity.samples.toLocaleString('pt-BR'))} simulações · ${esc(data.equity.method)} · ${esc(stopLabel)}.</p><p>Equity até o showdown contra mãos adversárias aleatórias. Pote, blinds, posição e apostas não entram neste cálculo.</p><p>A faixa quantifica a incerteza da amostragem neste modelo; não cobre escolhas reais dos adversários.</p>${(data.assumptions||[]).map(item=>`<p>${esc(item)}</p>`).join('')}${(data.warnings||[]).map(item=>`<p class="result-warning">${esc(item)}</p>`).join('')}</div></details>`;
+          const stopLabel=({PRECISION:'Target precision reached',TIME_BUDGET:'Time limit reached',SAMPLE_LIMIT:'Sample limit reached'})[data.equity.stopReason]||'Calculation complete';
+          result.innerHTML=`<div class="result-top"><div><div class="result-label">EQUITY · ${esc(streetName(payload.street))}</div><div class="result-action">${percent(data.equity.equity)}</div></div></div><p class="micro">${precision.preliminary?'Preliminary estimate · ':''}95% range: ${esc(precision.range)} · ${esc($('#equity-scope').textContent)}</p><details class="result-disclosure"><summary>Details</summary><div><p>${esc(data.equity.samples.toLocaleString('en-US'))} simulations · ${esc(data.equity.method)} · ${esc(stopLabel)}.</p><p>Equity through showdown against random opponent hands. Pot, blinds, position and bets are not included in this calculation.</p><p>The range measures sampling uncertainty in this model; it does not cover real opponent choices.</p>${(data.assumptions||[]).map(item=>`<p>${esc(item)}</p>`).join('')}${(data.warnings||[]).map(item=>`<p class="result-warning">${esc(item)}</p>`).join('')}</div></details>`;
           lastAnalysis=null;renderEngineDetails();scheduleSave();
         }else{renderResult(data,payload.street);quickAction(data);renderCharts();}
         return;
@@ -604,7 +677,7 @@ function renderResult(data, street) {
       if(requestedRevision===inputRevision){lastAnalysis=null;const data={status:'ERROR',reason:`Calculation unavailable: ${error.message}`};renderResult(data,payload.street);quickAction(data);renderCharts();}
     } finally {
       analysisBusy=false;analysisController=null;analyzeButton.disabled=false;$('#quick-analyze').disabled=false;
-      analyzeButton.innerHTML='Analyze street <span>↗</span>';$('#quick-analyze').innerHTML=multiway?'Analyze hand <span>↗</span>':'Calcular equity <span>↗</span>';
+      analyzeButton.innerHTML='Analyze street <span>↗</span>';$('#quick-analyze').innerHTML=multiway?'Analyze hand <span>↗</span>':'Calculate equity <span>↗</span>';
       if(analysisQueued){analysisQueued=false;scheduleAnalysis();}
     }
   }
@@ -612,12 +685,14 @@ function renderResult(data, street) {
     if(multiwayBusy){toast('Wait for the action to be recorded before clearing the hand.');return;}
     if (confirm && (cards.state.slots.some(Boolean) || cards.isManualInvalid() || multiway?.events.length) && !window.confirm(multiway?'Start another Multiway hand and clear this hand’s cards and actions? Table settings will be kept.':'Clear the current hand’s cards and analyses? Saved history and settings will be preserved.')) return;
     if(multiway){if(askPosition){window.theibsMultiwayUI.requestHeroPosition();return;}try{await startMultiway({...multiway.config,heroCards:[]});}catch(error){toast(error.message);}return;}
+    if(simpleSeatDialog.open)simpleSeatDialog.close();simpleFoldedSeats.clear();
     window.theibsOpponentInputs.reset();
-    snapshots.splice(0); cards.reset(); invalidateAnalysis(); updateBoardHelp(); renderStreetCards(); renderCharts();
+    snapshots.splice(0); cards.reset(); updateTableContext(); invalidateAnalysis(); updateBoardHelp(); renderStreetCards(); renderCharts();
     quickAction(null); scheduleSave();
   }
   function showView(view, save = true) {
     if (!['analyze', 'train', 'history'].includes(view)) return;
+    if(view!=='analyze'&&simpleSeatDialog.open)simpleSeatDialog.close();
     const changed = view !== activeView;
     if (changed) {
       multiwayRevision++; inputRevision++;
@@ -768,7 +843,7 @@ function renderResult(data, street) {
   function serializeWorkspace() {
     const fields = Object.fromEntries(FIELD_IDS.map((id) => { const el = document.getElementById(id); return [id, el.type === 'checkbox' ? el.checked : el.value]; }));
     return { schemaVersion: 1, keyboard: cards.state.snapshot(), manualText: cards.manualDraft(), fields,
-      ui: { felt: document.body.dataset.felt, deck: document.body.dataset.deck, view: activeView, cardDisplayVersion: 2, workflowVersion: 1, sidebarCollapsed: document.body.dataset.sidebar === 'collapsed' },
+       ui: { felt: document.body.dataset.felt, deck: document.body.dataset.deck, view: activeView, cardDisplayVersion: 2, workflowVersion: 1, sidebarCollapsed: document.body.dataset.sidebar === 'collapsed', simpleFoldedSeats:[...simpleFoldedSeats] },
       handFlow:null, legacyHandFlow, multiway, multiwayYesple, opponentInputs:window.theibsOpponentInputs.snapshot(),
       snapshots: [...snapshots], lastAnalysis, trainingSessionId: trainingSession?.id || null };
   }
@@ -801,7 +876,7 @@ function renderResult(data, street) {
       await window.theibsAuth?.ensureSession?.();
       const initialRevision = inputRevision, initialSession = JSON.stringify(window.theibsVoiceSessionContext?.());
       const [saved, currentStatus] = await Promise.all([requestJson('/api/workspace'), requestJson('/api/status').catch(()=>null)]);
-      if(initialSession!==JSON.stringify(window.theibsVoiceSessionContext?.())||window.theibsVoiceSessionContext?.().expired)throw Error('A sessão mudou antes de carregar o rascunho. Entre novamente para continuar.');
+      if(initialSession!==JSON.stringify(window.theibsVoiceSessionContext?.())||window.theibsVoiceSessionContext?.().expired)throw Error('The session changed before loading the draft. Sign in again to continue.');
       engineStatus=currentStatus; renderEngineVersion(); revision = saved.revision;
       const editedBeforeLoad = inputRevision !== initialRevision;
       const workspace = saved.workspace;
@@ -817,7 +892,8 @@ function renderResult(data, street) {
         for (const item of (workspace.snapshots || []).slice(0, 4)) if (['PREFLOP','FLOP','TURN','RIVER'].includes(item.street) && Number.isFinite(item.equity)) snapshots.push({...item,stale:item.stale||item.schemaVersion!==2||item.engineBuild!==engineStatus?.version});
         // Enable the requested four-suit palette once for existing drafts.
         // Subsequent changes to the deck selector remain the user's choice.
-        applyAppearance((workspace.ui?.cardDisplayVersion || 0) < 2 ? 'cores' : workspace.ui?.deck, workspace.ui?.felt);
+         applyAppearance((workspace.ui?.cardDisplayVersion || 0) < 2 ? 'cores' : workspace.ui?.deck, workspace.ui?.felt);
+         simpleFoldedSeats=new Set((Array.isArray(workspace.ui?.simpleFoldedSeats)?workspace.ui.simpleFoldedSeats:[]).filter(id=>Number.isInteger(id)&&id>=0&&id<10));
         window.theibsFocusUI.restore(workspace.ui?.sidebarCollapsed !== false);
         legacyHandFlow=workspace.legacyHandFlow||workspace.handFlow||null;
         if(workspace.multiway?.enabled){multiwayYesple=workspace.multiwayYesple||null;await runMultiway(()=>postJson('/api/multiway/state',{multiway:workspace.multiway}));}
@@ -979,7 +1055,7 @@ function renderResult(data, street) {
   const controlsHost=document.createElement('section');controlsHost.id='multiway-controls';$('.quick-decision').before(controlsHost);
   window.theibsMultiwayUI.init({getContext:multiwayContext,onSettled:()=>{syncMultiwayBoardKeyboard();cards.render();},handlers:{start:startMultiway,act:event=>stepMultiway({type:'ACT',...event}),markFold:event=>stepMultiway({type:'MARK_FOLD',...event}),board:event=>stepMultiway({type:'BOARD',...event}),undo:()=>runMultiway(()=>postJson('/api/multiway/state',{multiway:{...multiway,events:multiway.events.slice(0,-1)}})),exit:exitMultiway}});
   window.theibsMultiwayImage.init();
-  window.theibsOpponentInputs.init({getContext:()=>({mode:multiway?'MULTIWAY':'SIMPLE',variant:`PLO${cards.state.count}_HIGH`,count:cards.state.count,position:multiway?multiway.config.heroPosition:value('position'),busy:multiwayBusy,players:multiwayState&&multiway?multiwayState.players.filter(p=>!p.hero).map((p,index)=>({seatId:p.id,label:`ADV. ${index+1} · ${p.position}`,folded:p.folded})):Array.from({length:Math.max(1,Number(value('players'))-1)},(_,seatId)=>({seatId,label:`ADV. ${seatId+1}`,folded:false}))}),onChange:()=>{invalidateAnalysis();scheduleSave();}});
+   window.theibsOpponentInputs.init({getContext:()=>({mode:multiway?'MULTIWAY':'SIMPLE',variant:`PLO${cards.state.count}_HIGH`,count:cards.state.count,position:multiway?multiway.config.heroPosition:value('position'),busy:multiwayBusy,players:multiwayState&&multiway?multiwayState.players.filter(p=>!p.hero).map((p,index)=>({seatId:p.id,label:`OPP. ${index+1} · ${p.position}`,folded:p.folded})):Array.from({length:simpleSeatCount()},(_,seatId)=>({seatId,label:`OPP. ${seatId+1}`,folded:simpleFoldedSeats.has(seatId)}))}),onChange:()=>{invalidateAnalysis();scheduleSave();}});
   updateTableContext(); renderMultiway();renderStreetCards(); renderCharts(); quickAction(null); updateBoardHelp(); renderTrainingSession();
-  window.theibsApp = { ready: initialize(), getState: () => ({ activeView, analysisBusy, trainingBusy, lastAnalysis, trainingSession, multiway,multiwayState,multiwayAnalysis,multiwayBusy,snapshots: [...snapshots], saveBusy, saveDirty, saveBlocked }), flushSave, showView, getAnalysisInput: buildAnalysisPayload, getVoiceContext: () => ({ activeView, inputRevision, multiwayRevision, loaded, session: window.theibsVoiceSessionContext?.(), accessVisible: !document.getElementById('app-shell').hidden && !document.getElementById('app-shell').inert }), renderCoachAnswer };
+   window.theibsApp = { ready: initialize(), getState: () => ({ activeView, analysisBusy, trainingBusy, lastAnalysis, trainingSession, multiway,multiwayState,multiwayAnalysis,multiwayBusy,simpleFoldedSeats:[...simpleFoldedSeats],snapshots: [...snapshots], saveBusy, saveDirty, saveBlocked }), flushSave, showView, getAnalysisInput: buildAnalysisPayload, getVoiceContext: () => ({ activeView, inputRevision, multiwayRevision, loaded, session: window.theibsVoiceSessionContext?.(), accessVisible: !document.getElementById('app-shell').hidden && !document.getElementById('app-shell').inert }), renderCoachAnswer };
 })();

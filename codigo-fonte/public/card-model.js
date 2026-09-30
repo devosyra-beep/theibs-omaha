@@ -146,9 +146,9 @@
     // Typed input boundary: canonical cards only. A phrase is one undo entry;
     // validation runs on a draft and never partly mutates the current hand.
     applyCommand(command) {
-      if (!command || typeof command !== 'object') return this.fail('Comando de cartas inválido.');
+      if (!command || typeof command !== 'object') return this.fail('Invalid card command.');
       if (command.type === 'cancel') return true;
-      if (command.type === 'undo') return this.undo() || this.fail('Nada para desfazer.');
+      if (command.type === 'undo') return this.undo() || this.fail('Nothing to undo.');
       const before = this.snapshot(), draft = this.snapshot();
       const scope = target => {
         if (target === 'hero') return [0, this.count];
@@ -158,7 +158,7 @@
         if (target === 'river') return [this.count + 4, this.count + 5];
         if (target === 'selected' || target === 'selectedScope') return this.selected < this.count ? [0, this.count]
           : this.selected < this.count + 3 ? [this.count, this.count + 3] : [this.selected, this.selected + 1];
-        throw Error('Destino de cartas desconhecido.');
+        throw Error('Unknown card destination.');
       };
       try {
         const [start, end] = scope(command.target || 'selected');
@@ -168,27 +168,27 @@
           // entire board, not local to the currently selected street.
           const base = command.target === 'selectedScope' ? (this.selected < this.count ? 0 : this.count) : start;
           const limit = command.target === 'selectedScope' ? (this.selected < this.count ? this.count : this.count + 5) : end;
-          if (!Number.isInteger(command.index) || command.index < 0 || base + command.index >= limit) throw Error('Essa posição não existe no destino selecionado.');
+          if (!Number.isInteger(command.index) || command.index < 0 || base + command.index >= limit) throw Error('That position does not exist in the selected destination.');
           draft.selected = base + command.index;
           if (command.type === 'correct') draft.slots[draft.selected] = fromCanonical(command.card);
         } else if (command.type === 'remove') {
-          if (!draft.slots[draft.selected]) throw Error('A carta selecionada já está vazia.');
+          if (!draft.slots[draft.selected]) throw Error('The selected card slot is already empty.');
           draft.slots[draft.selected] = null;
         } else if (command.type === 'cards') {
-          if (!Array.isArray(command.cards) || !command.cards.length) throw Error('Diga uma carta completa com naipe.');
+          if (!Array.isArray(command.cards) || !command.cards.length) throw Error('Say a complete card with its suit.');
           const cards = command.cards.map(fromCanonical);
           const explicit = command.target && command.target !== 'selected';
           const positions = explicit ? Array.from({ length: end - start }, (_, i) => start + i).filter(i => draft.slots[i] === null)
             : [this.selected, ...Array.from({ length: end - this.selected - 1 }, (_, i) => this.selected + i + 1).filter(i => draft.slots[i] === null)];
-          if (cards.length > positions.length) throw Error('O lote excede o destino. Use corrigir para substituir uma carta.');
+          if (cards.length > positions.length) throw Error('The batch exceeds the destination. Use correct to replace a card.');
           cards.forEach((card, i) => { draft.slots[positions[i]] = card; });
           const last = positions[cards.length - 1];
           const next = draft.slots.findIndex((card, i) => i > last && card === null);
           const first = draft.slots.indexOf(null);
           draft.selected = next >= 0 ? next : first >= 0 ? first : last;
-        } else throw Error('Comando de cartas desconhecido.');
+        } else throw Error('Unknown card command.');
         const present = draft.slots.filter(Boolean);
-        if (new Set(present).size !== present.length) throw Error('Carta duplicada na mão ou no board. Nada foi aplicado.');
+        if (new Set(present).size !== present.length) throw Error('Duplicate card in the hand or on the board. Nothing was applied.');
         if (JSON.stringify(before.slots) !== JSON.stringify(draft.slots)) this.remember();
         return this.restore(draft);
       } catch (error) { return this.fail(error.message); }

@@ -153,7 +153,7 @@ test('streaming rejects invalid final suffixes, prefixes, gaps and empty segment
   }
   const session=new RecognitionSession(),ctx={locale},id=session.begin(ctx);
   session.accept(id,0,card,true);session.accept(id,2,card,true);
-  assert.equal(session.prepareReady(id,ctx),null);assert.match(session.error,/Faltou um segmento/);
+  assert.equal(session.prepareReady(id,ctx),null);assert.match(session.error,/segment is missing/);
  }
 });
 test('a provider cannot alter, downgrade or remove final segments before or after application',()=>{
@@ -167,7 +167,7 @@ test('a provider cannot alter, downgrade or remove final segments before or afte
   const before=state.snapshot();
   if(mutation==='removed')assert.equal(session.reconcileResultCount(id,0),false);
   else assert.equal(session.accept(id,0,mutation==='changed'?'oito de copas':'oito de paus',mutation!=='downgraded'),false);
-  assert.equal(session.phase,'rejected');assert.match(session.error,/segmento final/);
+  assert.equal(session.phase,'rejected');assert.match(session.error,/final segment/);
   assert.equal(session.accept(id,1,'rei de espadas',true),false);
   assert.equal(session.prepareReady(id,current),null);assert.equal(session.resume(id,current),false);
   assert.deepEqual(state.snapshot(),before,'provider revision never undoes an earlier confirmed command');
@@ -193,7 +193,7 @@ test('streaming refuses changed context before prepare and before consume',()=>{
  for(const change of [{revision:2},{hand:'b'},{variant:4},{selection:1},{locale:'en-US'},{session:{epoch:2,required:true,expired:false}},{session:{epoch:1,required:true,expired:true}}]){
   for(const stage of ['prepare','take']){
    const session=new RecognitionSession(),id=session.begin(original);session.accept(id,0,'ás de espadas',true);
-   if(stage==='prepare'){assert.equal(session.prepareReady(id,{...original,...change}),null);assert.match(session.error,/contexto mudou/);}
+   if(stage==='prepare'){assert.equal(session.prepareReady(id,{...original,...change}),null);assert.match(session.error,/context changed/);}
    else{assert.ok(session.prepareReady(id,original));assert.equal(session.take({...original,...change}),null);}
    assert.equal(session.resume(id,{...original,...change}),false);
   }
@@ -204,8 +204,8 @@ test('manual finish after a streaming commit only prepares the new suffix and pr
  session.accept(id,0,'ace of spades',true);session.prepareReady(id,ctx);session.take(ctx);session.resume(id,ctx);
  session.accept(id,1,'king of hearts',true);assert.deepEqual(session.finish(id,ctx).cards,['Kh']);
  session.take(ctx);session.resume(id,ctx);session.accept(id,2,'queen of',false);
- assert.equal(session.finish(id,ctx),null);assert.match(session.error,/incompleta/);
- id=session.begin(ctx);assert.equal(session.finish(id,ctx),null);assert.match(session.error,/incompleta/);
+ assert.equal(session.finish(id,ctx),null);assert.match(session.error,/incomplete/);
+ id=session.begin(ctx);assert.equal(session.finish(id,ctx),null);assert.match(session.error,/incomplete/);
 });
 test('oversized or malformed result snapshots reject instead of applying the valid prefix',()=>{
  for(const kind of ['count','index','trailing-gap']){
@@ -233,8 +233,8 @@ test('action phrases reject ambiguous totals, incomplete numbers, increments and
 });
 
 test('call with an explicit amount is rejected with an actionable instruction',()=>{
- assert.throws(()=>parse('eu pago dez','pt-BR'),/sem valor; o preço vem da mesa/);
- assert.throws(()=>parse('opponent two calls ten','en-US'),/without a value; the amount comes from the table/);
+ assert.throws(()=>parse('eu pago dez','pt-BR'),/without an amount; the price comes from the table/);
+ assert.throws(()=>parse('opponent two calls ten','en-US'),/without an amount; the price comes from the table/);
  for(const locale of ['pt-BR','en-US']){
   assert.equal(parseChips(locale==='pt-BR'?'0,01':'0.01',locale),0.01);
   assert.equal(parseChips(locale==='pt-BR'?'999999,99':'999999.99',locale),999999.99);
@@ -245,7 +245,7 @@ test('empty provider final segments reject the whole phrase including a valid pr
  for(const parts of [[''],['ace of spades','']]){
   const session=new RecognitionSession(),context={locale:'en-US'},id=session.begin(context);
   parts.forEach((text,index)=>session.accept(id,index,text,true));
-  assert.equal(session.finish(id,context),null);assert.match(session.error,/serviço.*texto vazio/);
+  assert.equal(session.finish(id,context),null);assert.match(session.error,/service returned empty text/);
  }
 });
 test('Portuguese ace and jack aliases cover short or split browser transcripts', () => {
@@ -273,7 +273,7 @@ test('native ASR may shrink provisional result snapshots while final results rem
  assert.equal(session.reconcileResultCount(id,1),true);session.accept(id,0,'Ace of Spades 10 of hearts',true);
  assert.deepEqual(session.finish(id,context).cards,['As','Th']);
  id=session.begin(context);session.accept(id,0,'ace of spades',true);session.accept(id,1,'ten of hearts',true);
- assert.equal(session.reconcileResultCount(id,1),false);assert.equal(session.finish(id,context),null);assert.match(session.error,/removeu.*final/);
+ assert.equal(session.reconcileResultCount(id,1),false);assert.equal(session.finish(id,context),null);assert.match(session.error,/removed a final/);
  id=session.begin(context);session.accept(id,0,'ace of',false);assert.equal(session.reconcileResultCount(id,0),true);assert.equal(session.preview(),'');
  assert.equal(session.reconcileResultCount(id-1,2),false);
 });
@@ -304,7 +304,7 @@ test('voice actions use actual actor/legal sizing and produce canonical ledger e
  for(const locale of ['pt-BR','en-US']){
   const en=locale==='en-US';let record=mw.start(config),before=JSON.stringify(record);
   const heroRaise=parse(en?'hero raise to six':'eu aumento para seis',locale);assert.deepEqual(resolveAction(heroRaise,record.state),{actor:0,action:'RAISE',to:6});
-  assert.throws(()=>resolveAction(parse(en?'opponent one call':'adversário um paga',locale),record.state),/vez/);assert.equal(JSON.stringify(record),before);
+  assert.throws(()=>resolveAction(parse(en?'opponent one call':'adversário um paga',locale),record.state),/turn/);assert.equal(JSON.stringify(record),before);
   assert.throws(()=>resolveAction(parse(en?'hero check':'eu passo',locale),record.state),/legal/);
   for(const n of [0,3,1000])assert.throws(()=>resolveAction({...heroRaise,to:n},record.state));
   record=mw.step(record.multiway,{type:'ACT',...resolveAction(parse(en?'hero call':'eu pago',locale),record.state)});

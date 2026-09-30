@@ -15,7 +15,7 @@
   const copy = value => JSON.parse(JSON.stringify(value));
   const freeze = value => { if (value && typeof value === 'object') { Object.values(value).forEach(freeze); Object.freeze(value); } return value; };
   function corpus({ locale = 'pt-BR', count = 5, split = 'development' } = {}) {
-    if (!['pt-BR','en-US'].includes(locale) || ![4,5,6].includes(count) || !['development','evaluation'].includes(split)) throw Error('Configuração de avaliação inválida.');
+    if (!['pt-BR','en-US'].includes(locale) || ![4,5,6].includes(count) || !['development','evaluation'].includes(split)) throw Error('Invalid evaluation configuration.');
     const en = locale === 'en-US', list = [], suffix = `${locale}-plo${count}`;
     const add = (id, phrase, expected, kind, partition, extra = {}) => list.push(freeze({ id: `${suffix}-${id}`, locale, count,
       split: partition, phrase, expected, kind, ...extra }));
@@ -117,7 +117,7 @@
         return [key,{ n:values.length, missing:records.length-values.length, p50:percentile(values,.5), p95:percentile(values,.95) }]; })) };
   }
   function record(trial, result, timing, { condition='clean', processing='browser', version='unknown' } = {}) {
-    if (!['clean','moderate-noise'].includes(condition) || !['browser','device'].includes(processing)) throw Error('Condição de avaliação inválida.');
+    if (!['clean','moderate-noise'].includes(condition) || !['browser','device'].includes(processing)) throw Error('Invalid evaluation condition.');
     return freeze({ locale:trial.locale, count:trial.count, split:trial.split, kind:trial.kind, condition, processing,
       version:String(version).slice(0,30), ...Object.fromEntries(['exact','outcome','expectedRejected','appliedCount','rejected',
         'wrongApplication','falseAcceptance','clarification','refusal','lost','finalRevisions','scope'].map(key=>[key,copy(result[key])])), timing:Object.fromEntries(timingKeys.map(key => [key,

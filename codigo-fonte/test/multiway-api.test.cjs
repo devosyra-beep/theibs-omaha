@@ -145,7 +145,7 @@ test('response hypotheses require exact physical seat mapping and observed contr
   const partialCoverage = multiway.start({ ...config, stacks: [5, 100, 100] }).multiway;
   const uncovered = await post('/api/analyze', { ...simple, multiway: partialCoverage, raiseTo: 6, aggressionStudy: study });
   assert.equal(uncovered.ev.actions.RAISE.status, 'NOT_MODELED');
-  assert.match(uncovered.ev.actions.RAISE.missingInputs.join(' '), /pote lateral/);
+  assert.match(uncovered.ev.actions.RAISE.missingInputs.join(' '), /side pot/);
   const hand = ['2s', '3s', '4s', '5s', '6s'];
   const specific = await post('/api/analyze', { ...simple, multiway: record, opponentHand: hand.join(' ') });
   assert.equal(specific.status, 'NO_DECISION');
@@ -161,12 +161,12 @@ test('workspace saves and restores by replay, rejects corrupt records and preser
   assert.deepEqual(readWorkspace(file).workspace.multiway, record);
   assert.equal(readWorkspace(file).workspace.multiwaySimple.fields.potBeforeAction, 11);
   const invalid = structuredClone(workspace); invalid.multiway.events.push(act(0, 'CALL'));
-  assert.throws(() => saveWorkspace(invalid, 1, file), /fora de vez/);
+  assert.throws(() => saveWorkspace(invalid, 1, file), /out of turn/);
   assert.equal(fs.readFileSync(file, 'utf8'), good);
   const corruptFile = path.join(temp, 'corrupt.json'), corrupt = JSON.parse(good);
   corrupt.workspace = invalid;
   const content = JSON.stringify(corrupt); fs.writeFileSync(corruptFile, content);
-  assert.throws(() => readWorkspace(corruptFile), /fora de vez/);
+  assert.throws(() => readWorkspace(corruptFile), /out of turn/);
   assert.equal(fs.readFileSync(corruptFile, 'utf8'), content);
 });
 

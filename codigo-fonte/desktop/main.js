@@ -27,7 +27,7 @@ async function showWindow() {
   mainWindow = new BrowserWindow({
     width: 1440, height: 960, minWidth: 1024, minHeight: 700,
     show: false, backgroundColor: '#09090b', autoHideMenuBar: true,
-    title: 'THEIBS · Laboratório Omaha',
+    title: 'THEIBS · Omaha Lab',
     webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true, webSecurity: true }
   });
   mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
@@ -38,8 +38,8 @@ async function showWindow() {
     // Default is to cancel closing while the renderer still has an unsaved draft.
     const answer = await dialog.showMessageBox(mainWindow, {
       type: 'warning', buttons: ['Continuar no aplicativo', 'Fechar sem salvar'], defaultId: 0, cancelId: 0,
-      title: 'Há alterações não salvas', message: 'O rascunho ainda não foi salvo.',
-      detail: 'Aguarde a indicação “Salvo localmente”. O histórico já registrado não será removido.'
+      title: 'Unsaved changes', message: 'The draft has not been saved yet.',
+      detail: 'Wait for the “Saved locally” indication. Recorded history will be preserved.'
     });
     if (answer.response === 1) mainWindow?.destroy();
   });
@@ -64,10 +64,10 @@ if (!app.requestSingleInstanceLock()) {
         event.preventDefault(); return;
       }
       // Electron opens a native save dialog. No silent write outside app data.
-      item.setSaveDialogOptions({ title: 'Salvar entrada de cartas', defaultPath: item.getFilename(), filters: [{ name: 'JSON', extensions: ['json'] }] });
+      item.setSaveDialogOptions({ title: 'Save card entry', defaultPath: item.getFilename(), filters: [{ name: 'JSON', extensions: ['json'] }] });
     });
     await showWindow();
-  }).catch((error) => { dialog.showErrorBox('THEIBS não iniciou', error.message); app.quit(); });
+  }).catch((error) => { dialog.showErrorBox('THEIBS failed to start', error.message); app.quit(); });
   app.on('second-instance', () => { if (mainWindow) { if (mainWindow.isMinimized()) mainWindow.restore(); mainWindow.focus(); } });
   app.on('activate', () => { if (!mainWindow) showWindow().catch(error => dialog.showErrorBox('THEIBS', error.message)); });
   app.on('window-all-closed', () => app.quit());

@@ -12,16 +12,16 @@ const POSITIONS = {
   10:['SB','BB','UTG','UTG1','UTG2','UTG3','LJ','HJ','CO','BTN']
 };
 function cents(value, label, positive = false) {
-  if (value === '' || value == null) throw Error(`${label} é obrigatório.`);
+  if (value === '' || value == null) throw Error(`${label} is required.`);
   const n = Number(value), rounded = Math.round(n * 100);
-  if (!Number.isFinite(n) || n < 0 || n > 10000000 || Math.abs(n * 100 - rounded) > 0.00001 || (positive && !rounded)) throw Error(`${label}: use um valor ${positive ? 'positivo' : 'não negativo'} com até duas casas decimais.`);
+  if (!Number.isFinite(n) || n < 0 || n > 10000000 || Math.abs(n * 100 - rounded) > 0.00001 || (positive && !rounded)) throw Error(`${label}: use a ${positive ? 'positive' : 'non-negative'} value with up to two decimal places.`);
   return rounded;
 }
 const chips = n => n / 100;
 const live = s => s.players.filter(p => !p.folded);
 const able = s => live(s).filter(p => p.stack > 0);
 function pay(s, p, amount) {
-  if (amount < 0 || amount > p.stack) throw Error('A contribuição excede o stack.');
+  if (amount < 0 || amount > p.stack) throw Error('The contribution exceeds the stack.');
   p.stack -= amount; p.streetPaid += amount; p.totalPaid += amount; s.pot += amount;
 }
 function nextActor(s, after) {
@@ -70,18 +70,18 @@ function resolveRound(s, previousActor) {
   else s.actor = nextActor(s, previousActor);
 }
 function create(config) {
-  if (!config || typeof config !== 'object') throw Error('Configuração da mão ausente.');
+  if (!config || typeof config !== 'object') throw Error('Hand configuration is missing.');
   const n = Number(config.playerCount), count = holeCount(config.variant);
-  if (!POSITIONS[n] || count * n + 5 > 52) throw Error('Quantidade de jogadores incompatível com o baralho da variante.');
+  if (!POSITIONS[n] || count * n + 5 > 52) throw Error('Player count is incompatible with this variant’s deck.');
   const positions = POSITIONS[n];
   const heroPosition = n === 2 && config.heroPosition === 'BTN' ? 'SB' : config.heroPosition;
   const heroId = positions.indexOf(heroPosition);
-  if (heroId < 0) throw Error('Selecione uma posição disponível nesta mesa.');
+  if (heroId < 0) throw Error('Select an available position at this table.');
   const sb = cents(config.smallBlind, 'Small blind', true), bb = cents(config.bigBlind, 'Big blind', true);
-  if (sb >= bb) throw Error('O small blind deve ser menor que o big blind.');
-  if (config.heroCards?.length && normalizeCards(config.heroCards).length !== count) throw Error('Complete as cartas privadas antes de iniciar.');
+  if (sb >= bb) throw Error('Small blind must be lower than big blind.');
+  if (config.heroCards?.length && normalizeCards(config.heroCards).length !== count) throw Error('Complete your hole cards before starting.');
   const players = positions.map((position,id) => ({ id, position, hero:id===heroId,
-    name:id===heroId?'Você':`Adv. ${id < heroId ? id+1 : id}`, folded:false,
+    name:id===heroId?'You':`Opp. ${id < heroId ? id+1 : id}`, folded:false,
     stack:cents(config.stacks?.[id] ?? config.startingStack, 'Stack', true), streetPaid:0,totalPaid:0,lastActedBet:null,raiseThreshold:bb,lastAction:null }));
   const s = { schema:'THEIBS_OBSERVED_HAND_V1', variant:config.variant, heroId, heroPosition:config.heroPosition,
     initialPlayerCount:n, buttonId:n===2?0:n-1, players, street:'PREFLOP', board:[], phase:'BETTING', pot:0,
@@ -117,11 +117,11 @@ function markFoldReason(s, id) {
   return null;
 }
 function apply(s, event, config) {
-  if (!event || typeof event !== 'object') throw Error('Evento inválido.');
+  if (!event || typeof event !== 'object') throw Error('Invalid event.');
   if (event.type === 'MARK_FOLD') {
     const reason = markFoldReason(s, event.actor);
     if (reason) {
-      const error = Error(`Não é possível marcar a saída desse assento: ${reason}.`);
+      const error = Error(`Cannot mark this seat as folded: ${reason}.`);
       error.code = reason; throw error;
     }
     const previousActor = s.actor, player = s.players[event.actor];
@@ -134,9 +134,9 @@ function apply(s, event, config) {
     resolveRound(s, after); return;
   }
   if (event.type === 'BOARD') {
-    if (s.phase !== 'WAIT_BOARD') throw Error('Conclua as ações desta rodada antes de abrir mais cartas.');
+    if (s.phase !== 'WAIT_BOARD') throw Error('Complete this street’s actions before dealing more cards.');
     const board = normalizeCards(event.cards || []), expected = {FLOP:3,TURN:4,RIVER:5}[s.nextStreet];
-    if (board.length !== expected || !s.board.every((c,i)=>board[i].code===c)) throw Error(`Informe ${expected} cartas no board, mantendo as anteriores.`);
+    if (board.length !== expected || !s.board.every((c,i)=>board[i].code===c)) throw Error(`Enter ${expected} board cards, keeping the previous ones.`);
     normalizeCards([...(config.heroCards||[]),...board]);
     s.board = cardCodes(board); s.street = s.nextStreet; s.nextStreet = null;
     s.currentBet = 0; s.lastFullRaise = s.bigBlind;
@@ -146,15 +146,15 @@ function apply(s, event, config) {
     resolveRound(s,s.players.length===2?0:s.players.length-1); return;
   }
   if (event.type === 'SETTLE') {
-    if (s.phase !== 'SHOWDOWN') throw Error('O resultado só pode ser informado no showdown.');
+    if (s.phase !== 'SHOWDOWN') throw Error('The result can only be entered at showdown.');
     const layers = pots(s);
-    if (!Array.isArray(event.winners) || event.winners.length!==layers.length) throw Error('Informe os vencedores de cada pote.');
+    if (!Array.isArray(event.winners) || event.winners.length!==layers.length) throw Error('Enter the winners of each pot.');
     const rake = cents(event.rake ?? 0,'Rake');
-    if (rake>s.pot) throw Error('O rake não pode exceder o pote.');
+    if (rake>s.pot) throw Error('Rake cannot exceed the pot.');
     let remainingRake=rake;const awards=new Map();
     for (let i=0;i<layers.length;i++) {
       const layer=layers[i], ids=event.winners[i];
-      if (!Array.isArray(ids)||!ids.length||new Set(ids).size!==ids.length||ids.some(id=>!layer.eligible.includes(id))) throw Error('Vencedor inválido ou inelegível para o pote.');
+      if (!Array.isArray(ids)||!ids.length||new Set(ids).size!==ids.length||ids.some(id=>!layer.eligible.includes(id))) throw Error('Invalid winner or winner ineligible for this pot.');
       const deduction=Math.min(layer.amount,remainingRake);remainingRake-=deduction;
       const amount=layer.amount-deduction, share=Math.floor(amount/ids.length);let extra=amount%ids.length;
       // Seat order begins left of the button; it also breaks odd-chip ties.
@@ -165,15 +165,15 @@ function apply(s, event, config) {
     s.result={reason:'REPORTED_SHOWDOWN',winners:[...awards.keys()],awards:[...awards].map(([player,amount])=>({player,amount:chips(amount)}))};
     s.log.push({street:s.street,action:'SHOWDOWN',winners:event.winners,rake:chips(rake)});return;
   }
-  if (event.type !== 'ACT' || event.actor !== s.actor || s.phase !== 'BETTING') throw Error('Ação fora de vez ou rodada encerrada.');
+  if (event.type !== 'ACT' || event.actor !== s.actor || s.phase !== 'BETTING') throw Error('Action out of turn or betting round ended.');
   const p = s.players[s.actor], options=legal(s), action=String(event.action||'').toUpperCase();
-  if (!options.actions.includes(action)) throw Error('Ação ilegal: use os botões disponíveis.');
+  if (!options.actions.includes(action)) throw Error('Illegal action: use the available buttons.');
   let amount=0, to=p.streetPaid;
   if (action==='FOLD') p.folded=true;
   else if (action==='CALL') { amount=cents(options.toCall,'Call');pay(s,p,amount);to=p.streetPaid; }
   else if (action==='BET'||action==='RAISE') {
-    to=cents(event.to,'Total da aposta',true);
-    if (to<cents(options.minTo,'Mínimo')||to>cents(options.maxTo,'Máximo')) throw Error(`Aposta deve totalizar entre ${options.minTo} e ${options.maxTo} fichas nesta rodada.`);
+    to=cents(event.to,'Bet total',true);
+    if (to<cents(options.minTo,'Minimum')||to>cents(options.maxTo,'Maximum')) throw Error(`The bet total must be between ${options.minTo} and ${options.maxTo} chips this street.`);
     const increase=to-s.currentBet;amount=to-p.streetPaid;pay(s,p,amount);
     if(increase>=s.lastFullRaise) s.lastFullRaise=increase;
     s.currentBet=to;
@@ -218,16 +218,16 @@ function publicState(s, config) {
 }
 function assertInvariants(s) {
   const amounts=[s.pot,s.rake,...s.players.flatMap(player=>[player.stack,player.streetPaid,player.totalPaid])];
-  if(amounts.some(amount=>!Number.isSafeInteger(amount)||amount<0))throw Error('Falha de valores inteiros de fichas.');
-  if(s.players.some(player=>player.streetPaid>player.totalPaid))throw Error('Contribuição da rodada excede o total investido.');
-  if(s.players.reduce((sum,player)=>sum+player.stack,0)+s.pot+s.rake!==s.totalChips)throw Error('Falha de conservação de fichas.');
-  if(s.phase!=='FINISHED'&&s.players.reduce((sum,player)=>sum+player.totalPaid,0)!==s.pot)throw Error('Pote diverge das contribuições.');
-  if(new Set(s.pending).size!==s.pending.length||s.pending.some(id=>!s.players[id]||s.players[id].folded||s.players[id].stack===0))throw Error('Fila de ação inválida.');
-  if(s.phase==='BETTING'?!s.pending.includes(s.actor):s.actor!==null)throw Error('Ator incompatível com a fase da mão.');
-  if(s.players.filter(player=>player.hero).length!==1||!s.players[s.heroId]?.hero)throw Error('Identidade do herói inválida.');
+  if(amounts.some(amount=>!Number.isSafeInteger(amount)||amount<0))throw Error('Invalid integer chip amounts.');
+  if(s.players.some(player=>player.streetPaid>player.totalPaid))throw Error('Street contribution exceeds total invested.');
+  if(s.players.reduce((sum,player)=>sum+player.stack,0)+s.pot+s.rake!==s.totalChips)throw Error('Chip conservation failed.');
+  if(s.phase!=='FINISHED'&&s.players.reduce((sum,player)=>sum+player.totalPaid,0)!==s.pot)throw Error('Pot differs from contributions.');
+  if(new Set(s.pending).size!==s.pending.length||s.pending.some(id=>!s.players[id]||s.players[id].folded||s.players[id].stack===0))throw Error('Invalid action queue.');
+  if(s.phase==='BETTING'?!s.pending.includes(s.actor):s.actor!==null)throw Error('Actor does not match the hand phase.');
+  if(s.players.filter(player=>player.hero).length!==1||!s.players[s.heroId]?.hero)throw Error('Invalid hero identity.');
 }
 function replay(config, events=[]) {
-  if (!Array.isArray(events)||events.length>500) throw Error('Limite de 500 eventos por mão.');
+  if (!Array.isArray(events)||events.length>500) throw Error('Limit of 500 events per hand.');
   const s=create(config);
   assertInvariants(s);
   for (const event of events) {

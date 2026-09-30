@@ -19,7 +19,9 @@
   const svg=name=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${paths[name]}</svg>`;
   function iconButton(button,icon,label){button.classList.add('icon-button');button.innerHTML=svg(icon);button.title=label;button.setAttribute('aria-label',label);}
 
-  for(const [id,icon,label]of [['open-settings','settings','Configure table'],['open-analysis','calculation','View calculation'],['open-engine','assistant','Assistant'],['new-hand','plus','New hand']])iconButton($('#'+id),icon,label);
+  for(const [id,icon,label]of [['open-settings','settings','Configure table'],['open-analysis','calculation','View calculation'],['open-engine','assistant','Assistant'],['open-support','help','Help and support'],['open-license','info','License and access'],['new-hand','plus','New hand']]){
+    const button=$('#'+id);if(button)iconButton(button,icon,label);
+  }
   iconButton($('#clear'),'trash','Clear cards');
   $('#open-card-picker').insertAdjacentHTML('afterbegin',svg('cards'));
 
@@ -66,7 +68,7 @@
   const compare=$('#open-raise-model');compare.addEventListener('click',()=>$('#analysis-dialog').close(),true);
   const actionInfo=document.createElement('button');actionInfo.id='action-info';actionInfo.type='button';iconButton(actionInfo,'info','About the comparison');$('#quick-action').after(actionInfo);
   actionInfo.onclick=openCalculation;
-  const reflectNote=()=>{actionInfo.title=$('#quick-action-note').textContent;actionInfo.setAttribute('aria-label','View calculation: '+actionInfo.title);$('#quick-action').title='Leitura da decisão atual; confira as premissas no cálculo.';};
+  const reflectNote=()=>{actionInfo.title=$('#quick-action-note').textContent;actionInfo.setAttribute('aria-label','View calculation: '+actionInfo.title);$('#quick-action').title='Current decision reading; review the assumptions in the calculation.';};
   new MutationObserver(reflectNote).observe($('#quick-action-note'),{childList:true,subtree:true,characterData:true});reflectNote();
   // Coverage mismatches keep a visible signal instead of silently hiding them.
   const warning=$('#ev-critical-warning'),coverage=document.createElement('button');coverage.id='ev-coverage-info';coverage.type='button';iconButton(coverage,'info','Check calculated opponents');coverage.hidden=true;$('#ev-summary .ev-topline').append(coverage);overview.append(warning);
@@ -78,15 +80,15 @@
   const tableColumn=$('#analyze-workspace .table-column'),contextRail=$('#analysis-form .context-rail');
   const equityPanel=$('#analyze-workspace .insight-panel'),quickDecision=$('.quick-decision');
   const quickPrice=document.createElement('details');quickPrice.id='quick-price';quickPrice.className='quick-price';
-  quickPrice.innerHTML='<summary>Preço do CALL <span>opcional</span></summary><div class="quick-price-fields"></div>';
+  quickPrice.innerHTML='<summary>Call price <span>optional</span></summary><div class="quick-price-fields"></div>';
   quickDecision.before(quickPrice);
   const potLabel=$('#potBeforeAction').closest('label'),callLabel=$('#amountToCall').closest('label');
-  potLabel.firstChild.textContent='Pote atual ';
-  callLabel.firstChild.textContent='Para pagar ';
+  potLabel.firstChild.textContent='Current pot ';
+  callLabel.firstChild.textContent='To call ';
   const priceFields=quickPrice.querySelector('.quick-price-fields'),stackLabel=$('#effectiveStack').closest('label');
   function placeQuickAnalysis(){
     const compact=mobileWidth.matches&&document.body.dataset.multiway!=='on';
-    quickPrice.hidden=true;
+    quickPrice.hidden=!compact;
     if(compact){tableColumn.insertBefore(equityPanel,quickPrice);priceFields.append(potLabel,callLabel);}
     else{contextRail.append(equityPanel);stackLabel.before(potLabel,callLabel);quickPrice.open=false;}
     const nutsBadge=$('#nuts-badge');if(nutsBadge)equityPanel.after(nutsBadge);
@@ -94,5 +96,12 @@
   mobileWidth.addEventListener('change',placeQuickAnalysis);
   new MutationObserver(placeQuickAnalysis).observe(document.body,{attributes:true,attributeFilter:['data-multiway']});
   placeQuickAnalysis();
+  const reflectEquity=()=>{
+    const value=$('#hero-equity').textContent.trim();
+    const pending=/calculando|calculating/i.test($('#equity-range').textContent);
+    equityPanel.dataset.equityState=pending?'loading':value&&value!=='—'?'ready':'empty';
+  };
+  for(const node of [$('#hero-equity'),$('#equity-range')])new MutationObserver(reflectEquity).observe(node,{childList:true,characterData:true,subtree:true});
+  reflectEquity();
   window.theibsFocusUI={restore};restore();
 })();

@@ -1,4 +1,10 @@
 #multiway-setup { border:1px solid var(--border); border-radius:10px; margin-bottom:14px; }
+.mw-quick-setup { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:end; gap:10px; padding:12px 15px; }
+.mw-quick-setup label { display:grid; gap:5px; min-width:0; font-size:12px; color:var(--muted); }
+.mw-quick-setup select { min-height:42px; width:100%; min-width:0; }
+.mw-quick-setup button { min-height:42px; white-space:nowrap; }
+.mw-quick-setup button[aria-pressed=true] { color:var(--primary); border-color:#c9a85688; background:#f6d36f12; }
+#mw-quick-error { padding:0 15px 10px; margin:0; }
 #mw-setup-details>summary { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:13px 15px; cursor:pointer; font-size:16px; }
 #mw-setup-details>summary>span:first-child::before { content:'▸'; color:var(--muted); margin-right:9px; }
 #mw-setup-details[open]>summary>span:first-child::before { content:'▾'; }
@@ -23,6 +29,12 @@ body:not([data-view=analyze]) .multiway-controls { display:none!important; }
 #mw-undo { margin-left:auto; font-size:12px; white-space:nowrap; padding:3px 5px; }
 .mw-action-row { display:flex; align-items:center; gap:7px; }
 .mw-action-row>[data-mw-action] { display:inline-flex; align-items:center; justify-content:center; flex:1; gap:7px; min-height:35px; padding:5px 8px; border-radius:7px; font-size:14px; white-space:nowrap; }
+.mw-action-row>[data-mw-command=leave] { order:1; }
+.mw-action-row>[data-mw-command=call],.mw-action-row>[data-mw-command=check] { order:2; }
+.mw-action-row>[data-mw-command=aggressive] { order:3; }
+.mw-action-row>[data-mw-command=call]:disabled,.mw-action-row>[data-mw-command=check]:disabled { display:none; }
+.mw-action-row>[data-mw-command]:focus-visible { outline:2px solid var(--primary); outline-offset:2px; }
+.mw-action-row>[data-mw-command]:active:not(:disabled) { transform:translateY(1px); }
 .mw-action-row kbd { padding:1px 4px; border-radius:4px; font:12px var(--font-mono); color:var(--muted); border:1px solid var(--border); background:transparent; box-shadow:none; }
 .mw-action-row>[data-mw-action=FOLD]:not(:disabled) { color:#f29a9a; }
 .mw-action-row>[data-mw-action=RAISE]:not(:disabled),.mw-action-row>[data-mw-action=BET]:not(:disabled) { border-color:#b699505e; }
@@ -45,7 +57,6 @@ body:not([data-view=analyze]) .multiway-controls { display:none!important; }
 .multiway-dialog .primary-button,.multiway-dialog .ghost-button { font-size:15px; padding:11px 14px; }
 #mw-size-limits,#mw-board-existing,.mw-card-legend,#mw-seat-note { color:var(--muted); }
 #mw-size-cost { color:var(--primary); }
-#mw-seat-fold { margin-top:18px; }
 #mw-seat-note { margin-top:10px; }
 body[data-view=analyze][data-multiway=on] [data-multiway-player] { cursor:pointer; pointer-events:auto; }
 body[data-view=analyze][data-multiway=on] .multiway-seat { background:transparent; border:0; padding:0; }
@@ -62,7 +73,7 @@ body[data-multiway=on] .multiway-seat.to-act .multiway-seat-status { color:#1813
 body[data-multiway=on] .multiway-seat.checked .opponent-name { border-color:#43c6b6; background:#102b2a; color:#c2fff4; box-shadow:0 0 0 2px #43c6b644; }
 body[data-multiway=on] .multiway-seat.checked .multiway-seat-status { color:#051916; background:#57d6c0; }
 body[data-multiway=on][data-multiway-hero-turn=true] .hero-seat { border-color:#f6d36f; box-shadow:0 0 0 3px #f6d36f77,0 0 20px #f6d36f55; color:#fff2c4; }
-body[data-multiway=on] .mw-folded-seat,body[data-multiway=on] .multiway-seat.folded { opacity:.38; }
+body[data-multiway=on] .mw-folded-seat,body[data-multiway=on] .multiway-seat.folded { opacity:.62; }
 body[data-multiway=on] .mw-folded-seat .card-back { filter:grayscale(1); }
 body[data-multiway=on] .mw-allin-seat .opponent-name { color:#a5ccff; }
 @media(min-width:1000px) {
@@ -94,6 +105,8 @@ body[data-multiway=on] .mw-allin-seat .opponent-name { color:#a5ccff; }
  .mw-action-row>[data-mw-action] { gap:4px; font-size:13px; padding:5px; }
 }
 @media(max-width:700px) {
+  .mw-quick-setup { grid-template-columns:minmax(0,1fr) minmax(120px,auto); }
+  .mw-quick-setup button { white-space:normal; }
   .mw-control-heading { flex-wrap:wrap; }
   #mw-round { order:3; flex-basis:100%; }
   .mw-action-row { flex-wrap:wrap; }
@@ -106,6 +119,43 @@ body[data-multiway=on] .mw-allin-seat .opponent-name { color:#a5ccff; }
 }
 
 .mw-action-row>[data-mw-action].is-key-active { border-color:#f6d36f; background:#f6d36f24; box-shadow:0 0 0 2px #f6d36f24; transform:translateY(1px); }
+
+/* Non-modal, table-anchored seat controls. A native dialog still suspends
+   the global card keyboard while the player fields have focus. */
+.seat-popover,.multiway-dialog.seat-popover { position:fixed; inset:auto; z-index:80; box-sizing:border-box; width:min(340px,calc(100vw - 16px)); max-height:min(75dvh,600px); margin:0; padding:15px; overflow:auto; border:1px solid #c9a85676; border-radius:12px; background:#181b25; box-shadow:0 18px 48px #000b; color:var(--foreground); }
+.seat-popover-head,.seat-popover .multiway-dialog-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:0 0 9px; }
+.seat-popover-head strong,.seat-popover .multiway-dialog-head h2 { color:var(--primary); font-size:15px; }
+.seat-popover-head button,.seat-popover .multiway-dialog-head button { min-width:36px; min-height:36px; }
+.seat-popover .ghost-button,.seat-popover .primary-button { min-height:40px; }
+.seat-popover-actions { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:10px 0; }
+.seat-popover-actions>* { flex:1; }
+.seat-popover [hidden] { display:none!important; }
+.seat-popover:focus-visible,.seat-popover button:focus-visible,.seat-popover summary:focus-visible,.seat-popover input:focus-visible,.seat-popover textarea:focus-visible { outline:2px solid var(--primary); outline-offset:2px; }
+#mw-seat-edit-details { border-top:1px solid var(--border); padding-top:10px; margin-top:10px; }
+#mw-seat-edit-details>summary { cursor:pointer; color:var(--primary); font-size:13px; }
+#mw-seat-edit-note { margin:9px 0!important; }
+#mw-seat-editor { display:grid; gap:9px; min-width:0; margin:0; padding:0; border:0; }
+#mw-seat-editor label { display:grid; gap:4px; min-width:0; font-size:12px; }
+#mw-seat-editor input,#mw-seat-editor textarea { box-sizing:border-box; width:100%; min-height:40px; padding:8px; font-size:14px; }
+#mw-seat-editor textarea { resize:vertical; }
+#mw-seat-editor:disabled { opacity:.6; }
+.opponent-place.simple-seat { pointer-events:auto; cursor:pointer; border:0; padding:0; background:transparent; min-width:44px; min-height:44px; color:inherit; }
+.opponent-place.simple-seat:hover .opponent-name { border-color:var(--primary); }
+.opponent-place.simple-seat:focus-visible { outline:2px solid var(--primary); outline-offset:3px; border-radius:8px; }
+.simple-seat-status { padding:1px 5px; border-radius:4px; background:#111722e8; color:#b6becb; font:10px/1.3 var(--font-sans); }
+.simple-seat.folded { opacity:.65; }
+.simple-seat.folded .card-back { filter:grayscale(1); }
+.simple-seat.folded .opponent-name { text-decoration:line-through; text-decoration-color:#f29a9a; }
+.simple-seat.folded .simple-seat-status { color:#ffb6b6; }
+body[data-view=analyze][data-multiway=off] .opponent-place.dense { width:44px; min-width:44px; }
+body[data-view=analyze][data-multiway=off] .opponent-place.dense .simple-seat-status { display:none; }
+body[data-view=analyze][data-multiway=off] .opponent-place.dense.folded::before { border-color:#ef8d8d; color:#ffb6b6; text-decoration:line-through; }
+.equity-beaters-details { max-width:100%; margin-top:5px; color:var(--muted); font-size:11px; line-height:1.45; }
+.equity-beaters-details[hidden] { display:none!important; }
+.equity-beaters-details>summary { width:max-content; max-width:100%; cursor:pointer; color:var(--primary); }
+.equity-beaters-details>summary:focus-visible { outline:2px solid var(--primary); outline-offset:2px; }
+.equity-beaters-details ul { margin:7px 0 0; padding-left:16px; }
+.equity-beaters-details li+li { margin-top:4px; }
 
 #mw-image-open { display:block; margin:7px 0 0 auto; font-size:12px; min-height:36px; }
 #mw-image-dialog { width:min(640px,calc(100vw - 20px)); max-height:calc(100dvh - 20px); overflow:auto; box-sizing:border-box; }

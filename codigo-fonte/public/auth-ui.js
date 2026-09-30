@@ -10,7 +10,7 @@
   window.theibsVoiceSessionContext = () => manager?.context() || { epoch: 0, required: true, expired: true };
   window.theibsAuth = { async ensureSession() {
     await configReady;
-    if (!manager) throw new Error('A configuração de acesso está indisponível. Recarregue a página.');
+    if (!manager) throw new Error('Access configuration is unavailable. Reload the page.');
     return manager.ensureSession();
   } };
   function releaseApp() { if (!readyResolved) { readyResolved = true; resolveReady(); } }
@@ -21,7 +21,7 @@
       !['/api/public-config', '/api/status', '/api/billing/webhook'].includes(url.pathname);
     if (!protectedApi) return nativeFetch(input, init);
     await window.theibsAuthReady;
-    if (!manager) throw new Error('A configuração de acesso está indisponível. Recarregue a página.');
+    if (!manager) throw new Error('Access configuration is unavailable. Reload the page.');
     return manager.request(input, init);
   };
   window.addEventListener('storage', event => { if (event.key === STORAGE_KEY || event.key === null) manager?.handleStorage(); });
@@ -34,7 +34,7 @@
     const hash = new URLSearchParams(location.hash.replace(/^#/, ''));
     if (!hash.has('access_token') && !hash.has('error') && !hash.has('error_description')) return undefined;
     history.replaceState({}, document.title, location.pathname + location.search);
-    if (hash.has('error') || hash.has('error_description')) throw new Error('Não foi possível entrar. Tente novamente.');
+    if (hash.has('error') || hash.has('error_description')) throw new Error('Sign-in failed. Try again.');
     return { access_token: hash.get('access_token'), refresh_token: hash.get('refresh_token'),
       expires_at: Date.now() + Number(hash.get('expires_in') || 3600) * 1000 };
   }
@@ -82,14 +82,14 @@
       if (event.invalid) {
         access = null;
         authFailure = event.reason === 'SIGNED_OUT' ? 'Signing out…' : event.reason === 'AUTH_SESSION_CHANGED' ?
-          'A sessão mudou. Recarregue e entre novamente antes de continuar.' :
-          'Sua sessão expirou ou não pôde ser renovada. Entre novamente para continuar.';
+          'Your session changed. Reload and sign in again before continuing.' :
+          'Your session expired or could not be renewed. Sign in again to continue.';
         render(); show();
       }
     }
     function assertCurrent(before) {
       const after = manager.context();
-      if (before.epoch !== after.epoch || after.expired) throw new Error('A sessão mudou. Entre novamente antes de continuar.');
+      if (before.epoch !== after.epoch || after.expired) throw new Error('Your session changed. Sign in again before continuing.');
     }
     async function readAccess() {
       if (!loggedIn()) return null;
@@ -134,7 +134,7 @@
       const response = await nativeFetch('/api/public-config'), payload = await response.json();
       if (!response.ok || !payload.auth) throw new Error('Access configuration unavailable.');
       config = payload.auth;
-      if (!window.TheibsAuthSession) throw new Error('Recarregue a página para atualizar o acesso.');
+      if (!window.TheibsAuthSession) throw new Error('Reload the page to update access.');
       // A browser lock serializes rotation across tabs. The controller still
       // has a bounded provider timeout and coalesces callers within this tab.
       const withLock = window.navigator?.locks?.request ? (task, options) => window.navigator.locks.request(

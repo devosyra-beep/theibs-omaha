@@ -35,29 +35,29 @@
     const box = $('#mw-image-box');
     box.style.left = `${zone[0] * 100}%`; box.style.top = `${zone[1] * 100}%`;
     box.style.width = `${(zone[2] - zone[0]) * 100}%`; box.style.height = `${(zone[3] - zone[1]) * 100}%`;
-    box.textContent = zoneName === 'hero' ? 'Suas cartas' : 'Board';
+    box.textContent = zoneName === 'hero' ? 'Your cards' : 'Board';
   }
   function readCardField(id) {
     const value = $(`#mw-image-${id}`).value.trim();
     if (!value) return [];
     const tokens = value.split(/[\s,;|/]+/).filter(Boolean);
     const result = tokens.map(model.parseCard);
-    if (result.includes(null)) throw Error(`Corrija ${id === 'hero' ? 'suas cartas' : 'o board'}: use Ah Ks Qd Jc, por exemplo.`);
+    if (result.includes(null)) throw Error(`Correct ${id === 'hero' ? 'your cards' : 'the board'}: for example, use Ah Ks Qd Jc.`);
     return result;
   }
   function displayFindings() {
     for (const name of ['hero', 'board']) {
       const finding = findings[name];
-      $(`#mw-image-${name}-confidence`).textContent = !finding ? 'Não lido' : finding.status === 'NOT_READ'
-        ? 'Não reconhecido' : finding.confidence == null ? 'OCR sem confiança calibrada · confira cada carta'
-          : `Pontuação OCR ${Math.round(finding.confidence * 100)}% (não calibrada) · confira cada carta`;
+      $(`#mw-image-${name}-confidence`).textContent = !finding ? 'Not read' : finding.status === 'NOT_READ'
+        ? 'Not recognized' : finding.confidence == null ? 'OCR confidence is uncalibrated · check every card'
+          : `OCR score ${Math.round(finding.confidence * 100)}% (uncalibrated) · check every card`;
       if (finding?.cards?.length) $(`#mw-image-${name}`).value = finding.cards.join(' ');
     }
   }
   function invalidateZone() {
     findings[zoneName] = null;
     $(`#mw-image-${zoneName}`).value = '';
-    $(`#mw-image-${zoneName}-confidence`).textContent = 'Área alterada · ler novamente';
+    $(`#mw-image-${zoneName}-confidence`).textContent = 'Area changed · read again';
   }
   function setBusy(value) {
     busy = value;
@@ -73,9 +73,9 @@
   async function loadImage(file) {
     releaseImage(); findings = { hero: null, board: null }; displayFindings();
     $('#mw-image-hero').value = ''; $('#mw-image-board').value = '';
-    $('#mw-image-file-name').textContent = 'Nenhuma imagem selecionada';
+    $('#mw-image-file-name').textContent = 'No image selected';
     if (!file) return;
-    if (!file.type.startsWith('image/') || file.size > 12 * 1024 * 1024) { status('Escolha uma imagem de até 12 MB.', true); return; }
+    if (!file.type.startsWith('image/') || file.size > 12 * 1024 * 1024) { status('Choose an image up to 12 MB.', true); return; }
     const current = ++sequence;
     const next = new Image();
     try {
@@ -84,13 +84,13 @@
       });
       next.src = imageUrl; await next.decode();
       if (current !== sequence) return;
-      if (next.naturalWidth * next.naturalHeight > 24_000_000) throw Error('resolução acima de 24 megapixels');
+      if (next.naturalWidth * next.naturalHeight > 24_000_000) throw Error('resolution exceeds 24 megapixels');
       image = next; preview.src = imageUrl; $('#mw-image-stage').hidden = false; layoutPreview();
       $('#mw-image-file-name').textContent = file.name;
       handToken = token(appState());
-      status('Imagem pronta. Ajuste as áreas e tente ler; confirme cada carta antes de aplicar.');
+      status('Image ready. Adjust the areas and try reading; confirm each card before applying.');
       zoneFields();
-    } catch (error) { if (current === sequence) { releaseImage(); status(`Não foi possível abrir esta imagem: ${error.message || 'formato inválido'}.`, true); } }
+    } catch (error) { if (current === sequence) { releaseImage(); status(`Could not open this image: ${error.message || 'invalid format'}.`, true); } }
   }
   function crop(name) {
     const zone = zones[profile][name], [x1, y1, x2, y2] = zone;
@@ -106,7 +106,7 @@
     if (!window.Tesseract) {
       await new Promise((resolve, reject) => {
         const script = document.createElement('script'); script.src = ocrUrl; script.onload = resolve;
-        script.onerror = () => { script.remove(); reject(Error('O OCR não carregou. Confira a conexão ou preencha as cartas manualmente.')); };
+        script.onerror = () => { script.remove(); reject(Error('OCR did not load. Check your connection or enter the cards manually.')); };
         document.head.append(script);
       });
     }
@@ -130,9 +130,9 @@
     return [{ text: result.data.text, confidence: Number.isFinite(result.data.confidence) ? result.data.confidence / 100 : undefined }];
   }
   async function readImage() {
-    if (!image || busy) { status('Escolha ou fotografe uma imagem primeiro.', true); return; }
+    if (!image || busy) { status('Choose or photograph an image first.', true); return; }
     const current = ++sequence;
-    setBusy(true); status('Lendo suas cartas e o board no aparelho…');
+    setBusy(true); status('Reading your cards and the board on this device…');
     try {
       const count = Number(appState().multiway?.config?.variant?.match(/[456]/)?.[0] || 5);
       for (const name of ['hero', 'board']) {
@@ -142,16 +142,16 @@
       }
       displayFindings();
       const issues = [...findings.hero.issues, ...findings.board.issues];
-      status(`Leitura preliminar. ${issues.length ? issues.join(' ') : 'Confirme as cartas na imagem.'}`);
-    } catch (error) { if (current === sequence) status(error?.message || 'Falha na leitura. Preencha as cartas manualmente.', true); }
+      status(`Preliminary reading. ${issues.length ? issues.join(' ') : 'Confirm the cards in the image.'}`);
+    } catch (error) { if (current === sequence) status(error?.message || 'Reading failed. Enter the cards manually.', true); }
     finally { setBusy(false); }
   }
   function review(scope = 'both') {
     const state = appState();
-    if (!state.multiway || state.multiwayBusy) throw Error('Ative o Multiway e aguarde a atualização da mesa.');
-    if (state.activeView !== 'analyze') throw Error('Abra a tela Analyze para importar cartas.');
-    if (!image) throw Error('Escolha ou fotografe uma imagem.');
-    if (handToken !== token(state)) throw Error('O histórico da mão mudou desde a imagem. Abra a imagem novamente antes de aplicar.');
+    if (!state.multiway || state.multiwayBusy) throw Error('Turn on Multiway and wait for the table to update.');
+    if (state.activeView !== 'analyze') throw Error('Open Analyze to import cards.');
+    if (!image) throw Error('Choose or take a picture.');
+    if (handToken !== token(state)) throw Error('Hand history changed since this image was opened. Open the image again before applying.');
     const heroCards = readCardField('hero'), board = scope === 'hero' ? state.multiwayState.board : readCardField('board');
     const result = model.validateReview({ variant: state.multiway.config.variant, heroCards, board,
       existingBoard: state.multiwayState.board, phase: state.multiwayState.phase,
@@ -162,26 +162,26 @@
   function applyHero() {
     try {
       const { heroCards, result } = review('hero');
-      if (!result.heroChanged) { status('Suas cartas já coincidem com o Multiway.'); return; }
+      if (!result.heroChanged) { status('Your cards already match Multiway.'); return; }
       const applied = window.theibsCardKeyboard.applyReviewedHero(heroCards, window.theibsCardKeyboard.getRevision());
       if (!applied.ok) throw Error(applied.error);
       // A new server envelope is required before another imported event.
-      status('Suas cartas foram registradas. Aguarde a atualização do Multiway antes de aplicar o board.');
+      status('Your cards were recorded. Wait for Multiway to update before applying the board.');
       handToken = token(appState());
     } catch (error) { status(error.message, true); }
   }
   async function applyBoard() {
     try {
       const { state, heroCards, result } = review();
-      if (!result.boardChanged) { status('O board já coincide com o Multiway.'); return; }
+      if (!result.boardChanged) { status('The board already matches Multiway.'); return; }
       if (JSON.stringify(heroCards) !== JSON.stringify(state.multiway.config.heroCards))
-        throw Error('Aplique ou corrija primeiro suas cartas; depois registre o board.');
+        throw Error('Apply or correct your cards first; then record the board.');
       const current = window.theibsMultiwayUI.voiceContext();
       setBusy(true);
       const ok = await window.theibsMultiwayUI.commitVoiceBoard({ addedCards: result.addedBoard, expectedToken: current.token });
-      if (!ok) throw Error('A mesa mudou ou a rodada não está pronta. Confira o histórico antes de tentar novamente.');
+      if (!ok) throw Error('The table changed or the street is not ready. Check the history before trying again.');
       handToken = token(appState());
-      status('Board registrado no histórico Multiway. Confira a análise e suas premissas.');
+      status('Board recorded in Multiway history. Check the analysis and your assumptions.');
     } catch (error) { status(error.message, true); }
     finally { setBusy(false); }
   }
@@ -190,29 +190,29 @@
     handToken = token(appState());
     const variant = appState().multiway.config.variant;
     $('#mw-image-variant').textContent = variant.replace('_HIGH', '');
-    dialog.showModal(); status('Importe uma imagem ou fotografe a tela do computador. A imagem fica neste aparelho.');
+    dialog.showModal(); status('Import an image or photograph the computer screen. The image stays on this device.');
     fileInput.focus();
   }
   function init() {
     const host = $('#multiway-controls');
     if (!host || $('#mw-image-open')) return;
     const button = document.createElement('button'); button.id = 'mw-image-open'; button.type = 'button';
-    button.className = 'text-button'; button.textContent = 'Ler imagem'; button.addEventListener('click', open);
+    button.className = 'text-button'; button.textContent = 'Read image'; button.addEventListener('click', open);
     host.querySelector('.mw-action-row').after(button);
     dialog = document.createElement('dialog'); dialog.id = 'mw-image-dialog'; dialog.className = 'multiway-dialog';
-    dialog.innerHTML = `<div class="multiway-dialog-head"><h2>Imagem · <span id="mw-image-variant"></span></h2><button type="button" class="text-button" data-mw-image-close="true" aria-label="Fechar">×</button></div>
-      <p class="mw-image-intro">Perfis de leitura preliminares, ainda sem validação com capturas reais de GGPoker e PokerStars. Revise as cartas antes de registrar. A foto não é enviada ao servidor nem salva no histórico.</p>
-      <div class="mw-image-tools"><label>Perfil<select id="mw-image-profile"><option value="GGPOKER">GGPoker</option><option value="POKERSTARS">PokerStars</option></select></label><div class="mw-image-sources"><label class="mw-image-picker">Importar imagem<input id="mw-image-file" type="file" accept="image/*"><span>Escolher imagem</span></label><label class="mw-image-picker">Fotografar tela<input id="mw-image-camera" type="file" accept="image/*" capture="environment"><span>Abrir câmera</span></label></div></div><p id="mw-image-file-name" class="mw-image-file-name">Nenhuma imagem selecionada</p>
-      <div id="mw-image-stage" class="mw-image-stage" hidden><img id="mw-image-preview" alt="Imagem da mesa para revisar cartas"><div id="mw-image-box" class="mw-image-box"></div></div>
-      <details class="mw-image-calibration"><summary>Ajustar áreas de leitura</summary><label>Área<select id="mw-image-zone"><option value="hero">Suas cartas</option><option value="board">Board</option></select></label><p>Arraste sobre a imagem ou ajuste as porcentagens.</p><div class="mw-image-coordinates"><label>X início<input id="mw-image-x1" type="number" min="0" max="100"></label><label>Y início<input id="mw-image-y1" type="number" min="0" max="100"></label><label>X fim<input id="mw-image-x2" type="number" min="0" max="100"></label><label>Y fim<input id="mw-image-y2" type="number" min="0" max="100"></label></div></details>
-      <button id="mw-image-read" type="button" class="ghost-button">Tentar reconhecer cartas</button>
-      <div class="mw-image-review"><label>Suas cartas <small id="mw-image-hero-confidence">Não lido</small><input id="mw-image-hero" autocomplete="off" placeholder="As Kd Qh Jc"></label><button id="mw-image-apply-hero" type="button" class="ghost-button">Registrar minhas cartas</button><label>Board <small id="mw-image-board-confidence">Não lido</small><input id="mw-image-board" autocomplete="off" placeholder="2s 3h 4d"></label><button id="mw-image-apply-board" type="button" class="ghost-button">Registrar próxima street</button></div>
-      <details class="mw-image-other"><summary>Outros dados da mesa</summary><p>Assentos, jogadores ativos, blinds, stacks, pote, apostas e ações ainda não são extraídos sem capturas de referência validadas. Registre-os nos controles Multiway. Nenhuma ação é inferida pela foto.</p></details>
+    dialog.innerHTML = `<div class="multiway-dialog-head"><h2>Image · <span id="mw-image-variant"></span></h2><button type="button" class="text-button" data-mw-image-close="true" aria-label="Close">×</button></div>
+      <p class="mw-image-intro">Preliminary reading profiles have not been validated with real GGPoker and PokerStars screenshots. Review the cards before recording. The photo is not sent to the server or saved in the history.</p>
+      <div class="mw-image-tools"><label>Profile<select id="mw-image-profile"><option value="GGPOKER">GGPoker</option><option value="POKERSTARS">PokerStars</option></select></label><div class="mw-image-sources"><label class="mw-image-picker">Import image<input id="mw-image-file" type="file" accept="image/*"><span>Choose image</span></label><label class="mw-image-picker">Photograph screen<input id="mw-image-camera" type="file" accept="image/*" capture="environment"><span>Open camera</span></label></div></div><p id="mw-image-file-name" class="mw-image-file-name">No image selected</p>
+      <div id="mw-image-stage" class="mw-image-stage" hidden><img id="mw-image-preview" alt="Table image for card review"><div id="mw-image-box" class="mw-image-box"></div></div>
+      <details class="mw-image-calibration"><summary>Adjust reading areas</summary><label>Area<select id="mw-image-zone"><option value="hero">Your cards</option><option value="board">Board</option></select></label><p>Drag over the image or adjust the percentages.</p><div class="mw-image-coordinates"><label>Start X<input id="mw-image-x1" type="number" min="0" max="100"></label><label>Start Y<input id="mw-image-y1" type="number" min="0" max="100"></label><label>End X<input id="mw-image-x2" type="number" min="0" max="100"></label><label>End Y<input id="mw-image-y2" type="number" min="0" max="100"></label></div></details>
+      <button id="mw-image-read" type="button" class="ghost-button">Try to recognize cards</button>
+      <div class="mw-image-review"><label>Your cards <small id="mw-image-hero-confidence">Not read</small><input id="mw-image-hero" autocomplete="off" placeholder="As Kd Qh Jc"></label><button id="mw-image-apply-hero" type="button" class="ghost-button">Record my cards</button><label>Board <small id="mw-image-board-confidence">Not read</small><input id="mw-image-board" autocomplete="off" placeholder="2s 3h 4d"></label><button id="mw-image-apply-board" type="button" class="ghost-button">Record next street</button></div>
+      <details class="mw-image-other"><summary>Other table data</summary><p>Seats, active players, blinds, stacks, pot, bets and actions cannot be extracted without validated reference screenshots. Record these in the Multiway controls. No action is inferred from the photo.</p></details>
       <p id="mw-image-status" role="status" aria-live="polite"></p>`;
     document.body.append(dialog);
     preview = $('#mw-image-preview'); fileInput = $('#mw-image-file'); cameraInput = $('#mw-image-camera');
     dialog.querySelector('[data-mw-image-close]').onclick = () => dialog.close();
-    dialog.addEventListener('close', () => { releaseImage(); fileInput.value = ''; cameraInput.value = ''; $('#mw-image-file-name').textContent = 'Nenhuma imagem selecionada'; });
+    dialog.addEventListener('close', () => { releaseImage(); fileInput.value = ''; cameraInput.value = ''; $('#mw-image-file-name').textContent = 'No image selected'; });
     fileInput.addEventListener('change', () => { void loadImage(fileInput.files?.[0]); });
     cameraInput.addEventListener('change', () => { void loadImage(cameraInput.files?.[0]); });
     $('#mw-image-profile').addEventListener('change', event => { profile = event.target.value; zoneFields(); findings = { hero: null, board: null }; displayFindings(); $('#mw-image-hero').value = ''; $('#mw-image-board').value = ''; });
@@ -220,7 +220,7 @@
     for (const key of ['x1', 'y1', 'x2', 'y2']) $(`#mw-image-${key}`).addEventListener('change', () => {
       const candidate = ['x1', 'y1', 'x2', 'y2'].map(name => Number($(`#mw-image-${name}`).value) / 100);
       const accepted = model.normalizeZone(candidate);
-      if (!accepted) { status('A área precisa caber na imagem e ter tamanho suficiente.', true); zoneFields(); return; }
+      if (!accepted) { status('The area must fit inside the image and be large enough.', true); zoneFields(); return; }
       zones[profile][zoneName] = accepted; saveZones(); zoneFields(); invalidateZone();
     });
     let drag = null;
@@ -237,10 +237,10 @@
       const x = (event.clientX - rect.left) / rect.width, y = (event.clientY - rect.top) / rect.height;
       const accepted = model.normalizeZone([Math.min(drag.x, x), Math.min(drag.y, y), Math.max(drag.x, x), Math.max(drag.y, y)]);
       drag = null;
-      if (accepted) { zones[profile][zoneName] = accepted; saveZones(); zoneFields(); invalidateZone(); } else status('Arraste uma área maior sobre as cartas.', true);
+      if (accepted) { zones[profile][zoneName] = accepted; saveZones(); zoneFields(); invalidateZone(); } else status('Drag a larger area over the cards.', true);
     });
     for (const name of ['hero', 'board']) $(`#mw-image-${name}`).addEventListener('input', () => {
-      $(`#mw-image-${name}-confidence`).textContent = 'Corrigido manualmente · confira com a imagem';
+      $(`#mw-image-${name}-confidence`).textContent = 'Corrected manually · compare with the image';
     });
     window.addEventListener('resize', layoutPreview);
     $('#mw-image-read').addEventListener('click', () => { void readImage(); });

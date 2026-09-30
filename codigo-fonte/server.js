@@ -234,10 +234,10 @@ const server = http.createServer(async (request, response) => {
   const host = request.headers.host || '';
   let requestUrl;
   try { requestUrl = new URL(request.url, `http://${host || '127.0.0.1'}`); }
-  catch { return json(response, 400, { status: 'ERROR', reason: 'URL inválida.' }); }
+  catch { return json(response, 400, { status: 'ERROR', reason: 'Invalid URL.' }); }
   const route = requestUrl.pathname;
-  if (!allowedRequestHost(host)) return json(response, 403, { status: 'ERROR', reason: 'Host não permitido.' });
-  if (!allowedRequestOrigin(request.headers.origin, host)) return json(response, 403, { status: 'ERROR', reason: 'Origem não permitida.' });
+  if (!allowedRequestHost(host)) return json(response, 403, { status: 'ERROR', reason: 'Host not allowed.' });
+  if (!allowedRequestOrigin(request.headers.origin, host)) return json(response, 403, { status: 'ERROR', reason: 'Origin not allowed.' });
   if (request.method === 'GET' && route === '/healthz') return json(response, 200, { status: 'OK' });
   if (request.method === 'POST' && !(request.headers['content-type'] || '').toLowerCase().startsWith('application/json')) return json(response, 415, { status: 'ERROR', reason: 'Use application/json.' });
   if (request.method === 'GET' && route === '/api/public-config') {
@@ -250,9 +250,9 @@ const server = http.createServer(async (request, response) => {
       const verified = billing.verifyWebhook(rawBody, request.headers['x-webhook-signature'], {
         ...process.env, __webhookSecretFromRequest: requestUrl.searchParams.get('webhookSecret') || ''
       });
-      if (!verified) return json(response, 401, { status: 'ERROR', reason: 'Webhook inválido.' });
+      if (!verified) return json(response, 401, { status: 'ERROR', reason: 'Invalid webhook.' });
       const event = JSON.parse(rawBody);
-      if (!event?.id || !event?.event || !event?.data) return json(response, 400, { status: 'ERROR', reason: 'Evento inválido.' });
+      if (!event?.id || !event?.event || !event?.data) return json(response, 400, { status: 'ERROR', reason: 'Invalid event.' });
       await authService.insertPaymentEvent(event);
       const entitlement = billing.entitlementFromEvent(event);
       if (entitlement) await authService.upsertEntitlement(entitlement);
@@ -300,7 +300,7 @@ const server = http.createServer(async (request, response) => {
   }
   if (request.method === 'GET' && route === '/api/workspace') {
     try { return json(response, 200, { status: 'OK', ...readWorkspace(userStoragePath(auth, 'workspace.json')) }); }
-    catch (error) { return json(response, 500, { status: 'ERROR', reason: `Não foi possível ler o rascunho: ${error.message}` }); }
+    catch (error) { return json(response, 500, { status: 'ERROR', reason: `Could not read the draft: ${error.message}` }); }
   }
 
   if (request.method === 'POST' && route.startsWith('/api/')) {
@@ -308,7 +308,7 @@ const server = http.createServer(async (request, response) => {
       const payload = JSON.parse(await collectBody(request));
       if (!payload || typeof payload !== 'object' || Array.isArray(payload)) throw new Error('Envie um objeto JSON.');
       if (authService.settings().required && ['/api/llm/config', '/api/llm/start'].includes(route)) {
-        return json(response, 403, { status: 'ERROR', reason: 'Configuração do assistente disponível somente no servidor.' });
+        return json(response, 403, { status: 'ERROR', reason: 'Assistant configuration is available only on the server.' });
       }
       if (route === '/api/llm/config') return json(response, 200, { status: 'OK', ...llama.publicState(llama.saveConfig(payload.config || payload)) });
       if (route === '/api/llm/check') return json(response, 200, { status: 'OK', ...await llama.checkAvailability() });
@@ -433,9 +433,9 @@ const server = http.createServer(async (request, response) => {
         const imported = importHands(payload.hands, payload.metadata, existingIds);
         imported.accepted.forEach((hand) => appendEvent({ type: 'IMPORT', hand }, historyPath));
         return json(response, 200, { status: 'OK', accepted: imported.accepted.length, rejected: imported.rejected,
-          note: 'Importação canônica JSON; nenhuma mão importada vira rótulo de ação ótima automaticamente.' });
+          note: 'Canonical JSON import; imported hands are not automatically labeled as optimal actions.' });
       }
-      return json(response, 404, { status: 'ERROR', reason: 'Endpoint não encontrado.' });
+      return json(response, 404, { status: 'ERROR', reason: 'Endpoint not found.' });
     } catch (error) {
       return json(response, error.statusCode || 400, { status: 'ERROR', reason: error.message });
     }
@@ -454,7 +454,7 @@ const server = http.createServer(async (request, response) => {
 });
 
 if (require.main === module) server.on('error', (error) => {
-  console.error(error.code === 'EADDRINUSE' ? `A porta ${port} já está em uso. Feche a outra instância ou configure THEIBS_PORT.` : error.message);
+  console.error(error.code === 'EADDRINUSE' ? `Port ${port} is already in use. Close the other instance or configure THEIBS_PORT.` : error.message);
   process.exitCode = 1;
 });
 if (require.main === module) {
@@ -462,7 +462,7 @@ if (require.main === module) {
     const runtime = validateDeployment();
     if (runtime.origin) process.env.THEIBS_PUBLIC_ORIGIN = runtime.origin;
     server.listen(runtime.port, runtime.host, () => {
-      console.log(`THEIBS disponível em ${runtime.origin || `http://127.0.0.1:${runtime.port}`}`);
+      console.log(`THEIBS available at ${runtime.origin || `http://127.0.0.1:${runtime.port}`}`);
     });
   } catch (error) {
     console.error(`THEIBS startup blocked: ${error.message}`);

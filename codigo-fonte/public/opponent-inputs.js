@@ -20,10 +20,13 @@
     const c = context(), key = shape(c), players = active(c);
     let changed = false;
     if (editorKey !== key) { rows.clear(); drafts.clear(); accepted = false; selected = ''; editorKey = key; changed = true; }
-    for (const id of rows.keys()) if (!players.some(p => p.seatId === id)) { rows.delete(id); accepted = false; changed = true; }
-    for (const id of drafts.keys()) if (!players.some(p => p.seatId === id)) drafts.delete(id);
+    // Keep a folded seat's manual hypothesis so Undo can restore it. Only
+    // active seats are sent to analysis; removed seats are discarded.
+    for (const id of rows.keys()) if (!c.players.some(p => p.seatId === id)) { rows.delete(id); accepted = false; changed = true; }
+    for (const id of drafts.keys()) if (!c.players.some(p => p.seatId === id)) drafts.delete(id);
     const nextBindings = JSON.stringify(players.map(p => [p.seatId, p.label]));
     if (nextBindings !== bindings || changed) {
+      if(nextBindings!==bindings) accepted=false;
       bindings = nextBindings;
       $('#opponent-seat').replaceChildren(...players.map(p => new Option(p.label, String(p.seatId))));
       if (!players.some(p => String(p.seatId) === selected)) selected = String(players[0]?.seatId ?? '');
@@ -32,47 +35,59 @@
     $('#opponent-study-accepted').checked = accepted;
     $('#opponent-apply').disabled = !players.length || Boolean(c.busy);
     $('#opponent-seat').disabled = !players.length || Boolean(c.busy);
-    $('#opponent-input-summary').textContent = rows.size ? `Adversários (opcional) · ${rows.size} com hipótese manual` : 'Adversários (opcional) · sem hipóteses de comportamento';
+    const activeRows = players.filter(p => rows.has(p.seatId)).length;
+    $('#opponent-input-summary').textContent = activeRows ? `Opponents (optional) · ${activeRows} with manual assumptions` : 'Opponents (optional) · no active assumptions';
     const unknown = players.filter(p => rows.get(p.seatId)?.callProbability == null);
-    $('#opponent-input-scope').textContent = rows.size
-      ? `${rows.size} adversário(s) com informação manual. ${unknown.length} sem taxa de resposta: nenhuma taxa foi presumida. ${unknown.length ? 'Equity continua disponível; BET/RAISE podem ficar sem modelo completo.' : 'Taxas informadas são hipóteses, não frequências verificadas.'}`
-      : 'Equity usa mãos legais aleatórias para todos. Não é necessário preencher este painel. A ferramenta não observa nem deduz perfis dos adversários.';
+    $('#opponent-input-scope').textContent = activeRows
+      ? `${activeRows} active opponent(s) with manual information. ${unknown.length} without a response rate; none was assumed. ${unknown.length ? 'Equity remains available; BET/RAISE may lack a complete model.' : 'Entered rates are assumptions, not verified frequencies.'}`
+      : 'Equity uses random legal hands for everyone. This panel is optional. THEIBS does not observe or infer opponent profiles.';
     $('#opponent-input-list').replaceChildren(...players.filter(p => rows.has(p.seatId)).map(p => {
       const node = document.createElement('li'), row = rows.get(p.seatId);
-      node.textContent = `${p.label}: ${row.range ? 'range manual' : 'cartas desconhecidas'}; ${row.callProbability == null ? 'resposta desconhecida' : `call ${Number((row.callProbability * 100).toFixed(2))}% (hipótese)`}`;
+      node.textContent = `${p.label}: ${row.range ? 'manual range' : 'unknown cards'}; ${row.callProbability == null ? 'unknown response' : `call ${Number((row.callProbability * 100).toFixed(2))}% (assumption)`}`;
       return node;
     }));
   }
-  function parseRange() {
-    const hand = $('#opponentHand').value.trim(), text = $('#opponentRange').value.trim(), c = context();
-    if (hand && text) throw Error('Preencha uma mão conhecida ou um range, não os dois.');
+  function parseRange(handText, rangeText) {
+    const hand = handText.trim(), text = rangeText.trim(), c = context();
+    if (hand && text) throw Error('Enter either a known hand or a range, not both.');
     if (!hand && !text) return null;
     const lines = (hand || text).split(/\n|\|/).map(s => s.trim()).filter(Boolean);
-    if (lines.length > 100) throw Error('Use até 100 mãos no range deste cenário.');
+    if (lines.length > 100) throw Error('Use at most 100 hands in this range.');
     const hands = lines.map(line => TheibsCards.parsePortugueseCards(line).map(TheibsCards.toCanonical));
-    if (hands.some(h => h.length !== c.count)) throw Error(`Cada mão precisa de ${c.count} cartas. Use E/C/O/P para os naipes.`);
+    if (hands.some(h => h.length !== c.count)) throw Error(`Each hand needs ${c.count} cards. Use E/C/O/P for suits.`);
     return { hands };
   }
-  function apply() {
-    try {
+  function applySeat(seatId, {hand = '', rangeText = '', rateText = ''} = {}) {
       refresh();
-      const c = context(), seatId = Number(selected);
-      if (c.busy || !active(c).some(p => p.seatId === seatId)) throw Error('O adversário não está disponível neste contexto.');
-      const range = parseRange(), raw = $('#opponent-call-probability').value.trim(), rate = raw === '' ? null : Number(raw) / 100;
-      if (rate !== null && (!Number.isFinite(rate) || rate < 0 || rate > 1)) throw Error('A chance de call deve estar entre 0 e 100%.');
-      if (!range && rate === null) throw Error('Informe uma variável ou remova a hipótese deste adversário.');
+      const c = context();
+      if (c.busy || !active(c).some(p => p.seatId === seatId)) throw Error('This opponent is unavailable in the current context.');
+      const range = parseRange(hand, rangeText), raw = String(rateText).trim(), rate = raw === '' ? null : Number(raw) / 100;
+      if (rate !== null && (!Number.isFinite(rate) || rate < 0 || rate > 1)) throw Error('Call chance must be between 0 and 100%.');
+      if (!range && rate === null) throw Error('Enter a hand, range or call chance, or remove this assumption.');
       rows.set(seatId, { seatId, enabled: true, ...(range ? { range } : {}), ...(rate === null ? {} : { callProbability: rate }) });
       drafts.delete(seatId);
       accepted = false; refresh(); fillEditor();
-      message('Hipótese aplicada somente ao adversário selecionado. Os demais não foram alterados.'); options.onChange();
-    } catch (error) { message(error.message, true); }
+      message('Assumption applied only to this opponent. Other seats were unchanged.'); options.onChange();
+  }
+  function apply() {
+    try { applySeat(Number(selected), {hand:$('#opponentHand').value,rangeText:$('#opponentRange').value,rateText:$('#opponent-call-probability').value}); }
+    catch (error) { message(error.message, true); }
+  }
+  function removeSeat(seatId) {
+    rows.delete(seatId); drafts.delete(seatId); accepted = false; refresh(); fillEditor();
+    message('Assumption removed. This opponent uses unknown cards again.'); options.onChange();
+  }
+  function seatEditor(seatId) {
+    refresh();
+    const item = rows.get(seatId), draft = drafts.get(seatId);
+    return {hand:draft?.hand ?? '',rangeText:draft?.range ?? (item?.range?.hands || []).map(hand => hand.map(TheibsCards.fromCanonical).join(' ')).join('\n'),rateText:draft?.rate ?? (item?.callProbability == null ? '' : String(item.callProbability * 100)),hasOverride:!!item};
   }
   function reset() { rows.clear(); drafts.clear(); accepted = false; editorKey = ''; refresh(); fillEditor(); message(''); }
   function snapshot() { refresh(); return { schemaVersion: 1, binding: editorKey, opponents: clone([...rows.values()]), studyAccepted: accepted }; }
   function restore(saved) {
     reset();
     if (saved?.schemaVersion !== 1 || saved.binding !== editorKey || !Array.isArray(saved.opponents)) return false;
-    const c = context(), ids = active(c).map(p => p.seatId);
+    const c = context(), ids = c.players.map(p => p.seatId);
     for (const row of saved.opponents) {
       if (!Number.isInteger(row?.seatId) || !ids.includes(row.seatId) || row.enabled !== true || rows.has(row.seatId)) continue;
       if (row.callProbability != null && (typeof row.callProbability !== 'number' || !Number.isFinite(row.callProbability) || row.callProbability < 0 || row.callProbability > 1)) continue;
@@ -88,7 +103,7 @@
     options = next;
     const legacy = $('#opponentHand').closest('.controls-panel');
     panel = document.createElement('details'); panel.id = 'opponent-input-panel'; panel.className = 'panel controls-panel';
-    panel.innerHTML = '<summary id="opponent-input-summary">Adversários (opcional)</summary><p id="opponent-input-scope" class="micro"></p><label>Aplicar somente a<select id="opponent-seat"></select></label><div id="opponent-card-inputs" class="form-grid"></div><label>Chance de call contra o tamanho proposto (%)<input id="opponent-call-probability" type="number" min="0" max="100" step="0.1" placeholder="Desconhecida"></label><p class="micro">Uma mão por linha, usando E = espadas, C = copas, O = ouros, P = paus. Preencher um campo não aplica nada antes de clicar em Aplicar.</p><div class="opponent-input-actions"><button id="opponent-apply" type="button" class="primary-button">Aplicar a este adversário</button><button id="opponent-remove" type="button" class="ghost-button">Remover hipótese</button></div><ul id="opponent-input-list"></ul><label class="checkbox-label"><input id="opponent-study-accepted" type="checkbox"> Usar as taxas no estudo independente de call/fold, sem reaumentos ou apostas futuras. Exige taxas explícitas para todos os ativos e contribuições válidas.</label><p id="opponent-input-message" class="micro" role="status"></p>';
+    panel.innerHTML = '<summary id="opponent-input-summary">Opponents (optional)</summary><p id="opponent-input-scope" class="micro"></p><label>Apply only to<select id="opponent-seat"></select></label><div id="opponent-card-inputs" class="form-grid"></div><label>Call chance against the proposed size (%)<input id="opponent-call-probability" type="number" min="0" max="100" step="0.1" placeholder="Unknown"></label><p class="micro">One hand per line. Suit keys: E = spades, C = hearts, O = diamonds, P = clubs. Editing a field changes nothing until you apply it.</p><div class="opponent-input-actions"><button id="opponent-apply" type="button" class="primary-button">Apply to this opponent</button><button id="opponent-remove" type="button" class="ghost-button">Remove assumption</button></div><ul id="opponent-input-list"></ul><label class="checkbox-label"><input id="opponent-study-accepted" type="checkbox"> Use these rates in the independent call/fold study, without reraises or future bets. Explicit rates and valid contributions are required for every active opponent.</label><p id="opponent-input-message" class="micro" role="status"></p>';
     legacy.before(panel);
     for (const id of ['opponentHand', 'opponentRange']) $('#opponent-card-inputs').append($('#' + id).closest('label'));
     legacy.hidden = true;
@@ -97,12 +112,18 @@
     });
     $('#opponent-seat').onchange = () => { selected = $('#opponent-seat').value; fillEditor(); message(''); };
     $('#opponent-apply').onclick = apply;
-    $('#opponent-remove').onclick = () => { rows.delete(Number(selected)); drafts.delete(Number(selected)); accepted = false; refresh(); fillEditor(); message('Removido. Este adversário voltou ao modelo de cartas desconhecidas.'); options.onChange(); };
+    $('#opponent-remove').onclick = () => removeSeat(Number(selected));
     $('#opponent-study-accepted').onchange = () => { accepted = $('#opponent-study-accepted').checked; options.onChange(); };
-    const button = document.createElement('button'); button.type = 'button'; button.id = 'open-opponent-inputs'; button.className = 'text-button'; button.textContent = 'Adversários · opcional';
+    const button = document.createElement('button'); button.type = 'button'; button.id = 'open-opponent-inputs'; button.className = 'text-button'; button.textContent = 'Opponents · optional';
     button.onclick = () => { refresh(); const dialog = $('#settings-dialog'); if (!dialog.open) dialog.showModal(); panel.open = true; panel.scrollIntoView({ block: 'start' }); $('#opponent-seat').focus(); };
     $('#opponent-count').closest('label')?.after(button);
     refresh();
   }
-  window.theibsOpponentInputs = { init, refresh, reset, snapshot, restore, payload: () => { refresh(); return { opponentOverrides: clone([...rows.values()]), opponentStudyAccepted: accepted }; } };
+  function payload() {
+    refresh();
+    const c=context(), activeSeats=active(c);
+    const compact=new Map(activeSeats.map((seat,index)=>[seat.seatId,index]));
+    return { opponentOverrides:clone([...rows.values()].filter(row=>compact.has(row.seatId)).map(row=>({...row,seatId:c.mode==='SIMPLE'?compact.get(row.seatId):row.seatId}))), opponentStudyAccepted:accepted };
+  }
+  window.theibsOpponentInputs = { init, refresh, reset, snapshot, restore, payload, seatEditor, applySeat, removeSeat };
 })();
