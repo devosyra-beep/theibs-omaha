@@ -16,6 +16,7 @@ const analyzeInWorker = require('./src/analysis-worker');
 const multiway = require('./src/multiway-session');
 const multiwayAssistant = require('./src/multiway-assistant');
 const playerProfiles = require('./src/player-profiles');
+const solverJobs = require('./src/multiway-strategy').createStrategyService({cacheDirectory:process.env.THEIBS_SOLVER_CACHE_PATH || path.join(__dirname,'data','solver-cache')});
 const authService = require('./src/supabase-service');
 const billing = require('./src/abacatepay');
 const billingService = require('./src/billing-service');
@@ -194,6 +195,7 @@ function serveStatic(request, response) {
 
 async function analyzeManual(payload, response, owner = 'local') {
   const releasePriority=multiwayAssistant.prioritize();
+  const releaseSolver=solverJobs.prioritize();
   try {
   const started = performance.now(), input = buildInput(payload);
   const preview = payload.analysisPhase === 'PREVIEW';
@@ -237,12 +239,13 @@ async function analyzeManual(payload, response, owner = 'local') {
   result.performance = { ...result.performance, cacheHit: false };
   if (result.status === 'OK' && !response.destroyed) putBounded(manualCache, key, { result: structuredClone(result), createdAt: Date.now(), expires: Date.now() + CACHE_TTL_MS });
   return result;
-  } finally { releasePriority(); }
+  } finally { releasePriority();releaseSolver(); }
 }
 
 async function priorityCalculation(task) {
   const release=multiwayAssistant.prioritize();
-  try { return await task(); } finally { release(); }
+  const releaseSolver=solverJobs.prioritize();
+  try { return await task(); } finally { release();releaseSolver(); }
 }
 
 function collectBody(request) {
@@ -352,6 +355,10 @@ const server = http.createServer(async (request, response) => {
       storage:'THIS_DEVICE_ONLY',assistant:{...assistant,local,enabled:allowed&&assistant.enabled,
         ...(!allowed?{reason:'The optional assistant is not configured on this server.'}:{})}});
   }
+  if (request.method === 'GET' && route.startsWith('/api/multiway/solver/jobs/')) {
+    try { return json(response,200,solverJobs.get(auth.user.id,route.split('/').at(-1))); }
+    catch(error){return json(response,error.statusCode||400,{status:'ERROR',reason:error.message});}
+  }
   // Reject before reading text unless the current provider passed its gate.
   // Remote text opt-in is distinct from on-device audio recognition.
   if (request.method === 'POST' && route.startsWith('/api/multiway/assistant/')) {
@@ -410,6 +417,14 @@ const server = http.createServer(async (request, response) => {
       if (route === '/api/analyze') return json(response, 200, await analyzeManual(payload, response, auth.user.id));
       if (route === '/api/equity') return json(response, 200, await priorityCalculation(()=>analyzeInWorker.equity(prepareOpponentOverrides(buildInput(payload)), response)));
       if (route === '/api/multiway/start') return json(response, 200, multiway.start(payload.config));
+      if (route === '/api/multiway/solver/start') {
+        const observed=multiway.envelope(payload.multiway);
+        if(payload.expectedRevisionKey!==observed.state.revisionKey)throw Error('The solver decision revision changed.');
+        return json(response,200,await solverJobs.start(auth.user.id,{multiway:observed.multiway,
+          ranges:payload.ranges,sizing:payload.sizing,rake:payload.rake},{budget:payload.budget||'STANDARD',
+          revisionKey:observed.state.revisionKey,handId:observed.multiway.handId}));
+      }
+      if (route === '/api/multiway/solver/cancel') return json(response,200,solverJobs.cancel(auth.user.id,payload.jobId));
       if (route === '/api/multiway/state') return json(response, 200, multiway.envelope(payload.multiway));
       if (route === '/api/multiway/step') return json(response, 200, await priorityCalculation(()=>multiway.step(payload.multiway, payload.event, payload.expectedRevision, payload.expectedRevisionKey)));
       if (route === '/api/multiway/preview-sequence') return json(response, 200, await priorityCalculation(()=>multiway.previewSequence(payload.multiway,payload.commands,{expectedRevisionKey:payload.expectedRevisionKey,originEventId:payload.originEventId})));
@@ -564,5 +579,5 @@ if (require.main === module) {
   }
 }
 
-server.on('close',()=>{manualCache.clear();coachTickets.clear();closeHistoryService().catch(()=>{});});
+server.on('close',()=>{manualCache.clear();coachTickets.clear();closeHistoryService().catch(()=>{});solverJobs.close().catch(()=>{});});
 module.exports = { server, buildInput, userStoragePath };

@@ -45,6 +45,19 @@
     SHOWDOWN_ONLY: 'Showdown only', SCENARIO_SHOWDOWN_ONLY: 'Modeled responses, then showdown',
     FIXED_RESPONSE_SHOWDOWN_ONLY: 'Fixed response, then showdown', RELATIVE_DECISION_POINT: 'Decision reference'
   })[value] || String(value).replace(/_/g, ' ').toLowerCase();
+  const precisionReason = precision => ({
+    EQUILIBRIUM_ACTION_VALUE_UNCERTAINTY_UNAVAILABLE:'Action EV error bounds unavailable.',
+    DEFENSIBLE_UNCERTAINTY_UNAVAILABLE:'Defensible error bounds unavailable.',
+    INVALID_OR_MISSING_ACTION_BOUNDS:'An action has no valid error interval.',
+    BEST_SECOND_INTERVALS_OVERLAP:'The top two uncertainty intervals overlap.',
+    OTHER_ALTERNATIVE_INTERVAL_OVERLAPS:'Another action’s uncertainty interval overlaps.',
+    INCOMPATIBLE_ORIGINS:'Sources, quality or decision contexts differ.',
+    COMPARISON_ORIGIN_MISSING:'Comparison origin was not recorded.',
+    INSUFFICIENT_COMPARABLE_ACTIONS:'At least two comparable actions are required.',
+    MISSING_ACTION_VALUES:'Some alternatives have no modeled EV.',
+    TIED_POINT_ESTIMATES:'The top two point estimates are tied.',
+    SEPARATED_UNDER_FIXED_POLICY:'95% bounds separate within the fixed model.'
+  })[precision?.reasonCode] || precision?.reason || 'Defensible error bounds unavailable.';
   function describeDecisionEV(state, analysis, readiness = {}) {
     const current = state?.players?.find(item => item.id === state.actor);
     if (state?.phase !== 'BETTING' || !current?.hero) return null;
@@ -65,7 +78,7 @@
         action, optionId: item?.optionId || action, size: finite(item?.size) ? item.size : null,
         status: !ev ? waitingCards || idle ? 'NOT_MODELED' : 'PENDING' : modeled ? 'MODELED' : 'NOT_MODELED',
         evBB: valueBB,
-        differenceBB: !provisional && modeled && finite(item.differenceToBestModeledBB) ? item.differenceToBestModeledBB : null,
+        differenceBB: !provisional && modeled && ev?.decisionPrecision?.bestActionId && finite(item.differenceToBestModeledBB) ? item.differenceToBestModeledBB : null,
         method: item?.method || item?.model || null,
         numericalQuality: item?.numericalQuality || null,
         numericalBounds: [item?.numericalBounds, item?.confidenceInterval95].find(bounds => Array.isArray(bounds) && bounds.length === 2 && bounds.every(finite)) || null,
@@ -82,12 +95,13 @@
       stage: waitingCards ? 'WAITING_CARDS' : analysis?.status && analysis.status !== 'OK' ? 'NO_DECISION' : idle ? 'IDLE' : !ev ? 'PENDING' : provisional ? 'PROVISIONAL' : String(ev.comparisonStatus || '').startsWith('INCOMPARABLE_') ? 'INCOMPARABLE' : !ev.comparisonComplete ? 'PARTIAL' : ev.globalBestSupported ? 'COMPLETE' : 'INCONCLUSIVE',
       comparisonStatus: ev?.comparisonStatus || null,
       modeledCount,
-      bestModeledAction: !provisional && modeledCount ? ev.bestModeledAction : null,
+      bestModeledAction: !provisional && modeledCount && (!ev.decisionPrecision || ev.decisionPrecision.bestActionId) ? ev.bestModeledAction : null,
       bestModeledSize: rows.find(row => row.optionId === ev?.bestModeledOptionId)?.size ?? null,
       finiteSizeGrid: Boolean(candidates?.length),
       globalBestSupported: !provisional && ev?.globalBestSupported === true,
-      leaderConclusive: !provisional && ev?.leaderConclusive === true,
-      gapBestSecondBB: provisional ? null : finite(ev?.gapBestSecondCandidateBB) ? ev.gapBestSecondCandidateBB : finite(ev?.gapBestSecondBB) ? ev.gapBestSecondBB : null,
+      leaderConclusive: !provisional && ev?.decisionPrecision?.status === 'CONCLUSIVE' && ev.decisionPrecision.leaderConclusive === true,
+      precision: ev?.decisionPrecision || null,
+      gapBestSecondBB: provisional ? null : finite(ev?.decisionPrecision?.deltaEVBB) ? ev.decisionPrecision.deltaEVBB : null,
       missingLegalActions: Array.isArray(ev?.missingLegalActions) ? ev.missingLegalActions : [],
       assumptions: Array.isArray(ev?.assumptions) ? ev.assumptions : [],
       warnings: Array.isArray(ev?.warnings) ? ev.warnings : [],
@@ -104,16 +118,45 @@
       controlsHost.insertBefore(host, $('#mw-decision-feedback'));
     }
   }
+  function solverControls() {
+    const job = window.TheibsMultiwaySolverUI?.getState?.();
+    if (!job) return '';
+    const running = ['QUEUED','BUILDING','REFINING'].includes(job.phase);
+    const reason = job.error || job.result?.reasons?.[0]?.message;
+    return `<div class="mw-solver-controls"><button type="button" class="text-button" data-mw-solver-setup>${job.configured ? 'Edit study ranges' : 'Set up river study'}</button>${job.configured ? `<button type="button" class="text-button" data-mw-solver-standard${running?' disabled':''}>Refine</button><button type="button" class="text-button" data-mw-solver-deep${running?' disabled':''}>Deep · up to 30s</button>` : ''}${running ? '<button type="button" class="text-button" data-mw-solver-cancel>Stop refinement</button>' : ''}</div>${reason ? `<p>${esc(reason)}</p>` : ''}`;
+  }
+  function renderSolverDecision(host, priorDetails) {
+    const solved = window.TheibsMultiwaySolverUI?.decisionSnapshot?.();
+    if (!solved || solved.revisionKey !== view.state?.revisionKey || solved.handId !== view.state?.handId) return false;
+    const rows = solved.actions, precision = solved.decisionPrecision;
+    const bestRow = rows.find(row=>row.id===precision?.bestActionId), best = bestRow?.evBB;
+    const gap = finite(precision?.deltaEVBB) ? precision.deltaEVBB : null;
+    const conclusive = precision?.status === 'CONCLUSIVE' && precision.leaderConclusive === true;
+    const running = ['QUEUED','BUILDING','REFINING'].includes(solved.phase);
+    const nc = solved.convergence?.exact && finite(solved.convergence.nashConv) ? solved.convergence.nashConv : null;
+    const meta = solved.abstraction || {}, legal = view.state.legal;
+    const delta = value => !finite(value) ? '—' : value < 1e-9 ? '0.0' : `−${money(value)}`;
+    const fees = meta.feeModel?.type === 'NONE' ? meta.feeModel.basis === 'BEFORE_FEES' ? ' · Before fees' : ' · No fees assumed' : ' · Declared fees';
+    const rowHtml = rows.map(row=>`<tr><th scope="row">${esc(ACTIONS[row.action]?.label || row.action)}${finite(row.size)?` <small>to ${esc(money(row.size))}</small>`:''}</th><td>${(100*row.frequency).toLocaleString('en-US',{maximumFractionDigits:1})}%</td><td>${bb(row.evBB)}</td><td>${delta(finite(best)?best-row.evBB:null)}</td></tr>`).join('');
+    const quality = nc === null ? 'Deviation quality unavailable' : `NashConv ${nc.toLocaleString('en-US',{maximumFractionDigits:5})} bb · target ≤ ${money(solved.convergence.thresholdBB)} bb`;
+    const leader = bestRow ? `${conclusive?'Best modeled action':'Current EV leader'}: ${ACTIONS[bestRow.action]?.label || bestRow.action}${finite(bestRow.size)?' to '+money(bestRow.size):''}` : 'No comparable EV leader';
+    const reason = precisionReason(precision);
+    host.innerHTML = `<div class="mw-ev-heading"><strong>Decision EV</strong><span class="mw-ev-badge">${esc(solved.status)}${running?' · refining':''}</span></div><p class="mw-ev-context">River subgame · Pot ${money(view.state.pot)} · Call ${money(legal?.toCall)}${fees}</p><table class="mw-ev-table mw-ev-strategy"><thead><tr><th scope="col">Action</th><th scope="col">Mix</th><th scope="col">EV · bb</th><th scope="col">Δ · bb</th></tr></thead><tbody>${rowHtml}</tbody></table><div class="mw-ev-conclusion">${esc(leader)}<span>ΔEV · top two: ${gap===null?'unavailable':money(gap)+' bb'}</span><span>${conclusive?'CONCLUSIVE':'INCONCLUSIVE'} · ${esc(reason)}</span></div><details class="mw-ev-details"${priorDetails?' open':''}><summary>Methods & limits</summary><p>CFR+ · ${esc(solved.solverVersion)} · ${esc(solved.status)}. ${esc(quality)}. ${money(solved.iterations)} iterations.</p><p>EV and frequencies share this declared river study. Δ compares its root actions under the returned continuation strategy; it is not a global best-action claim. Frequencies apply to your exact five-card combination.</p><p>${meta.fullLegalSizingCoverage?'All legal sizes covered within this subgame.':'Restricted sizes or aggression depth: omitted actions remain outside this study.'} This is not a solution of full-hand PLO5. ${meta.originalSeats>2?'Multiplayer CFR+ has no general Nash-convergence guarantee.':'Convergence qualification applies only to the supported two-player constant-sum subgame.'} NashConv measures unilateral deviation within the supplied game; it is not a sampling confidence interval or an action EV error bound.</p><p>Source: ${esc(solved.source)} · ${esc(meta.rulesVersion)}. Equity remains a separate showdown estimate. No heuristic EV rows are used in this table.</p>${solverControls()}<ul>${(solved.limitations||[]).map(item=>`<li>${esc(item)}</li>`).join('')}</ul></details>`;
+    return true;
+  }
   function refreshDecisionEV() {
     placeDecisionEV();
     const host = $('#mw-decision-ev'), decision = !view.enabled ? null : describeDecisionEV(view.state, view.analysis, view);
+    const equityOrigin = $('#equity-origin');
+    if(equityOrigin){equityOrigin.hidden=!decision || !window.TheibsMultiwaySolverUI?.decisionSnapshot?.();equityOrigin.textContent='Continuation model · separate from river study';}
     host.hidden = !decision;
     if (!decision) return;
     const priorDetails = host.querySelector('details')?.open ?? (document.body.dataset.analysisSecondary === 'expanded');
+    if (renderSolverDecision(host, priorDetails)) return;
     const price = decision.toCall === null ? 'Call price unavailable' : `Call ${money(decision.toCall)}${decision.bigBlind ? ` (${bb(decision.toCall / decision.bigBlind)} bb)` : ''}`;
     const pot = (decision.potBeforeDecision === null ? 'Pot unavailable' : `Pot ${money(decision.potBeforeDecision)}`)+(decision.feeBasis==='BEFORE_FEES'?' · Before fees':'');
     const needsRake = decision.rows.some(row => row.missingInputs.some(text => /rake/i.test(text)));
-    const badge = needsRake ? 'Rake required' : decision.stage === 'WAITING_CARDS' ? 'Add your cards' : decision.stage === 'IDLE' ? 'Not calculated' : decision.stage === 'PROVISIONAL' ? 'Provisional · refining' : decision.stage === 'PENDING' ? 'Calculating' : decision.stage === 'NO_DECISION' ? 'No decision' : decision.stage === 'INCOMPARABLE' ? 'Not comparable' : decision.stage === 'COMPLETE' ? 'Actions covered' : decision.stage === 'INCONCLUSIVE' ? 'Close estimate' : 'Partial coverage';
+    const badge = needsRake ? 'Fee basis required' : decision.stage === 'WAITING_CARDS' ? 'Add your cards' : decision.stage === 'IDLE' ? 'Not calculated' : decision.stage === 'PROVISIONAL' ? 'HEURISTIC · refining' : decision.stage === 'PENDING' ? 'Calculating' : decision.stage === 'NO_DECISION' ? 'No decision' : 'HEURISTIC';
     const rows = decision.rows.map(row => {
       const status = ['WAITING_CARDS','IDLE','NO_DECISION'].includes(decision.stage) ? 'Unavailable' : row.status === 'PENDING' ? 'Calculating' : row.status === 'MODELED' ? 'Modeled' : 'Not modeled';
       const size = row.size === null ? '' : ` <small>to ${esc(money(row.size))}</small>`;
@@ -124,10 +167,11 @@
     const leader = needsRake ? 'Declare rake or choose No rake to evaluate the other actions.' : decision.bestModeledAction
       ? decision.modeledCount === 1
         ? `Only ${esc(ACTIONS[decision.bestModeledAction]?.label || decision.bestModeledAction)} modeled · no overall best action.`
-        : `${decision.globalBestSupported ? 'Highest EV in this model' : 'Highest modeled EV'}: ${esc(bestLabel)}${decision.leaderConclusive ? '' : ' · inconclusive at available precision'}`
+        : `${decision.leaderConclusive ? 'Best modeled action' : 'Current EV leader'}: ${esc(bestLabel)}`
       : decision.stage === 'WAITING_CARDS' ? 'Enter your cards to evaluate this decision.' : decision.stage === 'IDLE' ? 'No estimate for this decision.' : decision.stage === 'PROVISIONAL' ? 'Preliminary estimates · refinement in progress.' : decision.stage === 'PENDING' ? 'Waiting for the current decision estimate.' : decision.stage === 'INCOMPARABLE' ? decision.comparisonStatus === 'INCOMPARABLE_ASSUMPTIONS' ? 'Action assumptions differ; EVs cannot be ranked.' : 'Opponent coverage differs; action EVs cannot be compared.' : decision.reason ? esc(decision.reason) : 'No action has modeled EV.';
-    const gap = decision.gapBestSecondBB === null ? '' : `<span>Top two: ${bb(decision.gapBestSecondBB).replace(/^\+/, '')} bb apart${decision.leaderConclusive ? '' : ' · inconclusive'}</span>`;
+    const gap = decision.modeledCount < 1 ? '' : `<span>ΔEV · top two: ${decision.gapBestSecondBB===null?'unavailable':money(decision.gapBestSecondBB)+' bb'}</span><span>${decision.leaderConclusive?'CONCLUSIVE':'INCONCLUSIVE'} · ${esc(precisionReason(decision.precision))}</span>`;
     const details = [
+      ...(decision.precision ? [`<li>${esc(decision.precision.reason)}${decision.precision.differenceBoundsBB ? ' ΔEV interval: '+decision.precision.differenceBoundsBB.map(value=>bb(value)).join(' to ')+' bb.' : ''}</li>`] : []),
       ...decision.rows.map(row => {
         if (!row.method && !row.assumptions.length && !row.missingInputs.length && !row.numericalQuality) return '';
         const title = `${ACTIONS[row.action]?.label || row.action}${row.size === null ? '' : ` to ${money(row.size)}`}`;
@@ -136,11 +180,14 @@
           ...row.assumptions, row.missingInputs.length && `Needs: ${row.missingInputs.join(', ')}`].filter(Boolean);
         return `<li><strong>${esc(title)}</strong> · ${esc(facts.join(' · '))}</li>`;
       }).filter(Boolean),
+      '<li>Source: legacy contextual continuation · '+esc(view.analysis?.strategyMetadata?.version || view.analysis?.multiwayEvaluation?.model || 'MULTIWAY_CONTEXT_POLICY_V1')+'. HEURISTIC: no equilibrium or strategy frequencies established.</li>',
       ...(decision.finiteSizeGrid ? ['<li>Compared sizes only · fixed continuation policy, not a solved strategy. No overall best action is established.</li>'] : []),
       ...decision.assumptions.map(item => `<li>${esc(item)}</li>`),
       ...decision.warnings.map(item => `<li>${esc(item)}</li>`)
     ].join('');
-    host.innerHTML = `<div class="mw-ev-heading"><strong>Decision EV</strong><span class="mw-ev-badge" data-status="${decision.stage.toLowerCase()}">${badge}</span></div><p class="mw-ev-context">${pot} · ${price} · ${decision.bigBlind ? `1 bb = ${money(decision.bigBlind)} chips` : 'Big blind unavailable'}</p><table class="mw-ev-table"><thead><tr><th scope="col">Action</th><th scope="col">EV · bb</th><th scope="col">Δ modeled · bb</th></tr></thead><tbody>${rows}</tbody></table><div class="mw-ev-conclusion">${leader}${gap}</div>${needsRake ? '<button type="button" class="ghost-button" data-mw-rake>Set rake model</button>' : ''}${decision.missingLegalActions.length && decision.modeledCount > 1 ? '<p class="mw-ev-limit">Some legal actions are not modeled; no overall best action.</p>' : ''}${details ? `<details class="mw-ev-details"${priorDetails ? ' open' : ''}><summary>Methods & limits</summary><button type="button" class="text-button" data-mw-rake>Room fees · optional</button><ul>${details}</ul></details>` : ''}`;
+    const solverJob = window.TheibsMultiwaySolverUI?.getState?.();
+    const solverPending = ['QUEUED','BUILDING','REFINING'].includes(solverJob?.phase) ? '<p class="mw-ev-limit" role="status">River study refining · current table uses heuristic EV.</p>' : '';
+    host.innerHTML = `<div class="mw-ev-heading"><strong>Decision EV</strong><span class="mw-ev-badge" data-status="${decision.stage.toLowerCase()}">${badge}</span></div><p class="mw-ev-context">${pot} · ${price} · ${decision.bigBlind ? `1 bb = ${money(decision.bigBlind)} chips` : 'Big blind unavailable'}</p><table class="mw-ev-table"><thead><tr><th scope="col">Action</th><th scope="col">EV · bb</th><th scope="col">Δ modeled · bb</th></tr></thead><tbody>${rows}</tbody></table><div class="mw-ev-conclusion">${leader}${gap}</div>${solverPending}${needsRake ? '<button type="button" class="ghost-button" data-mw-rake>Set fee basis</button>' : ''}${decision.missingLegalActions.length && decision.modeledCount > 1 ? '<p class="mw-ev-limit">Some legal actions are not modeled; no overall best action.</p>' : ''}<details class="mw-ev-details"${priorDetails ? ' open' : ''}><summary>Methods & limits</summary><button type="button" class="text-button" data-mw-rake>Room fees · optional</button>${solverControls()}<ul>${details}</ul></details>`;
   }
   function refreshDecisionFeedback() {
     const host = $('#mw-decision-feedback'), result = view.decisionFeedback;

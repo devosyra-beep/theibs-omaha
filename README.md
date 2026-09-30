@@ -10,7 +10,17 @@ be recorded before Hero cards are entered. Local Players history feeds a frozen
 pre-hand contextual profile, with notes kept separate from observed statistics.
 
 Action EV uses an explicit heuristic continuation model, including legal sizing
-candidates and side pots. It is not a solver or GTO strategy. The interface
+candidates and side pots when solver coverage is absent. The fallback is labeled
+`HEURISTIC`, never GTO. A shared strategic contract now also supports small PLO5
+river subgames with explicit complete study ranges and a fully enumerated tree
+for the declared sizing abstraction. CFR+ results replace the whole EV table;
+they do not borrow heuristic rows. Two-player constant-sum subgames can receive
+`SOLVED` only after supported mathematical qualification and exact NashConv
+at or below 0.01 bb. Multiplayer and materially abstracted games remain
+`APPROXIMATE`; they do not inherit heads-up convergence guarantees. This is not
+a solution of full PLO5 Multiway or safe re-solving of an earlier equilibrium.
+
+The interface
 automatically calculates EV before room fees; a specific fee is an optional
 advanced assumption. No room fee is inferred. Overlapping numerical intervals
 remain inconclusive.
@@ -19,6 +29,11 @@ is disabled for this delivery and is not required for voice or calculations.
 
 See [the Multiway contract and limitations](codigo-fonte/docs/multiway-continuity.md)
 and [the optional provider boundary](codigo-fonte/docs/multiway-llm-provider.md).
+The [solver architecture and qualification](codigo-fonte/docs/solver-architecture.md)
+documents coverage, versions, cancellation, cache compatibility and validation.
+FAST, STANDARD and DEEP are computational budgets, not quality promises. Source,
+scope, iterations and measured quality accompany each result. Voice and manual
+recording do not wait for background solving.
 
 ## Produto e validação
 

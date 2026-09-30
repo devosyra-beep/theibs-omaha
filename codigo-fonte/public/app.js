@@ -29,7 +29,7 @@
   const qualityName = (quality) => ({ INCONCLUSIVE_COMPARISON: 'No clear advantage between options', INCOMPLETE_COMPARISON: 'Limited comparison', MATCHED_HEURISTIC: 'Matches the previous heuristic', DIFFERENT_HEURISTIC: 'Differs from the previous heuristic', MATCHED_MODELED: 'Favored choice in this exercise', DIFFERENT_MODELED: 'Another option had higher EV', UNVERIFIED: 'Not evaluated yet' })[quality] || quality;
   const actionName = action => ({FOLD:'Fold',CALL:'Call',CHECK:'Check',BET:'Bet',RAISE:'Raise',NO_DECISION:'No recommendation'})[action] || action || '—';
   const actionWithSize = (action,size) => actionName(action)+(['BET','RAISE'].includes(action)&&Number.isFinite(size)?' to '+money(size):'');
-  const comparisonLabel = data => data.analysisStage === 'PROVISIONAL' ? 'Provisional estimate · refining' : !data.ev?.comparisonComplete ? 'Partial comparison' : data.recommendation?.status === 'CONDITIONAL' ? 'Highest EV under assumptions' : 'Inconclusive comparison';
+  const comparisonLabel = data => data.analysisStage === 'PROVISIONAL' ? 'Provisional estimate · refining' : data.ev?.decisionPrecision ? data.ev.decisionPrecision.leaderConclusive ? 'Best modeled action' : 'Current EV leader' : !data.ev?.comparisonComplete ? 'Partial comparison' : data.recommendation?.status === 'CONDITIONAL' ? 'Highest EV under assumptions' : 'Inconclusive comparison';
   const recommendationText = data => data.analysisStage === 'PROVISIONAL' ? 'Refining…' : data.recommendation?.action ? actionName(data.recommendation.action) : 'No clear choice';
   const numberLabel = n => Number.isFinite(n) ? Math.round(n).toLocaleString('en-US') : '—';
   const FIELD_IDS = ['position','players','potBeforeAction','amountToCall','effectiveStack','samples','seed',
@@ -248,6 +248,7 @@
   }
   async function stepMultiway(event) {
     const before=multiwayState, analysis=lastAnalysis?.data,evaluationInput=lastAnalysis?.input;
+    const solverSnapshot=window.TheibsMultiwaySolverUI?.decisionSnapshot?.();
     const recordBefore=structuredClone(multiway);
     const isHeroDecision=event?.type==='ACT' && event.actor===before?.heroId;
     const selected=analysis?.ev?.candidates?.find(item=>item.action===event?.action &&
@@ -256,26 +257,28 @@
     const sizeMatches=!['BET','RAISE'].includes(event?.action) ||
       (Number.isFinite(Number(event.to)) && Number.isFinite(Number(selected?.size ?? selected?.targetStreetTotal)) &&
         Math.abs(Number(event.to)-Number(selected?.size ?? selected?.targetStreetTotal))<1e-8);
-    const validSnapshot=isHeroDecision && analysis?.status==='OK' && analysis.analysisStage==='FINAL' &&
+    const validSnapshot=!solverSnapshot && isHeroDecision && analysis?.status==='OK' && analysis.analysisStage==='FINAL' &&
       analysis.observedState?.revisionKey===before.revisionKey && selected?.status==='MODELED' && sizeMatches;
     const ev=analysis?.ev, bb=Number(multiway?.config?.bigBlind);
-    const conclusive=validSnapshot && ev?.comparisonComplete===true && ev?.leaderConclusive===true;
+    const conclusive=validSnapshot && ev?.comparisonComplete===true && ev?.decisionPrecision?.status==='CONCLUSIVE' && ev.decisionPrecision.leaderConclusive===true;
     const lossBB=conclusive && Number.isFinite(selected.differenceToBestModeledBB)
       ? Math.max(0,selected.differenceToBestModeledBB) : null;
     const feedback=isHeroDecision ? {
       chosenAction:event.action, chosenSize:['BET','RAISE'].includes(event.action)?Number(event.to):null,
       status:lossBB===null?'INCONCLUSIVE':'MODELED', lossBB,
       lossPotPct:lossBB!==null && bb>0 && before.pot>0 ? 100*lossBB*bb/before.pot : null,
-      bestAction:ev?.bestModeledAction || null, analysisId:validSnapshot?analysis.analysisId:null,
+      bestAction:solverSnapshot?null:ev?.bestModeledAction || null, analysisId:validSnapshot?analysis.analysisId:null,
       priorPot:before.pot, bigBlind:bb, handId:before.handId, revisionKey:before.revisionKey,
-      comparisonScope:ev?.comparisonScope || null,globalBestSupported:false,
-      coverage:validSnapshot ? ev.comparisonStatus : 'NOT_MODELED'
+      comparisonScope:solverSnapshot?.scope || ev?.comparisonScope || null,globalBestSupported:false,
+      source:solverSnapshot?.source || analysis?.strategyMetadata?.source || null,
+      version:solverSnapshot?.solverVersion || analysis?.strategyMetadata?.version || null,
+      coverage:solverSnapshot ? solverSnapshot.status : validSnapshot ? ev.comparisonStatus : 'NOT_MODELED'
     } : null;
     return runMultiway(()=>postJson('/api/multiway/step',{multiway,event,expectedRevisionKey:before?.revisionKey}),data=>{
       if(isHeroDecision && window.theibsPlayersUI?.ready()) {
         window.theibsPlayersUI.recordDecision(recordBefore.handId,{handId:recordBefore.handId,
           revisionKey:before.revisionKey,committedEventId:data.multiway.events[recordBefore.events.length]?.eventId,
-          action:event.action,to:event.to ?? null,feedback,recordBefore,evaluationInput:evaluationInput || null,
+          action:event.action,to:event.to ?? null,feedback,recordBefore,evaluationInput:evaluationInput || null,solver:solverSnapshot || null,
           analysis:analysis?.analysisStage==='FINAL' && analysis.observedState?.revisionKey===before.revisionKey ? analysis : null});
       }
       multiwayDecisionFeedback=feedback;
@@ -416,7 +419,7 @@ function renderEvTable(ev) {
   const summary=String(ev.comparisonStatus||'').startsWith('INCOMPARABLE_')
     ? 'Action EVs use incompatible assumptions; no shared ranking.'
     : ev.bestModeledAction
-      ? `${ev.globalBestSupported?'Best modeled action':'Highest point estimate in a partial or inconclusive comparison'}: ${ev.bestModeledAction}`
+      ? `${ev.decisionPrecision ? ev.decisionPrecision.leaderConclusive ? 'Best modeled action' : 'Current EV leader' : ev.globalBestSupported?'Best modeled action':'Current EV leader'}: ${ev.bestModeledAction}`
       : modeledCount?'Modeled EV is available, but these actions cannot be ranked together.':'No action has modeled EV.';
   const breakdown=Object.values(ev.actions).filter(a=>a.scenarioBreakdown?.length).map(a=>{
     const groups=new Map();for(const s of a.scenarioBreakdown){const n=s.callers.length,g=groups.get(n)||{n,probability:0,weightedEv:0};g.probability+=s.probability;g.weightedEv+=s.weightedEv;groups.set(n,g);}
@@ -659,6 +662,7 @@ function renderResult(data, street) {
   }
   function invalidateAnalysis() {
     inputRevision += 1; lastAnalysis = null; inputChangedAt = performance.now();
+    window.TheibsMultiwaySolverUI?.invalidate?.();
     if(multiway)renderMultiway();
     let input; try { input = buildAnalysisPayload(true); } catch { input = null; }
     snapshotModel.invalidate(snapshots, input, engineStatus?.version);
@@ -750,6 +754,7 @@ function renderResult(data, street) {
     analyzeButton.disabled = true; $('#quick-analyze').disabled = true;
     analyzeButton.textContent = 'Calculating…'; $('#quick-analyze').textContent = 'Calculating…';
     quickAction(null, 'The engine is calculating this hand…');
+    if(payload.multiwayEvaluation)void window.TheibsMultiwaySolverUI?.evaluate?.(payload,{budget:'FAST'});
     if(!multiway)$('#equity-range').textContent='Calculating…';
     const publish = async (data, started, phase) => {
       if (requestedRevision !== inputRevision || controller.signal.aborted) return false;
@@ -1013,7 +1018,7 @@ function renderResult(data, street) {
   function serializeWorkspace() {
     const fields = Object.fromEntries(FIELD_IDS.map((id) => { const el = document.getElementById(id); return [id, el.type === 'checkbox' ? el.checked : el.value]; }));
     return { schemaVersion: 1, keyboard: cards.state.snapshot(), manualText: cards.manualDraft(), fields,
-       ui: { felt: document.body.dataset.felt, deck: document.body.dataset.deck, view: activeView, cardDisplayVersion: 2, workflowVersion: 1, sidebarCollapsed: document.body.dataset.sidebar === 'collapsed', simpleFoldedSeats:[...simpleFoldedSeats],multiwayPreferences:window.theibsMultiwayUI.getPreferences() },
+       ui: { felt: document.body.dataset.felt, deck: document.body.dataset.deck, view: activeView, cardDisplayVersion: 2, workflowVersion: 1, sidebarCollapsed: document.body.dataset.sidebar === 'collapsed', simpleFoldedSeats:[...simpleFoldedSeats],multiwayPreferences:window.theibsMultiwayUI.getPreferences(),solverStudy:window.TheibsMultiwaySolverUI?.serialize?.() },
       handFlow:null, legacyHandFlow, multiway, multiwayYesple, opponentInputs:window.theibsOpponentInputs.snapshot(),
       snapshots: multiway ? [] : [...snapshots], lastAnalysis: multiway ? null : lastAnalysis, trainingSessionId: trainingSession?.id || null };
   }
@@ -1074,6 +1079,7 @@ function renderResult(data, street) {
         window.theibsFocusUI.restore(workspace.ui?.sidebarCollapsed !== false);
         legacyHandFlow=workspace.legacyHandFlow||workspace.handFlow||null;
         window.theibsMultiwayUI.restorePreferences(workspace.ui?.multiwayPreferences);
+        window.TheibsMultiwaySolverUI?.restore?.(workspace.ui?.solverStudy);
         if(workspace.multiway?.enabled){multiwayYesple=workspace.multiwayYesple||null;await runMultiway(()=>postJson('/api/multiway/state',{multiway:workspace.multiway}));}
         window.theibsOpponentInputs.restore(workspace.opponentInputs);
         updateTableContext(); updateBoardHelp(); renderStreetCards();
@@ -1275,6 +1281,12 @@ function renderResult(data, street) {
     exit:exitMultiway
   }});
   window.theibsMultiwayImage.init();
+  let savedSolverStudy = null;
+  window.TheibsMultiwaySolverUI?.init({request:requestJson,onChange:()=>{
+    renderMultiway();
+    const study=JSON.stringify(window.TheibsMultiwaySolverUI.serialize());
+    if(study!==savedSolverStudy){savedSolverStudy=study;scheduleSave();}
+  },getContext:()=>({multiway,state:multiwayState})});
    window.theibsOpponentInputs.init({getContext:()=>({mode:multiway?'MULTIWAY':'SIMPLE',variant:`PLO${cards.state.count}_HIGH`,count:cards.state.count,position:multiway?multiway.config.heroPosition:value('position'),busy:multiwayBusy,players:multiwayState&&multiway?multiwayState.players.filter(p=>!p.hero).map((p,index)=>({seatId:p.id,label:`OPP. ${index+1} · ${p.position}`,folded:p.folded})):Array.from({length:simpleSeatCount()},(_,seatId)=>({seatId,label:`OPP. ${seatId+1}`,folded:simpleFoldedSeats.has(seatId)}))}),onChange:()=>{invalidateAnalysis();scheduleSave();}});
   updateTableContext(); renderMultiway();renderStreetCards(); renderCharts(); quickAction(null); updateBoardHelp(); renderTrainingSession();
    window.theibsApp = { ready: initialize(), getState: () => ({ activeView, analysisBusy, trainingBusy, lastAnalysis, trainingSession, multiway,multiwayState,multiwayAnalysis,multiwayBusy,simpleFoldedSeats:[...simpleFoldedSeats],snapshots: [...snapshots], saveBusy, saveDirty, saveBlocked }), flushSave, showView, requestJson, getAnalysisInput: buildAnalysisPayload, getVoiceContext: () => ({ activeView, inputRevision, multiwayRevision, loaded, session: window.theibsVoiceSessionContext?.(), accessVisible: !document.getElementById('app-shell').hidden && !document.getElementById('app-shell').inert }), renderCoachAnswer };

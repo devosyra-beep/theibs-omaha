@@ -118,8 +118,8 @@
         bestModeledOptionId:ev.bestModeledOptionId,bestModeledAction:ev.bestModeledAction,
         comparisonScope:ev.comparisonScope,comparisonStatus:ev.comparisonStatus,
         comparisonComplete:ev.comparisonComplete,globalBestSupported:ev.globalBestSupported,
-        leaderConclusive:ev.leaderConclusive,assumptions:ev.assumptions,bigBlind:ev.bigBlind,feeBasis:ev.feeBasis},
-      equity:source.equity,provenance:source.provenance};
+        leaderConclusive:ev.leaderConclusive,decisionPrecision:ev.decisionPrecision,assumptions:ev.assumptions,bigBlind:ev.bigBlind,feeBasis:ev.feeBasis},
+      equity:source.equity,provenance:source.provenance,strategyMetadata:source.strategyMetadata};
     update(next => {
       next.decisions ||= {}; next.decisions[handId] ||= [];
       next.decisions[handId].push(structuredClone({...snapshot,analysis,key,recordedAt:new Date().toISOString()}));
@@ -139,11 +139,53 @@
   }
   function renderDecision(item) {
     const analysis = item.analysis, bigBlind = item.feedback?.bigBlind || item.recordBefore?.config?.bigBlind;
-    const candidates = analysis?.ev?.candidates || [];
-    const rows = candidates.map(candidate => `<tr><th scope="row">${esc(candidate.action)}${candidate.size == null ? '' : ' to '+esc(amount(candidate.size))}</th><td>${candidate.status === 'MODELED' ? esc(amount(candidate.evBB ?? (Number.isFinite(candidate.ev) && bigBlind > 0 ? candidate.ev/bigBlind : null))) : 'Not modeled'}</td><td>${esc(amount(candidate.differenceToBestModeledBB))}</td></tr>`).join('');
     const before = item.recordBefore;
     const board = before?.events?.filter(event=>event.type==='BOARD').at(-1)?.cards || [];
-    return `<details class="players-section"><summary>${esc(item.action)}${item.to == null ? '' : ' to '+esc(amount(item.to))} · original decision</summary><p class="micro">Cards: ${esc(before?.config?.heroCards?.join(' ') || 'Unknown')} · Board: ${esc(board.join(' ') || 'Preflop')}</p>${rows ? `<table class="mw-ev-table"><thead><tr><th>Action</th><th>EV · bb</th><th>Gap · bb</th></tr></thead><tbody>${rows}</tbody></table>` : '<p class="micro">No evaluation was available when this action was recorded.</p>'}<p class="micro">${esc(analysis?.ev?.leaderConclusive ? 'Comparison is conditional on the recorded model.' : 'Differences were inconclusive at the recorded precision.')} Later shown cards are excluded.</p>${analysis?.ev?.assumptions?.length ? `<details><summary>Original assumptions</summary><ul>${analysis.ev.assumptions.map(text=>`<li>${esc(text)}</li>`).join('')}</ul></details>` : ''}</details>`;
+    const heading = `<summary>${esc(item.action)}${item.to == null ? '' : ' to '+esc(amount(item.to))} · original decision</summary><p class="micro">Cards: ${esc(before?.config?.heroCards?.join(' ') || 'Unknown')} · Board: ${esc(board.join(' ') || 'Preflop')}</p>`;
+    if (item.solver) {
+      // Read the immutable strategy recorded before this action. Later REVEAL
+      // events and the current analysis never participate in history review.
+      const solver = item.solver, candidates = solver.actions;
+      const finite = value => typeof value === 'number' && Number.isFinite(value);
+      const ids = new Set(Array.isArray(candidates) ? candidates.map(candidate=>candidate?.id) : []);
+      const valid = solver.handId === item.handId && solver.revisionKey === item.revisionKey &&
+        (!before?.handId || before.handId === solver.handId) &&
+        ['SOLVED','APPROXIMATE','REFINING','PARTIAL'].includes(solver.status) &&
+        Array.isArray(candidates) && candidates.length > 0 && ids.size === candidates.length &&
+        candidates.every(candidate=>typeof candidate?.id === 'string' && candidate.id.length && finite(candidate.evBB) &&
+          finite(candidate.frequency) && candidate.frequency >= 0 && candidate.frequency <= 1) &&
+        Math.abs(candidates.reduce((sum,candidate)=>sum+candidate.frequency,0)-1) <= 1e-8 &&
+        (!solver.abstraction?.rootActions || (solver.abstraction.rootActions.length === candidates.length &&
+          solver.abstraction.rootActions.every(candidate=>ids.has(candidate.id))));
+      if (!valid) return `<details class="players-section">${heading}<p class="micro">The recorded solver snapshot does not match this decision or is incomplete. Its values are unavailable.</p><p class="micro">Later shown cards are excluded.</p></details>`;
+      const exact = solver.convergence?.exact === true && finite(solver.convergence.nashConv) && solver.convergence.nashConv >= 0;
+      const solved = solver.status === 'SOLVED' && solver.qualification?.solvedSubgame === true &&
+        solver.quality?.numericalStatus === 'SOLVED' && solver.quality.exact === true && solver.quality.thresholdMet === true;
+      const status = solved ? 'Solved subgame' : solver.status === 'REFINING' ? 'Refining' : 'Approximate';
+      const combination = solver.strategyScope === 'CURRENT_HAND_COMBINATION' || Boolean(solver.abstraction?.heroInformationSet);
+      // This is a point-value comparison under the saved continuation profile,
+      // not an action-error grade or a claim about omitted actions/full poker.
+      const precision = solver.decisionPrecision;
+      const comparable = Boolean(precision) && precision.source === solver.source && precision.resultStatus === solver.status &&
+        finite(precision.bestEVBB) && candidates.some(candidate=>candidate.id === precision.bestActionId);
+      const bestEV = comparable ? precision.bestEVBB : null;
+      let chosenInTable = false;
+      const rows = candidates.map(candidate=>{
+        const action = candidate.action || candidate.id.split(':')[0];
+        const chosen = action === item.action && (!['BET','RAISE'].includes(action) ||
+          (candidate.size != null && item.to != null && finite(Number(candidate.size)) && finite(Number(item.to)) && Math.abs(Number(candidate.size)-Number(item.to)) < 1e-8));
+        chosenInTable ||= chosen;
+        return `<tr><th scope="row">${esc(action)}${candidate.size == null ? '' : ' to '+esc(amount(candidate.size))}${chosen ? ' · chosen' : ''}</th><td>${combination ? esc(probability(candidate.frequency)) : '—'}</td><td>${esc(amount(candidate.evBB))}</td><td>${comparable ? esc(amount(Math.max(0,bestEV-candidate.evBB))) : '—'}</td></tr>`;
+      }).join('');
+      const limitations = Array.isArray(solver.abstraction?.limitations) ? solver.abstraction.limitations : [];
+      return `<details class="players-section">${heading}<p class="micro">Reference subgame · ${esc(status)}</p><table class="players-log-table"><thead><tr><th>Action</th><th>Frequency</th><th>EV · bb</th><th>Gap · bb</th></tr></thead><tbody>${rows}</tbody></table><p class="micro">ΔEV · top two: ${esc(amount(precision?.deltaEVBB))} bb · ${esc(precision?.status || 'INCONCLUSIVE')}. ${esc(precision?.reason || 'No defensible action EV error bounds were recorded.')}</p>${chosenInTable ? '' : '<p class="micro">The chosen action or sizing was outside this recorded action set.</p>'}<p class="micro">${combination ? 'Frequencies apply to the recorded hand combination.' : 'Frequency scope was not recorded.'} ${comparable ? 'Gaps compare only the saved profile; they do not grade the action.' : 'No compatible comparison was recorded.'} Later shown cards are excluded.</p><details><summary>Original model</summary><dl><dt>Source</dt><dd>${esc(solver.source || 'REFERENCE_SUBGAME_STRATEGY').replaceAll('_','_<wbr>')}</dd><dt>Version</dt><dd>${esc(solver.solverVersion || 'Not recorded').replaceAll('_','_<wbr>')}</dd><dt>Status</dt><dd>${esc(status)}</dd><dt>NashConv · bb</dt><dd>${exact ? esc(solver.convergence.nashConv.toPrecision(3)) : 'Not measured'}</dd></dl>${limitations.length ? `<ul>${limitations.map(text=>`<li>${esc(text)}</li>`).join('')}</ul>` : ''}</details></details>`;
+    }
+    const candidates = analysis?.ev?.candidates || [];
+    const provenance = analysis?.strategyMetadata;
+    const sourceLabel = provenance?.status === 'HEURISTIC' || item.feedback?.source === 'LEGACY_CONTEXT_CONTINUATION'
+      ? `HEURISTIC · ${provenance?.version || item.feedback?.version || 'Version not recorded'}` : 'Original model · version not recorded';
+    const rows = candidates.map(candidate => `<tr><th scope="row">${esc(candidate.action)}${candidate.size == null ? '' : ' to '+esc(amount(candidate.size))}</th><td>${candidate.status === 'MODELED' ? esc(amount(candidate.evBB ?? (Number.isFinite(candidate.ev) && bigBlind > 0 ? candidate.ev/bigBlind : null))) : 'Not modeled'}</td><td>${esc(amount(candidate.differenceToBestModeledBB))}</td></tr>`).join('');
+    return `<details class="players-section">${heading}${rows ? `<p class="micro">${esc(sourceLabel)}</p><table class="mw-ev-table"><thead><tr><th>Action</th><th>EV · bb</th><th>Gap · bb</th></tr></thead><tbody>${rows}</tbody></table>` : '<p class="micro">No evaluation was available when this action was recorded.</p>'}<p class="micro">${esc(analysis?.ev?.leaderConclusive ? 'Comparison is conditional on the recorded model.' : 'Differences were inconclusive at the recorded precision.')} Later shown cards are excluded.</p>${analysis?.ev?.assumptions?.length ? `<details><summary>Original assumptions</summary><ul>${analysis.ev.assumptions.map(text=>`<li>${esc(text)}</li>`).join('')}</ul></details>` : ''}</details>`;
   }
   function renderArchivedHand(hand, playerId, allPlayers = false) {
     const record = hand.multiway, state = hand.state, seat = record.config.players.findIndex(player=>player.playerId===playerId);

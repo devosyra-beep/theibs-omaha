@@ -6,7 +6,7 @@ const root=path.resolve(__dirname,'..');
 const base=process.argv[2] || 'https://theibs-omaha.onrender.com';
 const out=path.resolve(__dirname,'../../validacao/multiway-release-live.json');
 const hash=text=>crypto.createHash('sha256').update(text.replace(/\r\n/g,'\n')).digest('hex');
-const assets=['index.html','app.js','dashboard.css','multiway-ui.js','multiway.css','opponent-inputs.js','card-voice.js','card-voice-ui.js','card-voice.css','multiway-assistant-ui.js','player-profile-model.js','players-storage.js','players-ui.js','players.css','service-worker.js'];
+const assets=['index.html','app.js','dashboard.css','multiway-ui.js','multiway-solver-ui.js','multiway-solver.css','multiway.css','opponent-inputs.js','card-voice.js','card-voice-ui.js','card-voice.css','multiway-assistant-ui.js','player-profile-model.js','players-storage.js','players-ui.js','players.css','service-worker.js'];
 (async()=>{
   const health=await fetch(base+'/healthz');
   const statusResponse=await fetch(base+'/api/status'),status=await statusResponse.json();

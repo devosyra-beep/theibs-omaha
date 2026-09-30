@@ -14,6 +14,7 @@ const { normalizeRakeSchedule, calculateRake } = require('./rake-model');
 const { enrichActionEV } = require('./action-ev-presentation');
 const { describeHand } = require('./hand-insights');
 const { attachAnalysisContract } = require('./analysis-contract');
+const { compareDecisionValues, LEGACY_METHOD } = require('./decision-precision');
 const ALL_ACTIONS = ['FOLD', 'CHECK', 'CALL', 'BET', 'RAISE'];
 const MODEL = 'MULTIWAY_CONTEXT_POLICY_V1';
 const hash = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
@@ -257,7 +258,14 @@ function evaluateMultiway(input) {
   });
   const ranked = results.filter(item => item.status === 'MODELED').sort((a, b) => b.ev - a.ev), best = ranked[0] || null;
   for (const item of results) item.differenceToBestModeledBB = best && item.ev != null ? (best.ev - item.ev) / state.bigBlind : null;
-  const separated = ranked.length > 1 && ranked.slice(1).every(item => best.confidenceInterval95[0] > item.confidenceInterval95[1]);
+  for (const item of results) item.confidenceInterval95BB = item.confidenceInterval95?.map(value => value / state.bigBlind) || null;
+  const decisionPrecision = compareDecisionValues({
+    actions: results.map(item => ({ id: item.optionId, evBB: item.evBB, boundsBB: item.confidenceInterval95BB })),
+    source: 'LEGACY_CONTEXT_CONTINUATION', originVersion: MODEL, resultStatus: 'HEURISTIC', contextKey: context.fingerprint,
+    target: 'CONDITIONAL_CONTINUATION_EV',
+    uncertainty: { method: LEGACY_METHOD, scope: 'FIXED_CONTINUATION_POLICY', simultaneous: true, confidenceLevel: .95 }
+  });
+  const separated = decisionPrecision.leaderConclusive;
   const actionEV = Object.fromEntries(ALL_ACTIONS.map(action => {
     const item = [...results].filter(candidate => candidate.action === action).sort((a, b) => (b.ev ?? -Infinity) - (a.ev ?? -Infinity))[0];
     return [action, item ? { ...item, action, legal: true, model: item.status === 'MODELED' ? MODEL : null,
@@ -279,7 +287,8 @@ function evaluateMultiway(input) {
   for (const item of Object.values(ev.actions)) if (item.status === 'MODELED') item.comparisonContext = item.action === 'FOLD' ? 'DECISION_POINT_REFERENCE' : context.fingerprint;
   ev.comparisonContexts = [context.fingerprint];
   ev.candidates = results; ev.bestModeledOptionId = best?.optionId || null;
-  ev.gapBestSecondCandidateBB = ranked.length > 1 ? (best.ev - ranked[1].ev) / state.bigBlind : null;
+  ev.gapBestSecondCandidateBB = decisionPrecision.deltaEVBB;
+  ev.decisionPrecision = decisionPrecision;
   ev.leaderConclusive = Boolean(costModel && separated); ev.globalBestSupported = false;
   ev.comparisonScope = 'FINITE_SIZE_GRID_FIXED_CONTEXTUAL_CONTINUATION_POLICY';
   ev.feeBasis = context.raw.feeBasis === 'BEFORE_FEES' && costModel?.fixed === 0 ? 'BEFORE_FEES' : costModel ? 'DECLARED_FEES' : 'UNKNOWN';
@@ -304,7 +313,8 @@ function evaluateMultiway(input) {
       potOdds: state.legal.toCall / (state.pot + state.legal.toCall), callMathScope: 'EV_FROM_CONTINUATION_POLICY' },
     strategy: { finalAction: 'NO_DECISION', finalSource: MODEL, confidence: 'LOW', conflicts: [], warnings: [],
       baseline: { action: best?.action || 'NO_DECISION', bestModeledAction: best?.action || null,
-        leadership: { status: separated ? 'SEPARATED' : 'OVERLAPPING', candidateOptions: results.map(item => item.optionId), scope: ev.comparisonScope } },
+        leadership: { status: separated ? 'SEPARATED' : 'INCONCLUSIVE', reasonCode: decisionPrecision.reasonCode,
+          reason: decisionPrecision.reason, candidateOptions: results.map(item => item.optionId), scope: ev.comparisonScope } },
       exploit: { finalAction: 'NO_DECISION', finalSource: MODEL } },
     multiwayEvaluation: { model: MODEL, policy, candidates: results, fingerprint: context.fingerprint,
       profileSnapshotHash: policy.profileSnapshotHash, revisionKey: context.raw.revisionKey, handId: context.raw.handId,

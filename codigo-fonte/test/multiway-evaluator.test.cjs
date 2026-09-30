@@ -58,6 +58,18 @@ test('rake absence is null, never invented net EV; invalid size/range/context re
 test('insufficient numeric support cannot become a conclusive global action', () => {
   const input=river(),result=evaluateMultiway(input);
   assert.equal(result.ev.globalBestSupported,false); assert.equal(result.recommendation.status,'INCONCLUSIVE');
+  const precision=result.ev.decisionPrecision;
+  assert.equal(precision.source,'LEGACY_CONTEXT_CONTINUATION');
+  assert.equal(precision.originVersion,result.multiwayEvaluation.model);
+  assert.equal(precision.resultStatus,'HEURISTIC');
+  assert.equal(precision.contextKey,result.multiwayEvaluation.fingerprint);
+  assert.equal(precision.status,'INCONCLUSIVE');
+  assert.equal(precision.leaderConclusive,false);
+  assert.equal(result.ev.leaderConclusive,false);
+  assert.equal(precision.modelUncertaintyIncluded,false);
+  const ranked=result.ev.candidates.slice().sort((a,b)=>b.evBB-a.evBB);
+  assert.equal(precision.deltaEVBB,ranked[0].evBB-ranked[1].evBB);
+  assert.equal(result.ev.gapBestSecondCandidateBB,precision.deltaEVBB);
   const interval=_testing.weightedBounds([1,1],[.001,.001],0,10,5,32); assert.deepEqual(interval,[0,10]);
 });
 test('cards/board identity is validated and future revealed cards are not accepted as current facts', () => {

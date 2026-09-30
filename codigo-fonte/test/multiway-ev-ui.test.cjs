@@ -80,6 +80,7 @@ test('complete action EV uses contracted bb and sizing rather than inferring mis
   const analysis = { status: 'OK', analysisStage: 'FINAL', observedState: { revisionKey: 'hand-1:4' }, ev: {
     bigBlind: 2, potBeforeDecision: 30, bestModeledAction: 'RAISE', comparisonComplete: true,
     globalBestSupported: true, leaderConclusive: true, gapBestSecondBB: 0.4,
+    decisionPrecision:{status:'CONCLUSIVE',leaderConclusive:true,bestActionId:'RAISE',secondActionId:'CALL',deltaEVBB:0.4,reasonCode:'SEPARATED_UNDER_FIXED_POLICY'},
     missingLegalActions: [], actions: {
       FOLD: { status: 'MODELED', ev: 0, evBB: 0, differenceToBestModeledBB: -2.1 },
       CALL: { status: 'MODELED', ev: 3.4, evBB: 1.7, differenceToBestModeledBB: -0.4 },
@@ -94,6 +95,7 @@ test('complete action EV uses contracted bb and sizing rather than inferring mis
   assert.equal(decision.rows.find(row => row.action === 'RAISE').method, 'SCENARIO_SHOWDOWN_ONLY');
   analysis.ev.globalBestSupported = false;
   analysis.ev.leaderConclusive = false;
+  analysis.ev.decisionPrecision = {...analysis.ev.decisionPrecision,status:'INCONCLUSIVE',leaderConclusive:false,reasonCode:'BEST_SECOND_INTERVALS_OVERLAP'};
   assert.equal(describe(state(), analysis).stage, 'INCONCLUSIVE', 'full action coverage is not mislabeled as partial when precision cannot separate alternatives');
   analysis.ev.comparisonStatus = 'INCOMPARABLE_ASSUMPTIONS';
   analysis.ev.bestModeledAction = null;
@@ -111,6 +113,7 @@ test('finite sizing grid displays every candidate and compares the top two sizes
   ];
   const result=describe(state(),{status:'OK',analysisStage:'FINAL',observedState:{revisionKey:'hand-1:4'},ev:{candidates,
     bestModeledAction:'RAISE',bestModeledOptionId:'RAISE:14',bigBlind:2,comparisonComplete:true,globalBestSupported:false,leaderConclusive:false,
+    decisionPrecision:{status:'INCONCLUSIVE',leaderConclusive:false,bestActionId:'RAISE:14',secondActionId:'RAISE:30',deltaEVBB:.1,reasonCode:'BEST_SECOND_INTERVALS_OVERLAP'},
     gapBestSecondBB:1,gapBestSecondCandidateBB:.1}});
   assert.equal(result.rows.length,4);
   assert.deepEqual(Array.from(result.rows.filter(item=>item.action==='RAISE'),item=>item.size),[14,30]);
@@ -120,4 +123,18 @@ test('finite sizing grid displays every candidate and compares the top two sizes
   assert.equal(result.stage,'INCONCLUSIVE');
   assert.equal(result.rows[3].samples,96);
   assert.deepEqual(Array.from(result.rows[3].numericalBounds),[-3,11]);
+});
+
+test('old leadership flags cannot establish precision without the new uncertainty contract',()=>{
+  const ev={bigBlind:2,comparisonComplete:true,globalBestSupported:true,leaderConclusive:true,bestModeledAction:'CALL',gapBestSecondBB:99,
+    actions:{FOLD:{status:'MODELED',ev:0,evBB:0},CALL:{status:'MODELED',ev:198,evBB:99}}};
+  const analysis={status:'OK',analysisStage:'FINAL',observedState:{revisionKey:'hand-1:4'},ev};
+  const result=describe(state(),analysis);
+  assert.equal(result.leaderConclusive,false);
+  assert.equal(result.gapBestSecondBB,null);
+  ev.decisionPrecision={status:'INCONCLUSIVE',leaderConclusive:false,bestActionId:null,deltaEVBB:null,reasonCode:'INCOMPATIBLE_ORIGINS'};
+  const incompatible=describe(state(),analysis);
+  assert.equal(incompatible.bestModeledAction,null);
+  assert.ok(incompatible.rows.every(row=>row.differenceBB===null));
+  assert.equal(incompatible.precision.reasonCode,'INCOMPATIBLE_ORIGINS');
 });
