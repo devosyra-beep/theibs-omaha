@@ -1,0 +1,1978 @@
+{
+  "classification": "MODEL_INDEPENDENT_SEQUENCE_FORM_LP_RIVER_GROWTH",
+  "generatedAt": "2026-09-30T16:55:02.721Z",
+  "python": "C:\\Users\\paulo.otavio_involve\\AppData\\Local\\Temp\\theibs-lp-reference-venv\\Scripts\\python.exe",
+  "target": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+  "limits": [
+    "Numerical LP with residual guards, not symbolic proof.",
+    "Ex ante commitment over the full prior; not original conditional hand EV.",
+    "Local synchronous QA cost, not a serving latency benchmark.",
+    "Node RSS snapshots are not a peak memory measurement; LP runtime memory is reported separately."
+  ],
+  "cases": [
+    {
+      "combos": 4,
+      "sizings": 5,
+      "key": "b43f3be2b2de39d281c3639bdbe404b10834bba584fbc11b71550bb4a0f59653",
+      "heroInformationSet": "0|Ah,As,Jc,Qd,Tc|",
+      "build": {
+        "publicNodes": 18,
+        "publicDecisionNodes": 6,
+        "publicTerminals": 12,
+        "maxDepth": 2,
+        "aggressionCapNodes": 5,
+        "omittedSizingNodes": 6,
+        "omittedLegalSizeCount": 1851,
+        "nodes": 289,
+        "reservedMemoryBytes": 2367488,
+        "publicLedgerTransitions": 17,
+        "handRankEvaluations": 8,
+        "handRankCacheHits": 24,
+        "settlementReplays": 18,
+        "settlementCacheHits": 168,
+        "worlds": 16,
+        "buildMs": 24.978700000000003
+      },
+      "reference": {
+        "values": [
+          1.09,
+          0.9099999999999999
+        ],
+        "validationTolerance": 2e-8,
+        "residuals": {
+          "rowFlow": 0,
+          "columnFlow": 0,
+          "nonnegative": 0,
+          "rowDualViolation": 0,
+          "columnDualViolation": 0,
+          "dualityGap": 0
+        },
+        "method": "SPARSE_SEQUENCE_FORM_PRIMAL_DUAL_HIGHS_DUAL_SIMPLEX",
+        "runtime": {
+          "python": "3.14.4",
+          "numpy": "2.5.3",
+          "scipy": "1.18.1"
+        },
+        "metrics": {
+          "nodes": 289,
+          "leaves": 192,
+          "sequences": [
+            29,
+            41
+          ],
+          "constraints": [
+            5,
+            21
+          ],
+          "payoffNonzeros": 168,
+          "estimatedSparseBytes": 3376,
+          "compileMs": 19.5298000035109,
+          "totalMs": 89.63519999815617,
+          "lpIterations": [
+            24,
+            0
+          ],
+          "pythonTracedPeakBytes": 327541,
+          "peakProcessMemory": {
+            "bytes": 78278656,
+            "method": "WINDOWS_PEAK_WORKING_SET_PROCESS_LIFETIME"
+          },
+          "memoryNote": "Python tracemalloc excludes native HiGHS/BLAS allocations; sparse-byte estimate is not process RSS."
+        },
+        "symbolicallyExact": false,
+        "referenceNashConv": 0
+      },
+      "originalProfile": {
+        "iterations": 500,
+        "values": [
+          1.089990790775123,
+          0.910009209224876
+        ],
+        "nashConv": 0.00001610055368772567,
+        "independentProfileNashConv": 0.000016100553687392605,
+        "absoluteValueErrorBB": 0.000009209224877126942
+      },
+      "actions": [
+        {
+          "id": "FOLD",
+          "reference": {
+            "values": [
+              1.03,
+              0.97
+            ],
+            "validationTolerance": 2e-8,
+            "residuals": {
+              "rowFlow": 0,
+              "columnFlow": 0,
+              "nonnegative": 0,
+              "rowDualViolation": 0,
+              "columnDualViolation": 2.7755575615628914e-17,
+              "dualityGap": 0
+            },
+            "method": "SPARSE_SEQUENCE_FORM_PRIMAL_DUAL_HIGHS_DUAL_SIMPLEX",
+            "runtime": {
+              "python": "3.14.4",
+              "numpy": "2.5.3",
+              "scipy": "1.18.1"
+            },
+            "metrics": {
+              "nodes": 225,
+              "leaves": 148,
+              "sequences": [
+                23,
+                41
+              ],
+              "constraints": [
+                5,
+                21
+              ],
+              "payoffNonzeros": 127,
+              "estimatedSparseBytes": 2788,
+              "compileMs": 14.346800002385862,
+              "totalMs": 46.99849999451544,
+              "lpIterations": [
+                23,
+                0
+              ],
+              "pythonTracedPeakBytes": 424615,
+              "peakProcessMemory": {
+                "bytes": 78479360,
+                "method": "WINDOWS_PEAK_WORKING_SET_PROCESS_LIFETIME"
+              },
+              "memoryNote": "Python tracemalloc excludes native HiGHS/BLAS allocations; sparse-byte estimate is not process RSS."
+            },
+            "symbolicallyExact": false,
+            "referenceNashConv": 0
+          },
+          "referenceValueBB": 1.03,
+          "refinements": [
+            {
+              "iterations": 1,
+              "lowerBB": 0.7328571428571341,
+              "upperBB": 1.5850000000000057,
+              "widthBB": 0.8521428571428716,
+              "estimateBB": 1.15892857142857,
+              "absoluteMidpointErrorBB": 0.12892857142856995,
+              "profileValueBB": 1.2274999999999996,
+              "nashConv": 0.8521428571428572,
+              "elapsedMs": 11.463300000000345,
+              "containsLPWithinResidualTolerance": true,
+              "estimatedWorkingBytes": 79886,
+              "processRSSBefore": 61591552,
+              "processRSSAfter": 61423616,
+              "processHeapUsedAfter": 8600896
+            },
+            {
+              "iterations": 100,
+              "lowerBB": 1.0297852680726873,
+              "upperBB": 1.030090099009904,
+              "widthBB": 0.0003048309372166713,
+              "estimateBB": 1.0299376835412957,
+              "absoluteMidpointErrorBB": 0.00006231645870435898,
+              "profileValueBB": 1.0298661289489737,
+              "nashConv": 0.0003048309372082336,
+              "elapsedMs": 30.560499999999593,
+              "containsLPWithinResidualTolerance": true,
+              "estimatedWorkingBytes": 79886,
+              "processRSSBefore": 61423616,
+              "processRSSAfter": 66707456,
+              "processHeapUsedAfter": 8231552
+            },
+            {
+              "iterations": 500,
+              "lowerBB": 1.0299913421458395,
+              "upperBB": 1.030003632734534,
+              "widthBB": 0.000012290588694563453,
+              "estimateBB": 1.0299974874401867,
+              "absoluteMidpointErrorBB": 0.0000025125598133168836,
+              "profileValueBB": 1.0299946007004794,
+              "nashConv": 0.000012290588686125758,
+              "elapsedMs": 64.96399999999994,
+              "containsLPWithinResidualTolerance": true,
+              "estimatedWorkingBytes": 79886,
+              "processRSSBefore": 66719744,
+              "processRSSAfter": 62922752,
+              "processHeapUsedAfter": 9341120
+            }
+          ]
+        },
+        {
+          "id": "CHECK",
+          "reference": {
+            "values": [
+              1.09,
+              0.9099999999999999
+            ],
+            "validationTolerance": 2e-8,
+            "residuals": {
+              "rowFlow": 0,
+              "columnFlow": 0,
+              "nonnegative": 0,
+              "rowDualViolation": 0,
+              "columnDualViolation": 0,
+              "dualityGap": 0
+            },
+            "method": "SPARSE_SEQUENCE_FORM_PRIMAL_DUAL_HIGHS_DUAL_SIMPLEX",
+            "runtime": {
+              "python": "3.14.4",
+              "numpy": "2.5.3",
+              "scipy": "1.18.1"
+            },
+            "metrics": {
+              "nodes": 225,
+              "leaves": 148,
+              "sequences": [
+                23,
+                41
+              ],
+              "constraints": [
+                5,
+                21
+              ],
+              "payoffNonzeros": 127,
+              "estimatedSparseBytes": 2788,
+              "compileMs": 16.146599999046884,
+              "totalMs": 57.09759998717345,
+              "lpIterations": [
+                23,
+                0
+              ],
+              "pythonTracedPeakBytes": 424508,
+              "peakProcessMemory": {
+                "bytes": 78610432,
+                "method": "WINDOWS_PEAK_WORKING_SET_PROCESS_LIFETIME"
+              },
+              "memoryNote": "Python tracemalloc excludes native HiGHS/BLAS allocations; sparse-byte estimate is not process RSS."
+            },
+            "symbolicallyExact": false,
+            "referenceNashConv": 0
+          },
+          "referenceValueBB": 1.09,
+          "refinements": [
+            {
+              "iterations": 1,
+              "lowerBB": 0.7928571428571344,
+              "upperBB": 1.645000000000006,
+              "widthBB": 0.8521428571428716,
+              "estimateBB": 1.2189285714285703,
+              "absoluteMidpointErrorBB": 0.12892857142857017,
+              "profileValueBB": 1.2874999999999996,
+              "nashConv": 0.8521428571428572,
+              "elapsedMs": 5.591000000000349,
+              "containsLPWithinResidualTolerance": true,
+              "estimatedWorkingBytes": 79888,
+              "processRSSBefore": 62607360,
+              "processRSSAfter": 62824448,
+              "processHeapUsedAfter": 8656432
+            },
+            {
+              "iterations": 100,
+              "lowerBB": 1.0897852680726876,
+              "upperBB": 1.0900900990099043,
+              "widthBB": 0.0003048309372166713,
+              "estimateBB": 1.089937683541296,
+              "absoluteMidpointErrorBB": 0.00006231645870413693,
+              "profileValueBB": 1.0898661289489737,
+              "nashConv": 0.0003048309372082336,
+              "elapsedMs": 19.47769999999946,
+              "containsLPWithinResidualTolerance": true,
+              "estimatedWorkingBytes": 79888,
+              "processRSSBefore": 62824448,
+              "processRSSAfter": 64815104,
+              "processHeapUsedAfter": 10558088
+            },
+            {
+              "iterations": 500,
+              "lowerBB": 1.0899913421458398,
+              "upperBB": 1.0900036327345344,
+              "widthBB": 0.000012290588694563453,
+              "estimateBB": 1.0899974874401872,
+              "absoluteMidpointErrorBB": 0.0000025125598128727944,
+              "profileValueBB": 1.0899946007004795,
+              "nashConv": 0.000012290588686125758,
+              "elapsedMs": 56.11169999999947,
+              "containsLPWithinResidualTolerance": true,
+              "estimatedWorkingBytes": 79888,
+              "processRSSBefore": 64827392,
+              "processRSSAfter": 66859008,
+              "processHeapUsedAfter": 10796856
+            }
+          ]
+        },
+        {
+          "id": "BET:1.00",
+          "reference": {
+            "values": [
+              1.02,
+              0.98
+            ],
+            "validationTolerance": 2e-8,
+            "residuals": {
+              "rowFlow": 0,
+              "columnFlow": 0,
+              "nonnegative": 0,
+              "rowDualViolation": 0,
+              "columnDualViolation": 4.163336342344337e-17,
+              "dualityGap": 0
+            },
+            "method": "SPARSE_SEQUENCE_FORM_PRIMAL_DUAL_HIGHS_DUAL_SIMPLEX",
+            "runtime": {
+              "python": "3.14.4",
+              "numpy": "2.5.3",
+              "scipy": "1.18.1"
+            },
+            "metrics": {
+              "nodes": 233,
+              "leaves": 152,
+              "sequences": [
+                23,
+                41
+              ],
+              "constraints": [
+                5,
+                21
+              ],
+              "payoffNonzeros": 134,
+              "estimatedSparseBytes": 2872,
+              "compileMs": 14.378799998667091,
+              "totalMs": 50.33319999347441,
+              "lpIterations": [
+                23,
+                0
+              ],
+              "pythonTracedPeakBytes": 429819,
+              "peakProcessMemory": {
+                "bytes": 78630912,
+                "method": "WINDOWS_PEAK_WORKING_SET_PROCESS_LIFETIME"
+              },
+              "memoryNote": "Python tracemalloc excludes native HiGHS/BLAS allocations; sparse-byte estimate is not process RSS."
+            },
+            "symbolicallyExact": false,
+            "referenceNashConv": 0
+          },
+          "referenceValueBB": 1.02,
+          "refinements": [
+            {
+              "iterations": 1,
+              "lowerBB": 0.7228571428571343,
+              "upperBB": 1.6950000000000065,
+              "widthBB": 0.9721428571428722,
+              "estimateBB": 1.2089285714285705,
+              "absoluteMidpointErrorBB": 0.18892857142857045,
+              "profileValueBB": 1.3374999999999995,
+              "nashConv": 0.9721428571428569,
+              "elapsedMs": 4.0702000000001135,
+              "containsLPWithinResidualTolerance": true,
+              "estimatedWorkingBytes": 82262,
+              "processRSSBefore": 63164416,
+              "processRSSAfter": 63250432,
+              "processHeapUsedAfter": 10824096
+            },
+            {
+              "iterations": 100,
+              "lowerBB": 1.0197852680726878,
+              "upperBB": 1.0201138613861422,
+              "widthBB": 0.00032859331345447274,
+              "estimateBB": 1.019949564729415,
+              "absoluteMidpointErrorBB": 0.00005043527058501418,
+              "profileValueBB": 1.0198898913252112,
+              "nashConv": 0.00032859331344614606,
+              "elapsedMs": 12.992600000001403,
+              "containsLPWithinResidualTolerance": true,
+              "estimatedWorkingBytes": 82262,
+              "processRSSBefore": 63250432,
+              "processRSSAfter": 63344640,
+              "processHeapUsedAfter": 9665536
+            },
+            {
+              "iterations": 500,
+              "lowerBB": 1.01999134214584,
+              "upperBB": 1.020004590818367,
+              "widthBB": 0.000013248672527055305,
+              "estimateBB": 1.0199979664821035,
+              "absoluteMidpointErrorBB": 0.0000020335178965158462,
+              "profileValueBB": 1.0199955587843117,
+              "nashConv": 0.000013248672518728632,
+              "elapsedMs": 38.48869999999988,
+              "containsLPWithinResidualTolerance": true,
+              "estimatedWorkingBytes": 82262,
+              "processRSSBefore": 63344640,
+              "processRSSAfter": 63553536,
+              "processHeapUsedAfter": 10817688
+            }
+          ]
+        },
+        {
+          "id": "BET:1.25",
+          "reference": {
+            "values": [
+              1.0025,
+              0.9975
+            ],
+            "validationTolerance": 2e-8,
+            "residuals": {
+              "rowFlow": 0,
+              "columnFlow": 0,
+              "nonnegative": 0,
+              "rowDualViolation": 1.942890293094024e-16,
+              "columnDualViolation": 1.1102230246251565e-16,
+              "dualityGap": 2.220446049250313e-16
+            },
+            "method": "SPARSE_SEQUENCE_FORM_PRIMAL_DUAL_HIGHS_DUAL_SIMPLEX",
+            "runtime": {
+              "python": "3.14.4",
+              "numpy": "2.5.3",
+              "scipy": "1.18.1"
+            },
+            "metrics": {
+              "nodes": 233,
+              "leaves": 152,
+              "sequences": [
+                23,
+                41
+              ],
+              "constraints": [
+                5,
+                21
+              ],
+              "payoffNonzeros": 134,
+              "estimatedSparseBytes": 2872,
+              "compileMs": 13.468599994666874,
+              "totalMs": 45.18400000233669,
+              "lpIterations": [
+                23,
+                0
+              ],
+              "pythonTracedPeakBytes": 429733,
+              "peakProcessMemory": {
+                "bytes": 78721024,
+                "method": "WINDOWS_PEAK_WORKING_SET_PROCESS_LIFETIME"
+              },
+              "memoryNote": "Python tracemalloc excludes native HiGHS/BLAS allocations; sparse-byte estimate is not process RSS."
+            },
+            "symbolicallyExact": false,
+            "referenceNashConv": 0
+          },
+          "referenceValueBB": 1.0025,
+          "refinements": [
+            {
+              "iterations": 1,
+              "lowerBB": 0.7053571428571345,
+              "upperBB": 1.6900000000000064,
+              "widthBB": 0.9846428571428719,
+              "estimateBB": 1.1976785714285705,
+              "absoluteMidpointErrorBB": 0.19517857142857054,
+              "profileValueBB": 1.3324999999999994,
+              "nashConv": 0.9846428571428568,
+              "elapsedMs": 2.815999999998894,
+              "containsLPWithinResidualTolerance": true,
+              "estimatedWorkingBytes": 82262,
+              "processRSSBefore": 63578112,
+              "processRSSAfter": 63967232,
+              "processHeapUsedAfter": 10842896
+            },
+            {
+              "iterations": 100,
+              "lowerBB": 1.0022852680726877,
+              "upperBB": 1.0026163366336671,
+              "widthBB": 0.0003310685609794195,
+              "estimateBB": 1.0024508023531773,
+              "absoluteMidpointErrorBB": 0.00004919764682265182,
+              "profileValueBB": 1.0023923665727361,
+              "nashConv": 0.00033106856097064874,
+              "elapsedMs": 21.35189999999966,
+              "containsLPWithinResidualTolerance": true,
+              "estimatedWorkingBytes": 82262,
+              "processRSSBefore": 63967232,
+              "processRSSAfter": 63512576,
+              "processHeapUsedAfter": 9919888
+            },
+            {
+              "iterations": 500,
+              "lowerBB": 1.0024913421458397,
+              "upperBB": 1.0025046906187662,
+              "widthBB": 0.000013348472926555388,
+              "estimateBB": 1.002498016382303,
+              "absoluteMidpointErrorBB": 0.0000019836176969878494,
+              "profileValueBB": 1.002495658584711,
+              "nashConv": 0.000013348472917673604,
+              "elapsedMs": 47.51250000000073,
+              "containsLPWithinResidualTolerance": true,
+              "estimatedWorkingBytes": 82262,
+              "processRSSBefore": 63512576,
+              "processRSSAfter": 63623168,
+              "processHeapUsedAfter": 10644168
+            }
+          ]
+        },
+        {
+          "id": "BET:1.50",
+          "reference": {
+            "values": [
+              0.985,
+              1.0150000000000001
+            ],
+            "validationTolerance": 2e-8,
+            "residuals": {
+              "rowFlow": 0,
+              "columnFlow": 0,
+              "nonnegative": 0,
+              "rowDualViolation": 8.326672684688674e-17,
+              "columnDualViolation": 0,
+              "dualityGap": 0
+            },
+            "method": "SPARSE_SEQUENCE_FORM_PRIMAL_DUAL_HIGHS_DUAL_SIMPLEX",
+            "runtime": {
+              "python": "3.14.4",
+              "numpy": "2.5.3",
+              "scipy": "1.18.1"
+            },
+            "metrics": {
+              "nodes": 233,
+              "leaves": 152,
+              "sequences": [
+                23,
+                41
+              ],
+              "constraints": [
+                5,
+                21
+              ],
+              "payoffNonzeros": 134,
+              "estimatedSparseBytes": 2872,
+              "compileMs": 12.258400005521253,
+              "totalMs": 43.80220000166446,
+              "lpIterations": [
+                23,
+                0
+              ],
+              "pythonTracedPeakBytes": 429606,
+              "peakProcessMemory": {
+                "bytes": 78446592,
+                "method": "WINDOWS_PEAK_WORKING_SET_PROCESS_LIFETIME"
+              },
+              "memoryNote": "Python tracemalloc excludes native HiGHS/BLAS allocations; sparse-byte estimate is not process RSS."
+            },
+            "symbolicallyExact": false,
+            "referenceNashConv": 0
+          },
+          "referenceValueBB": 0.985,
+          "refinements": [
+            {
+              "iterations": 1,
+              "lowerBB": 0.6878571428571346,
+              "upperBB": 1.6850000000000065,
+              "widthBB": 0.9971428571428719,
+              "estimateBB": 1.1864285714285705,
+              "absoluteMidpointErrorBB": 0.2014285714285705,
+              "profileValueBB": 1.3274999999999997,
+              "nashConv": 0.9971428571428569,
+              "elapsedMs": 5.486699999999473,
+              "containsLPWithinResidualTolerance": true,
+              "estimatedWorkingBytes": 82262,
+              "processRSSBefore": 63705088,
+              "processRSSAfter": 63705088,
+              "processHeapUsedAfter": 9797088
+            },
+            {
+              "iterations": 100,
+              "lowerBB": 0.9847852680726866,
+              "upperBB": 0.9851188118811918,
+              "widthBB": 0.0003335438085051434,
+              "estimateBB": 0.9849520399769391,
+              "absoluteMidpointErrorBB": 0.00004796002306084457,
+              "profileValueBB": 0.9848948418202609,
+              "nashConv": 0.00033354380849526244,
+              "elapsedMs": 22.218000000000757,
+              "containsLPWithinResidualTolerance": true,
+              "estimatedWorkingBytes": 82262,
+              "processRSSBefore": 63705088,
+              "processRSSAfter": 64602112,
+              "processHeapUsedAfter": 10164616
+            },
+            {
+              "iterations": 500,
+              "lowerBB": 0.9849913421458386,
+              "upperBB": 0.9850047904191654,
+              "widthBB": 0.000013448273326832627,
+              "estimateBB": 0.984998066282502,
+              "absoluteMidpointErrorBB": 0.000001933717498014964,
+              "profileValueBB": 0.9849957583851102,
+              "nashConv": 0.000013448273316951642,
+              "elapsedMs": 59.58270000000084,
+              "containsLPWithinResidualTolerance": true,
+              "estimatedWorkingBytes": 82262,
+              "processRSSBefore": 64614400,
+              "processRSSAfter": 67485696,
+              "processHeapUsedAfter": 11006648
+            }
+          ]
+        },
+        {
+          "id": "BET:1.75",
+          "reference": {
+            "values": [
+              0.9675,
+              1.0325
+            ],
+            "validationTolerance": 2e-8,
+            "residuals": {
+              "rowFlow": 0,
+              "columnFlow": 0,
+              "nonnegative": 0,
+              "rowDualViolation": 0,
+              "columnDualViolation": 3.469446951953614e-17,
+              "dualityGap": 0
+            },
+            "method": "SPARSE_SEQUENCE_FORM_PRIMAL_DUAL_HIGHS_DUAL_SIMPLEX",
+            "runtime": {
+              "python": "3.14.4",
+              "numpy": "2.5.3",
+              "scipy": "1.18.1"
+            },
+            "metrics": {
+              "nodes": 233,
+              "leaves": 152,
+              "sequences": [
+                23,
+                41
+              ],
+              "constraints": [
+                5,
+                21
+              ],
+              "payoffNonzeros": 134,
+              "estimatedSparseBytes": 2872,
+              "compileMs": 17.94010000594426,
+              "totalMs": 60.736800005543046,
+              "lpIterations": [
+                23,
+                0
+              ],
+              "pythonTracedPeakBytes": 429637,
+              "peakProcessMemory": {
+                "bytes": 78536704,
+                "method": "WINDOWS_PEAK_WORKING_SET_PROCESS_LIFETIME"
+              },
+              "memoryNote": "Python tracemalloc excludes native HiGHS/BLAS allocations; sparse-byte estimate is not process RSS."
+            },
+            "symbolicallyExact": false,
+            "referenceNashConv": 0
+          },
+          "referenceValueBB": 0.9675,
+          "refinements": [
+            {
+              "iterations": 1,
+              "lowerBB": 0.6703571428571345,
+              "upperBB": 1.6800000000000066,
+              "widthBB": 1.0096428571428722,
+              "estimateBB": 1.1751785714285705,
+              "absoluteMidpointErrorBB": 0.2076785714285705,
+              "profileValueBB": 1.3224999999999993,
+              "nashConv": 1.009642857142857,
+              "elapsedMs": 4.1634999999987485,
+              "containsLPWithinResidualTolerance": true,
+              "estimatedWorkingBytes": 82262,
+              "processRSSBefore": 63823872,
+              "processRSSAfter": 63889408,
+              "processHeapUsedAfter": 10108736
+            },
+            {
+              "iterations": 100,
+              "lowerBB": 0.9672852680726866,
+              "upperBB": 0.9676212871287165,
+              "widthBB": 0.00033601905602997917,
+              "estimateBB": 0.9674532776007015,
+              "absoluteMidpointErrorBB": 0.00004672239929848221,
+              "profileValueBB": 0.9673973170677855,
+              "nashConv": 0.00033601905601998716,
+              "elapsedMs": 19.633999999998196,
+              "containsLPWithinResidualTolerance": true,
+              "estimatedWorkingBytes": 82262,
+              "processRSSBefore": 63889408,
+              "processRSSAfter": 64405504,
+              "processHeapUsedAfter": 10021872
+            },
+            {
+              "iterations": 500,
+              "lowerBB": 0.9674913421458385,
+              "upperBB": 0.9675048902195647,
+              "widthBB": 0.000013548073726110665,
+              "estimateBB": 0.9674981161827017,
+              "absoluteMidpointErrorBB": 0.000001883817298375945,
+              "profileValueBB": 0.9674958581855094,
+              "nashConv": 0.000013548073716007636,
+              "elapsedMs": 45.84990000000107,
+              "containsLPWithinResidualTolerance": true,
+              "estimatedWorkingBytes": 82262,
+              "processRSSBefore": 64417792,
+              "processRSSAfter": 64548864,
+              "processHeapUsedAfter": 10857144
+            }
+          ]
+        },
+        {
+          "id": "BET:2.00",
+          "reference": {
+            "values": [
+              0.9500000000000001,
+              1.0499999999999998
+            ],
+            "validationTolerance": 2e-8,
+            "residuals": {
+              "rowFlow": 0,
+              "columnFlow": 0,
+              "nonnegative": 0,
+              "rowDualViolation": 0,
+              "columnDualViolation": 0,
+              "dualityGap": 0
+            },
+            "method": "SPARSE_SEQUENCE_FORM_PRIMAL_DUAL_HIGHS_DUAL_SIMPLEX",
+            "runtime": {
+              "python": "3.14.4",
+              "numpy": "2.5.3",
+              "scipy": "1.18.1"
+            },
+            "metrics": {
+              "nodes": 233,
+              "leaves": 152,
+              "sequences": [
+                23,
+                41
+              ],
+              "constraints": [
+                5,
+                21
+              ],
+              "payoffNonzeros": 134,
+              "estimatedSparseBytes": 2872,
+              "compileMs": 14.218800002709031,
+              "totalMs": 44.97669999545906,
+              "lpIterations": [
+                23,
+                0
+              ],
+              "pythonTracedPeakBytes": 429377,
+              "peakProcessMemory": {
+                "bytes": 78503936,
+                "method": "WINDOWS_PEAK_WORKING_SET_PROCESS_LIFETIME"
+              },
+              "memoryNote": "Python tracemalloc excludes native HiGHS/BLAS allocations; sparse-byte estimate is not process RSS."
+            },
+            "symbolicallyExact": false,
+            "referenceNashConv": 0
+          },
+          "referenceValueBB": 0.9500000000000001,
+          "refinements": [
+            {
+              "iterations": 1,
+              "lowerBB": 0.6528571428571345,
+              "upperBB": 1.6750000000000065,
+              "widthBB": 1.022142857142872,
+              "estimateBB": 1.1639285714285705,
+              "absoluteMidpointErrorBB": 0.21392857142857047,
+              "profileValueBB": 1.3174999999999997,
+              "nashConv": 1.0221428571428568,
+              "elapsedMs": 2.851200000000972,
+              "containsLPWithinResidualTolerance": true,
+              "estimatedWorkingBytes": 82262,
+              "processRSSBefore": 64499712,
+              "processRSSAfter": 64643072,
+              "processHeapUsedAfter": 10838992
+            },
+            {
+              "iterations": 100,
+              "lowerBB": 0.9497852680726865,
+              "upperBB": 0.9501237623762414,
+              "widthBB": 0.00033849430355492593,
+              "estimateBB": 0.949954515224464,
+              "absoluteMidpointErrorBB": 0.00004548477553611985,
+              "profileValueBB": 0.9498997923153103,
+              "nashConv": 0.00033849430354493393,
+              "elapsedMs": 17.697299999999814,
+              "containsLPWithinResidualTolerance": true,
+              "estimatedWorkingBytes": 82262,
+              "processRSSBefore": 64643072,
+              "processRSSAfter": 64438272,
+              "processHeapUsedAfter": 10660392
+            },
+            {
+              "iterations": 500,
+              "lowerBB": 0.9499913421458385,
+              "upperBB": 0.950004990019964,
+              "widthBB": 0.000013647874125499726,
+              "estimateBB": 0.9499981660829012,
+              "absoluteMidpointErrorBB": 0.000001833917098847948,
+              "profileValueBB": 0.9499959579859086,
+              "nashConv": 0.000013647874115285674,
+              "elapsedMs": 41.760300000001735,
+              "containsLPWithinResidualTolerance": true,
+              "estimatedWorkingBytes": 82262,
+              "processRSSBefore": 64438272,
+              "processRSSAfter": 64770048,
+              "processHeapUsedAfter": 10857088
+            }
+          ]
+        }
+      ],
+      "dominance": [
+        {
+          "iterations": 1,
+          "status": "INCONCLUSIVE",
+          "leader": null,
+          "comparedEveryAlternative": true
+        },
+        {
+          "iterations": 100,
+          "status": "CONCLUSIVE",
+          "leader": "CHECK",
+          "comparedEveryAlternative": true
+        },
+        {
+          "iterations": 500,
+          "status": "CONCLUSIVE",
+          "leader": "CHECK",
+          "comparedEveryAlternative": true
+        }
+      ],
+      "elapsedMs": 20500.0928
+    },
+    {
+      "combos": 5,
+      "sizings": 8,
+      "key": "2a49c9024218e546f52dc0b9083395d865288ddba1fcb225f4ab8bcd9b5d8fed",
+      "heroInformationSet": "0|Ah,As,Jc,Qd,Tc|",
+      "build": {
+        "publicNodes": 27,
+        "publicDecisionNodes": 9,
+        "publicTerminals": 18,
+        "maxDepth": 2,
+        "aggressionCapNodes": 8,
+        "omittedSizingNodes": 9,
+        "omittedLegalSizeCount": 2901,
+        "nodes": 676,
+        "reservedMemoryBytes": 5537792,
+        "publicLedgerTransitions": 26,
+        "handRankEvaluations": 10,
+        "handRankCacheHits": 40,
+        "settlementReplays": 27,
+        "settlementCacheHits": 414,
+        "worlds": 25,
+        "buildMs": 30.7654999999977
+      },
+      "reference": {
+        "values": [
+          1.44,
+          0.56
+        ],
+        "validationTolerance": 2e-8,
+        "residuals": {
+          "rowFlow": 0,
+          "columnFlow": 0,
+          "nonnegative": 0,
+          "rowDualViolation": 1.942890293094024e-16,
+          "columnDualViolation": 0,
+          "dualityGap": 0
+        },
+        "method": "SPARSE_SEQUENCE_FORM_PRIMAL_DUAL_HIGHS_DUAL_SIMPLEX",
+        "runtime": {
+          "python": "3.14.4",
+          "numpy": "2.5.3",
+          "scipy": "1.18.1"
+        },
+        "metrics": {
+          "nodes": 676,
+          "leaves": 450,
+          "sequences": [
+            51,
+            81
+          ],
+          "constraints": [
+            6,
+            41
+          ],
+          "payoffNonzeros": 410,
+          "estimatedSparseBytes": 7448,
+          "compileMs": 25.313200007076375,
+          "totalMs": 72.89809999929275,
+          "lpIterations": [
+            45,
+            0
+          ],
+          "pythonTracedPeakBytes": 692953,
+          "peakProcessMemory": {
+            "bytes": 79585280,
+            "method": "WINDOWS_PEAK_WORKING_SET_PROCESS_LIFETIME"
+          },
+          "memoryNote": "Python tracemalloc excludes native HiGHS/BLAS allocations; sparse-byte estimate is not process RSS."
+        },
+        "symbolicallyExact": false,
+        "referenceNashConv": 0
+      },
+      "originalProfile": {
+        "iterations": 500,
+        "values": [
+          1.4399961535176404,
+          0.56000384648236
+        ],
+        "nashConv": 0.000012962505146374426,
+        "independentProfileNashConv": 0.00001296250514659647,
+        "absoluteValueErrorBB": 0.000003846482359515235
+      },
+      "actions": [
+        {
+          "id": "FOLD",
+          "reference": {
+            "values": [
+              1.3688888888888888,
+              0.6311111111111112
+            ],
+            "validationTolerance": 2e-8,
+            "residuals": {
+              "rowFlow": 0,
+              "columnFlow": 0,
+              "nonnegative": 0,
+              "rowDualViolation": 0,
+              "columnDualViolation": 0,
+              "dualityGap": 0
+            },
+            "method": "SPARSE_SEQUENCE_FORM_PRIMAL_DUAL_HIGHS_DUAL_SIMPLEX",
+            "runtime": {
+              "python": "3.14.4",
+              "numpy": "2.5.3",
+              "scipy": "1.18.1"
+            },
+            "metrics": {
+              "nodes": 551,
+              "leaves": 365,
+              "sequences": [
+                42,
+                81
+              ],
+              "constraints": [
+                6,
+                41
+              ],
+              "payoffNonzeros": 329,
+              "estimatedSparseBytes": 6332,
+              "compileMs": 31.383099994855,
+              "totalMs": 76.42689999192953,
+              "lpIterations": [
+                44,
+                0
+              ],
+              "pythonTracedPeakBytes": 911648,
+              "peakProcessMemory": {
+                "bytes": 79937536,
+                "method": "WINDOWS_PEAK_WORKING_SET_PROCESS_LIFETIME"
+              },
+              "memoryNote": "Python tracemalloc excludes native HiGHS/BLAS allocations; sparse-byte estimate is not process RSS."
+            },
+            "symbolicallyExact": false,
+            "referenceNashConv": 0
+          },
+          "referenceValueBB": 1.3688888888888888,
+          "refinements": [
+            {
+              "iterations": 1,
+              "lowerBB": 1.1573333333333242,
+              "upperBB": 2.0533333333333426,
+              "widthBB": 0.8960000000000183,
+              "estimateBB": 1.6053333333333333,
+              "absoluteMidpointErrorBB": 0.23644444444444446,
+              "profileValueBB": 1.6924444444444449,
+              "nashConv": 0.8959999999999999,
+              "elapsedMs": 7.231999999999971,
+              "containsLPWithinResidualTolerance": true,
+              "estimatedWorkingBytes": 188538,
+              "processRSSBefore": 65626112,
+              "processRSSAfter": 66981888,
+              "processHeapUsedAfter": 11554328
+            },
+            {
+              "iterations": 100,
+              "lowerBB": 1.3687474296453686,
+              "upperBB": 1.3690103410341088,
+              "widthBB": 0.000262911388740239,
+              "estimateBB": 1.3688788853397387,
+              "absoluteMidpointErrorBB": 0.000010003549150150448,
+              "profileValueBB": 1.3688521072844873,
+              "nashConv": 0.00026291138872847064,
+              "elapsedMs": 39.19599999999991,
+              "containsLPWithinResidualTolerance": true,
+              "estimatedWorkingBytes": 188538,
+              "processRSSBefore": 66981888,
+              "processRSSAfter": 68075520,
+              "processHeapUsedAfter": 12978664
+            },
+            {
+              "iterations": 500,
+              "lowerBB": 1.368883185342537,
+              "upperBB": 1.3688937857618153,
+              "widthBB": 0.000010600419278361528,
+              "estimateBB": 1.3688884855521761,
+              "absoluteMidpointErrorBB": 4.033367126954346e-7,
+              "profileValueBB": 1.368887404458669,
+              "nashConv": 0.000010600419265704986,
+              "elapsedMs": 82.31549999999697,
+              "containsLPWithinResidualTolerance": true,
+              "estimatedWorkingBytes": 188538,
+              "processRSSBefore": 68075520,
+              "processRSSAfter": 66772992,
+              "processHeapUsedAfter": 12243600
+            }
+          ]
+        },
+        {
+          "id": "CHECK",
+          "reference": {
+            "values": [
+              1.44,
+              0.56
+            ],
+            "validationTolerance": 2e-8,
+            "residuals": {
+              "rowFlow": 0,
+              "columnFlow": 0,
+              "nonnegative": 0,
+              "rowDualViolation": 0,
+              "columnDualViolation": 0,
+              "dualityGap": 0
+            },
+            "method": "SPARSE_SEQUENCE_FORM_PRIMAL_DUAL_HIGHS_DUAL_SIMPLEX",
+            "runtime": {
+              "python": "3.14.4",
+              "numpy": "2.5.3",
+              "scipy": "1.18.1"
+            },
+            "metrics": {
+              "nodes": 551,
+              "leaves": 365,
+              "sequences": [
+                42,
+                81
+              ],
+              "constraints": [
+                6,
+                41
+              ],
+              "payoffNonzeros": 329,
+              "estimatedSparseBytes": 6332,
+              "compileMs": 33.29289999965113,
+              "totalMs": 75.38719999138266,
+              "lpIterations": [
+                44,
+                0
+              ],
+              "pythonTracedPeakBytes": 911690,
+              "peakProcessMemory": {
+                "bytes": 79978496,
+                "method": "WINDOWS_PEAK_WORKING_SET_PROCESS_LIFETIME"
+              },
+              "memoryNote": "Python tracemalloc excludes native HiGHS/BLAS allocations; sparse-byte estimate is not process RSS."
+            },
+            "symbolicallyExact": false,
+            "referenceNashConv": 0
+          },
+          "referenceValueBB": 1.44,
+          "refinements": [
+            {
+              "iterations": 1,
+              "lowerBB": 1.2284444444444358,
+              "upperBB": 2.124444444444454,
+              "widthBB": 0.8960000000000183,
+              "estimateBB": 1.6764444444444448,
+              "absoluteMidpointErrorBB": 0.2364444444444449,
+              "profileValueBB": 1.7635555555555562,
+              "nashConv": 0.8959999999999999,
+              "elapsedMs": 8.421399999999267,
+              "containsLPWithinResidualTolerance": true,
+              "estimatedWorkingBytes": 188540,
+              "processRSSBefore": 66850816,
+              "processRSSAfter": 68763648,
+              "processHeapUsedAfter": 12126376
+            },
+            {
+              "iterations": 100,
+              "lowerBB": 1.4398585407564801,
+              "upperBB": 1.4401214521452204,
+              "widthBB": 0.000262911388740239,
+              "estimateBB": 1.4399899964508502,
+              "absoluteMidpointErrorBB": 0.000010003549149706359,
+              "profileValueBB": 1.4399632183955984,
+              "nashConv": 0.00026291138872858166,
+              "elapsedMs": 30.601299999998446,
+              "containsLPWithinResidualTolerance": true,
+              "estimatedWorkingBytes": 188540,
+              "processRSSBefore": 68763648,
+              "processRSSAfter": 71057408,
+              "processHeapUsedAfter": 13426864
+            },
+            {
+              "iterations": 500,
+              "lowerBB": 1.4399942964536485,
+              "upperBB": 1.4400048968729269,
+              "widthBB": 0.000010600419278361528,
+              "estimateBB": 1.4399995966632877,
+              "absoluteMidpointErrorBB": 4.033367122513454e-7,
+              "profileValueBB": 1.43999851556978,
+              "nashConv": 0.000010600419265816008,
+              "elapsedMs": 79.90020000000004,
+              "containsLPWithinResidualTolerance": true,
+              "estimatedWorkingBytes": 188540,
+              "processRSSBefore": 71057408,
+              "processRSSAfter": 71151616,
+              "processHeapUsedAfter": 15980776
+            }
+          ]
+        },
+        {
+          "id": "BET:1.00",
+          "reference": {
+            "values": [
+              1.4088888888888889,
+              0.5911111111111111
+            ],
+            "validationTolerance": 2e-8,
+            "residuals": {
+              "rowFlow": 0,
+              "columnFlow": 0,
+              "nonnegative": 0,
+              "rowDualViolation": 0,
+              "columnDualViolation": 0,
+              "dualityGap": 2.220446049250313e-16
+            },
+            "method": "SPARSE_SEQUENCE_FORM_PRIMAL_DUAL_HIGHS_DUAL_SIMPLEX",
+            "runtime": {
+              "python": "3.14.4",
+              "numpy": "2.5.3",
+              "scipy": "1.18.1"
+            },
+            "metrics": {
+              "nodes": 561,
+              "leaves": 370,
+              "sequences": [
+                42,
+                81
+              ],
+              "constraints": [
+                6,
+                41
+              ],
+              "payoffNonzeros": 338,
+              "estimatedSparseBytes": 6440,
+              "compileMs": 37.0997999998508,
+              "totalMs": 89.7601000033319,
+              "lpIterations": [
+                44,
+                0
+              ],
+              "pythonTracedPeakBytes": 918531,
+              "peakProcessMemory": {
+                "bytes": 79986688,
+                "method": "WINDOWS_PEAK_WORKING_SET_PROCESS_LIFETIME"
+              },
+              "memoryNote": "Python tracemalloc excludes native HiGHS/BLAS allocations; sparse-byte estimate is not process RSS."
+            },
+            "symbolicallyExact": false,
+            "referenceNashConv": 0
+          },
+          "referenceValueBB": 1.4088888888888889,
+          "refinements": [
+            {
+              "iterations": 1,
+              "lowerBB": 1.197333333333325,
+              "upperBB": 2.157777777777788,
+              "widthBB": 0.9604444444444629,
+              "estimateBB": 1.6775555555555564,
+              "absoluteMidpointErrorBB": 0.2686666666666675,
+              "profileValueBB": 1.7968888888888892,
+              "nashConv": 0.9604444444444444,
+              "elapsedMs": 5.282100000000355,
+              "containsLPWithinResidualTolerance": true,
+              "estimatedWorkingBytes": 191506,
+              "processRSSBefore": 71262208,
+              "processRSSAfter": 72744960,
+              "processHeapUsedAfter": 15530408
+            },
+            {
+              "iterations": 100,
+              "lowerBB": 1.408747429645369,
+              "upperBB": 1.4090231023102369,
+              "widthBB": 0.00027567266486783204,
+              "estimateBB": 1.408885265977803,
+              "absoluteMidpointErrorBB": 0.000003622911085798819,
+              "profileValueBB": 1.4088648685606149,
+              "nashConv": 0.00027567266485584163,
+              "elapsedMs": 40.84230000000025,
+              "containsLPWithinResidualTolerance": true,
+              "estimatedWorkingBytes": 191506,
+              "processRSSBefore": 72744960,
+              "processRSSAfter": 71397376,
+              "processHeapUsedAfter": 13507240
+            },
+            {
+              "iterations": 500,
+              "lowerBB": 1.4088831853425374,
+              "upperBB": 1.4088943002883185,
+              "widthBB": 0.00001111494578109884,
+              "estimateBB": 1.408888742815428,
+              "absoluteMidpointErrorBB": 1.460734608826897e-7,
+              "profileValueBB": 1.4088879189851717,
+              "nashConv": 0.00001111494576810923,
+              "elapsedMs": 77.9952000000012,
+              "containsLPWithinResidualTolerance": true,
+              "estimatedWorkingBytes": 191506,
+              "processRSSBefore": 71397376,
+              "processRSSAfter": 71430144,
+              "processHeapUsedAfter": 13613984
+            }
+          ]
+        },
+        {
+          "id": "BET:1.14",
+          "reference": {
+            "values": [
+              1.4045333333333332,
+              0.5954666666666668
+            ],
+            "validationTolerance": 2e-8,
+            "residuals": {
+              "rowFlow": 0,
+              "columnFlow": 0,
+              "nonnegative": 0,
+              "rowDualViolation": 0,
+              "columnDualViolation": 7.632783294297951e-17,
+              "dualityGap": 2.220446049250313e-16
+            },
+            "method": "SPARSE_SEQUENCE_FORM_PRIMAL_DUAL_HIGHS_DUAL_SIMPLEX",
+            "runtime": {
+              "python": "3.14.4",
+              "numpy": "2.5.3",
+              "scipy": "1.18.1"
+            },
+            "metrics": {
+              "nodes": 561,
+              "leaves": 370,
+              "sequences": [
+                42,
+                81
+              ],
+              "constraints": [
+                6,
+                41
+              ],
+              "payoffNonzeros": 338,
+              "estimatedSparseBytes": 6440,
+              "compileMs": 34.60190001351293,
+              "totalMs": 76.35170000139624,
+              "lpIterations": [
+                44,
+                0
+              ],
+              "pythonTracedPeakBytes": 918646,
+              "peakProcessMemory": {
+                "bytes": 80023552,
+                "method": "WINDOWS_PEAK_WORKING_SET_PROCESS_LIFETIME"
+              },
+              "memoryNote": "Python tracemalloc excludes native HiGHS/BLAS allocations; sparse-byte estimate is not process RSS."
+            },
+            "symbolicallyExact": false,
+            "referenceNashConv": 0
+          },
+          "referenceValueBB": 1.4045333333333332,
+          "refinements": [
+            {
+              "iterations": 1,
+              "lowerBB": 1.1929777777777695,
+              "upperBB": 2.158088888888899,
+              "widthBB": 0.9651111111111297,
+              "estimateBB": 1.6755333333333344,
+              "absoluteMidpointErrorBB": 0.27100000000000124,
+              "profileValueBB": 1.7972000000000004,
+              "nashConv": 0.9651111111111115,
+              "elapsedMs": 7.925999999999476,
+              "containsLPWithinResidualTolerance": true,
+              "estimatedWorkingBytes": 191506,
+              "processRSSBefore": 71651328,
+              "processRSSAfter": 71651328,
+              "processHeapUsedAfter": 13432576
+            },
+            {
+              "iterations": 100,
+              "lowerBB": 1.4043918740898136,
+              "upperBB": 1.4046684708470907,
+              "widthBB": 0.0002765967572770922,
+              "estimateBB": 1.4045301724684522,
+              "absoluteMidpointErrorBB": 0.00000316086488094669,
+              "profileValueBB": 1.4045102370974687,
+              "nashConv": 0.0002765967572651018,
+              "elapsedMs": 33.49979999999778,
+              "containsLPWithinResidualTolerance": true,
+              "estimatedWorkingBytes": 191506,
+              "processRSSBefore": 71651328,
+              "processRSSAfter": 71913472,
+              "processHeapUsedAfter": 15285080
+            },
+            {
+              "iterations": 500,
+              "lowerBB": 1.4045276297869818,
+              "upperBB": 1.4045387819915787,
+              "widthBB": 0.000011152204596909243,
+              "estimateBB": 1.40453320588928,
+              "absoluteMidpointErrorBB": 1.2744405308851015e-7,
+              "profileValueBB": 1.4045324006884317,
+              "nashConv": 0.000011152204583919634,
+              "elapsedMs": 77.56919999999809,
+              "containsLPWithinResidualTolerance": true,
+              "estimatedWorkingBytes": 191506,
+              "processRSSBefore": 71913472,
+              "processRSSAfter": 80596992,
+              "processHeapUsedAfter": 15733560
+            }
+          ]
+        },
+        {
+          "id": "BET:1.29",
+          "reference": {
+            "values": [
+              1.3998666666666666,
+              0.6001333333333334
+            ],
+            "validationTolerance": 2e-8,
+            "residuals": {
+              "rowFlow": 0,
+              "columnFlow": 0,
+              "nonnegative": 0,
+              "rowDualViolation": 0,
+              "columnDualViolation": 6.938893903907228e-18,
+              "dualityGap": 2.220446049250313e-16
+            },
+            "method": "SPARSE_SEQUENCE_FORM_PRIMAL_DUAL_HIGHS_DUAL_SIMPLEX",
+            "runtime": {
+              "python": "3.14.4",
+              "numpy": "2.5.3",
+              "scipy": "1.18.1"
+            },
+            "metrics": {
+              "nodes": 561,
+              "leaves": 370,
+              "sequences": [
+                42,
+                81
+              ],
+              "constraints": [
+                6,
+                41
+              ],
+              "payoffNonzeros": 338,
+              "estimatedSparseBytes": 6440,
+              "compileMs": 35.46499999356456,
+              "totalMs": 94.78349999699276,
+              "lpIterations": [
+                44,
+                0
+              ],
+              "pythonTracedPeakBytes": 918782,
+              "peakProcessMemory": {
+                "bytes": 80011264,
+                "method": "WINDOWS_PEAK_WORKING_SET_PROCESS_LIFETIME"
+              },
+              "memoryNote": "Python tracemalloc excludes native HiGHS/BLAS allocations; sparse-byte estimate is not process RSS."
+            },
+            "symbolicallyExact": false,
+            "referenceNashConv": 0
+          },
+          "referenceValueBB": 1.3998666666666666,
+          "refinements": [
+            {
+              "iterations": 1,
+              "lowerBB": 1.1883111111111027,
+              "upperBB": 2.1584222222222325,
+              "widthBB": 0.9701111111111298,
+              "estimateBB": 1.6733666666666676,
+              "absoluteMidpointErrorBB": 0.27350000000000096,
+              "profileValueBB": 1.7975333333333336,
+              "nashConv": 0.9701111111111115,
+              "elapsedMs": 6.121299999998882,
+              "containsLPWithinResidualTolerance": true,
+              "estimatedWorkingBytes": 191506,
+              "processRSSBefore": 80601088,
+              "processRSSAfter": 80658432,
+              "processHeapUsedAfter": 19375984
+            },
+            {
+              "iterations": 100,
+              "lowerBB": 1.3997252074231468,
+              "upperBB": 1.400002794279434,
+              "widthBB": 0.00027758685628720414,
+              "estimateBB": 1.3998640008512904,
+              "absoluteMidpointErrorBB": 0.00000266581537622379,
+              "profileValueBB": 1.3998445605298118,
+              "nashConv": 0.00027758685627521373,
+              "elapsedMs": 32.565199999997276,
+              "containsLPWithinResidualTolerance": true,
+              "estimatedWorkingBytes": 191506,
+              "processRSSBefore": 80658432,
+              "processRSSAfter": 80957440,
+              "processHeapUsedAfter": 21301528
+            },
+            {
+              "iterations": 500,
+              "lowerBB": 1.3998609631203152,
+              "upperBB": 1.3998721552450717,
+              "widthBB": 0.00001119212475653164,
+              "estimateBB": 1.3998665591826933,
+              "absoluteMidpointErrorBB": 1.074839732773114e-7,
+              "profileValueBB": 1.3998657739419245,
+              "nashConv": 0.000011192124743653054,
+              "elapsedMs": 100.0622000000003,
+              "containsLPWithinResidualTolerance": true,
+              "estimatedWorkingBytes": 191506,
+              "processRSSBefore": 80957440,
+              "processRSSAfter": 81096704,
+              "processHeapUsedAfter": 13699816
+            }
+          ]
+        },
+        {
+          "id": "BET:1.43",
+          "reference": {
+            "values": [
+              1.3955111111111111,
+              0.6044888888888889
+            ],
+            "validationTolerance": 2e-8,
+            "residuals": {
+              "rowFlow": 0,
+              "columnFlow": 0,
+              "nonnegative": 0,
+              "rowDualViolation": 0,
+              "columnDualViolation": 1.214306433183765e-16,
+              "dualityGap": 0
+            },
+            "method": "SPARSE_SEQUENCE_FORM_PRIMAL_DUAL_HIGHS_DUAL_SIMPLEX",
+            "runtime": {
+              "python": "3.14.4",
+              "numpy": "2.5.3",
+              "scipy": "1.18.1"
+            },
+            "metrics": {
+              "nodes": 561,
+              "leaves": 370,
+              "sequences": [
+                42,
+                81
+              ],
+              "constraints": [
+                6,
+                41
+              ],
+              "payoffNonzeros": 338,
+              "estimatedSparseBytes": 6440,
+              "compileMs": 34.35889999673236,
+              "totalMs": 81.67909999610856,
+              "lpIterations": [
+                44,
+                0
+              ],
+              "pythonTracedPeakBytes": 918794,
+              "peakProcessMemory": {
+                "bytes": 80109568,
+                "method": "WINDOWS_PEAK_WORKING_SET_PROCESS_LIFETIME"
+              },
+              "memoryNote": "Python tracemalloc excludes native HiGHS/BLAS allocations; sparse-byte estimate is not process RSS."
+            },
+            "symbolicallyExact": false,
+            "referenceNashConv": 2.220446049250313e-16
+          },
+          "referenceValueBB": 1.3955111111111111,
+          "refinements": [
+            {
+              "iterations": 1,
+              "lowerBB": 1.1839555555555472,
+              "upperBB": 2.1587333333333434,
+              "widthBB": 0.9747777777777962,
+              "estimateBB": 1.6713444444444452,
+              "absoluteMidpointErrorBB": 0.27583333333333404,
+              "profileValueBB": 1.797844444444445,
+              "nashConv": 0.9747777777777777,
+              "elapsedMs": 5.421099999999569,
+              "containsLPWithinResidualTolerance": true,
+              "estimatedWorkingBytes": 191506,
+              "processRSSBefore": 81096704,
+              "processRSSAfter": 81461248,
+              "processHeapUsedAfter": 17369192
+            },
+            {
+              "iterations": 100,
+              "lowerBB": 1.3953696518675913,
+              "upperBB": 1.3956481628162876,
+              "widthBB": 0.00027851094869624227,
+              "estimateBB": 1.3955089073419393,
+              "absoluteMidpointErrorBB": 0.0000022037691718157504,
+              "profileValueBB": 1.3954899290666654,
+              "nashConv": 0.0002785109486843629,
+              "elapsedMs": 36.43630000000121,
+              "containsLPWithinResidualTolerance": true,
+              "estimatedWorkingBytes": 191506,
+              "processRSSBefore": 81461248,
+              "processRSSAfter": 85504000,
+              "processHeapUsedAfter": 19630536
+            },
+            {
+              "iterations": 500,
+              "lowerBB": 1.3955054075647595,
+              "upperBB": 1.3955166369483318,
+              "widthBB": 0.000011229383572342044,
+              "estimateBB": 1.3955110222565457,
+              "absoluteMidpointErrorBB": 8.885456548313186e-8,
+              "profileValueBB": 1.3955102556451848,
+              "nashConv": 0.000011229383559352435,
+              "elapsedMs": 86.26380000000063,
+              "containsLPWithinResidualTolerance": true,
+              "estimatedWorkingBytes": 191506,
+              "processRSSBefore": 85504000,
+              "processRSSAfter": 82010112,
+              "processHeapUsedAfter": 20219608
+            }
+          ]
+        },
+        {
+          "id": "BET:1.57",
+          "reference": {
+            "values": [
+              1.3911555555555555,
+              0.6088444444444445
+            ],
+            "validationTolerance": 2e-8,
+            "residuals": {
+              "rowFlow": 0,
+              "columnFlow": 0,
+              "nonnegative": 0,
+              "rowDualViolation": 0,
+              "columnDualViolation": 1.0408340855860843e-17,
+              "dualityGap": 0
+            },
+            "method": "SPARSE_SEQUENCE_FORM_PRIMAL_DUAL_HIGHS_DUAL_SIMPLEX",
+            "runtime": {
+              "python": "3.14.4",
+              "numpy": "2.5.3",
+              "scipy": "1.18.1"
+            },
+            "metrics": {
+              "nodes": 561,
+              "leaves": 370,
+              "sequences": [
+                42,
+                81
+              ],
+              "constraints": [
+                6,
+                41
+              ],
+              "payoffNonzeros": 338,
+              "estimatedSparseBytes": 6440,
+              "compileMs": 42.4905999971088,
+              "totalMs": 97.08039999532048,
+              "lpIterations": [
+                44,
+                0
+              ],
+              "pythonTracedPeakBytes": 918401,
+              "peakProcessMemory": {
+                "bytes": 80105472,
+                "method": "WINDOWS_PEAK_WORKING_SET_PROCESS_LIFETIME"
+              },
+              "memoryNote": "Python tracemalloc excludes native HiGHS/BLAS allocations; sparse-byte estimate is not process RSS."
+            },
+            "symbolicallyExact": false,
+            "referenceNashConv": 0
+          },
+          "referenceValueBB": 1.3911555555555555,
+          "refinements": [
+            {
+              "iterations": 1,
+              "lowerBB": 1.1795999999999915,
+              "upperBB": 2.1590444444444548,
+              "widthBB": 0.9794444444444632,
+              "estimateBB": 1.669322222222223,
+              "absoluteMidpointErrorBB": 0.27816666666666756,
+              "profileValueBB": 1.798155555555556,
+              "nashConv": 0.9794444444444447,
+              "elapsedMs": 6.580699999998615,
+              "containsLPWithinResidualTolerance": true,
+              "estimatedWorkingBytes": 191506,
+              "processRSSBefore": 81362944,
+              "processRSSAfter": 82079744,
+              "processHeapUsedAfter": 11183824
+            },
+            {
+              "iterations": 100,
+              "lowerBB": 1.3910140963120357,
+              "upperBB": 1.3912935313531414,
+              "widthBB": 0.0002794350411057245,
+              "estimateBB": 1.3911538138325885,
+              "absoluteMidpointErrorBB": 0.0000017417229669636214,
+              "profileValueBB": 1.3911352976035192,
+              "nashConv": 0.00027943504109362305,
+              "elapsedMs": 40.605799999997544,
+              "containsLPWithinResidualTolerance": true,
+              "estimatedWorkingBytes": 191506,
+              "processRSSBefore": 82079744,
+              "processRSSAfter": 85221376,
+              "processHeapUsedAfter": 15498440
+            },
+            {
+              "iterations": 500,
+              "lowerBB": 1.3911498520092038,
+              "upperBB": 1.391161118651592,
+              "widthBB": 0.000011266642388152448,
+              "estimateBB": 1.391155485330398,
+              "absoluteMidpointErrorBB": 7.022515746690772e-8,
+              "profileValueBB": 1.3911547373484447,
+              "nashConv": 0.000011266642375051816,
+              "elapsedMs": 118.3862999999983,
+              "containsLPWithinResidualTolerance": true,
+              "estimatedWorkingBytes": 191506,
+              "processRSSBefore": 85225472,
+              "processRSSAfter": 81506304,
+              "processHeapUsedAfter": 8698808
+            }
+          ]
+        },
+        {
+          "id": "BET:1.71",
+          "reference": {
+            "values": [
+              1.3868,
+              0.6132
+            ],
+            "validationTolerance": 2e-8,
+            "residuals": {
+              "rowFlow": 0,
+              "columnFlow": 0,
+              "nonnegative": 0,
+              "rowDualViolation": 0,
+              "columnDualViolation": 0,
+              "dualityGap": 0
+            },
+            "method": "SPARSE_SEQUENCE_FORM_PRIMAL_DUAL_HIGHS_DUAL_SIMPLEX",
+            "runtime": {
+              "python": "3.14.4",
+              "numpy": "2.5.3",
+              "scipy": "1.18.1"
+            },
+            "metrics": {
+              "nodes": 561,
+              "leaves": 370,
+              "sequences": [
+                42,
+                81
+              ],
+              "constraints": [
+                6,
+                41
+              ],
+              "payoffNonzeros": 338,
+              "estimatedSparseBytes": 6440,
+              "compileMs": 43.66539999318775,
+              "totalMs": 91.5101999999024,
+              "lpIterations": [
+                44,
+                0
+              ],
+              "pythonTracedPeakBytes": 918763,
+              "peakProcessMemory": {
+                "bytes": 79982592,
+                "method": "WINDOWS_PEAK_WORKING_SET_PROCESS_LIFETIME"
+              },
+              "memoryNote": "Python tracemalloc excludes native HiGHS/BLAS allocations; sparse-byte estimate is not process RSS."
+            },
+            "symbolicallyExact": false,
+            "referenceNashConv": 0
+          },
+          "referenceValueBB": 1.3868,
+          "refinements": [
+            {
+              "iterations": 1,
+              "lowerBB": 1.175244444444436,
+              "upperBB": 2.1593555555555657,
+              "widthBB": 0.9841111111111296,
+              "estimateBB": 1.667300000000001,
+              "absoluteMidpointErrorBB": 0.28050000000000086,
+              "profileValueBB": 1.798466666666667,
+              "nashConv": 0.9841111111111112,
+              "elapsedMs": 5.541100000002189,
+              "containsLPWithinResidualTolerance": true,
+              "estimatedWorkingBytes": 191506,
+              "processRSSBefore": 81592320,
+              "processRSSAfter": 81592320,
+              "processHeapUsedAfter": 12522352
+            },
+            {
+              "iterations": 100,
+              "lowerBB": 1.38665854075648,
+              "upperBB": 1.386938899889995,
+              "widthBB": 0.00028035913351498465,
+              "estimateBB": 1.3867987203232375,
+              "absoluteMidpointErrorBB": 0.0000012796767625555816,
+              "profileValueBB": 1.3867806661403725,
+              "nashConv": 0.00028035913350310526,
+              "elapsedMs": 34.20679999999993,
+              "containsLPWithinResidualTolerance": true,
+              "estimatedWorkingBytes": 191506,
+              "processRSSBefore": 81592320,
+              "processRSSAfter": 81932288,
+              "processHeapUsedAfter": 14563696
+            },
+            {
+              "iterations": 500,
+              "lowerBB": 1.3867942964536484,
+              "upperBB": 1.3868056003548521,
+              "widthBB": 0.000011303901203740807,
+              "estimateBB": 1.3867999484042501,
+              "absoluteMidpointErrorBB": 5.159574989477278e-8,
+              "profileValueBB": 1.3867992190517051,
+              "nashConv": 0.000011303901190751198,
+              "elapsedMs": 107.21820000000298,
+              "containsLPWithinResidualTolerance": true,
+              "estimatedWorkingBytes": 191506,
+              "processRSSBefore": 81932288,
+              "processRSSAfter": 81809408,
+              "processHeapUsedAfter": 15154744
+            }
+          ]
+        },
+        {
+          "id": "BET:1.86",
+          "reference": {
+            "values": [
+              1.3821333333333332,
+              0.6178666666666668
+            ],
+            "validationTolerance": 2e-8,
+            "residuals": {
+              "rowFlow": 0,
+              "columnFlow": 0,
+              "nonnegative": 0,
+              "rowDualViolation": 0,
+              "columnDualViolation": 4.85722573273506e-17,
+              "dualityGap": 2.220446049250313e-16
+            },
+            "method": "SPARSE_SEQUENCE_FORM_PRIMAL_DUAL_HIGHS_DUAL_SIMPLEX",
+            "runtime": {
+              "python": "3.14.4",
+              "numpy": "2.5.3",
+              "scipy": "1.18.1"
+            },
+            "metrics": {
+              "nodes": 561,
+              "leaves": 370,
+              "sequences": [
+                42,
+                81
+              ],
+              "constraints": [
+                6,
+                41
+              ],
+              "payoffNonzeros": 338,
+              "estimatedSparseBytes": 6440,
+              "compileMs": 36.25289999763481,
+              "totalMs": 81.84569999866653,
+              "lpIterations": [
+                44,
+                0
+              ],
+              "pythonTracedPeakBytes": 918554,
+              "peakProcessMemory": {
+                "bytes": 79683584,
+                "method": "WINDOWS_PEAK_WORKING_SET_PROCESS_LIFETIME"
+              },
+              "memoryNote": "Python tracemalloc excludes native HiGHS/BLAS allocations; sparse-byte estimate is not process RSS."
+            },
+            "symbolicallyExact": false,
+            "referenceNashConv": 0
+          },
+          "referenceValueBB": 1.3821333333333332,
+          "refinements": [
+            {
+              "iterations": 1,
+              "lowerBB": 1.1705777777777695,
+              "upperBB": 2.159688888888899,
+              "widthBB": 0.9891111111111295,
+              "estimateBB": 1.6651333333333342,
+              "absoluteMidpointErrorBB": 0.28300000000000103,
+              "profileValueBB": 1.7988000000000004,
+              "nashConv": 0.9891111111111112,
+              "elapsedMs": 3.9694000000017695,
+              "containsLPWithinResidualTolerance": true,
+              "estimatedWorkingBytes": 191506,
+              "processRSSBefore": 81870848,
+              "processRSSAfter": 81870848,
+              "processHeapUsedAfter": 10731832
+            },
+            {
+              "iterations": 100,
+              "lowerBB": 1.3819918740898134,
+              "upperBB": 1.3822732233223383,
+              "widthBB": 0.00028134923252487454,
+              "estimateBB": 1.3821325487060758,
+              "absoluteMidpointErrorBB": 7.846272573885926e-7,
+              "profileValueBB": 1.382114989572716,
+              "nashConv": 0.00028134923251255106,
+              "elapsedMs": 16.339600000006612,
+              "containsLPWithinResidualTolerance": true,
+              "estimatedWorkingBytes": 191506,
+              "processRSSBefore": 81870848,
+              "processRSSAfter": 82083840,
+              "processHeapUsedAfter": 12566296
+            },
+            {
+              "iterations": 500,
+              "lowerBB": 1.3821276297869818,
+              "upperBB": 1.3821389736083451,
+              "widthBB": 0.000011343821363363205,
+              "estimateBB": 1.3821333016976634,
+              "absoluteMidpointErrorBB": 3.1635669861529436e-8,
+              "profileValueBB": 1.3821325923051981,
+              "nashConv": 0.000011343821350373595,
+              "elapsedMs": 75.86769999999524,
+              "containsLPWithinResidualTolerance": true,
+              "estimatedWorkingBytes": 191506,
+              "processRSSBefore": 82083840,
+              "processRSSAfter": 81510400,
+              "processHeapUsedAfter": 13613856
+            }
+          ]
+        },
+        {
+          "id": "BET:2.00",
+          "reference": {
+            "values": [
+              1.3777777777777778,
+              0.6222222222222222
+            ],
+            "validationTolerance": 2e-8,
+            "residuals": {
+              "rowFlow": 0,
+              "columnFlow": 0,
+              "nonnegative": 0,
+              "rowDualViolation": 0,
+              "columnDualViolation": 3.469446951953614e-18,
+              "dualityGap": 2.220446049250313e-16
+            },
+            "method": "SPARSE_SEQUENCE_FORM_PRIMAL_DUAL_HIGHS_DUAL_SIMPLEX",
+            "runtime": {
+              "python": "3.14.4",
+              "numpy": "2.5.3",
+              "scipy": "1.18.1"
+            },
+            "metrics": {
+              "nodes": 561,
+              "leaves": 370,
+              "sequences": [
+                42,
+                81
+              ],
+              "constraints": [
+                6,
+                41
+              ],
+              "payoffNonzeros": 338,
+              "estimatedSparseBytes": 6440,
+              "compileMs": 46.40240001026541,
+              "totalMs": 101.91990000021178,
+              "lpIterations": [
+                44,
+                0
+              ],
+              "pythonTracedPeakBytes": 918586,
+              "peakProcessMemory": {
+                "bytes": 79925248,
+                "method": "WINDOWS_PEAK_WORKING_SET_PROCESS_LIFETIME"
+              },
+              "memoryNote": "Python tracemalloc excludes native HiGHS/BLAS allocations; sparse-byte estimate is not process RSS."
+            },
+            "symbolicallyExact": false,
+            "referenceNashConv": 0
+          },
+          "referenceValueBB": 1.3777777777777778,
+          "refinements": [
+            {
+              "iterations": 1,
+              "lowerBB": 1.1662222222222138,
+              "upperBB": 2.1600000000000104,
+              "widthBB": 0.9937777777777965,
+              "estimateBB": 1.663111111111112,
+              "absoluteMidpointErrorBB": 0.2853333333333343,
+              "profileValueBB": 1.7991111111111115,
+              "nashConv": 0.9937777777777781,
+              "elapsedMs": 2.493399999999383,
+              "containsLPWithinResidualTolerance": true,
+              "estimatedWorkingBytes": 191506,
+              "processRSSBefore": 81604608,
+              "processRSSAfter": 81616896,
+              "processHeapUsedAfter": 17352816
+            },
+            {
+              "iterations": 100,
+              "lowerBB": 1.3776363185342577,
+              "upperBB": 1.377918591859192,
+              "widthBB": 0.00028227332493435675,
+              "estimateBB": 1.3777774551967248,
+              "absoluteMidpointErrorBB": 3.2258105298055284e-7,
+              "profileValueBB": 1.3777603581095696,
+              "nashConv": 0.0002822733249220333,
+              "elapsedMs": 16.882799999999406,
+              "containsLPWithinResidualTolerance": true,
+              "estimatedWorkingBytes": 191506,
+              "processRSSBefore": 81616896,
+              "processRSSAfter": 81592320,
+              "processHeapUsedAfter": 11198440
+            },
+            {
+              "iterations": 500,
+              "lowerBB": 1.3777720742314263,
+              "upperBB": 1.3777834553116053,
+              "widthBB": 0.000011381080178951564,
+              "estimateBB": 1.377777764771516,
+              "absoluteMidpointErrorBB": 1.3006261845305289e-8,
+              "profileValueBB": 1.3777770740084585,
+              "nashConv": 0.000011381080166072977,
+              "elapsedMs": 63.90969999999652,
+              "containsLPWithinResidualTolerance": true,
+              "estimatedWorkingBytes": 191506,
+              "processRSSBefore": 81600512,
+              "processRSSAfter": 98418688,
+              "processHeapUsedAfter": 11160680
+            }
+          ]
+        }
+      ],
+      "dominance": [
+        {
+          "iterations": 1,
+          "status": "INCONCLUSIVE",
+          "leader": null,
+          "comparedEveryAlternative": true
+        },
+        {
+          "iterations": 100,
+          "status": "CONCLUSIVE",
+          "leader": "CHECK",
+          "comparedEveryAlternative": true
+        },
+        {
+          "iterations": 500,
+          "status": "CONCLUSIVE",
+          "leader": "CHECK",
+          "comparedEveryAlternative": true
+        }
+      ],
+      "elapsedMs": 36098.2668
+    }
+  ],
+  "passedContainmentChecks": 51
+}

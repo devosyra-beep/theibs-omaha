@@ -1,0 +1,3364 @@
+{
+  "classification": "LOCAL_REAL_SOLVER_WORKER_SYNTHETIC_DECLARED_HU_RIVER_STUDIES",
+  "generatedAt": "2026-09-30T10:27:50.915Z",
+  "environment": {
+    "platform": "win32",
+    "release": "10.0.26200",
+    "architecture": "x64",
+    "node": "v24.19.0",
+    "cpu": "12th Gen Intel(R) Core(TM) i5-1235U",
+    "logicalCPUCount": 12,
+    "totalMemoryBytes": 16849256448
+  },
+  "solverVersion": "THEIBS_FULL_TREE_CFR_PLUS_V1",
+  "certificateVersion": "THEIBS_ACTION_CONDITIONED_V1",
+  "budgets": {
+    "FAST": {
+      "timeMs": 500,
+      "iterations": 50
+    },
+    "STANDARD": {
+      "timeMs": 3000,
+      "iterations": 1000
+    },
+    "DEEP": {
+      "timeMs": 30000,
+      "iterations": 20000
+    }
+  },
+  "limits": {
+    "maxNodes": 12000,
+    "maxWorlds": 27,
+    "maxMemoryBytes": 50331648,
+    "maxBuildMs": 750
+  },
+  "samplesPerScenario": 5,
+  "pollIntervalMs": 2,
+  "percentileMethod": "nearest rank; p95 of 5 is sample maximum",
+  "coldDefinition": "Empty service cache and a fresh real worker thread per FAST/STANDARD job; OS file caches and the parent Node process are not flushed.",
+  "warmDefinition": "Exact in-memory compatible FAST cache read after the adaptive run; no worker launched and numerical result unchanged.",
+  "precisionPolicy": "The same production budgets, bounds and qualification apply to every run. Resource stops remain inconclusive when bounds overlap; precision is never weakened to meet latency.",
+  "limitations": [
+    "Windows local measurements, not a Render or network SLA.",
+    "Five samples give descriptive p50/p95 only, not a tail-latency guarantee.",
+    "Synthetic explicit finite ranges and bounded river sizing; no broader PLO, streets or multiplayer claim.",
+    "No concurrent EV, microphone, browser or audio recognition load is included.",
+    "Polling timestamps upper-bound publication visibility by scheduling/polling delay; the service first-value timestamp is also recorded.",
+    "RSS covers the entire benchmark Node process and worker threads, can retain allocator/JIT memory across samples, and is not per-worker peak memory."
+  ],
+  "scenarios": [
+    {
+      "id": "separated_terminal_call",
+      "samples": [
+        {
+          "sample": 1,
+          "cold": {
+            "firstProfileObservedMs": 71.912,
+            "firstProfileServiceReportedMs": 71,
+            "firstFullCertificateObservedMs": 150.658,
+            "completedObservedMs": 155.499,
+            "decisionComputeMs": 39.88,
+            "decisionWorkIterations": 100,
+            "phases": [
+              {
+                "budget": "FAST",
+                "elapsedMs": 74.867,
+                "cacheHit": false,
+                "timing": {
+                  "acknowledgementMs": 4,
+                  "firstValueMs": 71,
+                  "totalMs": 75,
+                  "workerMs": 19.26610000000001,
+                  "decisionComputeMs": 19.26610000000001,
+                  "decisionWorkIterations": 50
+                },
+                "status": "SOLVED",
+                "comparisonStatus": "INCONCLUSIVE",
+                "stopReason": "ITERATION_RESOURCE_CEILING"
+              },
+              {
+                "budget": "STANDARD",
+                "elapsedMs": 80.547,
+                "cacheHit": true,
+                "timing": {
+                  "acknowledgementMs": 1,
+                  "firstValueMs": 1,
+                  "totalMs": 80,
+                  "workerMs": 20.61359999999999,
+                  "decisionComputeMs": 39.8797,
+                  "decisionWorkIterations": 100
+                },
+                "status": "SOLVED",
+                "comparisonStatus": "CONCLUSIVE",
+                "stopReason": "GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION"
+              }
+            ]
+          },
+          "warm": {
+            "readObservedMs": 1.181,
+            "firstProfileMs": 1.181,
+            "fullCertificateMs": 1.181,
+            "cachedResultIdentical": true,
+            "newWorkerComputeMs": 0
+          },
+          "memory": {
+            "unit": "bytes",
+            "scope": "PROCESS_RSS_MAIN_AND_ALL_WORKER_THREADS_SAMPLED_EVERY_2MS_NOT_PER_WORKER",
+            "baselineRSS": 56594432,
+            "peakRSS": 76460032,
+            "peakIncreaseRSS": 19865600,
+            "lastWorkerReportedHeapBytes": 9358184
+          },
+          "quality": {
+            "status": "SOLVED",
+            "comparisonStatus": "CONCLUSIVE",
+            "comparisonTarget": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+            "reasonCode": "SEPARATED_ACTION_COMMITMENT_BOUNDS",
+            "bestActionId": "CALL",
+            "deltaEVBB": 3.0000000000000013,
+            "nashConvBB": 0.0071428571428571175,
+            "globalThresholdBB": 0.01,
+            "globalThresholdMet": true,
+            "stopReason": "GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION",
+            "refinementRecommended": false,
+            "totalWorkIterations": 100,
+            "globalIterations": 20,
+            "actionIterations": 80,
+            "originalActions": [
+              {
+                "id": "FOLD",
+                "action": "FOLD",
+                "size": null,
+                "frequency": 0.002380952380952381,
+                "evBB": 0
+              },
+              {
+                "id": "CALL",
+                "action": "CALL",
+                "size": null,
+                "frequency": 0.9976190476190476,
+                "evBB": 3
+              }
+            ],
+            "worlds": 1,
+            "nodes": 4,
+            "originalTreeUnchanged": true,
+            "contextValidated": true,
+            "actionBounds": [
+              {
+                "id": "FOLD",
+                "certified": true,
+                "estimateBB": -8.881784197001254e-16,
+                "lowerBB": -1.776356839400251e-15,
+                "upperBB": 0,
+                "widthBB": 1.776356839400251e-15,
+                "iterations": 30,
+                "elapsedMs": 1.8778999999999826,
+                "strategicDecisionCount": 0,
+                "conditionedHash": "521acd3a87ae82a7062d39c6ea3837ad8c7c6ae7288b09ded7ba499aeea98572",
+                "baseGameHash": "3fac6be2ef892501b6e39b7e100339ea14bf5c10222a181a579e0fd13b26c96d",
+                "baseContextKey": "ef276606128e467ccdf2ca98e2ba9baf2d99e8f265e609c21644be8e3a8e8dde"
+              },
+              {
+                "id": "CALL",
+                "certified": true,
+                "estimateBB": 3.0000000000000004,
+                "lowerBB": 2.9999999999999996,
+                "upperBB": 3.0000000000000013,
+                "widthBB": 1.7763568394002505e-15,
+                "iterations": 50,
+                "elapsedMs": 2.2087999999999965,
+                "strategicDecisionCount": 0,
+                "conditionedHash": "223e18b000ddca69fd4c7a3ba79656a815a26020858152d319f23dbf9d9c7142",
+                "baseGameHash": "3fac6be2ef892501b6e39b7e100339ea14bf5c10222a181a579e0fd13b26c96d",
+                "baseContextKey": "ef276606128e467ccdf2ca98e2ba9baf2d99e8f265e609c21644be8e3a8e8dde"
+              }
+            ],
+            "survivingActionIds": [
+              "CALL"
+            ],
+            "dominatedActions": [
+              {
+                "id": "FOLD",
+                "dominatedBy": "CALL",
+                "upperBB": 0,
+                "leaderLowerBB": 2.9999999999999996,
+                "toleranceBB": 1.0658141036401508e-14
+              }
+            ],
+            "rootDiagnostics": {
+              "profileRegretBB": 0.0071428571428571175,
+              "counterfactualOneStepRegret": 0.0071428571428571175,
+              "profileValue": 2.992857142857143,
+              "stability": {
+                "comparable": true,
+                "maxActionEVChange": 0,
+                "maxFrequencyChange": 0
+              },
+              "scope": "CONDITIONAL_RETURNED_PROFILE_DIAGNOSTICS_NOT_CONVERGENCE_PROOF"
+            },
+            "stability": {
+              "comparable": true,
+              "maxActionEVChange": 0,
+              "maxFrequencyChange": 0,
+              "maxActionEVChangeBB": 0
+            },
+            "costs": {
+              "buildMs": 22.511499999999998,
+              "globalSolveMs": 3.670599999999979,
+              "globalEvaluationMs": 1.000799999999984,
+              "actionSolveMs": 4.086699999999979,
+              "totalComputeMs": 38.72189999999999
+            },
+            "actionCosts": {
+              "FOLD": {
+                "elapsedMs": 1.8778999999999826,
+                "iterations": 30,
+                "batches": 1
+              },
+              "CALL": {
+                "elapsedMs": 2.2087999999999965,
+                "iterations": 50,
+                "batches": 1
+              }
+            }
+          }
+        },
+        {
+          "sample": 2,
+          "cold": {
+            "firstProfileObservedMs": 73.05,
+            "firstProfileServiceReportedMs": 73,
+            "firstFullCertificateObservedMs": 138.148,
+            "completedObservedMs": 138.226,
+            "decisionComputeMs": 36.142,
+            "decisionWorkIterations": 100,
+            "phases": [
+              {
+                "budget": "FAST",
+                "elapsedMs": 76.231,
+                "cacheHit": false,
+                "timing": {
+                  "acknowledgementMs": 1,
+                  "firstValueMs": 73,
+                  "totalMs": 76,
+                  "workerMs": 19.276400000000024,
+                  "decisionComputeMs": 19.276400000000024,
+                  "decisionWorkIterations": 50
+                },
+                "status": "SOLVED",
+                "comparisonStatus": "INCONCLUSIVE",
+                "stopReason": "ITERATION_RESOURCE_CEILING"
+              },
+              {
+                "budget": "STANDARD",
+                "elapsedMs": 61.967,
+                "cacheHit": true,
+                "timing": {
+                  "acknowledgementMs": 1,
+                  "firstValueMs": 1,
+                  "totalMs": 62,
+                  "workerMs": 16.86590000000001,
+                  "decisionComputeMs": 36.142300000000034,
+                  "decisionWorkIterations": 100
+                },
+                "status": "SOLVED",
+                "comparisonStatus": "CONCLUSIVE",
+                "stopReason": "GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION"
+              }
+            ]
+          },
+          "warm": {
+            "readObservedMs": 0.94,
+            "firstProfileMs": 0.94,
+            "fullCertificateMs": 0.94,
+            "cachedResultIdentical": true,
+            "newWorkerComputeMs": 0
+          },
+          "memory": {
+            "unit": "bytes",
+            "scope": "PROCESS_RSS_MAIN_AND_ALL_WORKER_THREADS_SAMPLED_EVERY_2MS_NOT_PER_WORKER",
+            "baselineRSS": 72523776,
+            "peakRSS": 80240640,
+            "peakIncreaseRSS": 7716864,
+            "lastWorkerReportedHeapBytes": 8808496
+          },
+          "quality": {
+            "status": "SOLVED",
+            "comparisonStatus": "CONCLUSIVE",
+            "comparisonTarget": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+            "reasonCode": "SEPARATED_ACTION_COMMITMENT_BOUNDS",
+            "bestActionId": "CALL",
+            "deltaEVBB": 3.0000000000000013,
+            "nashConvBB": 0.0071428571428571175,
+            "globalThresholdBB": 0.01,
+            "globalThresholdMet": true,
+            "stopReason": "GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION",
+            "refinementRecommended": false,
+            "totalWorkIterations": 100,
+            "globalIterations": 20,
+            "actionIterations": 80,
+            "originalActions": [
+              {
+                "id": "FOLD",
+                "action": "FOLD",
+                "size": null,
+                "frequency": 0.002380952380952381,
+                "evBB": 0
+              },
+              {
+                "id": "CALL",
+                "action": "CALL",
+                "size": null,
+                "frequency": 0.9976190476190476,
+                "evBB": 3
+              }
+            ],
+            "worlds": 1,
+            "nodes": 4,
+            "originalTreeUnchanged": true,
+            "contextValidated": true,
+            "actionBounds": [
+              {
+                "id": "FOLD",
+                "certified": true,
+                "estimateBB": -8.881784197001254e-16,
+                "lowerBB": -1.776356839400251e-15,
+                "upperBB": 0,
+                "widthBB": 1.776356839400251e-15,
+                "iterations": 30,
+                "elapsedMs": 1.919499999999971,
+                "strategicDecisionCount": 0,
+                "conditionedHash": "521acd3a87ae82a7062d39c6ea3837ad8c7c6ae7288b09ded7ba499aeea98572",
+                "baseGameHash": "3fac6be2ef892501b6e39b7e100339ea14bf5c10222a181a579e0fd13b26c96d",
+                "baseContextKey": "ef276606128e467ccdf2ca98e2ba9baf2d99e8f265e609c21644be8e3a8e8dde"
+              },
+              {
+                "id": "CALL",
+                "certified": true,
+                "estimateBB": 3.0000000000000004,
+                "lowerBB": 2.9999999999999996,
+                "upperBB": 3.0000000000000013,
+                "widthBB": 1.7763568394002505e-15,
+                "iterations": 50,
+                "elapsedMs": 2.4979999999999905,
+                "strategicDecisionCount": 0,
+                "conditionedHash": "223e18b000ddca69fd4c7a3ba79656a815a26020858152d319f23dbf9d9c7142",
+                "baseGameHash": "3fac6be2ef892501b6e39b7e100339ea14bf5c10222a181a579e0fd13b26c96d",
+                "baseContextKey": "ef276606128e467ccdf2ca98e2ba9baf2d99e8f265e609c21644be8e3a8e8dde"
+              }
+            ],
+            "survivingActionIds": [
+              "CALL"
+            ],
+            "dominatedActions": [
+              {
+                "id": "FOLD",
+                "dominatedBy": "CALL",
+                "upperBB": 0,
+                "leaderLowerBB": 2.9999999999999996,
+                "toleranceBB": 1.0658141036401508e-14
+              }
+            ],
+            "rootDiagnostics": {
+              "profileRegretBB": 0.0071428571428571175,
+              "counterfactualOneStepRegret": 0.0071428571428571175,
+              "profileValue": 2.992857142857143,
+              "stability": {
+                "comparable": true,
+                "maxActionEVChange": 0,
+                "maxFrequencyChange": 0
+              },
+              "scope": "CONDITIONAL_RETURNED_PROFILE_DIAGNOSTICS_NOT_CONVERGENCE_PROOF"
+            },
+            "stability": {
+              "comparable": true,
+              "maxActionEVChange": 0,
+              "maxFrequencyChange": 0,
+              "maxActionEVChangeBB": 0
+            },
+            "costs": {
+              "buildMs": 19.977900000000034,
+              "globalSolveMs": 3.525099999999952,
+              "globalEvaluationMs": 0.977299999999957,
+              "actionSolveMs": 4.417499999999961,
+              "totalComputeMs": 35.57279999999997
+            },
+            "actionCosts": {
+              "FOLD": {
+                "elapsedMs": 1.919499999999971,
+                "iterations": 30,
+                "batches": 1
+              },
+              "CALL": {
+                "elapsedMs": 2.4979999999999905,
+                "iterations": 50,
+                "batches": 1
+              }
+            }
+          }
+        },
+        {
+          "sample": 3,
+          "cold": {
+            "firstProfileObservedMs": 62.202,
+            "firstProfileServiceReportedMs": 62,
+            "firstFullCertificateObservedMs": 129.842,
+            "completedObservedMs": 133.982,
+            "decisionComputeMs": 35.832,
+            "decisionWorkIterations": 100,
+            "phases": [
+              {
+                "budget": "FAST",
+                "elapsedMs": 66.045,
+                "cacheHit": false,
+                "timing": {
+                  "acknowledgementMs": 1,
+                  "firstValueMs": 62,
+                  "totalMs": 66,
+                  "workerMs": 19.65440000000001,
+                  "decisionComputeMs": 19.65440000000001,
+                  "decisionWorkIterations": 50
+                },
+                "status": "SOLVED",
+                "comparisonStatus": "INCONCLUSIVE",
+                "stopReason": "ITERATION_RESOURCE_CEILING"
+              },
+              {
+                "budget": "STANDARD",
+                "elapsedMs": 67.895,
+                "cacheHit": true,
+                "timing": {
+                  "acknowledgementMs": 1,
+                  "firstValueMs": 1,
+                  "totalMs": 68,
+                  "workerMs": 16.177399999999977,
+                  "decisionComputeMs": 35.83179999999999,
+                  "decisionWorkIterations": 100
+                },
+                "status": "SOLVED",
+                "comparisonStatus": "CONCLUSIVE",
+                "stopReason": "GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION"
+              }
+            ]
+          },
+          "warm": {
+            "readObservedMs": 0.849,
+            "firstProfileMs": 0.849,
+            "fullCertificateMs": 0.849,
+            "cachedResultIdentical": true,
+            "newWorkerComputeMs": 0
+          },
+          "memory": {
+            "unit": "bytes",
+            "scope": "PROCESS_RSS_MAIN_AND_ALL_WORKER_THREADS_SAMPLED_EVERY_2MS_NOT_PER_WORKER",
+            "baselineRSS": 75497472,
+            "peakRSS": 80130048,
+            "peakIncreaseRSS": 4632576,
+            "lastWorkerReportedHeapBytes": 8765680
+          },
+          "quality": {
+            "status": "SOLVED",
+            "comparisonStatus": "CONCLUSIVE",
+            "comparisonTarget": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+            "reasonCode": "SEPARATED_ACTION_COMMITMENT_BOUNDS",
+            "bestActionId": "CALL",
+            "deltaEVBB": 3.0000000000000013,
+            "nashConvBB": 0.0071428571428571175,
+            "globalThresholdBB": 0.01,
+            "globalThresholdMet": true,
+            "stopReason": "GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION",
+            "refinementRecommended": false,
+            "totalWorkIterations": 100,
+            "globalIterations": 20,
+            "actionIterations": 80,
+            "originalActions": [
+              {
+                "id": "FOLD",
+                "action": "FOLD",
+                "size": null,
+                "frequency": 0.002380952380952381,
+                "evBB": 0
+              },
+              {
+                "id": "CALL",
+                "action": "CALL",
+                "size": null,
+                "frequency": 0.9976190476190476,
+                "evBB": 3
+              }
+            ],
+            "worlds": 1,
+            "nodes": 4,
+            "originalTreeUnchanged": true,
+            "contextValidated": true,
+            "actionBounds": [
+              {
+                "id": "FOLD",
+                "certified": true,
+                "estimateBB": -8.881784197001254e-16,
+                "lowerBB": -1.776356839400251e-15,
+                "upperBB": 0,
+                "widthBB": 1.776356839400251e-15,
+                "iterations": 30,
+                "elapsedMs": 2.047300000000007,
+                "strategicDecisionCount": 0,
+                "conditionedHash": "521acd3a87ae82a7062d39c6ea3837ad8c7c6ae7288b09ded7ba499aeea98572",
+                "baseGameHash": "3fac6be2ef892501b6e39b7e100339ea14bf5c10222a181a579e0fd13b26c96d",
+                "baseContextKey": "ef276606128e467ccdf2ca98e2ba9baf2d99e8f265e609c21644be8e3a8e8dde"
+              },
+              {
+                "id": "CALL",
+                "certified": true,
+                "estimateBB": 3.0000000000000004,
+                "lowerBB": 2.9999999999999996,
+                "upperBB": 3.0000000000000013,
+                "widthBB": 1.7763568394002505e-15,
+                "iterations": 50,
+                "elapsedMs": 1.9873000000000047,
+                "strategicDecisionCount": 0,
+                "conditionedHash": "223e18b000ddca69fd4c7a3ba79656a815a26020858152d319f23dbf9d9c7142",
+                "baseGameHash": "3fac6be2ef892501b6e39b7e100339ea14bf5c10222a181a579e0fd13b26c96d",
+                "baseContextKey": "ef276606128e467ccdf2ca98e2ba9baf2d99e8f265e609c21644be8e3a8e8dde"
+              }
+            ],
+            "survivingActionIds": [
+              "CALL"
+            ],
+            "dominatedActions": [
+              {
+                "id": "FOLD",
+                "dominatedBy": "CALL",
+                "upperBB": 0,
+                "leaderLowerBB": 2.9999999999999996,
+                "toleranceBB": 1.0658141036401508e-14
+              }
+            ],
+            "rootDiagnostics": {
+              "profileRegretBB": 0.0071428571428571175,
+              "counterfactualOneStepRegret": 0.0071428571428571175,
+              "profileValue": 2.992857142857143,
+              "stability": {
+                "comparable": true,
+                "maxActionEVChange": 0,
+                "maxFrequencyChange": 0
+              },
+              "scope": "CONDITIONAL_RETURNED_PROFILE_DIAGNOSTICS_NOT_CONVERGENCE_PROOF"
+            },
+            "stability": {
+              "comparable": true,
+              "maxActionEVChange": 0,
+              "maxFrequencyChange": 0,
+              "maxActionEVChangeBB": 0
+            },
+            "costs": {
+              "buildMs": 19.082499999999982,
+              "globalSolveMs": 3.431600000000003,
+              "globalEvaluationMs": 0.9466999999999643,
+              "actionSolveMs": 4.034600000000012,
+              "totalComputeMs": 35.25119999999998
+            },
+            "actionCosts": {
+              "FOLD": {
+                "elapsedMs": 2.047300000000007,
+                "iterations": 30,
+                "batches": 1
+              },
+              "CALL": {
+                "elapsedMs": 1.9873000000000047,
+                "iterations": 50,
+                "batches": 1
+              }
+            }
+          }
+        },
+        {
+          "sample": 4,
+          "cold": {
+            "firstProfileObservedMs": 58.724,
+            "firstProfileServiceReportedMs": 58,
+            "firstFullCertificateObservedMs": 127.413,
+            "completedObservedMs": 132.121,
+            "decisionComputeMs": 33.648,
+            "decisionWorkIterations": 100,
+            "phases": [
+              {
+                "budget": "FAST",
+                "elapsedMs": 65.06,
+                "cacheHit": false,
+                "timing": {
+                  "acknowledgementMs": 1,
+                  "firstValueMs": 58,
+                  "totalMs": 65,
+                  "workerMs": 16.704999999999927,
+                  "decisionComputeMs": 16.704999999999927,
+                  "decisionWorkIterations": 50
+                },
+                "status": "SOLVED",
+                "comparisonStatus": "INCONCLUSIVE",
+                "stopReason": "ITERATION_RESOURCE_CEILING"
+              },
+              {
+                "budget": "STANDARD",
+                "elapsedMs": 67.031,
+                "cacheHit": true,
+                "timing": {
+                  "acknowledgementMs": 1,
+                  "firstValueMs": 1,
+                  "totalMs": 67,
+                  "workerMs": 16.942999999999984,
+                  "decisionComputeMs": 33.64799999999991,
+                  "decisionWorkIterations": 100
+                },
+                "status": "SOLVED",
+                "comparisonStatus": "CONCLUSIVE",
+                "stopReason": "GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION"
+              }
+            ]
+          },
+          "warm": {
+            "readObservedMs": 0.716,
+            "firstProfileMs": 0.716,
+            "fullCertificateMs": 0.716,
+            "cachedResultIdentical": true,
+            "newWorkerComputeMs": 0
+          },
+          "memory": {
+            "unit": "bytes",
+            "scope": "PROCESS_RSS_MAIN_AND_ALL_WORKER_THREADS_SAMPLED_EVERY_2MS_NOT_PER_WORKER",
+            "baselineRSS": 74878976,
+            "peakRSS": 80052224,
+            "peakIncreaseRSS": 5173248,
+            "lastWorkerReportedHeapBytes": 11097552
+          },
+          "quality": {
+            "status": "SOLVED",
+            "comparisonStatus": "CONCLUSIVE",
+            "comparisonTarget": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+            "reasonCode": "SEPARATED_ACTION_COMMITMENT_BOUNDS",
+            "bestActionId": "CALL",
+            "deltaEVBB": 3.0000000000000013,
+            "nashConvBB": 0.0071428571428571175,
+            "globalThresholdBB": 0.01,
+            "globalThresholdMet": true,
+            "stopReason": "GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION",
+            "refinementRecommended": false,
+            "totalWorkIterations": 100,
+            "globalIterations": 20,
+            "actionIterations": 80,
+            "originalActions": [
+              {
+                "id": "FOLD",
+                "action": "FOLD",
+                "size": null,
+                "frequency": 0.002380952380952381,
+                "evBB": 0
+              },
+              {
+                "id": "CALL",
+                "action": "CALL",
+                "size": null,
+                "frequency": 0.9976190476190476,
+                "evBB": 3
+              }
+            ],
+            "worlds": 1,
+            "nodes": 4,
+            "originalTreeUnchanged": true,
+            "contextValidated": true,
+            "actionBounds": [
+              {
+                "id": "FOLD",
+                "certified": true,
+                "estimateBB": -8.881784197001254e-16,
+                "lowerBB": -1.776356839400251e-15,
+                "upperBB": 0,
+                "widthBB": 1.776356839400251e-15,
+                "iterations": 30,
+                "elapsedMs": 1.7685000000000173,
+                "strategicDecisionCount": 0,
+                "conditionedHash": "521acd3a87ae82a7062d39c6ea3837ad8c7c6ae7288b09ded7ba499aeea98572",
+                "baseGameHash": "3fac6be2ef892501b6e39b7e100339ea14bf5c10222a181a579e0fd13b26c96d",
+                "baseContextKey": "ef276606128e467ccdf2ca98e2ba9baf2d99e8f265e609c21644be8e3a8e8dde"
+              },
+              {
+                "id": "CALL",
+                "certified": true,
+                "estimateBB": 3.0000000000000004,
+                "lowerBB": 2.9999999999999996,
+                "upperBB": 3.0000000000000013,
+                "widthBB": 1.7763568394002505e-15,
+                "iterations": 50,
+                "elapsedMs": 2.056100000000015,
+                "strategicDecisionCount": 0,
+                "conditionedHash": "223e18b000ddca69fd4c7a3ba79656a815a26020858152d319f23dbf9d9c7142",
+                "baseGameHash": "3fac6be2ef892501b6e39b7e100339ea14bf5c10222a181a579e0fd13b26c96d",
+                "baseContextKey": "ef276606128e467ccdf2ca98e2ba9baf2d99e8f265e609c21644be8e3a8e8dde"
+              }
+            ],
+            "survivingActionIds": [
+              "CALL"
+            ],
+            "dominatedActions": [
+              {
+                "id": "FOLD",
+                "dominatedBy": "CALL",
+                "upperBB": 0,
+                "leaderLowerBB": 2.9999999999999996,
+                "toleranceBB": 1.0658141036401508e-14
+              }
+            ],
+            "rootDiagnostics": {
+              "profileRegretBB": 0.0071428571428571175,
+              "counterfactualOneStepRegret": 0.0071428571428571175,
+              "profileValue": 2.992857142857143,
+              "stability": {
+                "comparable": true,
+                "maxActionEVChange": 0,
+                "maxFrequencyChange": 0
+              },
+              "scope": "CONDITIONAL_RETURNED_PROFILE_DIAGNOSTICS_NOT_CONVERGENCE_PROOF"
+            },
+            "stability": {
+              "comparable": true,
+              "maxActionEVChange": 0,
+              "maxFrequencyChange": 0,
+              "maxActionEVChangeBB": 0
+            },
+            "costs": {
+              "buildMs": 17.915399999999977,
+              "globalSolveMs": 3.2280999999999267,
+              "globalEvaluationMs": 0.9054999999999609,
+              "actionSolveMs": 3.824600000000032,
+              "totalComputeMs": 32.148399999999924
+            },
+            "actionCosts": {
+              "FOLD": {
+                "elapsedMs": 1.7685000000000173,
+                "iterations": 30,
+                "batches": 1
+              },
+              "CALL": {
+                "elapsedMs": 2.056100000000015,
+                "iterations": 50,
+                "batches": 1
+              }
+            }
+          }
+        },
+        {
+          "sample": 5,
+          "cold": {
+            "firstProfileObservedMs": 59.51,
+            "firstProfileServiceReportedMs": 59,
+            "firstFullCertificateObservedMs": 135.913,
+            "completedObservedMs": 135.978,
+            "decisionComputeMs": 37.317,
+            "decisionWorkIterations": 100,
+            "phases": [
+              {
+                "budget": "FAST",
+                "elapsedMs": 63.059,
+                "cacheHit": false,
+                "timing": {
+                  "acknowledgementMs": 0,
+                  "firstValueMs": 59,
+                  "totalMs": 63,
+                  "workerMs": 17.175499999999943,
+                  "decisionComputeMs": 17.175499999999943,
+                  "decisionWorkIterations": 50
+                },
+                "status": "SOLVED",
+                "comparisonStatus": "INCONCLUSIVE",
+                "stopReason": "ITERATION_RESOURCE_CEILING"
+              },
+              {
+                "budget": "STANDARD",
+                "elapsedMs": 72.903,
+                "cacheHit": true,
+                "timing": {
+                  "acknowledgementMs": 1,
+                  "firstValueMs": 1,
+                  "totalMs": 73,
+                  "workerMs": 20.141000000000076,
+                  "decisionComputeMs": 37.31650000000002,
+                  "decisionWorkIterations": 100
+                },
+                "status": "SOLVED",
+                "comparisonStatus": "CONCLUSIVE",
+                "stopReason": "GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION"
+              }
+            ]
+          },
+          "warm": {
+            "readObservedMs": 0.816,
+            "firstProfileMs": 0.816,
+            "fullCertificateMs": 0.816,
+            "cachedResultIdentical": true,
+            "newWorkerComputeMs": 0
+          },
+          "memory": {
+            "unit": "bytes",
+            "scope": "PROCESS_RSS_MAIN_AND_ALL_WORKER_THREADS_SAMPLED_EVERY_2MS_NOT_PER_WORKER",
+            "baselineRSS": 74493952,
+            "peakRSS": 82165760,
+            "peakIncreaseRSS": 7671808,
+            "lastWorkerReportedHeapBytes": 9297000
+          },
+          "quality": {
+            "status": "SOLVED",
+            "comparisonStatus": "CONCLUSIVE",
+            "comparisonTarget": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+            "reasonCode": "SEPARATED_ACTION_COMMITMENT_BOUNDS",
+            "bestActionId": "CALL",
+            "deltaEVBB": 3.0000000000000013,
+            "nashConvBB": 0.0071428571428571175,
+            "globalThresholdBB": 0.01,
+            "globalThresholdMet": true,
+            "stopReason": "GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION",
+            "refinementRecommended": false,
+            "totalWorkIterations": 100,
+            "globalIterations": 20,
+            "actionIterations": 80,
+            "originalActions": [
+              {
+                "id": "FOLD",
+                "action": "FOLD",
+                "size": null,
+                "frequency": 0.002380952380952381,
+                "evBB": 0
+              },
+              {
+                "id": "CALL",
+                "action": "CALL",
+                "size": null,
+                "frequency": 0.9976190476190476,
+                "evBB": 3
+              }
+            ],
+            "worlds": 1,
+            "nodes": 4,
+            "originalTreeUnchanged": true,
+            "contextValidated": true,
+            "actionBounds": [
+              {
+                "id": "FOLD",
+                "certified": true,
+                "estimateBB": -8.881784197001254e-16,
+                "lowerBB": -1.776356839400251e-15,
+                "upperBB": 0,
+                "widthBB": 1.776356839400251e-15,
+                "iterations": 30,
+                "elapsedMs": 1.813099999999963,
+                "strategicDecisionCount": 0,
+                "conditionedHash": "521acd3a87ae82a7062d39c6ea3837ad8c7c6ae7288b09ded7ba499aeea98572",
+                "baseGameHash": "3fac6be2ef892501b6e39b7e100339ea14bf5c10222a181a579e0fd13b26c96d",
+                "baseContextKey": "ef276606128e467ccdf2ca98e2ba9baf2d99e8f265e609c21644be8e3a8e8dde"
+              },
+              {
+                "id": "CALL",
+                "certified": true,
+                "estimateBB": 3.0000000000000004,
+                "lowerBB": 2.9999999999999996,
+                "upperBB": 3.0000000000000013,
+                "widthBB": 1.7763568394002505e-15,
+                "iterations": 50,
+                "elapsedMs": 2.3922000000000025,
+                "strategicDecisionCount": 0,
+                "conditionedHash": "223e18b000ddca69fd4c7a3ba79656a815a26020858152d319f23dbf9d9c7142",
+                "baseGameHash": "3fac6be2ef892501b6e39b7e100339ea14bf5c10222a181a579e0fd13b26c96d",
+                "baseContextKey": "ef276606128e467ccdf2ca98e2ba9baf2d99e8f265e609c21644be8e3a8e8dde"
+              }
+            ],
+            "survivingActionIds": [
+              "CALL"
+            ],
+            "dominatedActions": [
+              {
+                "id": "FOLD",
+                "dominatedBy": "CALL",
+                "upperBB": 0,
+                "leaderLowerBB": 2.9999999999999996,
+                "toleranceBB": 1.0658141036401508e-14
+              }
+            ],
+            "rootDiagnostics": {
+              "profileRegretBB": 0.0071428571428571175,
+              "counterfactualOneStepRegret": 0.0071428571428571175,
+              "profileValue": 2.992857142857143,
+              "stability": {
+                "comparable": true,
+                "maxActionEVChange": 0,
+                "maxFrequencyChange": 0
+              },
+              "scope": "CONDITIONAL_RETURNED_PROFILE_DIAGNOSTICS_NOT_CONVERGENCE_PROOF"
+            },
+            "stability": {
+              "comparable": true,
+              "maxActionEVChange": 0,
+              "maxFrequencyChange": 0,
+              "maxActionEVChangeBB": 0
+            },
+            "costs": {
+              "buildMs": 19.731399999999894,
+              "globalSolveMs": 3.5146000000000868,
+              "globalEvaluationMs": 1.1287999999999556,
+              "actionSolveMs": 4.205299999999966,
+              "totalComputeMs": 36.664600000000064
+            },
+            "actionCosts": {
+              "FOLD": {
+                "elapsedMs": 1.813099999999963,
+                "iterations": 30,
+                "batches": 1
+              },
+              "CALL": {
+                "elapsedMs": 2.3922000000000025,
+                "iterations": 50,
+                "batches": 1
+              }
+            }
+          }
+        }
+      ],
+      "summary": {
+        "coldFirstProfileMs": {
+          "count": 5,
+          "p50": 62.202,
+          "p95": 73.05,
+          "min": 58.724,
+          "max": 73.05
+        },
+        "coldFullCertificateMs": {
+          "count": 5,
+          "p50": 135.913,
+          "p95": 150.658,
+          "min": 127.413,
+          "max": 150.658
+        },
+        "coldCompletionMs": {
+          "count": 5,
+          "p50": 135.978,
+          "p95": 155.499,
+          "min": 132.121,
+          "max": 155.499
+        },
+        "cumulativeComputeMs": {
+          "count": 5,
+          "p50": 36.142,
+          "p95": 39.88,
+          "min": 33.648,
+          "max": 39.88
+        },
+        "warmCacheMs": {
+          "count": 5,
+          "p50": 0.849,
+          "p95": 1.181,
+          "min": 0.716,
+          "max": 1.181
+        },
+        "globalComputeMs": {
+          "count": 5,
+          "p50": 4.502,
+          "p95": 4.671,
+          "min": 4.134,
+          "max": 4.671
+        },
+        "actionComputeMs": {
+          "count": 5,
+          "p50": 4.087,
+          "p95": 4.417,
+          "min": 3.825,
+          "max": 4.417
+        },
+        "peakProcessRSSBytes": {
+          "count": 5,
+          "p50": 80130048,
+          "p95": 82165760,
+          "min": 76460032,
+          "max": 82165760
+        },
+        "globalIterations": {
+          "count": 5,
+          "p50": 20,
+          "p95": 20,
+          "min": 20,
+          "max": 20
+        },
+        "actionIterations": {
+          "count": 5,
+          "p50": 80,
+          "p95": 80,
+          "min": 80,
+          "max": 80
+        },
+        "conclusiveSamples": 5,
+        "stoppingReasons": [
+          "GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION"
+        ]
+      }
+    },
+    {
+      "id": "tied_terminal_call",
+      "samples": [
+        {
+          "sample": 1,
+          "cold": {
+            "firstProfileObservedMs": 73.777,
+            "firstProfileServiceReportedMs": 73,
+            "firstFullCertificateObservedMs": 149.071,
+            "completedObservedMs": 154.296,
+            "decisionComputeMs": 40.058,
+            "decisionWorkIterations": 100,
+            "phases": [
+              {
+                "budget": "FAST",
+                "elapsedMs": 81.483,
+                "cacheHit": false,
+                "timing": {
+                  "acknowledgementMs": 12,
+                  "firstValueMs": 73,
+                  "totalMs": 81,
+                  "workerMs": 17.940399999999954,
+                  "decisionComputeMs": 17.940399999999954,
+                  "decisionWorkIterations": 50
+                },
+                "status": "SOLVED",
+                "comparisonStatus": "INCONCLUSIVE",
+                "stopReason": "ITERATION_RESOURCE_CEILING"
+              },
+              {
+                "budget": "STANDARD",
+                "elapsedMs": 72.78,
+                "cacheHit": true,
+                "timing": {
+                  "acknowledgementMs": 1,
+                  "firstValueMs": 1,
+                  "totalMs": 73,
+                  "workerMs": 22.118000000000052,
+                  "decisionComputeMs": 40.058400000000006,
+                  "decisionWorkIterations": 100
+                },
+                "status": "SOLVED",
+                "comparisonStatus": "INCONCLUSIVE",
+                "stopReason": "FIXED_CONTINUATIONS_FULLY_EVALUATED"
+              }
+            ]
+          },
+          "warm": {
+            "readObservedMs": 0.863,
+            "firstProfileMs": 0.863,
+            "fullCertificateMs": 0.863,
+            "cachedResultIdentical": true,
+            "newWorkerComputeMs": 0
+          },
+          "memory": {
+            "unit": "bytes",
+            "scope": "PROCESS_RSS_MAIN_AND_ALL_WORKER_THREADS_SAMPLED_EVERY_2MS_NOT_PER_WORKER",
+            "baselineRSS": 83132416,
+            "peakRSS": 83681280,
+            "peakIncreaseRSS": 548864,
+            "lastWorkerReportedHeapBytes": 11380648
+          },
+          "quality": {
+            "status": "SOLVED",
+            "comparisonStatus": "INCONCLUSIVE",
+            "comparisonTarget": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+            "reasonCode": "BEST_SECOND_INTERVALS_OVERLAP",
+            "bestActionId": "CALL",
+            "deltaEVBB": 2.7755575615628894e-16,
+            "nashConvBB": 0,
+            "globalThresholdBB": 0.01,
+            "globalThresholdMet": true,
+            "stopReason": "FIXED_CONTINUATIONS_FULLY_EVALUATED",
+            "refinementRecommended": false,
+            "totalWorkIterations": 100,
+            "globalIterations": 10,
+            "actionIterations": 90,
+            "originalActions": [
+              {
+                "id": "FOLD",
+                "action": "FOLD",
+                "size": null,
+                "frequency": 0.5,
+                "evBB": 0
+              },
+              {
+                "id": "CALL",
+                "action": "CALL",
+                "size": null,
+                "frequency": 0.5,
+                "evBB": 0
+              }
+            ],
+            "worlds": 2,
+            "nodes": 7,
+            "originalTreeUnchanged": true,
+            "contextValidated": true,
+            "actionBounds": [
+              {
+                "id": "FOLD",
+                "certified": true,
+                "estimateBB": -1.5543122344752194e-15,
+                "lowerBB": -3.1086244689504387e-15,
+                "upperBB": 0,
+                "widthBB": 3.1086244689504387e-15,
+                "iterations": 40,
+                "elapsedMs": 1.8451000000000022,
+                "strategicDecisionCount": 0,
+                "conditionedHash": "616c90f9d9758a241e2622fa6a4e2946bda0a970581dd329866ce42a4daae559",
+                "baseGameHash": "af931e935268910af0c513e4e30c175a739b8d92f24481017b34c9c4ec549a52",
+                "baseContextKey": "7984ff49bec1172b90dece95c42de30397284e32a189bb8a5d1bc6c0842f0ec3"
+              },
+              {
+                "id": "CALL",
+                "certified": true,
+                "estimateBB": -1.2767564783189304e-15,
+                "lowerBB": -3.552713678800502e-15,
+                "upperBB": 9.99200722162641e-16,
+                "widthBB": 4.5519144009631426e-15,
+                "iterations": 50,
+                "elapsedMs": 2.7760000000000673,
+                "strategicDecisionCount": 0,
+                "conditionedHash": "ce47ca58a684d8d317935320ef33479b374b545b135593f3fca5964d1c436b4e",
+                "baseGameHash": "af931e935268910af0c513e4e30c175a739b8d92f24481017b34c9c4ec549a52",
+                "baseContextKey": "7984ff49bec1172b90dece95c42de30397284e32a189bb8a5d1bc6c0842f0ec3"
+              }
+            ],
+            "survivingActionIds": [
+              "FOLD",
+              "CALL"
+            ],
+            "dominatedActions": [],
+            "rootDiagnostics": {
+              "profileRegretBB": 0,
+              "counterfactualOneStepRegret": 0,
+              "profileValue": 0,
+              "stability": {
+                "comparable": true,
+                "maxActionEVChange": 0,
+                "maxFrequencyChange": 0
+              },
+              "scope": "CONDITIONAL_RETURNED_PROFILE_DIAGNOSTICS_NOT_CONVERGENCE_PROOF"
+            },
+            "stability": {
+              "comparable": true,
+              "maxActionEVChange": 0,
+              "maxFrequencyChange": 0,
+              "maxActionEVChangeBB": 0
+            },
+            "costs": {
+              "buildMs": 22.639800000000037,
+              "globalSolveMs": 3.6879000000000133,
+              "globalEvaluationMs": 1.18100000000004,
+              "actionSolveMs": 4.6211000000000695,
+              "totalComputeMs": 39.42100000000005
+            },
+            "actionCosts": {
+              "FOLD": {
+                "elapsedMs": 1.8451000000000022,
+                "iterations": 40,
+                "batches": 1
+              },
+              "CALL": {
+                "elapsedMs": 2.7760000000000673,
+                "iterations": 50,
+                "batches": 1
+              }
+            }
+          }
+        },
+        {
+          "sample": 2,
+          "cold": {
+            "firstProfileObservedMs": 70.795,
+            "firstProfileServiceReportedMs": 70,
+            "firstFullCertificateObservedMs": 147.046,
+            "completedObservedMs": 151.413,
+            "decisionComputeMs": 39.914,
+            "decisionWorkIterations": 100,
+            "phases": [
+              {
+                "budget": "FAST",
+                "elapsedMs": 73.954,
+                "cacheHit": false,
+                "timing": {
+                  "acknowledgementMs": 0,
+                  "firstValueMs": 70,
+                  "totalMs": 74,
+                  "workerMs": 19.531100000000038,
+                  "decisionComputeMs": 19.531100000000038,
+                  "decisionWorkIterations": 50
+                },
+                "status": "SOLVED",
+                "comparisonStatus": "INCONCLUSIVE",
+                "stopReason": "ITERATION_RESOURCE_CEILING"
+              },
+              {
+                "budget": "STANDARD",
+                "elapsedMs": 77.44,
+                "cacheHit": true,
+                "timing": {
+                  "acknowledgementMs": 1,
+                  "firstValueMs": 1,
+                  "totalMs": 77,
+                  "workerMs": 20.383199999999988,
+                  "decisionComputeMs": 39.914300000000026,
+                  "decisionWorkIterations": 100
+                },
+                "status": "SOLVED",
+                "comparisonStatus": "INCONCLUSIVE",
+                "stopReason": "FIXED_CONTINUATIONS_FULLY_EVALUATED"
+              }
+            ]
+          },
+          "warm": {
+            "readObservedMs": 0.782,
+            "firstProfileMs": 0.782,
+            "fullCertificateMs": 0.782,
+            "cachedResultIdentical": true,
+            "newWorkerComputeMs": 0
+          },
+          "memory": {
+            "unit": "bytes",
+            "scope": "PROCESS_RSS_MAIN_AND_ALL_WORKER_THREADS_SAMPLED_EVERY_2MS_NOT_PER_WORKER",
+            "baselineRSS": 79503360,
+            "peakRSS": 86597632,
+            "peakIncreaseRSS": 7094272,
+            "lastWorkerReportedHeapBytes": 10846856
+          },
+          "quality": {
+            "status": "SOLVED",
+            "comparisonStatus": "INCONCLUSIVE",
+            "comparisonTarget": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+            "reasonCode": "BEST_SECOND_INTERVALS_OVERLAP",
+            "bestActionId": "CALL",
+            "deltaEVBB": 2.7755575615628894e-16,
+            "nashConvBB": 0,
+            "globalThresholdBB": 0.01,
+            "globalThresholdMet": true,
+            "stopReason": "FIXED_CONTINUATIONS_FULLY_EVALUATED",
+            "refinementRecommended": false,
+            "totalWorkIterations": 100,
+            "globalIterations": 10,
+            "actionIterations": 90,
+            "originalActions": [
+              {
+                "id": "FOLD",
+                "action": "FOLD",
+                "size": null,
+                "frequency": 0.5,
+                "evBB": 0
+              },
+              {
+                "id": "CALL",
+                "action": "CALL",
+                "size": null,
+                "frequency": 0.5,
+                "evBB": 0
+              }
+            ],
+            "worlds": 2,
+            "nodes": 7,
+            "originalTreeUnchanged": true,
+            "contextValidated": true,
+            "actionBounds": [
+              {
+                "id": "FOLD",
+                "certified": true,
+                "estimateBB": -1.5543122344752194e-15,
+                "lowerBB": -3.1086244689504387e-15,
+                "upperBB": 0,
+                "widthBB": 3.1086244689504387e-15,
+                "iterations": 40,
+                "elapsedMs": 1.97300000000007,
+                "strategicDecisionCount": 0,
+                "conditionedHash": "616c90f9d9758a241e2622fa6a4e2946bda0a970581dd329866ce42a4daae559",
+                "baseGameHash": "af931e935268910af0c513e4e30c175a739b8d92f24481017b34c9c4ec549a52",
+                "baseContextKey": "7984ff49bec1172b90dece95c42de30397284e32a189bb8a5d1bc6c0842f0ec3"
+              },
+              {
+                "id": "CALL",
+                "certified": true,
+                "estimateBB": -1.2767564783189304e-15,
+                "lowerBB": -3.552713678800502e-15,
+                "upperBB": 9.99200722162641e-16,
+                "widthBB": 4.5519144009631426e-15,
+                "iterations": 50,
+                "elapsedMs": 2.1829999999999927,
+                "strategicDecisionCount": 0,
+                "conditionedHash": "ce47ca58a684d8d317935320ef33479b374b545b135593f3fca5964d1c436b4e",
+                "baseGameHash": "af931e935268910af0c513e4e30c175a739b8d92f24481017b34c9c4ec549a52",
+                "baseContextKey": "7984ff49bec1172b90dece95c42de30397284e32a189bb8a5d1bc6c0842f0ec3"
+              }
+            ],
+            "survivingActionIds": [
+              "FOLD",
+              "CALL"
+            ],
+            "dominatedActions": [],
+            "rootDiagnostics": {
+              "profileRegretBB": 0,
+              "counterfactualOneStepRegret": 0,
+              "profileValue": 0,
+              "stability": {
+                "comparable": true,
+                "maxActionEVChange": 0,
+                "maxFrequencyChange": 0
+              },
+              "scope": "CONDITIONAL_RETURNED_PROFILE_DIAGNOSTICS_NOT_CONVERGENCE_PROOF"
+            },
+            "stability": {
+              "comparable": true,
+              "maxActionEVChange": 0,
+              "maxFrequencyChange": 0,
+              "maxActionEVChangeBB": 0
+            },
+            "costs": {
+              "buildMs": 24.386800000000108,
+              "globalSolveMs": 3.3165999999998803,
+              "globalEvaluationMs": 1.0447999999998956,
+              "actionSolveMs": 4.156000000000063,
+              "totalComputeMs": 39.35570000000007
+            },
+            "actionCosts": {
+              "FOLD": {
+                "elapsedMs": 1.97300000000007,
+                "iterations": 40,
+                "batches": 1
+              },
+              "CALL": {
+                "elapsedMs": 2.1829999999999927,
+                "iterations": 50,
+                "batches": 1
+              }
+            }
+          }
+        },
+        {
+          "sample": 3,
+          "cold": {
+            "firstProfileObservedMs": 74.434,
+            "firstProfileServiceReportedMs": 74,
+            "firstFullCertificateObservedMs": 146.099,
+            "completedObservedMs": 146.149,
+            "decisionComputeMs": 41.77,
+            "decisionWorkIterations": 100,
+            "phases": [
+              {
+                "budget": "FAST",
+                "elapsedMs": 78.379,
+                "cacheHit": false,
+                "timing": {
+                  "acknowledgementMs": 0,
+                  "firstValueMs": 74,
+                  "totalMs": 78,
+                  "workerMs": 23.41470000000004,
+                  "decisionComputeMs": 23.41470000000004,
+                  "decisionWorkIterations": 50
+                },
+                "status": "SOLVED",
+                "comparisonStatus": "INCONCLUSIVE",
+                "stopReason": "ITERATION_RESOURCE_CEILING"
+              },
+              {
+                "budget": "STANDARD",
+                "elapsedMs": 67.753,
+                "cacheHit": true,
+                "timing": {
+                  "acknowledgementMs": 1,
+                  "firstValueMs": 1,
+                  "totalMs": 68,
+                  "workerMs": 18.355199999999968,
+                  "decisionComputeMs": 41.76990000000001,
+                  "decisionWorkIterations": 100
+                },
+                "status": "SOLVED",
+                "comparisonStatus": "INCONCLUSIVE",
+                "stopReason": "FIXED_CONTINUATIONS_FULLY_EVALUATED"
+              }
+            ]
+          },
+          "warm": {
+            "readObservedMs": 0.676,
+            "firstProfileMs": 0.676,
+            "fullCertificateMs": 0.676,
+            "cachedResultIdentical": true,
+            "newWorkerComputeMs": 0
+          },
+          "memory": {
+            "unit": "bytes",
+            "scope": "PROCESS_RSS_MAIN_AND_ALL_WORKER_THREADS_SAMPLED_EVERY_2MS_NOT_PER_WORKER",
+            "baselineRSS": 80703488,
+            "peakRSS": 87269376,
+            "peakIncreaseRSS": 6565888,
+            "lastWorkerReportedHeapBytes": 10903712
+          },
+          "quality": {
+            "status": "SOLVED",
+            "comparisonStatus": "INCONCLUSIVE",
+            "comparisonTarget": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+            "reasonCode": "BEST_SECOND_INTERVALS_OVERLAP",
+            "bestActionId": "CALL",
+            "deltaEVBB": 2.7755575615628894e-16,
+            "nashConvBB": 0,
+            "globalThresholdBB": 0.01,
+            "globalThresholdMet": true,
+            "stopReason": "FIXED_CONTINUATIONS_FULLY_EVALUATED",
+            "refinementRecommended": false,
+            "totalWorkIterations": 100,
+            "globalIterations": 10,
+            "actionIterations": 90,
+            "originalActions": [
+              {
+                "id": "FOLD",
+                "action": "FOLD",
+                "size": null,
+                "frequency": 0.5,
+                "evBB": 0
+              },
+              {
+                "id": "CALL",
+                "action": "CALL",
+                "size": null,
+                "frequency": 0.5,
+                "evBB": 0
+              }
+            ],
+            "worlds": 2,
+            "nodes": 7,
+            "originalTreeUnchanged": true,
+            "contextValidated": true,
+            "actionBounds": [
+              {
+                "id": "FOLD",
+                "certified": true,
+                "estimateBB": -1.5543122344752194e-15,
+                "lowerBB": -3.1086244689504387e-15,
+                "upperBB": 0,
+                "widthBB": 3.1086244689504387e-15,
+                "iterations": 40,
+                "elapsedMs": 2.375099999999975,
+                "strategicDecisionCount": 0,
+                "conditionedHash": "616c90f9d9758a241e2622fa6a4e2946bda0a970581dd329866ce42a4daae559",
+                "baseGameHash": "af931e935268910af0c513e4e30c175a739b8d92f24481017b34c9c4ec549a52",
+                "baseContextKey": "7984ff49bec1172b90dece95c42de30397284e32a189bb8a5d1bc6c0842f0ec3"
+              },
+              {
+                "id": "CALL",
+                "certified": true,
+                "estimateBB": -1.2767564783189304e-15,
+                "lowerBB": -3.552713678800502e-15,
+                "upperBB": 9.99200722162641e-16,
+                "widthBB": 4.5519144009631426e-15,
+                "iterations": 50,
+                "elapsedMs": 2.128500000000031,
+                "strategicDecisionCount": 0,
+                "conditionedHash": "ce47ca58a684d8d317935320ef33479b374b545b135593f3fca5964d1c436b4e",
+                "baseGameHash": "af931e935268910af0c513e4e30c175a739b8d92f24481017b34c9c4ec549a52",
+                "baseContextKey": "7984ff49bec1172b90dece95c42de30397284e32a189bb8a5d1bc6c0842f0ec3"
+              }
+            ],
+            "survivingActionIds": [
+              "FOLD",
+              "CALL"
+            ],
+            "dominatedActions": [],
+            "rootDiagnostics": {
+              "profileRegretBB": 0,
+              "counterfactualOneStepRegret": 0,
+              "profileValue": 0,
+              "stability": {
+                "comparable": true,
+                "maxActionEVChange": 0,
+                "maxFrequencyChange": 0
+              },
+              "scope": "CONDITIONAL_RETURNED_PROFILE_DIAGNOSTICS_NOT_CONVERGENCE_PROOF"
+            },
+            "stability": {
+              "comparable": true,
+              "maxActionEVChange": 0,
+              "maxFrequencyChange": 0,
+              "maxActionEVChangeBB": 0
+            },
+            "costs": {
+              "buildMs": 24.69159999999988,
+              "globalSolveMs": 3.6904999999997017,
+              "globalEvaluationMs": 1.1509000000000924,
+              "actionSolveMs": 4.503600000000006,
+              "totalComputeMs": 41.14629999999988
+            },
+            "actionCosts": {
+              "FOLD": {
+                "elapsedMs": 2.375099999999975,
+                "iterations": 40,
+                "batches": 1
+              },
+              "CALL": {
+                "elapsedMs": 2.128500000000031,
+                "iterations": 50,
+                "batches": 1
+              }
+            }
+          }
+        },
+        {
+          "sample": 4,
+          "cold": {
+            "firstProfileObservedMs": 61.97,
+            "firstProfileServiceReportedMs": 62,
+            "firstFullCertificateObservedMs": 140.049,
+            "completedObservedMs": 140.107,
+            "decisionComputeMs": 39.751,
+            "decisionWorkIterations": 100,
+            "phases": [
+              {
+                "budget": "FAST",
+                "elapsedMs": 65.162,
+                "cacheHit": false,
+                "timing": {
+                  "acknowledgementMs": 0,
+                  "firstValueMs": 62,
+                  "totalMs": 65,
+                  "workerMs": 18.529700000000048,
+                  "decisionComputeMs": 18.529700000000048,
+                  "decisionWorkIterations": 50
+                },
+                "status": "SOLVED",
+                "comparisonStatus": "INCONCLUSIVE",
+                "stopReason": "ITERATION_RESOURCE_CEILING"
+              },
+              {
+                "budget": "STANDARD",
+                "elapsedMs": 74.905,
+                "cacheHit": true,
+                "timing": {
+                  "acknowledgementMs": 1,
+                  "firstValueMs": 1,
+                  "totalMs": 75,
+                  "workerMs": 21.221500000000106,
+                  "decisionComputeMs": 39.75120000000015,
+                  "decisionWorkIterations": 100
+                },
+                "status": "SOLVED",
+                "comparisonStatus": "INCONCLUSIVE",
+                "stopReason": "FIXED_CONTINUATIONS_FULLY_EVALUATED"
+              }
+            ]
+          },
+          "warm": {
+            "readObservedMs": 0.841,
+            "firstProfileMs": 0.841,
+            "fullCertificateMs": 0.841,
+            "cachedResultIdentical": true,
+            "newWorkerComputeMs": 0
+          },
+          "memory": {
+            "unit": "bytes",
+            "scope": "PROCESS_RSS_MAIN_AND_ALL_WORKER_THREADS_SAMPLED_EVERY_2MS_NOT_PER_WORKER",
+            "baselineRSS": 87293952,
+            "peakRSS": 87732224,
+            "peakIncreaseRSS": 438272,
+            "lastWorkerReportedHeapBytes": 11321400
+          },
+          "quality": {
+            "status": "SOLVED",
+            "comparisonStatus": "INCONCLUSIVE",
+            "comparisonTarget": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+            "reasonCode": "BEST_SECOND_INTERVALS_OVERLAP",
+            "bestActionId": "CALL",
+            "deltaEVBB": 2.7755575615628894e-16,
+            "nashConvBB": 0,
+            "globalThresholdBB": 0.01,
+            "globalThresholdMet": true,
+            "stopReason": "FIXED_CONTINUATIONS_FULLY_EVALUATED",
+            "refinementRecommended": false,
+            "totalWorkIterations": 100,
+            "globalIterations": 10,
+            "actionIterations": 90,
+            "originalActions": [
+              {
+                "id": "FOLD",
+                "action": "FOLD",
+                "size": null,
+                "frequency": 0.5,
+                "evBB": 0
+              },
+              {
+                "id": "CALL",
+                "action": "CALL",
+                "size": null,
+                "frequency": 0.5,
+                "evBB": 0
+              }
+            ],
+            "worlds": 2,
+            "nodes": 7,
+            "originalTreeUnchanged": true,
+            "contextValidated": true,
+            "actionBounds": [
+              {
+                "id": "FOLD",
+                "certified": true,
+                "estimateBB": -1.5543122344752194e-15,
+                "lowerBB": -3.1086244689504387e-15,
+                "upperBB": 0,
+                "widthBB": 3.1086244689504387e-15,
+                "iterations": 40,
+                "elapsedMs": 1.9384000000000015,
+                "strategicDecisionCount": 0,
+                "conditionedHash": "616c90f9d9758a241e2622fa6a4e2946bda0a970581dd329866ce42a4daae559",
+                "baseGameHash": "af931e935268910af0c513e4e30c175a739b8d92f24481017b34c9c4ec549a52",
+                "baseContextKey": "7984ff49bec1172b90dece95c42de30397284e32a189bb8a5d1bc6c0842f0ec3"
+              },
+              {
+                "id": "CALL",
+                "certified": true,
+                "estimateBB": -1.2767564783189304e-15,
+                "lowerBB": -3.552713678800502e-15,
+                "upperBB": 9.99200722162641e-16,
+                "widthBB": 4.5519144009631426e-15,
+                "iterations": 50,
+                "elapsedMs": 2.96770000000015,
+                "strategicDecisionCount": 0,
+                "conditionedHash": "ce47ca58a684d8d317935320ef33479b374b545b135593f3fca5964d1c436b4e",
+                "baseGameHash": "af931e935268910af0c513e4e30c175a739b8d92f24481017b34c9c4ec549a52",
+                "baseContextKey": "7984ff49bec1172b90dece95c42de30397284e32a189bb8a5d1bc6c0842f0ec3"
+              }
+            ],
+            "survivingActionIds": [
+              "FOLD",
+              "CALL"
+            ],
+            "dominatedActions": [],
+            "rootDiagnostics": {
+              "profileRegretBB": 0,
+              "counterfactualOneStepRegret": 0,
+              "profileValue": 0,
+              "stability": {
+                "comparable": true,
+                "maxActionEVChange": 0,
+                "maxFrequencyChange": 0
+              },
+              "scope": "CONDITIONAL_RETURNED_PROFILE_DIAGNOSTICS_NOT_CONVERGENCE_PROOF"
+            },
+            "stability": {
+              "comparable": true,
+              "maxActionEVChange": 0,
+              "maxFrequencyChange": 0,
+              "maxActionEVChangeBB": 0
+            },
+            "costs": {
+              "buildMs": 23.199899999999843,
+              "globalSolveMs": 3.322900000000118,
+              "globalEvaluationMs": 1.0764000000001488,
+              "actionSolveMs": 4.906100000000151,
+              "totalComputeMs": 39.16579999999999
+            },
+            "actionCosts": {
+              "FOLD": {
+                "elapsedMs": 1.9384000000000015,
+                "iterations": 40,
+                "batches": 1
+              },
+              "CALL": {
+                "elapsedMs": 2.96770000000015,
+                "iterations": 50,
+                "batches": 1
+              }
+            }
+          }
+        },
+        {
+          "sample": 5,
+          "cold": {
+            "firstProfileObservedMs": 77.689,
+            "firstProfileServiceReportedMs": 77,
+            "firstFullCertificateObservedMs": 164.893,
+            "completedObservedMs": 164.959,
+            "decisionComputeMs": 47.303,
+            "decisionWorkIterations": 100,
+            "phases": [
+              {
+                "budget": "FAST",
+                "elapsedMs": 81.791,
+                "cacheHit": false,
+                "timing": {
+                  "acknowledgementMs": 0,
+                  "firstValueMs": 77,
+                  "totalMs": 82,
+                  "workerMs": 23.588500000000067,
+                  "decisionComputeMs": 23.588500000000067,
+                  "decisionWorkIterations": 50
+                },
+                "status": "SOLVED",
+                "comparisonStatus": "INCONCLUSIVE",
+                "stopReason": "ITERATION_RESOURCE_CEILING"
+              },
+              {
+                "budget": "STANDARD",
+                "elapsedMs": 83.143,
+                "cacheHit": true,
+                "timing": {
+                  "acknowledgementMs": 1,
+                  "firstValueMs": 1,
+                  "totalMs": 83,
+                  "workerMs": 23.71479999999997,
+                  "decisionComputeMs": 47.303300000000036,
+                  "decisionWorkIterations": 100
+                },
+                "status": "SOLVED",
+                "comparisonStatus": "INCONCLUSIVE",
+                "stopReason": "FIXED_CONTINUATIONS_FULLY_EVALUATED"
+              }
+            ]
+          },
+          "warm": {
+            "readObservedMs": 0.936,
+            "firstProfileMs": 0.936,
+            "fullCertificateMs": 0.936,
+            "cachedResultIdentical": true,
+            "newWorkerComputeMs": 0
+          },
+          "memory": {
+            "unit": "bytes",
+            "scope": "PROCESS_RSS_MAIN_AND_ALL_WORKER_THREADS_SAMPLED_EVERY_2MS_NOT_PER_WORKER",
+            "baselineRSS": 87207936,
+            "peakRSS": 87965696,
+            "peakIncreaseRSS": 757760,
+            "lastWorkerReportedHeapBytes": 11269256
+          },
+          "quality": {
+            "status": "SOLVED",
+            "comparisonStatus": "INCONCLUSIVE",
+            "comparisonTarget": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+            "reasonCode": "BEST_SECOND_INTERVALS_OVERLAP",
+            "bestActionId": "CALL",
+            "deltaEVBB": 2.7755575615628894e-16,
+            "nashConvBB": 0,
+            "globalThresholdBB": 0.01,
+            "globalThresholdMet": true,
+            "stopReason": "FIXED_CONTINUATIONS_FULLY_EVALUATED",
+            "refinementRecommended": false,
+            "totalWorkIterations": 100,
+            "globalIterations": 10,
+            "actionIterations": 90,
+            "originalActions": [
+              {
+                "id": "FOLD",
+                "action": "FOLD",
+                "size": null,
+                "frequency": 0.5,
+                "evBB": 0
+              },
+              {
+                "id": "CALL",
+                "action": "CALL",
+                "size": null,
+                "frequency": 0.5,
+                "evBB": 0
+              }
+            ],
+            "worlds": 2,
+            "nodes": 7,
+            "originalTreeUnchanged": true,
+            "contextValidated": true,
+            "actionBounds": [
+              {
+                "id": "FOLD",
+                "certified": true,
+                "estimateBB": -1.5543122344752194e-15,
+                "lowerBB": -3.1086244689504387e-15,
+                "upperBB": 0,
+                "widthBB": 3.1086244689504387e-15,
+                "iterations": 40,
+                "elapsedMs": 2.554500000000189,
+                "strategicDecisionCount": 0,
+                "conditionedHash": "616c90f9d9758a241e2622fa6a4e2946bda0a970581dd329866ce42a4daae559",
+                "baseGameHash": "af931e935268910af0c513e4e30c175a739b8d92f24481017b34c9c4ec549a52",
+                "baseContextKey": "7984ff49bec1172b90dece95c42de30397284e32a189bb8a5d1bc6c0842f0ec3"
+              },
+              {
+                "id": "CALL",
+                "certified": true,
+                "estimateBB": -1.2767564783189304e-15,
+                "lowerBB": -3.552713678800502e-15,
+                "upperBB": 9.99200722162641e-16,
+                "widthBB": 4.5519144009631426e-15,
+                "iterations": 50,
+                "elapsedMs": 2.930599999999913,
+                "strategicDecisionCount": 0,
+                "conditionedHash": "ce47ca58a684d8d317935320ef33479b374b545b135593f3fca5964d1c436b4e",
+                "baseGameHash": "af931e935268910af0c513e4e30c175a739b8d92f24481017b34c9c4ec549a52",
+                "baseContextKey": "7984ff49bec1172b90dece95c42de30397284e32a189bb8a5d1bc6c0842f0ec3"
+              }
+            ],
+            "survivingActionIds": [
+              "FOLD",
+              "CALL"
+            ],
+            "dominatedActions": [],
+            "rootDiagnostics": {
+              "profileRegretBB": 0,
+              "counterfactualOneStepRegret": 0,
+              "profileValue": 0,
+              "stability": {
+                "comparable": true,
+                "maxActionEVChange": 0,
+                "maxFrequencyChange": 0
+              },
+              "scope": "CONDITIONAL_RETURNED_PROFILE_DIAGNOSTICS_NOT_CONVERGENCE_PROOF"
+            },
+            "stability": {
+              "comparable": true,
+              "maxActionEVChange": 0,
+              "maxFrequencyChange": 0,
+              "maxActionEVChangeBB": 0
+            },
+            "costs": {
+              "buildMs": 27.41780000000017,
+              "globalSolveMs": 4.039800000000014,
+              "globalEvaluationMs": 1.394800000000032,
+              "actionSolveMs": 5.485100000000102,
+              "totalComputeMs": 46.61390000000006
+            },
+            "actionCosts": {
+              "FOLD": {
+                "elapsedMs": 2.554500000000189,
+                "iterations": 40,
+                "batches": 1
+              },
+              "CALL": {
+                "elapsedMs": 2.930599999999913,
+                "iterations": 50,
+                "batches": 1
+              }
+            }
+          }
+        }
+      ],
+      "summary": {
+        "coldFirstProfileMs": {
+          "count": 5,
+          "p50": 73.777,
+          "p95": 77.689,
+          "min": 61.97,
+          "max": 77.689
+        },
+        "coldFullCertificateMs": {
+          "count": 5,
+          "p50": 147.046,
+          "p95": 164.893,
+          "min": 140.049,
+          "max": 164.893
+        },
+        "coldCompletionMs": {
+          "count": 5,
+          "p50": 151.413,
+          "p95": 164.959,
+          "min": 140.107,
+          "max": 164.959
+        },
+        "cumulativeComputeMs": {
+          "count": 5,
+          "p50": 40.058,
+          "p95": 47.303,
+          "min": 39.751,
+          "max": 47.303
+        },
+        "warmCacheMs": {
+          "count": 5,
+          "p50": 0.841,
+          "p95": 0.936,
+          "min": 0.676,
+          "max": 0.936
+        },
+        "globalComputeMs": {
+          "count": 5,
+          "p50": 4.841,
+          "p95": 5.435,
+          "min": 4.361,
+          "max": 5.435
+        },
+        "actionComputeMs": {
+          "count": 5,
+          "p50": 4.621,
+          "p95": 5.485,
+          "min": 4.156,
+          "max": 5.485
+        },
+        "peakProcessRSSBytes": {
+          "count": 5,
+          "p50": 87269376,
+          "p95": 87965696,
+          "min": 83681280,
+          "max": 87965696
+        },
+        "globalIterations": {
+          "count": 5,
+          "p50": 10,
+          "p95": 10,
+          "min": 10,
+          "max": 10
+        },
+        "actionIterations": {
+          "count": 5,
+          "p50": 90,
+          "p95": 90,
+          "min": 90,
+          "max": 90
+        },
+        "conclusiveSamples": 0,
+        "stoppingReasons": [
+          "FIXED_CONTINUATIONS_FULLY_EVALUATED"
+        ]
+      }
+    },
+    {
+      "id": "four_world_five_action_river",
+      "samples": [
+        {
+          "sample": 1,
+          "cold": {
+            "firstProfileObservedMs": 93.13,
+            "firstProfileServiceReportedMs": 93,
+            "firstFullCertificateObservedMs": 209.057,
+            "completedObservedMs": 210.82,
+            "decisionComputeMs": 93.859,
+            "decisionWorkIterations": 250,
+            "phases": [
+              {
+                "budget": "FAST",
+                "elapsedMs": 98.602,
+                "cacheHit": false,
+                "timing": {
+                  "acknowledgementMs": 1,
+                  "firstValueMs": 93,
+                  "totalMs": 99,
+                  "workerMs": 40.56479999999988,
+                  "decisionComputeMs": 40.56479999999988,
+                  "decisionWorkIterations": 50
+                },
+                "status": "APPROXIMATE",
+                "comparisonStatus": "INCONCLUSIVE",
+                "stopReason": "ITERATION_RESOURCE_CEILING"
+              },
+              {
+                "budget": "STANDARD",
+                "elapsedMs": 112.191,
+                "cacheHit": true,
+                "timing": {
+                  "acknowledgementMs": 1,
+                  "firstValueMs": 1,
+                  "totalMs": 112,
+                  "workerMs": 53.29379999999992,
+                  "decisionComputeMs": 93.8585999999998,
+                  "decisionWorkIterations": 250
+                },
+                "status": "APPROXIMATE",
+                "comparisonStatus": "CONCLUSIVE",
+                "stopReason": "GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION"
+              }
+            ]
+          },
+          "warm": {
+            "readObservedMs": 1.449,
+            "firstProfileMs": 1.449,
+            "fullCertificateMs": 1.449,
+            "cachedResultIdentical": true,
+            "newWorkerComputeMs": 0
+          },
+          "memory": {
+            "unit": "bytes",
+            "scope": "PROCESS_RSS_MAIN_AND_ALL_WORKER_THREADS_SAMPLED_EVERY_2MS_NOT_PER_WORKER",
+            "baselineRSS": 88096768,
+            "peakRSS": 90124288,
+            "peakIncreaseRSS": 2027520,
+            "lastWorkerReportedHeapBytes": 11139280
+          },
+          "quality": {
+            "status": "APPROXIMATE",
+            "comparisonStatus": "CONCLUSIVE",
+            "comparisonTarget": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+            "reasonCode": "SEPARATED_ACTION_COMMITMENT_BOUNDS",
+            "bestActionId": "CHECK",
+            "deltaEVBB": 0.2498039215686274,
+            "nashConvBB": 0.005876603919422685,
+            "globalThresholdBB": 0.01,
+            "globalThresholdMet": true,
+            "stopReason": "GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION",
+            "refinementRecommended": false,
+            "totalWorkIterations": 250,
+            "globalIterations": 30,
+            "actionIterations": 220,
+            "originalActions": [
+              {
+                "id": "FOLD",
+                "action": "FOLD",
+                "size": null,
+                "frequency": 0.00043010752688172043,
+                "evBB": 0
+              },
+              {
+                "id": "CHECK",
+                "action": "CHECK",
+                "size": null,
+                "frequency": 0.985510602260497,
+                "evBB": 1
+              },
+              {
+                "id": "BET:1.00",
+                "action": "BET",
+                "size": 1,
+                "frequency": 0.008277804653310489,
+                "evBB": 0.5021505376344086
+              },
+              {
+                "id": "BET:1.50",
+                "action": "BET",
+                "size": 1.5,
+                "frequency": 0.0034214083605239335,
+                "evBB": 0.25268817204301075
+              },
+              {
+                "id": "BET:2.00",
+                "action": "BET",
+                "size": 2,
+                "frequency": 0.0023600771987868758,
+                "evBB": 0.003225806451612856
+              }
+            ],
+            "worlds": 4,
+            "nodes": 49,
+            "originalTreeUnchanged": true,
+            "contextValidated": true,
+            "actionBounds": [
+              {
+                "id": "FOLD",
+                "certified": true,
+                "estimateBB": 0.7505357142857132,
+                "lowerBB": 0.7492857142857109,
+                "upperBB": 0.7517857142857154,
+                "widthBB": 0.0025000000000044986,
+                "iterations": 20,
+                "elapsedMs": 3.709100000000035,
+                "strategicDecisionCount": 7,
+                "conditionedHash": "2edf3c2f3382cd86ed059c6c926b6ffbbfc9c7de70fbf1c6442908c8f0cb2761",
+                "baseGameHash": "bd098523071b75e4cb528d186dffc7339af87abce70a5c04a4cb907936d8aaec",
+                "baseContextKey": "7f1d54742896a23bb45863daa0b4ae69555e69019e0a05a8caa57d3911594f74"
+              },
+              {
+                "id": "CHECK",
+                "certified": true,
+                "estimateBB": 1.2500882352941174,
+                "lowerBB": 1.2498823529411742,
+                "upperBB": 1.2502941176470606,
+                "widthBB": 0.0004117647058863305,
+                "iterations": 50,
+                "elapsedMs": 6.247299999999996,
+                "strategicDecisionCount": 7,
+                "conditionedHash": "fa54b4f851e6801502c7158e9418f919d04ec06bf7136357085eb85649d3b458",
+                "baseGameHash": "bd098523071b75e4cb528d186dffc7339af87abce70a5c04a4cb907936d8aaec",
+                "baseContextKey": "7f1d54742896a23bb45863daa0b4ae69555e69019e0a05a8caa57d3911594f74"
+              },
+              {
+                "id": "BET:1.00",
+                "certified": true,
+                "estimateBB": 1.00028431372549,
+                "lowerBB": 0.9998823529411737,
+                "upperBB": 1.0006862745098064,
+                "widthBB": 0.0008039215686327372,
+                "iterations": 50,
+                "elapsedMs": 3.007000000000062,
+                "strategicDecisionCount": 7,
+                "conditionedHash": "e2437e4899d52aef487d23a4d7d28ee97697951bbdd5214005d250c80779e7e2",
+                "baseGameHash": "bd098523071b75e4cb528d186dffc7339af87abce70a5c04a4cb907936d8aaec",
+                "baseContextKey": "7f1d54742896a23bb45863daa0b4ae69555e69019e0a05a8caa57d3911594f74"
+              },
+              {
+                "id": "BET:1.50",
+                "certified": true,
+                "estimateBB": 0.8753333333333331,
+                "lowerBB": 0.8748823529411737,
+                "upperBB": 0.8757843137254926,
+                "widthBB": 0.0009019607843189226,
+                "iterations": 50,
+                "elapsedMs": 2.148800000000165,
+                "strategicDecisionCount": 7,
+                "conditionedHash": "360f90c46313821878c79ec389104e0e2e66a6a242b21822d892ef869d9817fa",
+                "baseGameHash": "bd098523071b75e4cb528d186dffc7339af87abce70a5c04a4cb907936d8aaec",
+                "baseContextKey": "7f1d54742896a23bb45863daa0b4ae69555e69019e0a05a8caa57d3911594f74"
+              },
+              {
+                "id": "BET:2.00",
+                "certified": true,
+                "estimateBB": 0.7503823529411762,
+                "lowerBB": 0.7498823529411734,
+                "upperBB": 0.750882352941179,
+                "widthBB": 0.001000000000005552,
+                "iterations": 50,
+                "elapsedMs": 2.3676000000000386,
+                "strategicDecisionCount": 7,
+                "conditionedHash": "18ed5a50d5126ae6a2fb23d88769bcc2e5f8bc5dc2289fedc5287810921f49b9",
+                "baseGameHash": "bd098523071b75e4cb528d186dffc7339af87abce70a5c04a4cb907936d8aaec",
+                "baseContextKey": "7f1d54742896a23bb45863daa0b4ae69555e69019e0a05a8caa57d3911594f74"
+              }
+            ],
+            "survivingActionIds": [
+              "CHECK"
+            ],
+            "dominatedActions": [
+              {
+                "id": "FOLD",
+                "dominatedBy": "CHECK",
+                "upperBB": 0.7517857142857154,
+                "leaderLowerBB": 1.2498823529411742,
+                "toleranceBB": 4.441937014288515e-15
+              },
+              {
+                "id": "BET:1.00",
+                "dominatedBy": "CHECK",
+                "upperBB": 1.0006862745098064,
+                "leaderLowerBB": 1.2498823529411742,
+                "toleranceBB": 4.441937014288515e-15
+              },
+              {
+                "id": "BET:1.50",
+                "dominatedBy": "CHECK",
+                "upperBB": 0.8757843137254926,
+                "leaderLowerBB": 1.2498823529411742,
+                "toleranceBB": 4.441937014288515e-15
+              },
+              {
+                "id": "BET:2.00",
+                "dominatedBy": "CHECK",
+                "upperBB": 0.750882352941179,
+                "leaderLowerBB": 1.2498823529411742,
+                "toleranceBB": 4.441937014288515e-15
+              }
+            ],
+            "rootDiagnostics": {
+              "profileRegretBB": 0.00946053110572287,
+              "counterfactualOneStepRegret": 0.004730265552861435,
+              "profileValue": 0.9905394688942771,
+              "stability": {
+                "comparable": true,
+                "maxActionEVChange": 0,
+                "maxFrequencyChange": 0
+              },
+              "scope": "CONDITIONAL_RETURNED_PROFILE_DIAGNOSTICS_NOT_CONVERGENCE_PROOF"
+            },
+            "stability": {
+              "comparable": true,
+              "maxActionEVChange": 0,
+              "maxFrequencyChange": 0,
+              "maxActionEVChangeBB": 0
+            },
+            "costs": {
+              "buildMs": 50.865299999999934,
+              "globalSolveMs": 8.433500000000095,
+              "globalEvaluationMs": 2.1108999999999014,
+              "actionSolveMs": 17.479800000000296,
+              "totalComputeMs": 92.86979999999971
+            },
+            "actionCosts": {
+              "FOLD": {
+                "elapsedMs": 3.709100000000035,
+                "iterations": 20,
+                "batches": 1
+              },
+              "CHECK": {
+                "elapsedMs": 6.247299999999996,
+                "iterations": 50,
+                "batches": 1
+              },
+              "BET:1.00": {
+                "elapsedMs": 3.007000000000062,
+                "iterations": 50,
+                "batches": 1
+              },
+              "BET:1.50": {
+                "elapsedMs": 2.148800000000165,
+                "iterations": 50,
+                "batches": 1
+              },
+              "BET:2.00": {
+                "elapsedMs": 2.3676000000000386,
+                "iterations": 50,
+                "batches": 1
+              }
+            }
+          }
+        },
+        {
+          "sample": 2,
+          "cold": {
+            "firstProfileObservedMs": 94.653,
+            "firstProfileServiceReportedMs": 94,
+            "firstFullCertificateObservedMs": 214.524,
+            "completedObservedMs": 214.63,
+            "decisionComputeMs": 92.406,
+            "decisionWorkIterations": 250,
+            "phases": [
+              {
+                "budget": "FAST",
+                "elapsedMs": 99.883,
+                "cacheHit": false,
+                "timing": {
+                  "acknowledgementMs": 0,
+                  "firstValueMs": 94,
+                  "totalMs": 100,
+                  "workerMs": 39.0630000000001,
+                  "decisionComputeMs": 39.0630000000001,
+                  "decisionWorkIterations": 50
+                },
+                "status": "APPROXIMATE",
+                "comparisonStatus": "INCONCLUSIVE",
+                "stopReason": "ITERATION_RESOURCE_CEILING"
+              },
+              {
+                "budget": "STANDARD",
+                "elapsedMs": 114.727,
+                "cacheHit": true,
+                "timing": {
+                  "acknowledgementMs": 1,
+                  "firstValueMs": 1,
+                  "totalMs": 115,
+                  "workerMs": 53.34310000000005,
+                  "decisionComputeMs": 92.40610000000015,
+                  "decisionWorkIterations": 250
+                },
+                "status": "APPROXIMATE",
+                "comparisonStatus": "CONCLUSIVE",
+                "stopReason": "GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION"
+              }
+            ]
+          },
+          "warm": {
+            "readObservedMs": 1.268,
+            "firstProfileMs": 1.268,
+            "fullCertificateMs": 1.268,
+            "cachedResultIdentical": true,
+            "newWorkerComputeMs": 0
+          },
+          "memory": {
+            "unit": "bytes",
+            "scope": "PROCESS_RSS_MAIN_AND_ALL_WORKER_THREADS_SAMPLED_EVERY_2MS_NOT_PER_WORKER",
+            "baselineRSS": 91000832,
+            "peakRSS": 91934720,
+            "peakIncreaseRSS": 933888,
+            "lastWorkerReportedHeapBytes": 11110016
+          },
+          "quality": {
+            "status": "APPROXIMATE",
+            "comparisonStatus": "CONCLUSIVE",
+            "comparisonTarget": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+            "reasonCode": "SEPARATED_ACTION_COMMITMENT_BOUNDS",
+            "bestActionId": "CHECK",
+            "deltaEVBB": 0.2498039215686274,
+            "nashConvBB": 0.005876603919422685,
+            "globalThresholdBB": 0.01,
+            "globalThresholdMet": true,
+            "stopReason": "GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION",
+            "refinementRecommended": false,
+            "totalWorkIterations": 250,
+            "globalIterations": 30,
+            "actionIterations": 220,
+            "originalActions": [
+              {
+                "id": "FOLD",
+                "action": "FOLD",
+                "size": null,
+                "frequency": 0.00043010752688172043,
+                "evBB": 0
+              },
+              {
+                "id": "CHECK",
+                "action": "CHECK",
+                "size": null,
+                "frequency": 0.985510602260497,
+                "evBB": 1
+              },
+              {
+                "id": "BET:1.00",
+                "action": "BET",
+                "size": 1,
+                "frequency": 0.008277804653310489,
+                "evBB": 0.5021505376344086
+              },
+              {
+                "id": "BET:1.50",
+                "action": "BET",
+                "size": 1.5,
+                "frequency": 0.0034214083605239335,
+                "evBB": 0.25268817204301075
+              },
+              {
+                "id": "BET:2.00",
+                "action": "BET",
+                "size": 2,
+                "frequency": 0.0023600771987868758,
+                "evBB": 0.003225806451612856
+              }
+            ],
+            "worlds": 4,
+            "nodes": 49,
+            "originalTreeUnchanged": true,
+            "contextValidated": true,
+            "actionBounds": [
+              {
+                "id": "FOLD",
+                "certified": true,
+                "estimateBB": 0.7505357142857132,
+                "lowerBB": 0.7492857142857109,
+                "upperBB": 0.7517857142857154,
+                "widthBB": 0.0025000000000044986,
+                "iterations": 20,
+                "elapsedMs": 3.485700000000179,
+                "strategicDecisionCount": 7,
+                "conditionedHash": "2edf3c2f3382cd86ed059c6c926b6ffbbfc9c7de70fbf1c6442908c8f0cb2761",
+                "baseGameHash": "bd098523071b75e4cb528d186dffc7339af87abce70a5c04a4cb907936d8aaec",
+                "baseContextKey": "7f1d54742896a23bb45863daa0b4ae69555e69019e0a05a8caa57d3911594f74"
+              },
+              {
+                "id": "CHECK",
+                "certified": true,
+                "estimateBB": 1.2500882352941174,
+                "lowerBB": 1.2498823529411742,
+                "upperBB": 1.2502941176470606,
+                "widthBB": 0.0004117647058863305,
+                "iterations": 50,
+                "elapsedMs": 6.012400000000071,
+                "strategicDecisionCount": 7,
+                "conditionedHash": "fa54b4f851e6801502c7158e9418f919d04ec06bf7136357085eb85649d3b458",
+                "baseGameHash": "bd098523071b75e4cb528d186dffc7339af87abce70a5c04a4cb907936d8aaec",
+                "baseContextKey": "7f1d54742896a23bb45863daa0b4ae69555e69019e0a05a8caa57d3911594f74"
+              },
+              {
+                "id": "BET:1.00",
+                "certified": true,
+                "estimateBB": 1.00028431372549,
+                "lowerBB": 0.9998823529411737,
+                "upperBB": 1.0006862745098064,
+                "widthBB": 0.0008039215686327372,
+                "iterations": 50,
+                "elapsedMs": 3.077099999999973,
+                "strategicDecisionCount": 7,
+                "conditionedHash": "e2437e4899d52aef487d23a4d7d28ee97697951bbdd5214005d250c80779e7e2",
+                "baseGameHash": "bd098523071b75e4cb528d186dffc7339af87abce70a5c04a4cb907936d8aaec",
+                "baseContextKey": "7f1d54742896a23bb45863daa0b4ae69555e69019e0a05a8caa57d3911594f74"
+              },
+              {
+                "id": "BET:1.50",
+                "certified": true,
+                "estimateBB": 0.8753333333333331,
+                "lowerBB": 0.8748823529411737,
+                "upperBB": 0.8757843137254926,
+                "widthBB": 0.0009019607843189226,
+                "iterations": 50,
+                "elapsedMs": 2.1871000000001004,
+                "strategicDecisionCount": 7,
+                "conditionedHash": "360f90c46313821878c79ec389104e0e2e66a6a242b21822d892ef869d9817fa",
+                "baseGameHash": "bd098523071b75e4cb528d186dffc7339af87abce70a5c04a4cb907936d8aaec",
+                "baseContextKey": "7f1d54742896a23bb45863daa0b4ae69555e69019e0a05a8caa57d3911594f74"
+              },
+              {
+                "id": "BET:2.00",
+                "certified": true,
+                "estimateBB": 0.7503823529411762,
+                "lowerBB": 0.7498823529411734,
+                "upperBB": 0.750882352941179,
+                "widthBB": 0.001000000000005552,
+                "iterations": 50,
+                "elapsedMs": 2.1239999999997963,
+                "strategicDecisionCount": 7,
+                "conditionedHash": "18ed5a50d5126ae6a2fb23d88769bcc2e5f8bc5dc2289fedc5287810921f49b9",
+                "baseGameHash": "bd098523071b75e4cb528d186dffc7339af87abce70a5c04a4cb907936d8aaec",
+                "baseContextKey": "7f1d54742896a23bb45863daa0b4ae69555e69019e0a05a8caa57d3911594f74"
+              }
+            ],
+            "survivingActionIds": [
+              "CHECK"
+            ],
+            "dominatedActions": [
+              {
+                "id": "FOLD",
+                "dominatedBy": "CHECK",
+                "upperBB": 0.7517857142857154,
+                "leaderLowerBB": 1.2498823529411742,
+                "toleranceBB": 4.441937014288515e-15
+              },
+              {
+                "id": "BET:1.00",
+                "dominatedBy": "CHECK",
+                "upperBB": 1.0006862745098064,
+                "leaderLowerBB": 1.2498823529411742,
+                "toleranceBB": 4.441937014288515e-15
+              },
+              {
+                "id": "BET:1.50",
+                "dominatedBy": "CHECK",
+                "upperBB": 0.8757843137254926,
+                "leaderLowerBB": 1.2498823529411742,
+                "toleranceBB": 4.441937014288515e-15
+              },
+              {
+                "id": "BET:2.00",
+                "dominatedBy": "CHECK",
+                "upperBB": 0.750882352941179,
+                "leaderLowerBB": 1.2498823529411742,
+                "toleranceBB": 4.441937014288515e-15
+              }
+            ],
+            "rootDiagnostics": {
+              "profileRegretBB": 0.00946053110572287,
+              "counterfactualOneStepRegret": 0.004730265552861435,
+              "profileValue": 0.9905394688942771,
+              "stability": {
+                "comparable": true,
+                "maxActionEVChange": 0,
+                "maxFrequencyChange": 0
+              },
+              "scope": "CONDITIONAL_RETURNED_PROFILE_DIAGNOSTICS_NOT_CONVERGENCE_PROOF"
+            },
+            "stability": {
+              "comparable": true,
+              "maxActionEVChange": 0,
+              "maxFrequencyChange": 0,
+              "maxActionEVChangeBB": 0
+            },
+            "costs": {
+              "buildMs": 52.08349999999996,
+              "globalSolveMs": 7.983199999999897,
+              "globalEvaluationMs": 1.5387000000000626,
+              "actionSolveMs": 16.88630000000012,
+              "totalComputeMs": 91.4670000000001
+            },
+            "actionCosts": {
+              "FOLD": {
+                "elapsedMs": 3.485700000000179,
+                "iterations": 20,
+                "batches": 1
+              },
+              "CHECK": {
+                "elapsedMs": 6.012400000000071,
+                "iterations": 50,
+                "batches": 1
+              },
+              "BET:1.00": {
+                "elapsedMs": 3.077099999999973,
+                "iterations": 50,
+                "batches": 1
+              },
+              "BET:1.50": {
+                "elapsedMs": 2.1871000000001004,
+                "iterations": 50,
+                "batches": 1
+              },
+              "BET:2.00": {
+                "elapsedMs": 2.1239999999997963,
+                "iterations": 50,
+                "batches": 1
+              }
+            }
+          }
+        },
+        {
+          "sample": 3,
+          "cold": {
+            "firstProfileObservedMs": 84.455,
+            "firstProfileServiceReportedMs": 84,
+            "firstFullCertificateObservedMs": 181.675,
+            "completedObservedMs": 181.775,
+            "decisionComputeMs": 74.585,
+            "decisionWorkIterations": 250,
+            "phases": [
+              {
+                "budget": "FAST",
+                "elapsedMs": 88.969,
+                "cacheHit": false,
+                "timing": {
+                  "acknowledgementMs": 0,
+                  "firstValueMs": 84,
+                  "totalMs": 89,
+                  "workerMs": 30.975799999999936,
+                  "decisionComputeMs": 30.975799999999936,
+                  "decisionWorkIterations": 50
+                },
+                "status": "APPROXIMATE",
+                "comparisonStatus": "INCONCLUSIVE",
+                "stopReason": "ITERATION_RESOURCE_CEILING"
+              },
+              {
+                "budget": "STANDARD",
+                "elapsedMs": 92.784,
+                "cacheHit": true,
+                "timing": {
+                  "acknowledgementMs": 1,
+                  "firstValueMs": 1,
+                  "totalMs": 93,
+                  "workerMs": 43.609300000000076,
+                  "decisionComputeMs": 74.58510000000001,
+                  "decisionWorkIterations": 250
+                },
+                "status": "APPROXIMATE",
+                "comparisonStatus": "CONCLUSIVE",
+                "stopReason": "GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION"
+              }
+            ]
+          },
+          "warm": {
+            "readObservedMs": 1.123,
+            "firstProfileMs": 1.123,
+            "fullCertificateMs": 1.123,
+            "cachedResultIdentical": true,
+            "newWorkerComputeMs": 0
+          },
+          "memory": {
+            "unit": "bytes",
+            "scope": "PROCESS_RSS_MAIN_AND_ALL_WORKER_THREADS_SAMPLED_EVERY_2MS_NOT_PER_WORKER",
+            "baselineRSS": 91918336,
+            "peakRSS": 94023680,
+            "peakIncreaseRSS": 2105344,
+            "lastWorkerReportedHeapBytes": 11157104
+          },
+          "quality": {
+            "status": "APPROXIMATE",
+            "comparisonStatus": "CONCLUSIVE",
+            "comparisonTarget": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+            "reasonCode": "SEPARATED_ACTION_COMMITMENT_BOUNDS",
+            "bestActionId": "CHECK",
+            "deltaEVBB": 0.2498039215686274,
+            "nashConvBB": 0.005876603919422685,
+            "globalThresholdBB": 0.01,
+            "globalThresholdMet": true,
+            "stopReason": "GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION",
+            "refinementRecommended": false,
+            "totalWorkIterations": 250,
+            "globalIterations": 30,
+            "actionIterations": 220,
+            "originalActions": [
+              {
+                "id": "FOLD",
+                "action": "FOLD",
+                "size": null,
+                "frequency": 0.00043010752688172043,
+                "evBB": 0
+              },
+              {
+                "id": "CHECK",
+                "action": "CHECK",
+                "size": null,
+                "frequency": 0.985510602260497,
+                "evBB": 1
+              },
+              {
+                "id": "BET:1.00",
+                "action": "BET",
+                "size": 1,
+                "frequency": 0.008277804653310489,
+                "evBB": 0.5021505376344086
+              },
+              {
+                "id": "BET:1.50",
+                "action": "BET",
+                "size": 1.5,
+                "frequency": 0.0034214083605239335,
+                "evBB": 0.25268817204301075
+              },
+              {
+                "id": "BET:2.00",
+                "action": "BET",
+                "size": 2,
+                "frequency": 0.0023600771987868758,
+                "evBB": 0.003225806451612856
+              }
+            ],
+            "worlds": 4,
+            "nodes": 49,
+            "originalTreeUnchanged": true,
+            "contextValidated": true,
+            "actionBounds": [
+              {
+                "id": "FOLD",
+                "certified": true,
+                "estimateBB": 0.7505357142857132,
+                "lowerBB": 0.7492857142857109,
+                "upperBB": 0.7517857142857154,
+                "widthBB": 0.0025000000000044986,
+                "iterations": 20,
+                "elapsedMs": 2.9427999999998065,
+                "strategicDecisionCount": 7,
+                "conditionedHash": "2edf3c2f3382cd86ed059c6c926b6ffbbfc9c7de70fbf1c6442908c8f0cb2761",
+                "baseGameHash": "bd098523071b75e4cb528d186dffc7339af87abce70a5c04a4cb907936d8aaec",
+                "baseContextKey": "7f1d54742896a23bb45863daa0b4ae69555e69019e0a05a8caa57d3911594f74"
+              },
+              {
+                "id": "CHECK",
+                "certified": true,
+                "estimateBB": 1.2500882352941174,
+                "lowerBB": 1.2498823529411742,
+                "upperBB": 1.2502941176470606,
+                "widthBB": 0.0004117647058863305,
+                "iterations": 50,
+                "elapsedMs": 5.179299999999785,
+                "strategicDecisionCount": 7,
+                "conditionedHash": "fa54b4f851e6801502c7158e9418f919d04ec06bf7136357085eb85649d3b458",
+                "baseGameHash": "bd098523071b75e4cb528d186dffc7339af87abce70a5c04a4cb907936d8aaec",
+                "baseContextKey": "7f1d54742896a23bb45863daa0b4ae69555e69019e0a05a8caa57d3911594f74"
+              },
+              {
+                "id": "BET:1.00",
+                "certified": true,
+                "estimateBB": 1.00028431372549,
+                "lowerBB": 0.9998823529411737,
+                "upperBB": 1.0006862745098064,
+                "widthBB": 0.0008039215686327372,
+                "iterations": 50,
+                "elapsedMs": 2.6381999999998698,
+                "strategicDecisionCount": 7,
+                "conditionedHash": "e2437e4899d52aef487d23a4d7d28ee97697951bbdd5214005d250c80779e7e2",
+                "baseGameHash": "bd098523071b75e4cb528d186dffc7339af87abce70a5c04a4cb907936d8aaec",
+                "baseContextKey": "7f1d54742896a23bb45863daa0b4ae69555e69019e0a05a8caa57d3911594f74"
+              },
+              {
+                "id": "BET:1.50",
+                "certified": true,
+                "estimateBB": 0.8753333333333331,
+                "lowerBB": 0.8748823529411737,
+                "upperBB": 0.8757843137254926,
+                "widthBB": 0.0009019607843189226,
+                "iterations": 50,
+                "elapsedMs": 2.3471999999997024,
+                "strategicDecisionCount": 7,
+                "conditionedHash": "360f90c46313821878c79ec389104e0e2e66a6a242b21822d892ef869d9817fa",
+                "baseGameHash": "bd098523071b75e4cb528d186dffc7339af87abce70a5c04a4cb907936d8aaec",
+                "baseContextKey": "7f1d54742896a23bb45863daa0b4ae69555e69019e0a05a8caa57d3911594f74"
+              },
+              {
+                "id": "BET:2.00",
+                "certified": true,
+                "estimateBB": 0.7503823529411762,
+                "lowerBB": 0.7498823529411734,
+                "upperBB": 0.750882352941179,
+                "widthBB": 0.001000000000005552,
+                "iterations": 50,
+                "elapsedMs": 1.960700000000088,
+                "strategicDecisionCount": 7,
+                "conditionedHash": "18ed5a50d5126ae6a2fb23d88769bcc2e5f8bc5dc2289fedc5287810921f49b9",
+                "baseGameHash": "bd098523071b75e4cb528d186dffc7339af87abce70a5c04a4cb907936d8aaec",
+                "baseContextKey": "7f1d54742896a23bb45863daa0b4ae69555e69019e0a05a8caa57d3911594f74"
+              }
+            ],
+            "survivingActionIds": [
+              "CHECK"
+            ],
+            "dominatedActions": [
+              {
+                "id": "FOLD",
+                "dominatedBy": "CHECK",
+                "upperBB": 0.7517857142857154,
+                "leaderLowerBB": 1.2498823529411742,
+                "toleranceBB": 4.441937014288515e-15
+              },
+              {
+                "id": "BET:1.00",
+                "dominatedBy": "CHECK",
+                "upperBB": 1.0006862745098064,
+                "leaderLowerBB": 1.2498823529411742,
+                "toleranceBB": 4.441937014288515e-15
+              },
+              {
+                "id": "BET:1.50",
+                "dominatedBy": "CHECK",
+                "upperBB": 0.8757843137254926,
+                "leaderLowerBB": 1.2498823529411742,
+                "toleranceBB": 4.441937014288515e-15
+              },
+              {
+                "id": "BET:2.00",
+                "dominatedBy": "CHECK",
+                "upperBB": 0.750882352941179,
+                "leaderLowerBB": 1.2498823529411742,
+                "toleranceBB": 4.441937014288515e-15
+              }
+            ],
+            "rootDiagnostics": {
+              "profileRegretBB": 0.00946053110572287,
+              "counterfactualOneStepRegret": 0.004730265552861435,
+              "profileValue": 0.9905394688942771,
+              "stability": {
+                "comparable": true,
+                "maxActionEVChange": 0,
+                "maxFrequencyChange": 0
+              },
+              "scope": "CONDITIONAL_RETURNED_PROFILE_DIAGNOSTICS_NOT_CONVERGENCE_PROOF"
+            },
+            "stability": {
+              "comparable": true,
+              "maxActionEVChange": 0,
+              "maxFrequencyChange": 0,
+              "maxActionEVChangeBB": 0
+            },
+            "costs": {
+              "buildMs": 40.04660000000035,
+              "globalSolveMs": 6.584599999999682,
+              "globalEvaluationMs": 1.4908000000000357,
+              "actionSolveMs": 15.068199999999251,
+              "totalComputeMs": 73.71720000000028
+            },
+            "actionCosts": {
+              "FOLD": {
+                "elapsedMs": 2.9427999999998065,
+                "iterations": 20,
+                "batches": 1
+              },
+              "CHECK": {
+                "elapsedMs": 5.179299999999785,
+                "iterations": 50,
+                "batches": 1
+              },
+              "BET:1.00": {
+                "elapsedMs": 2.6381999999998698,
+                "iterations": 50,
+                "batches": 1
+              },
+              "BET:1.50": {
+                "elapsedMs": 2.3471999999997024,
+                "iterations": 50,
+                "batches": 1
+              },
+              "BET:2.00": {
+                "elapsedMs": 1.960700000000088,
+                "iterations": 50,
+                "batches": 1
+              }
+            }
+          }
+        },
+        {
+          "sample": 4,
+          "cold": {
+            "firstProfileObservedMs": 85.865,
+            "firstProfileServiceReportedMs": 85,
+            "firstFullCertificateObservedMs": 206.476,
+            "completedObservedMs": 206.565,
+            "decisionComputeMs": 88.791,
+            "decisionWorkIterations": 250,
+            "phases": [
+              {
+                "budget": "FAST",
+                "elapsedMs": 91.924,
+                "cacheHit": false,
+                "timing": {
+                  "acknowledgementMs": 1,
+                  "firstValueMs": 85,
+                  "totalMs": 92,
+                  "workerMs": 37.82790000000023,
+                  "decisionComputeMs": 37.82790000000023,
+                  "decisionWorkIterations": 50
+                },
+                "status": "APPROXIMATE",
+                "comparisonStatus": "INCONCLUSIVE",
+                "stopReason": "ITERATION_RESOURCE_CEILING"
+              },
+              {
+                "budget": "STANDARD",
+                "elapsedMs": 114.615,
+                "cacheHit": true,
+                "timing": {
+                  "acknowledgementMs": 1,
+                  "firstValueMs": 1,
+                  "totalMs": 115,
+                  "workerMs": 50.96279999999979,
+                  "decisionComputeMs": 88.79070000000002,
+                  "decisionWorkIterations": 250
+                },
+                "status": "APPROXIMATE",
+                "comparisonStatus": "CONCLUSIVE",
+                "stopReason": "GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION"
+              }
+            ]
+          },
+          "warm": {
+            "readObservedMs": 0.906,
+            "firstProfileMs": 0.906,
+            "fullCertificateMs": 0.906,
+            "cachedResultIdentical": true,
+            "newWorkerComputeMs": 0
+          },
+          "memory": {
+            "unit": "bytes",
+            "scope": "PROCESS_RSS_MAIN_AND_ALL_WORKER_THREADS_SAMPLED_EVERY_2MS_NOT_PER_WORKER",
+            "baselineRSS": 93634560,
+            "peakRSS": 94699520,
+            "peakIncreaseRSS": 1064960,
+            "lastWorkerReportedHeapBytes": 11156088
+          },
+          "quality": {
+            "status": "APPROXIMATE",
+            "comparisonStatus": "CONCLUSIVE",
+            "comparisonTarget": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+            "reasonCode": "SEPARATED_ACTION_COMMITMENT_BOUNDS",
+            "bestActionId": "CHECK",
+            "deltaEVBB": 0.2498039215686274,
+            "nashConvBB": 0.005876603919422685,
+            "globalThresholdBB": 0.01,
+            "globalThresholdMet": true,
+            "stopReason": "GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION",
+            "refinementRecommended": false,
+            "totalWorkIterations": 250,
+            "globalIterations": 30,
+            "actionIterations": 220,
+            "originalActions": [
+              {
+                "id": "FOLD",
+                "action": "FOLD",
+                "size": null,
+                "frequency": 0.00043010752688172043,
+                "evBB": 0
+              },
+              {
+                "id": "CHECK",
+                "action": "CHECK",
+                "size": null,
+                "frequency": 0.985510602260497,
+                "evBB": 1
+              },
+              {
+                "id": "BET:1.00",
+                "action": "BET",
+                "size": 1,
+                "frequency": 0.008277804653310489,
+                "evBB": 0.5021505376344086
+              },
+              {
+                "id": "BET:1.50",
+                "action": "BET",
+                "size": 1.5,
+                "frequency": 0.0034214083605239335,
+                "evBB": 0.25268817204301075
+              },
+              {
+                "id": "BET:2.00",
+                "action": "BET",
+                "size": 2,
+                "frequency": 0.0023600771987868758,
+                "evBB": 0.003225806451612856
+              }
+            ],
+            "worlds": 4,
+            "nodes": 49,
+            "originalTreeUnchanged": true,
+            "contextValidated": true,
+            "actionBounds": [
+              {
+                "id": "FOLD",
+                "certified": true,
+                "estimateBB": 0.7505357142857132,
+                "lowerBB": 0.7492857142857109,
+                "upperBB": 0.7517857142857154,
+                "widthBB": 0.0025000000000044986,
+                "iterations": 20,
+                "elapsedMs": 4.070300000000316,
+                "strategicDecisionCount": 7,
+                "conditionedHash": "2edf3c2f3382cd86ed059c6c926b6ffbbfc9c7de70fbf1c6442908c8f0cb2761",
+                "baseGameHash": "bd098523071b75e4cb528d186dffc7339af87abce70a5c04a4cb907936d8aaec",
+                "baseContextKey": "7f1d54742896a23bb45863daa0b4ae69555e69019e0a05a8caa57d3911594f74"
+              },
+              {
+                "id": "CHECK",
+                "certified": true,
+                "estimateBB": 1.2500882352941174,
+                "lowerBB": 1.2498823529411742,
+                "upperBB": 1.2502941176470606,
+                "widthBB": 0.0004117647058863305,
+                "iterations": 50,
+                "elapsedMs": 5.3520000000003165,
+                "strategicDecisionCount": 7,
+                "conditionedHash": "fa54b4f851e6801502c7158e9418f919d04ec06bf7136357085eb85649d3b458",
+                "baseGameHash": "bd098523071b75e4cb528d186dffc7339af87abce70a5c04a4cb907936d8aaec",
+                "baseContextKey": "7f1d54742896a23bb45863daa0b4ae69555e69019e0a05a8caa57d3911594f74"
+              },
+              {
+                "id": "BET:1.00",
+                "certified": true,
+                "estimateBB": 1.00028431372549,
+                "lowerBB": 0.9998823529411737,
+                "upperBB": 1.0006862745098064,
+                "widthBB": 0.0008039215686327372,
+                "iterations": 50,
+                "elapsedMs": 2.591699999999946,
+                "strategicDecisionCount": 7,
+                "conditionedHash": "e2437e4899d52aef487d23a4d7d28ee97697951bbdd5214005d250c80779e7e2",
+                "baseGameHash": "bd098523071b75e4cb528d186dffc7339af87abce70a5c04a4cb907936d8aaec",
+                "baseContextKey": "7f1d54742896a23bb45863daa0b4ae69555e69019e0a05a8caa57d3911594f74"
+              },
+              {
+                "id": "BET:1.50",
+                "certified": true,
+                "estimateBB": 0.8753333333333331,
+                "lowerBB": 0.8748823529411737,
+                "upperBB": 0.8757843137254926,
+                "widthBB": 0.0009019607843189226,
+                "iterations": 50,
+                "elapsedMs": 2.207300000000032,
+                "strategicDecisionCount": 7,
+                "conditionedHash": "360f90c46313821878c79ec389104e0e2e66a6a242b21822d892ef869d9817fa",
+                "baseGameHash": "bd098523071b75e4cb528d186dffc7339af87abce70a5c04a4cb907936d8aaec",
+                "baseContextKey": "7f1d54742896a23bb45863daa0b4ae69555e69019e0a05a8caa57d3911594f74"
+              },
+              {
+                "id": "BET:2.00",
+                "certified": true,
+                "estimateBB": 0.7503823529411762,
+                "lowerBB": 0.7498823529411734,
+                "upperBB": 0.750882352941179,
+                "widthBB": 0.001000000000005552,
+                "iterations": 50,
+                "elapsedMs": 1.790100000000166,
+                "strategicDecisionCount": 7,
+                "conditionedHash": "18ed5a50d5126ae6a2fb23d88769bcc2e5f8bc5dc2289fedc5287810921f49b9",
+                "baseGameHash": "bd098523071b75e4cb528d186dffc7339af87abce70a5c04a4cb907936d8aaec",
+                "baseContextKey": "7f1d54742896a23bb45863daa0b4ae69555e69019e0a05a8caa57d3911594f74"
+              }
+            ],
+            "survivingActionIds": [
+              "CHECK"
+            ],
+            "dominatedActions": [
+              {
+                "id": "FOLD",
+                "dominatedBy": "CHECK",
+                "upperBB": 0.7517857142857154,
+                "leaderLowerBB": 1.2498823529411742,
+                "toleranceBB": 4.441937014288515e-15
+              },
+              {
+                "id": "BET:1.00",
+                "dominatedBy": "CHECK",
+                "upperBB": 1.0006862745098064,
+                "leaderLowerBB": 1.2498823529411742,
+                "toleranceBB": 4.441937014288515e-15
+              },
+              {
+                "id": "BET:1.50",
+                "dominatedBy": "CHECK",
+                "upperBB": 0.8757843137254926,
+                "leaderLowerBB": 1.2498823529411742,
+                "toleranceBB": 4.441937014288515e-15
+              },
+              {
+                "id": "BET:2.00",
+                "dominatedBy": "CHECK",
+                "upperBB": 0.750882352941179,
+                "leaderLowerBB": 1.2498823529411742,
+                "toleranceBB": 4.441937014288515e-15
+              }
+            ],
+            "rootDiagnostics": {
+              "profileRegretBB": 0.00946053110572287,
+              "counterfactualOneStepRegret": 0.004730265552861435,
+              "profileValue": 0.9905394688942771,
+              "stability": {
+                "comparable": true,
+                "maxActionEVChange": 0,
+                "maxFrequencyChange": 0
+              },
+              "scope": "CONDITIONAL_RETURNED_PROFILE_DIAGNOSTICS_NOT_CONVERGENCE_PROOF"
+            },
+            "stability": {
+              "comparable": true,
+              "maxActionEVChange": 0,
+              "maxFrequencyChange": 0,
+              "maxActionEVChangeBB": 0
+            },
+            "costs": {
+              "buildMs": 48.64379999999983,
+              "globalSolveMs": 8.584299999999985,
+              "globalEvaluationMs": 2.0979999999995016,
+              "actionSolveMs": 16.011400000000776,
+              "totalComputeMs": 87.84670000000006
+            },
+            "actionCosts": {
+              "FOLD": {
+                "elapsedMs": 4.070300000000316,
+                "iterations": 20,
+                "batches": 1
+              },
+              "CHECK": {
+                "elapsedMs": 5.3520000000003165,
+                "iterations": 50,
+                "batches": 1
+              },
+              "BET:1.00": {
+                "elapsedMs": 2.591699999999946,
+                "iterations": 50,
+                "batches": 1
+              },
+              "BET:1.50": {
+                "elapsedMs": 2.207300000000032,
+                "iterations": 50,
+                "batches": 1
+              },
+              "BET:2.00": {
+                "elapsedMs": 1.790100000000166,
+                "iterations": 50,
+                "batches": 1
+              }
+            }
+          }
+        },
+        {
+          "sample": 5,
+          "cold": {
+            "firstProfileObservedMs": 112.739,
+            "firstProfileServiceReportedMs": 112,
+            "firstFullCertificateObservedMs": 238.864,
+            "completedObservedMs": 239.025,
+            "decisionComputeMs": 112.439,
+            "decisionWorkIterations": 250,
+            "phases": [
+              {
+                "budget": "FAST",
+                "elapsedMs": 118.655,
+                "cacheHit": false,
+                "timing": {
+                  "acknowledgementMs": 0,
+                  "firstValueMs": 112,
+                  "totalMs": 119,
+                  "workerMs": 52.44340000000011,
+                  "decisionComputeMs": 52.44340000000011,
+                  "decisionWorkIterations": 50
+                },
+                "status": "APPROXIMATE",
+                "comparisonStatus": "INCONCLUSIVE",
+                "stopReason": "ITERATION_RESOURCE_CEILING"
+              },
+              {
+                "budget": "STANDARD",
+                "elapsedMs": 120.342,
+                "cacheHit": true,
+                "timing": {
+                  "acknowledgementMs": 1,
+                  "firstValueMs": 1,
+                  "totalMs": 120,
+                  "workerMs": 59.996000000000095,
+                  "decisionComputeMs": 112.4394000000002,
+                  "decisionWorkIterations": 250
+                },
+                "status": "APPROXIMATE",
+                "comparisonStatus": "CONCLUSIVE",
+                "stopReason": "GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION"
+              }
+            ]
+          },
+          "warm": {
+            "readObservedMs": 1.586,
+            "firstProfileMs": 1.586,
+            "fullCertificateMs": 1.586,
+            "cachedResultIdentical": true,
+            "newWorkerComputeMs": 0
+          },
+          "memory": {
+            "unit": "bytes",
+            "scope": "PROCESS_RSS_MAIN_AND_ALL_WORKER_THREADS_SAMPLED_EVERY_2MS_NOT_PER_WORKER",
+            "baselineRSS": 93184000,
+            "peakRSS": 95031296,
+            "peakIncreaseRSS": 1847296,
+            "lastWorkerReportedHeapBytes": 11183744
+          },
+          "quality": {
+            "status": "APPROXIMATE",
+            "comparisonStatus": "CONCLUSIVE",
+            "comparisonTarget": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+            "reasonCode": "SEPARATED_ACTION_COMMITMENT_BOUNDS",
+            "bestActionId": "CHECK",
+            "deltaEVBB": 0.2498039215686274,
+            "nashConvBB": 0.005876603919422685,
+            "globalThresholdBB": 0.01,
+            "globalThresholdMet": true,
+            "stopReason": "GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION",
+            "refinementRecommended": false,
+            "totalWorkIterations": 250,
+            "globalIterations": 30,
+            "actionIterations": 220,
+            "originalActions": [
+              {
+                "id": "FOLD",
+                "action": "FOLD",
+                "size": null,
+                "frequency": 0.00043010752688172043,
+                "evBB": 0
+              },
+              {
+                "id": "CHECK",
+                "action": "CHECK",
+                "size": null,
+                "frequency": 0.985510602260497,
+                "evBB": 1
+              },
+              {
+                "id": "BET:1.00",
+                "action": "BET",
+                "size": 1,
+                "frequency": 0.008277804653310489,
+                "evBB": 0.5021505376344086
+              },
+              {
+                "id": "BET:1.50",
+                "action": "BET",
+                "size": 1.5,
+                "frequency": 0.0034214083605239335,
+                "evBB": 0.25268817204301075
+              },
+              {
+                "id": "BET:2.00",
+                "action": "BET",
+                "size": 2,
+                "frequency": 0.0023600771987868758,
+                "evBB": 0.003225806451612856
+              }
+            ],
+            "worlds": 4,
+            "nodes": 49,
+            "originalTreeUnchanged": true,
+            "contextValidated": true,
+            "actionBounds": [
+              {
+                "id": "FOLD",
+                "certified": true,
+                "estimateBB": 0.7505357142857132,
+                "lowerBB": 0.7492857142857109,
+                "upperBB": 0.7517857142857154,
+                "widthBB": 0.0025000000000044986,
+                "iterations": 20,
+                "elapsedMs": 3.7681000000002314,
+                "strategicDecisionCount": 7,
+                "conditionedHash": "2edf3c2f3382cd86ed059c6c926b6ffbbfc9c7de70fbf1c6442908c8f0cb2761",
+                "baseGameHash": "bd098523071b75e4cb528d186dffc7339af87abce70a5c04a4cb907936d8aaec",
+                "baseContextKey": "7f1d54742896a23bb45863daa0b4ae69555e69019e0a05a8caa57d3911594f74"
+              },
+              {
+                "id": "CHECK",
+                "certified": true,
+                "estimateBB": 1.2500882352941174,
+                "lowerBB": 1.2498823529411742,
+                "upperBB": 1.2502941176470606,
+                "widthBB": 0.0004117647058863305,
+                "iterations": 50,
+                "elapsedMs": 7.4177999999997155,
+                "strategicDecisionCount": 7,
+                "conditionedHash": "fa54b4f851e6801502c7158e9418f919d04ec06bf7136357085eb85649d3b458",
+                "baseGameHash": "bd098523071b75e4cb528d186dffc7339af87abce70a5c04a4cb907936d8aaec",
+                "baseContextKey": "7f1d54742896a23bb45863daa0b4ae69555e69019e0a05a8caa57d3911594f74"
+              },
+              {
+                "id": "BET:1.00",
+                "certified": true,
+                "estimateBB": 1.00028431372549,
+                "lowerBB": 0.9998823529411737,
+                "upperBB": 1.0006862745098064,
+                "widthBB": 0.0008039215686327372,
+                "iterations": 50,
+                "elapsedMs": 3.1348000000002685,
+                "strategicDecisionCount": 7,
+                "conditionedHash": "e2437e4899d52aef487d23a4d7d28ee97697951bbdd5214005d250c80779e7e2",
+                "baseGameHash": "bd098523071b75e4cb528d186dffc7339af87abce70a5c04a4cb907936d8aaec",
+                "baseContextKey": "7f1d54742896a23bb45863daa0b4ae69555e69019e0a05a8caa57d3911594f74"
+              },
+              {
+                "id": "BET:1.50",
+                "certified": true,
+                "estimateBB": 0.8753333333333331,
+                "lowerBB": 0.8748823529411737,
+                "upperBB": 0.8757843137254926,
+                "widthBB": 0.0009019607843189226,
+                "iterations": 50,
+                "elapsedMs": 2.6381999999998698,
+                "strategicDecisionCount": 7,
+                "conditionedHash": "360f90c46313821878c79ec389104e0e2e66a6a242b21822d892ef869d9817fa",
+                "baseGameHash": "bd098523071b75e4cb528d186dffc7339af87abce70a5c04a4cb907936d8aaec",
+                "baseContextKey": "7f1d54742896a23bb45863daa0b4ae69555e69019e0a05a8caa57d3911594f74"
+              },
+              {
+                "id": "BET:2.00",
+                "certified": true,
+                "estimateBB": 0.7503823529411762,
+                "lowerBB": 0.7498823529411734,
+                "upperBB": 0.750882352941179,
+                "widthBB": 0.001000000000005552,
+                "iterations": 50,
+                "elapsedMs": 2.181799999999839,
+                "strategicDecisionCount": 7,
+                "conditionedHash": "18ed5a50d5126ae6a2fb23d88769bcc2e5f8bc5dc2289fedc5287810921f49b9",
+                "baseGameHash": "bd098523071b75e4cb528d186dffc7339af87abce70a5c04a4cb907936d8aaec",
+                "baseContextKey": "7f1d54742896a23bb45863daa0b4ae69555e69019e0a05a8caa57d3911594f74"
+              }
+            ],
+            "survivingActionIds": [
+              "CHECK"
+            ],
+            "dominatedActions": [
+              {
+                "id": "FOLD",
+                "dominatedBy": "CHECK",
+                "upperBB": 0.7517857142857154,
+                "leaderLowerBB": 1.2498823529411742,
+                "toleranceBB": 4.441937014288515e-15
+              },
+              {
+                "id": "BET:1.00",
+                "dominatedBy": "CHECK",
+                "upperBB": 1.0006862745098064,
+                "leaderLowerBB": 1.2498823529411742,
+                "toleranceBB": 4.441937014288515e-15
+              },
+              {
+                "id": "BET:1.50",
+                "dominatedBy": "CHECK",
+                "upperBB": 0.8757843137254926,
+                "leaderLowerBB": 1.2498823529411742,
+                "toleranceBB": 4.441937014288515e-15
+              },
+              {
+                "id": "BET:2.00",
+                "dominatedBy": "CHECK",
+                "upperBB": 0.750882352941179,
+                "leaderLowerBB": 1.2498823529411742,
+                "toleranceBB": 4.441937014288515e-15
+              }
+            ],
+            "rootDiagnostics": {
+              "profileRegretBB": 0.00946053110572287,
+              "counterfactualOneStepRegret": 0.004730265552861435,
+              "profileValue": 0.9905394688942771,
+              "stability": {
+                "comparable": true,
+                "maxActionEVChange": 0,
+                "maxFrequencyChange": 0
+              },
+              "scope": "CONDITIONAL_RETURNED_PROFILE_DIAGNOSTICS_NOT_CONVERGENCE_PROOF"
+            },
+            "stability": {
+              "comparable": true,
+              "maxActionEVChange": 0,
+              "maxFrequencyChange": 0,
+              "maxActionEVChangeBB": 0
+            },
+            "costs": {
+              "buildMs": 64.75149999999985,
+              "globalSolveMs": 11.70759999999973,
+              "globalEvaluationMs": 1.9577000000003864,
+              "actionSolveMs": 19.140699999999924,
+              "totalComputeMs": 111.39499999999998
+            },
+            "actionCosts": {
+              "FOLD": {
+                "elapsedMs": 3.7681000000002314,
+                "iterations": 20,
+                "batches": 1
+              },
+              "CHECK": {
+                "elapsedMs": 7.4177999999997155,
+                "iterations": 50,
+                "batches": 1
+              },
+              "BET:1.00": {
+                "elapsedMs": 3.1348000000002685,
+                "iterations": 50,
+                "batches": 1
+              },
+              "BET:1.50": {
+                "elapsedMs": 2.6381999999998698,
+                "iterations": 50,
+                "batches": 1
+              },
+              "BET:2.00": {
+                "elapsedMs": 2.181799999999839,
+                "iterations": 50,
+                "batches": 1
+              }
+            }
+          }
+        }
+      ],
+      "summary": {
+        "coldFirstProfileMs": {
+          "count": 5,
+          "p50": 93.13,
+          "p95": 112.739,
+          "min": 84.455,
+          "max": 112.739
+        },
+        "coldFullCertificateMs": {
+          "count": 5,
+          "p50": 209.057,
+          "p95": 238.864,
+          "min": 181.675,
+          "max": 238.864
+        },
+        "coldCompletionMs": {
+          "count": 5,
+          "p50": 210.82,
+          "p95": 239.025,
+          "min": 181.775,
+          "max": 239.025
+        },
+        "cumulativeComputeMs": {
+          "count": 5,
+          "p50": 92.406,
+          "p95": 112.439,
+          "min": 74.585,
+          "max": 112.439
+        },
+        "warmCacheMs": {
+          "count": 5,
+          "p50": 1.268,
+          "p95": 1.586,
+          "min": 0.906,
+          "max": 1.586
+        },
+        "globalComputeMs": {
+          "count": 5,
+          "p50": 10.544,
+          "p95": 13.665,
+          "min": 8.075,
+          "max": 13.665
+        },
+        "actionComputeMs": {
+          "count": 5,
+          "p50": 16.886,
+          "p95": 19.141,
+          "min": 15.068,
+          "max": 19.141
+        },
+        "peakProcessRSSBytes": {
+          "count": 5,
+          "p50": 94023680,
+          "p95": 95031296,
+          "min": 90124288,
+          "max": 95031296
+        },
+        "globalIterations": {
+          "count": 5,
+          "p50": 30,
+          "p95": 30,
+          "min": 30,
+          "max": 30
+        },
+        "actionIterations": {
+          "count": 5,
+          "p50": 220,
+          "p95": 220,
+          "min": 220,
+          "max": 220
+        },
+        "conclusiveSamples": 5,
+        "stoppingReasons": [
+          "GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION"
+        ]
+      }
+    }
+  ]
+}

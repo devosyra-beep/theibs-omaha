@@ -754,7 +754,7 @@ function renderResult(data, street) {
     analyzeButton.disabled = true; $('#quick-analyze').disabled = true;
     analyzeButton.textContent = 'Calculating…'; $('#quick-analyze').textContent = 'Calculating…';
     quickAction(null, 'The engine is calculating this hand…');
-    if(payload.multiwayEvaluation)void window.TheibsMultiwaySolverUI?.evaluate?.(payload,{budget:'FAST'});
+    if(payload.multiwayEvaluation)void window.TheibsMultiwaySolverUI?.evaluate?.(payload);
     if(!multiway)$('#equity-range').textContent='Calculating…';
     const publish = async (data, started, phase) => {
       if (requestedRevision !== inputRevision || controller.signal.aborted) return false;

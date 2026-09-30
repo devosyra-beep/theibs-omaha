@@ -7,10 +7,19 @@
   const clone = value => value == null ? value : JSON.parse(JSON.stringify(value));
   const esc = value => String(value ?? '').replace(/[&<>"']/g, character => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[character]));
   const END_PHASES = new Set(['COMPLETE','UNSUPPORTED','FAILED','CANCELLED']);
-  const blank = () => ({ phase:'IDLE',result:null,jobId:null,revisionKey:null,handId:null,budget:null,cache:null,timing:null,error:null,configured:false });
+  const rangeLimit = seats => seats === 2 ? 12 : 3;
+  const levelLimit = seats => seats === 2 ? 12 : 8;
+  const blank = () => ({ phase:'IDLE',result:null,jobId:null,revisionKey:null,handId:null,budget:null,cache:null,timing:null,error:null,configured:false,updateVersion:null });
   let options = {}, initialized = false, study = null, view = blank(), generation = 0, pollTimer = null, pending = null;
   let lastPayload = null, lastBinding = null, lastSignature = null, dialog = null, openedHand = null, autoRefined = false,
-    cancellation = Promise.resolve(), startAcknowledgement = Promise.resolve(), pendingRestore = false;
+    cancellation = Promise.resolve(), startAcknowledgement = Promise.resolve(), pendingRestore = false, automaticStandard = false;
+  const automaticDeepAttempts = new Set();
+  function reserveAutomaticDeep(signature) {
+    if (!signature || automaticDeepAttempts.has(signature)) return false;
+    automaticDeepAttempts.add(signature);
+    if (automaticDeepAttempts.size > 128) automaticDeepAttempts.delete(automaticDeepAttempts.values().next().value);
+    return true;
+  }
   const context = () => options.getContext?.() || {};
   const handId = value => value?.multiway?.handId || value?.state?.handId || null;
   const binding = value => JSON.stringify([handId(value),value?.state?.revisionKey || null]);
@@ -35,7 +44,7 @@
   function invalidate() {
     generation++; clearPoll(); stopRequest();
     const oldJob = view.jobId, oldPhase = view.phase;
-    view = blank(); lastPayload = null; lastBinding = null; lastSignature = null; autoRefined = false;
+    view = blank(); lastPayload = null; lastBinding = null; lastSignature = null; autoRefined = false; automaticStandard = false;
     synchronizeStudy();
     if (oldJob && !END_PHASES.has(oldPhase)) queueCancel(oldJob);
     emit();
@@ -69,11 +78,12 @@
     const now = context();
     if (data.handId !== handId(now) || data.revisionKey !== now.state?.revisionKey || typeof data.jobId !== 'string') throw Error('Solver response does not match this decision.');
     view = { ...view,phase:data.phase,result:data.result || view.result,jobId:data.jobId,revisionKey:data.revisionKey,handId:data.handId,
-      budget:data.budget,cache:data.cache || null,timing:data.timing || null,error:data.reason || null };
+      budget:data.budget,cache:data.cache || null,timing:data.timing || null,error:data.reason || null,
+      updateVersion:Number.isSafeInteger(data.updateVersion) && data.updateVersion >= 0 ? data.updateVersion : null };
     emit();
     return true;
   }
-  function nextPoll(mine,bound) { clearPoll(); pollTimer = root.setTimeout(() => { pollTimer = null; void poll(mine,bound); },350); }
+  function nextPoll(mine,bound) { clearPoll(); pollTimer = root.setTimeout(() => { pollTimer = null; void poll(mine,bound); },Number.isSafeInteger(view.updateVersion) ? 0 : 350); }
   async function completed(mine,bound) {
     if (!current(mine,bound)) return;
     const coveredBudgetStop = view.phase === 'UNSUPPORTED' && view.result?.reasons?.some(reason=>reason.code==='BUDGET_BEFORE_FIRST_STRATEGY');
@@ -86,12 +96,25 @@
       // have already completed their immediate work before evaluate is called.
       const payload = clone(lastPayload);
       await launch(payload,'STANDARD',true);
+    } else if (view.phase === 'COMPLETE' && view.budget === 'STANDARD' && automaticStandard &&
+      context().multiway?.config?.playerCount === 2 && usableResult(view.result) &&
+      ['TIME_RESOURCE_CEILING','ITERATION_RESOURCE_CEILING'].includes(view.result?.adaptation?.stopReason) &&
+      view.result?.adaptation?.refinementRecommended === true && configured(context()) &&
+      reserveAutomaticDeep(lastSignature)) {
+      // One bounded continuation for this exact hand, revision and study. Keep
+      // the STANDARD result visible while DEEP starts; a stale binding cannot
+      // publish the later result or schedule another continuation.
+      autoRefined = true;
+      const payload = clone(lastPayload);
+      await launch(payload,'DEEP',true,false,true);
     }
   }
   async function poll(mine,bound) {
     if (!current(mine,bound) || !view.jobId) return;
     try {
-      const data = await request(`/api/multiway/solver/jobs/${encodeURIComponent(view.jobId)}`,{method:'GET'},mine,bound);
+      const version = view.updateVersion;
+      const suffix = Number.isSafeInteger(version) ? `?afterVersion=${version}&waitMs=1000` : '';
+      const data = await request(`/api/multiway/solver/jobs/${encodeURIComponent(view.jobId)}${suffix}`,{method:'GET'},mine,bound);
       if (!accept(data,mine,bound)) return;
       if (END_PHASES.has(view.phase)) await completed(mine,bound); else nextPoll(mine,bound);
     } catch (error) { failure(error.name === 'AbortError' ? 'Solver status timed out. Approximate EV remains available.' : error.message,mine,bound); }
@@ -103,15 +126,16 @@
     if (model.assumeNoRake === true) return {type:'NONE',basis:model.feeBasis === 'BEFORE_FEES' ? 'BEFORE_FEES' : 'NO_FEES'};
     return null;
   }
-  async function launch(payload,budget,refinement = false,force = false) {
+  async function launch(payload,budget,refinement = false,force = false,automatic = false) {
     const now = context(), bound = binding(now);
     if (!initialized || !options.request || !now.multiway?.enabled || !now.state?.revisionKey) return getState();
     if (!payload?.multiway || JSON.stringify(payload.multiway) !== JSON.stringify(now.multiway)) return getState();
     if (!['FAST','STANDARD','DEEP'].includes(budget)) throw Error('Choose FAST, STANDARD or DEEP.');
     synchronizeStudy();
     const signature = JSON.stringify([bound,configured(now) ? study : null,feeFromPayload(payload)]);
-    if (!force && signature === lastSignature && (budget === view.budget || budget === 'FAST') && !['IDLE','FAILED','CANCELLED'].includes(view.phase)) return getState();
+    if (!force && signature === lastSignature && (budget === view.budget || budget === 'FAST' || automatic && budget === 'STANDARD' && view.budget === 'DEEP') && !['IDLE','FAILED','CANCELLED'].includes(view.phase)) return getState();
     lastSignature = signature;
+    automaticStandard = automatic === true && budget === 'STANDARD' && !refinement;
     const oldJob = view.jobId, oldPhase = view.phase;
     generation++; clearPoll(); stopRequest();
     if (oldJob && !END_PHASES.has(oldPhase)) queueCancel(oldJob);
@@ -136,7 +160,7 @@
       const declared = configured(now);
       const acknowledgement = request('/api/multiway/solver/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
         multiway:lastPayload.multiway,expectedRevisionKey:now.state.revisionKey,ranges:declared ? clone(study.ranges) : [],
-        sizing:declared ? clone(study.sizing) : null,rake:feeFromPayload(lastPayload),budget
+        sizing:declared ? clone(study.sizing) : null,rake:feeFromPayload(lastPayload),budget,automatic
       })},mine,bound);
       startAcknowledgement = acknowledgement.then(()=>{},()=>{});
       const data = await acknowledgement;
@@ -145,7 +169,11 @@
     } catch (error) { failure(error.name === 'AbortError' ? 'Solver request timed out. Approximate EV remains available.' : error.message,mine,bound); }
     return getState();
   }
-  async function evaluate(payload,{budget='FAST'} = {}) { return launch(payload,budget); }
+  async function evaluate(payload,settings = {}) {
+    const budget=settings.budget === undefined ? 'STANDARD' : settings.budget;
+    const automatic=settings.automatic === true || settings.automatic === undefined && settings.budget === undefined;
+    return launch(payload,budget,false,false,automatic);
+  }
   function usableResult(result) {
     if (!result || !['SOLVED','APPROXIMATE','REFINING'].includes(result.status) ||
       result.status === 'SOLVED' && result.qualification?.solvedSubgame !== true || typeof result.method !== 'string' || !result.method) return false;
@@ -173,12 +201,14 @@
     if (saved.schemaVersion !== 1 || typeof saved.handId !== 'string' || !['KEYBOARD','CANONICAL'].includes(saved.notation) ||
       !Array.isArray(saved.ranges) || saved.ranges.length < 2 || saved.ranges.length > 3 || !saved.sizing) return;
     if (saved.ranges.some(range => !Number.isInteger(range.seatId) || range.complete !== true || !Array.isArray(range.combos) ||
-      range.combos.length < 1 || range.combos.length > 3 || range.combos.some(combo => !Array.isArray(combo.cards) || combo.cards.length !== 5 || !Number.isFinite(combo.weight) || combo.weight <= 0))) return;
+      range.combos.length < 1 || range.combos.length > rangeLimit(saved.ranges.length) || range.combos.some(combo => !Array.isArray(combo.cards) || combo.cards.length !== 5 || !Number.isFinite(combo.weight) || combo.weight <= 0))) return;
+    if (!['MIN_MID_MAX','EXPLICIT_TOTALS'].includes(saved.sizing.type) || !Number.isInteger(saved.sizing.maxAggressions) || saved.sizing.maxAggressions < 0 || saved.sizing.maxAggressions > 3 ||
+      saved.sizing.type === 'EXPLICIT_TOTALS' && (!Array.isArray(saved.sizing.levels) || saved.sizing.levels.length < 1 || saved.sizing.levels.length > levelLimit(saved.ranges.length) || saved.sizing.levels.some(level => !Number.isFinite(level) || level <= 0))) return;
     study = clone(saved);pendingRestore=true;
   }
-  function parseRange(text,notation) {
+  function parseRange(text,notation,maxCombos = 3) {
     const lines = String(text || '').split(/\r?\n/).map(line=>line.trim()).filter(Boolean);
-    if (!lines.length || lines.length > 3) throw Error('Enter one to three complete combinations for each seat.');
+    if (!lines.length || lines.length > maxCombos) throw Error(`Enter one to ${maxCombos} complete combinations for each seat.`);
     const seen = new Set();
     return lines.map((line,index) => {
       const parts = line.split('|');
@@ -222,13 +252,14 @@
       dialog.setAttribute('aria-labelledby','mw-solver-title');root.document.body.append(dialog);
     }
     const supported = now.multiway.config.variant === 'PLO5_HIGH' && seats.length >= 2 && seats.length <= 3;
+    const maxCombos = rangeLimit(seats.length), maxLevels = levelLimit(seats.length);
     dialog.innerHTML = `<div class="multiway-dialog-head"><h2 id="mw-solver-title">Solver study</h2><button type="button" class="text-button" data-solver-close aria-label="Close solver study">×</button></div>
       <form data-solver-form><p class="mw-solver-intro">A finite PLO5 river study for two or three seats. Your normal game and approximate EV remain available.</p>
       ${supported ? '' : '<p class="multiway-error">This table is outside the current solver coverage. Use PLO5 with two or three original seats.</p>'}
       <label>Card notation<select name="notation"><option value="KEYBOARD"${notation==='KEYBOARD'?' selected':''}>Keyboard · E / C / O / P</option><option value="CANONICAL"${notation==='CANONICAL'?' selected':''}>Standard · s / h / d / c</option></select></label>
       <p class="mw-solver-hint" data-solver-notation></p>
-      <div class="mw-solver-ranges">${seats.map(seat=>`<label><span>${esc(seat.hero?'You':seat.name || seat.seatName || `Seat ${seat.id+1}`)} <small>${esc(seat.position)}${seat.folded?' · folded':''}</small></span><textarea rows="3" data-solver-range="${seat.id}" aria-label="${esc(seat.hero?'Your':seat.name || `Seat ${seat.id+1}`)} complete study range" autocomplete="off" autocapitalize="characters" spellcheck="false" required${supported?'':' disabled'}>${esc(rangeText(matches ? study.ranges.find(range=>range.seatId===seat.id) : null,notation))}</textarea></label>`).join('')}</div>
-      <p class="mw-solver-hint">One five-card combination per line, up to three per seat. Add <code>| weight</code> if needed; omitted weights are 1. Include your current cards within your declared range.</p>
+      <div class="mw-solver-ranges">${seats.map(seat=>`<label><span>${esc(seat.hero?'You':seat.name || seat.seatName || `Seat ${seat.id+1}`)} <small>${esc(seat.position)}${seat.folded?' · folded':''}</small></span><textarea rows="${seats.length===2?5:3}" data-solver-range="${seat.id}" aria-label="${esc(seat.hero?'Your':seat.name || `Seat ${seat.id+1}`)} complete study range" autocomplete="off" autocapitalize="characters" spellcheck="false" required${supported?'':' disabled'}>${esc(rangeText(matches ? study.ranges.find(range=>range.seatId===seat.id) : null,notation))}</textarea></label>`).join('')}</div>
+      <p class="mw-solver-hint">One five-card combination per line, up to ${maxCombos} per seat. Add <code>| weight</code> if needed; omitted weights are 1. Include your current cards within your declared range. The declared tree may still exceed the solver's safety limits.</p>
       <div class="mw-solver-grid"><label>Sizing abstraction<select name="sizing"><option value="MIN_MID_MAX">Minimum / middle / maximum</option><option value="EXPLICIT_TOTALS">Specific street totals</option></select></label><label>Additional bets / raises<select name="aggressions"><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></label></div>
       <label data-solver-levels hidden>Street totals · chips<input name="levels" type="text" inputmode="decimal" placeholder="2, 4, 6" autocomplete="off"></label>
       <details class="mw-solver-limits"><summary>Study scope & privacy</summary><p>These are explicitly chosen study ranges, including folded seats. They are not observed cards or learned statistics. Every player knows the declared ranges; a one-combination range reveals that seat’s hand within the study.</p><p>The sizing selection and aggression limit restrict the tree. Convergence applies to this river subgame only, not a full-hand GTO solution. Room fees follow the current calculation basis.</p><p>The server receives the entered combinations and public hand ledger. No voice transcripts, profile notes or inferred ranges are included. This setup resets with the next hand.</p></details>
@@ -247,11 +278,11 @@
       event.preventDefault();dialogError('');
       if (handId(context()) !== openedHand) { dialogError('The hand changed. Reopen Solver study for the current table.');return; }
       try {
-        const ranges = seats.map(seat=>({seatId:seat.id,complete:true,source:'USER_DEFINED_COMPLETE_STUDY',combos:parseRange(dialog.querySelector(`[data-solver-range="${seat.id}"]`).value,form.elements.notation.value)}));
+        const ranges = seats.map(seat=>({seatId:seat.id,complete:true,source:'USER_DEFINED_COMPLETE_STUDY',combos:parseRange(dialog.querySelector(`[data-solver-range="${seat.id}"]`).value,form.elements.notation.value,maxCombos)}));
         const sizing = {type:form.elements.sizing.value,maxAggressions:Number(form.elements.aggressions.value)};
         if (sizing.type === 'EXPLICIT_TOTALS') {
           const levels = form.elements.levels.value.split(/[\s,;]+/).filter(Boolean).map(Number);
-          if (!levels.length || levels.length>8 || levels.some(value=>!Number.isFinite(value)||value<=0||Math.abs(value*100-Math.round(value*100))>1e-7)) throw Error('Enter one to eight positive street totals with at most two decimals.');
+          if (!levels.length || levels.length>maxLevels || levels.some(value=>!Number.isFinite(value)||value<=0||Math.abs(value*100-Math.round(value*100))>1e-7)) throw Error(`Enter one to ${maxLevels} positive street totals with at most two decimals.`);
           sizing.levels = [...new Set(levels)].sort((a,b)=>a-b);
         }
         if (!form.elements.complete.checked) throw Error('Confirm that these are the complete ranges for this study.');
@@ -269,6 +300,8 @@
   }
   function cancel() {
     const id = view.jobId;generation++;clearPoll();stopRequest();
+    if (automaticStandard) reserveAutomaticDeep(lastSignature);
+    automaticStandard=false;
     view.phase='CANCELLED';view.error=null;autoRefined=true;emit();queueCancel(id);
   }
   function init(next = {}) {
@@ -287,6 +320,6 @@
     return api;
   }
   const api = {init,evaluate,invalidate,getState,decisionSnapshot,serialize,restore,openSetup,
-    _testing:{parseRange,rangeText,feeFromPayload,binding,usableResult}};
+    _testing:{parseRange,rangeText,feeFromPayload,binding,usableResult,cancel}};
   return api;
 });

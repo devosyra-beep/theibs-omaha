@@ -1,0 +1,212 @@
+{
+  "classification": "LOCAL_DIFFERENTIAL_ADAPTER_QA",
+  "referenceCommit": "669e4c5",
+  "referenceVersion": "PLO5_FINITE_RIVER_V1",
+  "candidateVersion": "PLO5_FINITE_RIVER_V2",
+  "comparison": "Entire rooted private-world tree: chance probabilities, decision actor, information-set IDs, ordered legal actions and all terminal payoff arrays. Also coverage and constant-sum metadata. Ledger/evaluator dependencies are current shared unmodified modules, so this is adapter equivalence rather than an independent poker implementation.",
+  "samples": [
+    {
+      "name": "before-fees",
+      "status": "PASS",
+      "nodes": 49,
+      "terminals": 32,
+      "worlds": 4,
+      "settlementCacheHits": 16,
+      "settlementReplays": 12
+    },
+    {
+      "name": "explicit-no-fees",
+      "status": "PASS",
+      "nodes": 49,
+      "terminals": 32,
+      "worlds": 4,
+      "settlementCacheHits": 16,
+      "settlementReplays": 12
+    },
+    {
+      "name": "fixed-fee-0.01",
+      "status": "PASS",
+      "nodes": 49,
+      "terminals": 32,
+      "worlds": 4,
+      "settlementCacheHits": 16,
+      "settlementReplays": 12
+    },
+    {
+      "name": "fixed-fee-0.1",
+      "status": "PASS",
+      "nodes": 49,
+      "terminals": 32,
+      "worlds": 4,
+      "settlementCacheHits": 16,
+      "settlementReplays": 12
+    },
+    {
+      "name": "fixed-fee-0.3",
+      "status": "PASS",
+      "nodes": 49,
+      "terminals": 32,
+      "worlds": 4,
+      "settlementCacheHits": 16,
+      "settlementReplays": 12
+    },
+    {
+      "name": "fixed-fee-1.01",
+      "status": "PASS",
+      "nodes": 49,
+      "terminals": 32,
+      "worlds": 4,
+      "settlementCacheHits": 16,
+      "settlementReplays": 12
+    },
+    {
+      "name": "percentage-FLOOR_CENT-0.03",
+      "status": "PASS",
+      "nodes": 49,
+      "terminals": 32,
+      "worlds": 4,
+      "settlementCacheHits": 16,
+      "settlementReplays": 12
+    },
+    {
+      "name": "percentage-FLOOR_CENT-0.3",
+      "status": "PASS",
+      "nodes": 49,
+      "terminals": 32,
+      "worlds": 4,
+      "settlementCacheHits": 16,
+      "settlementReplays": 12
+    },
+    {
+      "name": "percentage-FLOOR_CENT-1",
+      "status": "PASS",
+      "nodes": 49,
+      "terminals": 32,
+      "worlds": 4,
+      "settlementCacheHits": 16,
+      "settlementReplays": 12
+    },
+    {
+      "name": "percentage-NEAREST_CENT-0.03",
+      "status": "PASS",
+      "nodes": 49,
+      "terminals": 32,
+      "worlds": 4,
+      "settlementCacheHits": 16,
+      "settlementReplays": 12
+    },
+    {
+      "name": "percentage-NEAREST_CENT-0.3",
+      "status": "PASS",
+      "nodes": 49,
+      "terminals": 32,
+      "worlds": 4,
+      "settlementCacheHits": 16,
+      "settlementReplays": 12
+    },
+    {
+      "name": "percentage-NEAREST_CENT-1",
+      "status": "PASS",
+      "nodes": 49,
+      "terminals": 32,
+      "worlds": 4,
+      "settlementCacheHits": 16,
+      "settlementReplays": 12
+    },
+    {
+      "name": "unequal-stacks-1.01-20",
+      "status": "PASS",
+      "nodes": 25,
+      "terminals": 16,
+      "worlds": 4,
+      "settlementCacheHits": 8,
+      "settlementReplays": 6
+    },
+    {
+      "name": "unequal-stacks-20-1.01",
+      "status": "PASS",
+      "nodes": 49,
+      "terminals": 32,
+      "worlds": 4,
+      "settlementCacheHits": 16,
+      "settlementReplays": 12
+    },
+    {
+      "name": "unequal-stacks-2-3",
+      "status": "PASS",
+      "nodes": 25,
+      "terminals": 16,
+      "worlds": 4,
+      "settlementCacheHits": 8,
+      "settlementReplays": 6
+    },
+    {
+      "name": "unequal-stacks-3-2",
+      "status": "PASS",
+      "nodes": 49,
+      "terminals": 32,
+      "worlds": 4,
+      "settlementCacheHits": 16,
+      "settlementReplays": 12
+    },
+    {
+      "name": "BB-scale-half",
+      "status": "PASS",
+      "nodes": 49,
+      "terminals": 32,
+      "worlds": 4,
+      "settlementCacheHits": 16,
+      "settlementReplays": 12
+    },
+    {
+      "name": "paired-board",
+      "status": "PASS",
+      "nodes": 49,
+      "terminals": 32,
+      "worlds": 4,
+      "settlementCacheHits": 16,
+      "settlementReplays": 12
+    },
+    {
+      "name": "straight-and-ties-odd-fee",
+      "status": "PASS",
+      "nodes": 49,
+      "terminals": 32,
+      "worlds": 4,
+      "settlementCacheHits": 24,
+      "settlementReplays": 4
+    },
+    {
+      "name": "other-Hero-seat-odd-fee",
+      "status": "PASS",
+      "nodes": 93,
+      "terminals": 60,
+      "worlds": 4,
+      "settlementCacheHits": 31,
+      "settlementReplays": 21
+    },
+    {
+      "name": "existing-three-seat-side-pot-paths",
+      "status": "PASS",
+      "nodes": 409,
+      "terminals": 247,
+      "worlds": 1,
+      "settlementCacheHits": 0,
+      "settlementReplays": 169
+    },
+    {
+      "name": "existing-folded-seat-blockers",
+      "status": "PASS",
+      "nodes": 48,
+      "terminals": 31,
+      "worlds": 1,
+      "settlementCacheHits": 0,
+      "settlementReplays": 15
+    }
+  ],
+  "totalCases": 22,
+  "totalNodesCompared": 1433,
+  "totalTerminalsCompared": 914,
+  "passed": 22,
+  "failed": 0
+}

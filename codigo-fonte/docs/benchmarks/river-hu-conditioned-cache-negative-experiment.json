@@ -1,0 +1,83 @@
+{
+  "classification": "LOCAL_SYNTHETIC_REAL_SOLVER_EXPERIMENT",
+  "baseCommit": "669e4c5",
+  "candidateCode": "Local adapter V2, worker V3, experimental per-execute conditioned-tree cache; experimental cache removed after these measurements",
+  "execution": "execute() in one Node process, no worker-thread scheduling, HTTP, browser or hosted transport",
+  "scenario": {
+    "worlds": 36,
+    "combosPerSeat": 6,
+    "rootAggressiveCandidates": 12,
+    "totalRootActions": 14,
+    "maxAggressions": 2,
+    "nodes": 1621,
+    "timeBudgetMs": 10000,
+    "iterations": 1500
+  },
+  "protocol": "Eight pairs, cached first on even rounds and uncached first on odd rounds. No warmup excluded. Descriptive timings, not a statistical speed guarantee.",
+  "samples": [
+    {
+      "round": 0,
+      "cachedMs": 842.9676,
+      "uncachedMs": 689.7731
+    },
+    {
+      "round": 1,
+      "cachedMs": 1002.1218,
+      "uncachedMs": 805.3904
+    },
+    {
+      "round": 2,
+      "cachedMs": 1153.9187,
+      "uncachedMs": 1230.1566
+    },
+    {
+      "round": 3,
+      "cachedMs": 1300.36,
+      "uncachedMs": 1109.7765
+    },
+    {
+      "round": 4,
+      "cachedMs": 1193.9834,
+      "uncachedMs": 1172.8733
+    },
+    {
+      "round": 5,
+      "cachedMs": 1294.6481,
+      "uncachedMs": 1176.8424
+    },
+    {
+      "round": 6,
+      "cachedMs": 1188.3902,
+      "uncachedMs": 1111.8369
+    },
+    {
+      "round": 7,
+      "cachedMs": 1158.2634,
+      "uncachedMs": 1097.6658
+    }
+  ],
+  "invariantsEverySample": {
+    "globalIterations": 100,
+    "actionIterations": 1400,
+    "workIterations": 1500,
+    "nashConv": 0.009052561938259186,
+    "certifiedActions": 14,
+    "termination": "ITERATION_RESOURCE_CEILING"
+  },
+  "cacheEveryCachedSample": {
+    "hits": 3,
+    "misses": 25,
+    "evictions": 22,
+    "entries": 3,
+    "retainedNodes": 4149,
+    "estimatedRetainedBytes": 2143654,
+    "maxEntries": 3,
+    "maxNodes": 6000,
+    "maxBytes": 8388608
+  },
+  "mediansMs": {
+    "cached": 1173.3268,
+    "uncached": 1110.8067
+  },
+  "decision": "Removed experimental conditioned-tree preparation cache; slower in seven of eight pairs with additional retained memory. Keep uncached numerical path."
+}

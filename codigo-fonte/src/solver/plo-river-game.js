@@ -9,9 +9,11 @@ const { normalizeCards, cardCodes } = require('../cards');
 const { evaluateOmaha, compareScores } = require('../evaluator');
 const { normalizeRakeSchedule, calculateRake } = require('../rake-model');
 
-const VERSION = 'PLO5_FINITE_RIVER_V1';
+const VERSION = 'PLO5_FINITE_RIVER_V2';
 const RULES_VERSION = 'OBSERVED_HAND_CENT_LEDGER_0148';
-const LIMITS = Object.freeze({ maxNodes: 12000, maxWorlds: 27, maxMemoryBytes: 96 * 1024 * 1024, maxBuildMs: 2400 });
+const LIMITS = Object.freeze({ maxNodes: 12000, maxWorlds: 144, maxMemoryBytes: 96 * 1024 * 1024, maxBuildMs: 2400 });
+const HU_SUPPORT = Object.freeze({ maxCombosPerSeat: 12, maxSizingLevels: 12, maxWorlds: 144, maxMemoryBytes: 48 * 1024 * 1024 });
+const THREE_SEAT_SUPPORT = Object.freeze({ maxCombosPerSeat: 3, maxSizingLevels: 8, maxWorlds: 27, maxMemoryBytes: 96 * 1024 * 1024 });
 const hash = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
 const round = value => Math.round(value * 100) / 100;
 const object = value => value && typeof value === 'object' && !Array.isArray(value);
@@ -38,11 +40,11 @@ function feeAt(model, pot) {
   if (fee > pot + 1e-8) fail('FEE_EXCEEDS_POT', 'The fixed fee exceeds a reachable terminal pot.');
   return fee;
 }
-function normalizeSizing(raw) {
+function normalizeSizing(raw, maxLevels) {
   if (!object(raw) || !['MIN_MID_MAX', 'EXPLICIT_TOTALS'].includes(raw.type)) fail('SIZING_REQUIRED', 'Declare the river sizing abstraction.');
   const maxAggressions = integer(raw.maxAggressions, 0, 3, 'Maximum additional aggressive actions');
   if (raw.type === 'MIN_MID_MAX') return { type: raw.type, maxAggressions };
-  if (!Array.isArray(raw.levels) || raw.levels.length < 1 || raw.levels.length > 8) fail('INVALID_SIZING', 'Declare one to eight street-total sizes.');
+  if (!Array.isArray(raw.levels) || raw.levels.length < 1 || raw.levels.length > maxLevels) fail('INVALID_SIZING', `Declare one to ${maxLevels} street-total sizes.`);
   const levels = [...new Set(raw.levels.map(value => amount(value, 'Street total')))].sort((a, b) => a - b);
   if (levels.some(value => value <= 0)) fail('INVALID_SIZING', 'Street totals must be positive.');
   return { type: raw.type, levels, maxAggressions };
@@ -67,16 +69,19 @@ function normalize(input) {
   if (state.phase !== 'BETTING' || state.actor !== state.heroId) fail('NO_DECISION', 'This slice requires the current Hero decision.');
   if (record.config.heroCards.length !== 5) fail('HERO_CARDS_REQUIRED', 'Complete the five Hero cards.');
   if (record.events.some(event => !['ACT', 'BOARD'].includes(event.type))) fail('PARTIAL_HISTORY', 'This slice requires a complete ordered public action history, without out-of-turn or later reveal events.');
-  const sizing = normalizeSizing(input.sizing), rake = normalizeFee(input.rake);
+  const support = state.players.length === 2 ? HU_SUPPORT : THREE_SEAT_SUPPORT;
+  const sizing = normalizeSizing(input.sizing, support.maxSizingLevels), rake = normalizeFee(input.rake);
   const budgetRaw = input.budget || {}, budget = {};
-  for (const [key, maximum] of Object.entries(LIMITS)) budget[key] = integer(budgetRaw[key] ?? maximum, 1, maximum, key);
+  for (const [key, maximum] of Object.entries({ ...LIMITS, maxWorlds: support.maxWorlds, maxMemoryBytes: support.maxMemoryBytes }))
+    budget[key] = integer(budgetRaw[key] ?? maximum, 1, maximum, key);
   if (!Array.isArray(input.ranges) || input.ranges.length !== state.players.length) fail('COMPLETE_RANGES_REQUIRED', 'Supply an explicit range for every original seat, including Hero and folded players.');
   const ranges = Array(state.players.length), seenSeats = new Set();
   for (const raw of input.ranges) {
     if (!object(raw) || !Number.isInteger(raw.seatId) || !state.players[raw.seatId] || seenSeats.has(raw.seatId)) fail('INVALID_RANGE_SEAT', 'Each range must identify one distinct physical seat.');
     seenSeats.add(raw.seatId);
     if (raw.complete !== true || typeof raw.source !== 'string' || !raw.source.trim() || raw.source.length > 120) fail('RANGE_DEFINITION_REQUIRED', 'Each range must be declared complete for this study and identify its source.');
-    if (!Array.isArray(raw.combos) || raw.combos.length < 1 || raw.combos.length > 3) fail('RANGE_BUDGET', 'This exact slice accepts one to three explicit combinations per seat.');
+    if (!Array.isArray(raw.combos) || raw.combos.length < 1 || raw.combos.length > support.maxCombosPerSeat)
+      fail('RANGE_BUDGET', `This exact slice accepts one to ${support.maxCombosPerSeat} explicit combinations per seat.`);
     const seenCombos = new Set();
     const combos = raw.combos.map(combo => {
       if (!object(combo) || !Array.isArray(combo.cards)) fail('INVALID_COMBO', 'A range combination needs cards and an explicit weight.');
@@ -134,7 +139,7 @@ function guardDeadline(context) { if (performance.now() > context.deadline) fail
 function preflight(context, worldCount) {
   const metrics = { publicNodes: 0, publicDecisionNodes: 0, publicTerminals: 0, maxDepth: 0,
     aggressionCapNodes: 0, omittedSizingNodes: 0, omittedLegalSizeCount: 0 };
-  function visit(state, events, aggressionCount, depth) {
+  function visit(state, events, publicHistory, aggressionCount, depth) {
     guardDeadline(context);
     metrics.publicNodes++; metrics.maxDepth = Math.max(metrics.maxDepth, depth);
     const nodes = 1 + metrics.publicNodes * worldCount;
@@ -147,7 +152,11 @@ function preflight(context, worldCount) {
     if (state.phase === 'FINISHED' || state.phase === 'SHOWDOWN') {
       metrics.publicTerminals++;
       feeAt(context.rake, state.phase === 'SHOWDOWN' ? state.pot : state.result.pots.reduce((sum, pot) => sum + pot.amount, 0));
-      return;
+      // Keep only data needed by the authoritative settlement replay. Retaining
+      // complete ledger logs on every public node would scale with old history.
+      return { type: 'terminal', events, state: { phase: state.phase, pot: state.pot,
+        players: state.players.map(player => ({ stack: player.stack })), pots: state.pots,
+        result: state.result ? { pots: state.result.pots, winners: state.result.winners } : null }, settlements: new Map() };
     }
     if (state.phase !== 'BETTING') fail('UNEXPECTED_STREET', 'The river tree unexpectedly requires another street.');
     metrics.publicDecisionNodes++;
@@ -157,46 +166,68 @@ function preflight(context, worldCount) {
     const legalSizes = aggressive ? Math.round((state.legal.maxTo - state.legal.minTo) * 100) + 1 : 0;
     if (aggressive && aggressionCount >= context.sizing.maxAggressions) metrics.aggressionCapNodes++;
     if (includedSizes < legalSizes) { metrics.omittedSizingNodes++; metrics.omittedLegalSizeCount += legalSizes - includedSizes; }
-    for (const action of actions) visit(advance(context, events, action, state), [...events, eventFor(state, action)],
-      aggressionCount + (action.size == null ? 0 : 1), depth + 1);
+    return { type: 'decision', player: state.actor, publicHistory, informationSets: new Map(), actions: actions.map(action => ({ id: action.id,
+      node: visit(advance(context, events, action, state), [...events, eventFor(state, action)], [...publicHistory, `${state.actor}:${action.id}`],
+        aggressionCount + (action.size == null ? 0 : 1), depth + 1) })) };
   }
-  visit(context.state, [], 0, 0);
-  return { ...metrics, nodes: 1 + metrics.publicNodes * worldCount, reservedMemoryBytes: (1 + metrics.publicNodes * worldCount) * 8192 };
+  const publicTree = visit(context.state, [], [], 0, 0);
+  return { publicTree, metrics: { ...metrics, nodes: 1 + metrics.publicNodes * worldCount,
+    reservedMemoryBytes: (1 + metrics.publicNodes * worldCount) * 8192 } };
 }
-function terminal(context, state, events, scores) {
-  let final = state, fee;
+function terminal(context, publicNode, scores) {
+  const { state, events, settlements } = publicNode;
+  let final = state, fee, winners, settlementKey = 'ALL_FOLDED';
   if (state.phase === 'SHOWDOWN') {
     fee = feeAt(context.rake, state.pot);
-    const winners = state.pots.map(pot => {
+    winners = state.pots.map(pot => {
       let best = null;
       for (const seat of pot.eligible) if (best == null || compareScores(scores[seat], best) > 0) best = scores[seat];
       return pot.eligible.filter(seat => compareScores(scores[seat], best) === 0);
     });
-    final = replay(context.config, [...context.events, ...events, { type: 'SETTLE', winners, rake: fee }]);
+    settlementKey = JSON.stringify(winners);
+    if (!settlements.has(settlementKey)) {
+      final = replay(context.config, [...context.events, ...events, { type: 'SETTLE', winners, rake: fee }]);
+      context.buildMetrics.settlementReplays++;
+    }
   } else {
     // ALL_FOLDED is paid gross by the observation ledger. This study's
     // declared fee is deducted once from that sole winner, after refunds.
     fee = feeAt(context.rake, final.result.pots.reduce((sum, pot) => sum + pot.amount, 0));
   }
+  if (settlements.has(settlementKey)) {
+    context.buildMetrics.settlementCacheHits++;
+    return { type: 'terminal', payoffs: [...settlements.get(settlementKey)] };
+  }
   const payoffs = final.players.map((player, seat) => round(player.stack - context.state.players[seat].stack -
     (state.phase === 'FINISHED' && final.result.winners.includes(seat) ? fee : 0)) / context.state.bigBlind);
   const expected = (context.state.pot - fee) / context.state.bigBlind;
   if (Math.abs(payoffs.reduce((sum, value) => sum + value, 0) - expected) > 1e-7) fail('PAYOFF_CONSERVATION', 'Incremental terminal chip conservation failed.');
-  return { type: 'terminal', payoffs };
+  settlements.set(settlementKey, payoffs);
+  return { type: 'terminal', payoffs: [...payoffs] };
 }
-function buildTree(context, world) {
+function buildTree(context, world, publicTree) {
   // Card-independent legal transitions reuse the canonical public ledger.
   // Only terminal hand ranking and each owner's infoset know private cards.
-  const scores = world.hands.map(cards => evaluateOmaha(cards, context.state.board).score);
-  function visit(state, events, publicHistory, aggressionCount) {
+  const scores = world.hands.map(cards => {
+    const key = cards.join(',');
+    if (!context.handScores.has(key)) {
+      guardDeadline(context);
+      context.handScores.set(key, evaluateOmaha(cards, context.state.board).score);
+      context.buildMetrics.handRankEvaluations++;
+    } else context.buildMetrics.handRankCacheHits++;
+    return context.handScores.get(key);
+  });
+  function visit(publicNode) {
     guardDeadline(context);
-    if (state.phase === 'FINISHED' || state.phase === 'SHOWDOWN') return terminal(context, state, events, scores);
-    const actions = actionsFor(state, context.sizing, aggressionCount);
-    return { type: 'decision', player: state.actor, informationSet: infoKey(state.actor, world.hands[state.actor], publicHistory),
-      actions: actions.map(action => ({ id: action.id, node: visit(advance(context, events, action, state),
-        [...events, eventFor(state, action)], [...publicHistory, `${state.actor}:${action.id}`], aggressionCount + (action.size == null ? 0 : 1)) })) };
+    if (publicNode.type === 'terminal') return terminal(context, publicNode, scores);
+    const cards = world.hands[publicNode.player], cardsKey = cards.join(',');
+    if (!publicNode.informationSets.has(cardsKey)) publicNode.informationSets.set(cardsKey, infoKey(publicNode.player, cards, publicNode.publicHistory));
+    // Every chance world still owns a distinct node tree. Only immutable
+    // mathematical strings/scores are reused, never hidden-information nodes.
+    return { type: 'decision', player: publicNode.player, informationSet: publicNode.informationSets.get(cardsKey),
+      actions: publicNode.actions.map(action => ({ id: action.id, node: visit(action.node) })) };
   }
-  return visit(context.state, [], [], 0);
+  return visit(publicTree);
 }
 function rejected(error, started) {
   return { status: 'NOT_SOLVED', coverage: 'NOT_SOLVED', reasons: [{ code: error.code || 'INVALID_INPUT', message: error.message }],
@@ -218,7 +249,10 @@ function buildPloRiverGame(input) {
   try {
     const context = normalize(input);
     context.deadline = started + context.budget.maxBuildMs;
-    const joint = enumerateWorlds(context), metrics = preflight(context, joint.worlds.length);
+    const joint = enumerateWorlds(context), { metrics, publicTree } = preflight(context, joint.worlds.length);
+    context.handScores = new Map();
+    context.buildMetrics = { publicLedgerTransitions: metrics.publicNodes - 1, handRankEvaluations: 0, handRankCacheHits: 0,
+      settlementReplays: 0, settlementCacheHits: 0 };
     const rootActions = actionsFor(context.state, context.sizing, 0);
     const meta = { key: context.key, version: VERSION, rulesVersion: RULES_VERSION, variant: 'PLO5_HIGH', street: 'RIVER',
       scope: 'FINITE_RIVER_SUBGAME', originalSeats: context.state.players.length, activeSeats: context.state.activePlayers,
@@ -238,12 +272,13 @@ function buildPloRiverGame(input) {
         'Ranges are study inputs conditional on this public decision; no hidden cards, population frequencies or historical reach probabilities are inferred.',
         ...(metrics.omittedSizingNodes ? ['Some legal raises are omitted by the explicitly declared sizing and aggression-depth abstraction.'] : []),
         ...(context.ranges.some(range => range.combos.length === 1) ? ['A singleton range is common knowledge in this study and reveals that seat\'s cards to every strategy.'] : [])] };
-    const root = { type: 'chance', outcomes: joint.worlds.map(world => ({ probability: world.probability, node: buildTree(context, world) })) };
+    const root = { type: 'chance', outcomes: joint.worlds.map(world => ({ probability: world.probability, node: buildTree(context, world, publicTree) })) };
+    guardDeadline(context);
     return { status: 'READY', coverage: metrics.omittedSizingNodes ? 'PARTIAL' : 'FINITE_RIVER_SUBGAME', reasons: [],
       game: { id: `${VERSION}:${context.key}`, playerCount: context.state.players.length, root, meta },
-      metrics: { ...metrics, worlds: joint.worlds.length, buildMs: performance.now() - started } };
+      metrics: { ...metrics, ...context.buildMetrics, worlds: joint.worlds.length, buildMs: performance.now() - started } };
   } catch (error) { return rejected(error, started); }
 }
 
-module.exports = { VERSION, RULES_VERSION, LIMITS, coverage, buildPloRiverGame, buildRiverGame: buildPloRiverGame,
+module.exports = { VERSION, RULES_VERSION, LIMITS, HU_SUPPORT, THREE_SEAT_SUPPORT, coverage, buildPloRiverGame, buildRiverGame: buildPloRiverGame,
   _testing: { actionsFor, normalize, enumerateWorlds, feeAt, infoKey } };

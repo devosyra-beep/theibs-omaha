@@ -356,8 +356,18 @@ const server = http.createServer(async (request, response) => {
         ...(!allowed?{reason:'The optional assistant is not configured on this server.'}:{})}});
   }
   if (request.method === 'GET' && route.startsWith('/api/multiway/solver/jobs/')) {
-    try { return json(response,200,solverJobs.get(auth.user.id,route.split('/').at(-1))); }
-    catch(error){return json(response,error.statusCode||400,{status:'ERROR',reason:error.message});}
+    const controller=new AbortController(),cancel=()=>{if(!response.writableEnded)controller.abort();};
+    response.once('close',cancel);
+    try {
+      const id=route.split('/').at(-1);
+      const result=requestUrl.searchParams.has('afterVersion')
+        ?await solverJobs.wait(auth.user.id,id,{afterVersion:Number(requestUrl.searchParams.get('afterVersion')),
+          waitMs:Number(requestUrl.searchParams.get('waitMs')||1000),signal:controller.signal})
+        :solverJobs.get(auth.user.id,id);
+      if(!response.destroyed)return json(response,200,result);
+    } catch(error){if(!response.destroyed)return json(response,error.statusCode||400,{status:'ERROR',reason:error.message});}
+    finally{response.removeListener('close',cancel);}
+    return;
   }
   // Reject before reading text unless the current provider passed its gate.
   // Remote text opt-in is distinct from on-device audio recognition.
@@ -422,7 +432,7 @@ const server = http.createServer(async (request, response) => {
         if(payload.expectedRevisionKey!==observed.state.revisionKey)throw Error('The solver decision revision changed.');
         return json(response,200,await solverJobs.start(auth.user.id,{multiway:observed.multiway,
           ranges:payload.ranges,sizing:payload.sizing,rake:payload.rake},{budget:payload.budget||'STANDARD',
-          revisionKey:observed.state.revisionKey,handId:observed.multiway.handId}));
+          revisionKey:observed.state.revisionKey,handId:observed.multiway.handId,automatic:payload.automatic===true}));
       }
       if (route === '/api/multiway/solver/cancel') return json(response,200,solverJobs.cancel(auth.user.id,payload.jobId));
       if (route === '/api/multiway/state') return json(response, 200, multiway.envelope(payload.multiway));

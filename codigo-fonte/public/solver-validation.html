@@ -11,9 +11,12 @@
 </head>
 <body>
   <main class="shell">
-    <header class="masthead"><span class="eyebrow">THEIBS / RELEASE VALIDATION</span><h1>Solver validation</h1>
+    <header class="masthead"><span class="eyebrow">THEIBS / 0.14.10 RELEASE VALIDATION</span><h1>Solver validation</h1>
       <p>An isolated, signed-in check of the published solver API against synthetic river fixtures. It does not read or change your table, history, or workspace.</p></header>
     <section class="controls" aria-label="Validation controls">
+      <label class="suite-choice" for="suite">Validation suite
+        <select id="suite"><option value="baseline">0.14.9 baseline · FAST then STANDARD</option><option value="progressive">0.14.10 small + expanded HU · automatic STANDARD</option></select>
+      </label>
       <button id="run" type="button">Run validation</button>
       <button id="stop" type="button" disabled>Stop and cancel jobs</button>
       <button id="export" type="button" disabled>Export JSON</button>

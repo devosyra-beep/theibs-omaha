@@ -35,13 +35,18 @@ function focusActions(ids,rows){
 function chooseFocus(ids,rows,attempts={}){
   const focus=focusActions(ids,rows),found=new Map(rows.map(row=>[row.id,row]));
   const candidates=focus.survivingActionIds.map(id=>({id,row:found.get(id),attempts:attempts[id]||0}));
-  candidates.sort((a,b)=>{
+  // Optimistic compatible bounds prioritize contenders. A two-batch maximum
+  // lead keeps a difficult/wide candidate from starving another contender.
+  // Original-profile point EV and strategy frequency never exclude an action.
+  const leastAttempts=Math.min(...candidates.map(candidate=>candidate.attempts));
+  const eligible=candidates.filter(candidate=>candidate.attempts<=leastAttempts+1);
+  eligible.sort((a,b)=>{
     const aKnown=validBounds(a.row),bKnown=validBounds(b.row);
     if(aKnown!==bKnown)return aKnown?1:-1;
     if(!aKnown)return a.attempts-b.attempts||ids.indexOf(a.id)-ids.indexOf(b.id);
-    return (b.row.upperBB-b.row.lowerBB)-(a.row.upperBB-a.row.lowerBB)||a.attempts-b.attempts||ids.indexOf(a.id)-ids.indexOf(b.id);
+    return b.row.upperBB-a.row.upperBB||(b.row.upperBB-b.row.lowerBB)-(a.row.upperBB-a.row.lowerBB)||a.attempts-b.attempts||ids.indexOf(a.id)-ids.indexOf(b.id);
   });
-  return {focus,id:candidates[0]?.id||null};
+  return {focus,id:eligible[0]?.id||null};
 }
 
 function execute({input,budget,checkpoint,shouldCancel=()=>false,onProgress=()=>{}},dependencies={}){
@@ -104,7 +109,15 @@ function execute({input,budget,checkpoint,shouldCancel=()=>false,onProgress=()=>
       adaptation:{version:VERSION,phase:refining?'REFINING':'STOPPED',stopReason:refining?null:stopReason,
         refinementRecommended:!shouldCancel()&&stopReason!=='FIXED_CONTINUATIONS_FULLY_EVALUATED'&&(!converged||actionEligible&&!focus.separated),
         resourceCeiling:{timeMs:budget.timeMs,iterations:budget.iterations},workIterations:totalWork,
-        globalIterations:solved.iterations,actionIterations:Object.values(actionCheckpoints).reduce((sum,item)=>sum+(item?.iterations||0),0)},
+        globalIterations:solved.iterations,actionIterations:Object.values(actionCheckpoints).reduce((sum,item)=>sum+(item?.iterations||0),0),
+        sizingRefinement:{mode:'FIXED_DECLARED_TREE_ADAPTIVE_CERTIFICATES',scope:'DECLARED_LEGAL_CANDIDATES_ONLY',
+          treeKey:meta.key,gameHash:baseGameHash,baseContextKey,allDeclaredActionsRetained:true,
+          allLegalSizesRepresented:meta.fullLegalSizingCoverage===true,
+          sizingActionIds:meta.rootActions.filter(action=>finite(action.size)).map(action=>action.id),
+          selectionPolicy:'UNCERTIFIED_FIRST_THEN_OPTIMISTIC_BOUND_WITH_TWO_BATCH_FAIRNESS',
+          candidates:ids.map(id=>({id,attempts:attempts[id]||0,
+            state:focus.dominatedActions.some(row=>row.id===id)?'CERTIFIED_DOMINATED':
+              validBounds(rows.find(row=>row.id===id))?'CERTIFIED_CONTENDER':attempts[id]?'AWAITING_CERTIFICATE':'NOT_EVALUATED'}))}},
       rootDiagnostics:diagnostics?{profileRegretBB:diagnostics.oneStepRegret??null,counterfactualOneStepRegret:diagnostics.counterfactualOneStepRegret??null,
         profileValue:diagnostics.profileValue??null,stability:diagnostics.stability||null,
         scope:'CONDITIONAL_RETURNED_PROFILE_DIAGNOSTICS_NOT_CONVERGENCE_PROOF'}:null,

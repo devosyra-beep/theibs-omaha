@@ -1,0 +1,5927 @@
+{
+  "schemaVersion": 2,
+  "releaseVersion": "0.14.10",
+  "comparisonBaselineCommit": "1c9a91fd1555297b50c3db5e092868516436b60e",
+  "generatedAt": "2026-09-30T17:11:33.818Z",
+  "methodology": "Five small reference variants use new bijective suit permutations disjoint from the legacy fixture. Three expanded variants per size use bijective suit permutations. Actual cold samples require cache.hit=false; prior cache hits are reported, not called cold.",
+  "scope": "Isolated authenticated river HU synthetic studies. Automatic STANDARD may continue once to DEEP only after an ordinary resource stop with a complete strategy. No game workspace or history mutation.",
+  "baselineCases": [
+    {
+      "id": "small_separated_terminal_call",
+      "label": "Small reference · Separated call",
+      "expectation": {
+        "comparisonStatus": "CONCLUSIVE",
+        "bestActionId": "CALL",
+        "actionValues": {
+          "FOLD": 0,
+          "CALL": 3
+        },
+        "globalStatus": "SOLVED"
+      },
+      "variants": [
+        {
+          "id": "progressive-separated_terminal_call-1",
+          "input": {
+            "multiway": {
+              "schemaVersion": 1,
+              "enabled": true,
+              "config": {
+                "variant": "PLO5_HIGH",
+                "playerCount": 2,
+                "heroPosition": "SB",
+                "startingStack": 2,
+                "smallBlind": 0.5,
+                "bigBlind": 1,
+                "heroCards": [
+                  "Ah",
+                  "Ac",
+                  "Qd",
+                  "Js",
+                  "Ts"
+                ],
+                "players": [
+                  {
+                    "playerId": "a45ad23a-8f5f-4fa1-9cb6-0b1d1cd58030",
+                    "name": "You"
+                  },
+                  {
+                    "playerId": "a12ed20b-6f07-4566-ba60-20c13e5e4756",
+                    "name": "A1"
+                  }
+                ]
+              },
+              "events": [
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CALL",
+                  "eventId": "56ff195a-3e88-43f5-b058-3cc475037fd7"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "236444c7-6649-422a-a440-0c997242ec13"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2h",
+                    "3c",
+                    "4d"
+                  ],
+                  "eventId": "35ca4ce4-2530-4912-ac09-10f93341c5f7"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "f695784d-729a-404a-b8bf-bdad137daaff"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CHECK",
+                  "eventId": "4e8b217b-30fd-4a81-907e-c76fa7be4cae"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2h",
+                    "3c",
+                    "4d",
+                    "8s"
+                  ],
+                  "eventId": "e028b9c2-0e75-4636-9802-699031225c52"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "59d7e1d1-22c1-4bba-bdb0-ba00454f6521"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CHECK",
+                  "eventId": "347f691d-921b-4e1a-84e3-9469c6540604"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2h",
+                    "3c",
+                    "4d",
+                    "8s",
+                    "9h"
+                  ],
+                  "eventId": "839d41ec-ca01-49c8-a1aa-a4767a4c5066"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "BET",
+                  "to": 1,
+                  "eventId": "e970b97d-e080-45b6-9ad3-6e38cfa90ec4"
+                }
+              ],
+              "handId": "c9a5e127-968a-64c2-c7af-f40a8b92400e",
+              "editEpoch": 0
+            },
+            "ranges": [
+              {
+                "seatId": 0,
+                "complete": true,
+                "source": "EXPLICIT_LOCAL_BENCHMARK",
+                "combos": [
+                  {
+                    "cards": [
+                      "Ah",
+                      "Ac",
+                      "Qd",
+                      "Js",
+                      "Ts"
+                    ],
+                    "weight": 1
+                  }
+                ]
+              },
+              {
+                "seatId": 1,
+                "complete": true,
+                "source": "EXPLICIT_LOCAL_BENCHMARK",
+                "combos": [
+                  {
+                    "cards": [
+                      "Kh",
+                      "Kc",
+                      "6d",
+                      "7s",
+                      "8c"
+                    ],
+                    "weight": 1
+                  }
+                ]
+              }
+            ],
+            "sizing": {
+              "type": "MIN_MID_MAX",
+              "maxAggressions": 3
+            },
+            "rake": {
+              "type": "NONE",
+              "basis": "BEFORE_FEES"
+            }
+          },
+          "expectedRevisionKey": "cf9499cdb4719c09190cc3a6c6ab2f3a11b5ee746793e66dda3315fb3a8f4383"
+        },
+        {
+          "id": "progressive-separated_terminal_call-2",
+          "input": {
+            "multiway": {
+              "schemaVersion": 1,
+              "enabled": true,
+              "config": {
+                "variant": "PLO5_HIGH",
+                "playerCount": 2,
+                "heroPosition": "SB",
+                "startingStack": 2,
+                "smallBlind": 0.5,
+                "bigBlind": 1,
+                "heroCards": [
+                  "Ad",
+                  "Ah",
+                  "Qc",
+                  "Js",
+                  "Ts"
+                ],
+                "players": [
+                  {
+                    "playerId": "a45ad23a-8f5f-4fa1-9cb6-0b1d1cd58030",
+                    "name": "You"
+                  },
+                  {
+                    "playerId": "a12ed20b-6f07-4566-ba60-20c13e5e4756",
+                    "name": "A1"
+                  }
+                ]
+              },
+              "events": [
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CALL",
+                  "eventId": "56ff195a-3e88-43f5-b058-3cc475037fd7"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "236444c7-6649-422a-a440-0c997242ec13"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2d",
+                    "3h",
+                    "4c"
+                  ],
+                  "eventId": "35ca4ce4-2530-4912-ac09-10f93341c5f7"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "f695784d-729a-404a-b8bf-bdad137daaff"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CHECK",
+                  "eventId": "4e8b217b-30fd-4a81-907e-c76fa7be4cae"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2d",
+                    "3h",
+                    "4c",
+                    "8s"
+                  ],
+                  "eventId": "e028b9c2-0e75-4636-9802-699031225c52"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "59d7e1d1-22c1-4bba-bdb0-ba00454f6521"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CHECK",
+                  "eventId": "347f691d-921b-4e1a-84e3-9469c6540604"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2d",
+                    "3h",
+                    "4c",
+                    "8s",
+                    "9d"
+                  ],
+                  "eventId": "839d41ec-ca01-49c8-a1aa-a4767a4c5066"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "BET",
+                  "to": 1,
+                  "eventId": "e970b97d-e080-45b6-9ad3-6e38cfa90ec4"
+                }
+              ],
+              "handId": "034c3fa5-724f-7755-e060-53dd0765d8bb",
+              "editEpoch": 0
+            },
+            "ranges": [
+              {
+                "seatId": 0,
+                "complete": true,
+                "source": "EXPLICIT_LOCAL_BENCHMARK",
+                "combos": [
+                  {
+                    "cards": [
+                      "Ad",
+                      "Ah",
+                      "Qc",
+                      "Js",
+                      "Ts"
+                    ],
+                    "weight": 1
+                  }
+                ]
+              },
+              {
+                "seatId": 1,
+                "complete": true,
+                "source": "EXPLICIT_LOCAL_BENCHMARK",
+                "combos": [
+                  {
+                    "cards": [
+                      "Kd",
+                      "Kh",
+                      "6c",
+                      "7s",
+                      "8h"
+                    ],
+                    "weight": 1
+                  }
+                ]
+              }
+            ],
+            "sizing": {
+              "type": "MIN_MID_MAX",
+              "maxAggressions": 3
+            },
+            "rake": {
+              "type": "NONE",
+              "basis": "BEFORE_FEES"
+            }
+          },
+          "expectedRevisionKey": "942deba8213b9a425563a9afc994693d20717db6532f0a67b5e25b3a6fd3727b"
+        },
+        {
+          "id": "progressive-separated_terminal_call-3",
+          "input": {
+            "multiway": {
+              "schemaVersion": 1,
+              "enabled": true,
+              "config": {
+                "variant": "PLO5_HIGH",
+                "playerCount": 2,
+                "heroPosition": "SB",
+                "startingStack": 2,
+                "smallBlind": 0.5,
+                "bigBlind": 1,
+                "heroCards": [
+                  "Ac",
+                  "Ah",
+                  "Qd",
+                  "Js",
+                  "Ts"
+                ],
+                "players": [
+                  {
+                    "playerId": "a45ad23a-8f5f-4fa1-9cb6-0b1d1cd58030",
+                    "name": "You"
+                  },
+                  {
+                    "playerId": "a12ed20b-6f07-4566-ba60-20c13e5e4756",
+                    "name": "A1"
+                  }
+                ]
+              },
+              "events": [
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CALL",
+                  "eventId": "56ff195a-3e88-43f5-b058-3cc475037fd7"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "236444c7-6649-422a-a440-0c997242ec13"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2c",
+                    "3h",
+                    "4d"
+                  ],
+                  "eventId": "35ca4ce4-2530-4912-ac09-10f93341c5f7"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "f695784d-729a-404a-b8bf-bdad137daaff"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CHECK",
+                  "eventId": "4e8b217b-30fd-4a81-907e-c76fa7be4cae"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2c",
+                    "3h",
+                    "4d",
+                    "8s"
+                  ],
+                  "eventId": "e028b9c2-0e75-4636-9802-699031225c52"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "59d7e1d1-22c1-4bba-bdb0-ba00454f6521"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CHECK",
+                  "eventId": "347f691d-921b-4e1a-84e3-9469c6540604"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2c",
+                    "3h",
+                    "4d",
+                    "8s",
+                    "9c"
+                  ],
+                  "eventId": "839d41ec-ca01-49c8-a1aa-a4767a4c5066"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "BET",
+                  "to": 1,
+                  "eventId": "e970b97d-e080-45b6-9ad3-6e38cfa90ec4"
+                }
+              ],
+              "handId": "efeda166-39fb-7b53-7dbd-bc4128e141d5",
+              "editEpoch": 0
+            },
+            "ranges": [
+              {
+                "seatId": 0,
+                "complete": true,
+                "source": "EXPLICIT_LOCAL_BENCHMARK",
+                "combos": [
+                  {
+                    "cards": [
+                      "Ac",
+                      "Ah",
+                      "Qd",
+                      "Js",
+                      "Ts"
+                    ],
+                    "weight": 1
+                  }
+                ]
+              },
+              {
+                "seatId": 1,
+                "complete": true,
+                "source": "EXPLICIT_LOCAL_BENCHMARK",
+                "combos": [
+                  {
+                    "cards": [
+                      "Kc",
+                      "Kh",
+                      "6d",
+                      "7s",
+                      "8h"
+                    ],
+                    "weight": 1
+                  }
+                ]
+              }
+            ],
+            "sizing": {
+              "type": "MIN_MID_MAX",
+              "maxAggressions": 3
+            },
+            "rake": {
+              "type": "NONE",
+              "basis": "BEFORE_FEES"
+            }
+          },
+          "expectedRevisionKey": "c16bdcce6943000936f3dcf506f0a3f7f2648d154a8e6dd20c0cd3229b4f71f0"
+        },
+        {
+          "id": "progressive-separated_terminal_call-4",
+          "input": {
+            "multiway": {
+              "schemaVersion": 1,
+              "enabled": true,
+              "config": {
+                "variant": "PLO5_HIGH",
+                "playerCount": 2,
+                "heroPosition": "SB",
+                "startingStack": 2,
+                "smallBlind": 0.5,
+                "bigBlind": 1,
+                "heroCards": [
+                  "Ac",
+                  "Ad",
+                  "Qh",
+                  "Js",
+                  "Ts"
+                ],
+                "players": [
+                  {
+                    "playerId": "a45ad23a-8f5f-4fa1-9cb6-0b1d1cd58030",
+                    "name": "You"
+                  },
+                  {
+                    "playerId": "a12ed20b-6f07-4566-ba60-20c13e5e4756",
+                    "name": "A1"
+                  }
+                ]
+              },
+              "events": [
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CALL",
+                  "eventId": "56ff195a-3e88-43f5-b058-3cc475037fd7"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "236444c7-6649-422a-a440-0c997242ec13"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2c",
+                    "3d",
+                    "4h"
+                  ],
+                  "eventId": "35ca4ce4-2530-4912-ac09-10f93341c5f7"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "f695784d-729a-404a-b8bf-bdad137daaff"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CHECK",
+                  "eventId": "4e8b217b-30fd-4a81-907e-c76fa7be4cae"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2c",
+                    "3d",
+                    "4h",
+                    "8s"
+                  ],
+                  "eventId": "e028b9c2-0e75-4636-9802-699031225c52"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "59d7e1d1-22c1-4bba-bdb0-ba00454f6521"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CHECK",
+                  "eventId": "347f691d-921b-4e1a-84e3-9469c6540604"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2c",
+                    "3d",
+                    "4h",
+                    "8s",
+                    "9c"
+                  ],
+                  "eventId": "839d41ec-ca01-49c8-a1aa-a4767a4c5066"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "BET",
+                  "to": 1,
+                  "eventId": "e970b97d-e080-45b6-9ad3-6e38cfa90ec4"
+                }
+              ],
+              "handId": "735119f4-32bf-8c7b-2567-04a90d94d671",
+              "editEpoch": 0
+            },
+            "ranges": [
+              {
+                "seatId": 0,
+                "complete": true,
+                "source": "EXPLICIT_LOCAL_BENCHMARK",
+                "combos": [
+                  {
+                    "cards": [
+                      "Ac",
+                      "Ad",
+                      "Qh",
+                      "Js",
+                      "Ts"
+                    ],
+                    "weight": 1
+                  }
+                ]
+              },
+              {
+                "seatId": 1,
+                "complete": true,
+                "source": "EXPLICIT_LOCAL_BENCHMARK",
+                "combos": [
+                  {
+                    "cards": [
+                      "Kc",
+                      "Kd",
+                      "6h",
+                      "7s",
+                      "8d"
+                    ],
+                    "weight": 1
+                  }
+                ]
+              }
+            ],
+            "sizing": {
+              "type": "MIN_MID_MAX",
+              "maxAggressions": 3
+            },
+            "rake": {
+              "type": "NONE",
+              "basis": "BEFORE_FEES"
+            }
+          },
+          "expectedRevisionKey": "cf06d7bb7f87da995de3c686503b4c47092a81311e7345e80cbf553a93ea4d69"
+        },
+        {
+          "id": "progressive-separated_terminal_call-5",
+          "input": {
+            "multiway": {
+              "schemaVersion": 1,
+              "enabled": true,
+              "config": {
+                "variant": "PLO5_HIGH",
+                "playerCount": 2,
+                "heroPosition": "SB",
+                "startingStack": 2,
+                "smallBlind": 0.5,
+                "bigBlind": 1,
+                "heroCards": [
+                  "As",
+                  "Ad",
+                  "Qc",
+                  "Jh",
+                  "Th"
+                ],
+                "players": [
+                  {
+                    "playerId": "a45ad23a-8f5f-4fa1-9cb6-0b1d1cd58030",
+                    "name": "You"
+                  },
+                  {
+                    "playerId": "a12ed20b-6f07-4566-ba60-20c13e5e4756",
+                    "name": "A1"
+                  }
+                ]
+              },
+              "events": [
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CALL",
+                  "eventId": "56ff195a-3e88-43f5-b058-3cc475037fd7"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "236444c7-6649-422a-a440-0c997242ec13"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2s",
+                    "3d",
+                    "4c"
+                  ],
+                  "eventId": "35ca4ce4-2530-4912-ac09-10f93341c5f7"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "f695784d-729a-404a-b8bf-bdad137daaff"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CHECK",
+                  "eventId": "4e8b217b-30fd-4a81-907e-c76fa7be4cae"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2s",
+                    "3d",
+                    "4c",
+                    "8h"
+                  ],
+                  "eventId": "e028b9c2-0e75-4636-9802-699031225c52"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "59d7e1d1-22c1-4bba-bdb0-ba00454f6521"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CHECK",
+                  "eventId": "347f691d-921b-4e1a-84e3-9469c6540604"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2s",
+                    "3d",
+                    "4c",
+                    "8h",
+                    "9s"
+                  ],
+                  "eventId": "839d41ec-ca01-49c8-a1aa-a4767a4c5066"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "BET",
+                  "to": 1,
+                  "eventId": "e970b97d-e080-45b6-9ad3-6e38cfa90ec4"
+                }
+              ],
+              "handId": "9c47ece9-0c11-5e02-3978-045dfdffbec8",
+              "editEpoch": 0
+            },
+            "ranges": [
+              {
+                "seatId": 0,
+                "complete": true,
+                "source": "EXPLICIT_LOCAL_BENCHMARK",
+                "combos": [
+                  {
+                    "cards": [
+                      "As",
+                      "Ad",
+                      "Qc",
+                      "Jh",
+                      "Th"
+                    ],
+                    "weight": 1
+                  }
+                ]
+              },
+              {
+                "seatId": 1,
+                "complete": true,
+                "source": "EXPLICIT_LOCAL_BENCHMARK",
+                "combos": [
+                  {
+                    "cards": [
+                      "Ks",
+                      "Kd",
+                      "6c",
+                      "7h",
+                      "8d"
+                    ],
+                    "weight": 1
+                  }
+                ]
+              }
+            ],
+            "sizing": {
+              "type": "MIN_MID_MAX",
+              "maxAggressions": 3
+            },
+            "rake": {
+              "type": "NONE",
+              "basis": "BEFORE_FEES"
+            }
+          },
+          "expectedRevisionKey": "052dd3243e5c24cd19c48686b15c828c2f34bd51d3dae567566fecf90e19ab1c"
+        }
+      ]
+    },
+    {
+      "id": "small_overlapping_terminal_call",
+      "label": "Small reference · Overlapping call/fold",
+      "expectation": {
+        "comparisonStatus": "INCONCLUSIVE",
+        "requireOverlap": true,
+        "actionValues": {
+          "FOLD": 0,
+          "CALL": 0
+        },
+        "globalStatus": "SOLVED"
+      },
+      "variants": [
+        {
+          "id": "progressive-overlapping_terminal_call-1",
+          "input": {
+            "multiway": {
+              "schemaVersion": 1,
+              "enabled": true,
+              "config": {
+                "variant": "PLO5_HIGH",
+                "playerCount": 2,
+                "heroPosition": "SB",
+                "startingStack": 2,
+                "smallBlind": 0.5,
+                "bigBlind": 1,
+                "heroCards": [
+                  "Ah",
+                  "Ac",
+                  "Qd",
+                  "Js",
+                  "Ts"
+                ],
+                "players": [
+                  {
+                    "playerId": "01191d32-7d11-47c0-865f-09274bcfd7d4",
+                    "name": "You"
+                  },
+                  {
+                    "playerId": "fdb07165-3532-4ee2-806c-7fa18d25695c",
+                    "name": "A1"
+                  }
+                ]
+              },
+              "events": [
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CALL",
+                  "eventId": "c1395646-3f92-46ac-a69e-ef9d0f791115"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "fbc7b804-f2f8-4559-beb4-250ae8efbf34"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2h",
+                    "3c",
+                    "4d"
+                  ],
+                  "eventId": "ac771576-f311-4d0d-98e2-4f2bed4e2e5b"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "cbdebe66-c7ab-41fd-9d2d-33084fbbcf27"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CHECK",
+                  "eventId": "674733b3-b8f8-4720-ba96-c191fd5199a7"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2h",
+                    "3c",
+                    "4d",
+                    "8s"
+                  ],
+                  "eventId": "19a6f021-feb4-49b0-825b-ec75c6b2dc15"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "0778eff1-6171-426c-bf8d-c8dfefe36a03"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CHECK",
+                  "eventId": "b02b7b62-4030-4a75-ad56-fbdb902df117"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2h",
+                    "3c",
+                    "4d",
+                    "8s",
+                    "9h"
+                  ],
+                  "eventId": "3fef3893-dfc9-4b41-9ad3-be7c2a97f4ee"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "BET",
+                  "to": 1,
+                  "eventId": "8ebf9327-e5b1-44f7-ae36-11be69f2d480"
+                }
+              ],
+              "handId": "5b8fad58-a137-be24-f33e-963d1f2891a4",
+              "editEpoch": 0
+            },
+            "ranges": [
+              {
+                "seatId": 0,
+                "complete": true,
+                "source": "EXPLICIT_LOCAL_BENCHMARK",
+                "combos": [
+                  {
+                    "cards": [
+                      "Ah",
+                      "Ac",
+                      "Qd",
+                      "Js",
+                      "Ts"
+                    ],
+                    "weight": 1
+                  }
+                ]
+              },
+              {
+                "seatId": 1,
+                "complete": true,
+                "source": "EXPLICIT_LOCAL_BENCHMARK",
+                "combos": [
+                  {
+                    "cards": [
+                      "Kh",
+                      "Kc",
+                      "6d",
+                      "7s",
+                      "8c"
+                    ],
+                    "weight": 0.25
+                  },
+                  {
+                    "cards": [
+                      "5c",
+                      "6c",
+                      "Kd",
+                      "7s",
+                      "8c"
+                    ],
+                    "weight": 0.75
+                  }
+                ]
+              }
+            ],
+            "sizing": {
+              "type": "MIN_MID_MAX",
+              "maxAggressions": 3
+            },
+            "rake": {
+              "type": "NONE",
+              "basis": "BEFORE_FEES"
+            }
+          },
+          "expectedRevisionKey": "532d3881141d9c8e3a610434d4ff74125a185b08ea6ef15279773596e5460955"
+        },
+        {
+          "id": "progressive-overlapping_terminal_call-2",
+          "input": {
+            "multiway": {
+              "schemaVersion": 1,
+              "enabled": true,
+              "config": {
+                "variant": "PLO5_HIGH",
+                "playerCount": 2,
+                "heroPosition": "SB",
+                "startingStack": 2,
+                "smallBlind": 0.5,
+                "bigBlind": 1,
+                "heroCards": [
+                  "Ad",
+                  "Ah",
+                  "Qc",
+                  "Js",
+                  "Ts"
+                ],
+                "players": [
+                  {
+                    "playerId": "01191d32-7d11-47c0-865f-09274bcfd7d4",
+                    "name": "You"
+                  },
+                  {
+                    "playerId": "fdb07165-3532-4ee2-806c-7fa18d25695c",
+                    "name": "A1"
+                  }
+                ]
+              },
+              "events": [
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CALL",
+                  "eventId": "c1395646-3f92-46ac-a69e-ef9d0f791115"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "fbc7b804-f2f8-4559-beb4-250ae8efbf34"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2d",
+                    "3h",
+                    "4c"
+                  ],
+                  "eventId": "ac771576-f311-4d0d-98e2-4f2bed4e2e5b"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "cbdebe66-c7ab-41fd-9d2d-33084fbbcf27"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CHECK",
+                  "eventId": "674733b3-b8f8-4720-ba96-c191fd5199a7"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2d",
+                    "3h",
+                    "4c",
+                    "8s"
+                  ],
+                  "eventId": "19a6f021-feb4-49b0-825b-ec75c6b2dc15"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "0778eff1-6171-426c-bf8d-c8dfefe36a03"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CHECK",
+                  "eventId": "b02b7b62-4030-4a75-ad56-fbdb902df117"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2d",
+                    "3h",
+                    "4c",
+                    "8s",
+                    "9d"
+                  ],
+                  "eventId": "3fef3893-dfc9-4b41-9ad3-be7c2a97f4ee"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "BET",
+                  "to": 1,
+                  "eventId": "8ebf9327-e5b1-44f7-ae36-11be69f2d480"
+                }
+              ],
+              "handId": "0d0a1f5c-6a9b-2769-4480-e3f20331945d",
+              "editEpoch": 0
+            },
+            "ranges": [
+              {
+                "seatId": 0,
+                "complete": true,
+                "source": "EXPLICIT_LOCAL_BENCHMARK",
+                "combos": [
+                  {
+                    "cards": [
+                      "Ad",
+                      "Ah",
+                      "Qc",
+                      "Js",
+                      "Ts"
+                    ],
+                    "weight": 1
+                  }
+                ]
+              },
+              {
+                "seatId": 1,
+                "complete": true,
+                "source": "EXPLICIT_LOCAL_BENCHMARK",
+                "combos": [
+                  {
+                    "cards": [
+                      "Kd",
+                      "Kh",
+                      "6c",
+                      "7s",
+                      "8h"
+                    ],
+                    "weight": 0.25
+                  },
+                  {
+                    "cards": [
+                      "5h",
+                      "6h",
+                      "Kc",
+                      "7s",
+                      "8h"
+                    ],
+                    "weight": 0.75
+                  }
+                ]
+              }
+            ],
+            "sizing": {
+              "type": "MIN_MID_MAX",
+              "maxAggressions": 3
+            },
+            "rake": {
+              "type": "NONE",
+              "basis": "BEFORE_FEES"
+            }
+          },
+          "expectedRevisionKey": "0810476e9246ff42424c6d1460fb4463db1b23e8a7458bc36ffbb9f006795bc8"
+        },
+        {
+          "id": "progressive-overlapping_terminal_call-3",
+          "input": {
+            "multiway": {
+              "schemaVersion": 1,
+              "enabled": true,
+              "config": {
+                "variant": "PLO5_HIGH",
+                "playerCount": 2,
+                "heroPosition": "SB",
+                "startingStack": 2,
+                "smallBlind": 0.5,
+                "bigBlind": 1,
+                "heroCards": [
+                  "Ac",
+                  "Ah",
+                  "Qd",
+                  "Js",
+                  "Ts"
+                ],
+                "players": [
+                  {
+                    "playerId": "01191d32-7d11-47c0-865f-09274bcfd7d4",
+                    "name": "You"
+                  },
+                  {
+                    "playerId": "fdb07165-3532-4ee2-806c-7fa18d25695c",
+                    "name": "A1"
+                  }
+                ]
+              },
+              "events": [
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CALL",
+                  "eventId": "c1395646-3f92-46ac-a69e-ef9d0f791115"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "fbc7b804-f2f8-4559-beb4-250ae8efbf34"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2c",
+                    "3h",
+                    "4d"
+                  ],
+                  "eventId": "ac771576-f311-4d0d-98e2-4f2bed4e2e5b"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "cbdebe66-c7ab-41fd-9d2d-33084fbbcf27"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CHECK",
+                  "eventId": "674733b3-b8f8-4720-ba96-c191fd5199a7"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2c",
+                    "3h",
+                    "4d",
+                    "8s"
+                  ],
+                  "eventId": "19a6f021-feb4-49b0-825b-ec75c6b2dc15"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "0778eff1-6171-426c-bf8d-c8dfefe36a03"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CHECK",
+                  "eventId": "b02b7b62-4030-4a75-ad56-fbdb902df117"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2c",
+                    "3h",
+                    "4d",
+                    "8s",
+                    "9c"
+                  ],
+                  "eventId": "3fef3893-dfc9-4b41-9ad3-be7c2a97f4ee"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "BET",
+                  "to": 1,
+                  "eventId": "8ebf9327-e5b1-44f7-ae36-11be69f2d480"
+                }
+              ],
+              "handId": "459d25ec-70ab-9369-6181-73e6d1e0ae83",
+              "editEpoch": 0
+            },
+            "ranges": [
+              {
+                "seatId": 0,
+                "complete": true,
+                "source": "EXPLICIT_LOCAL_BENCHMARK",
+                "combos": [
+                  {
+                    "cards": [
+                      "Ac",
+                      "Ah",
+                      "Qd",
+                      "Js",
+                      "Ts"
+                    ],
+                    "weight": 1
+                  }
+                ]
+              },
+              {
+                "seatId": 1,
+                "complete": true,
+                "source": "EXPLICIT_LOCAL_BENCHMARK",
+                "combos": [
+                  {
+                    "cards": [
+                      "Kc",
+                      "Kh",
+                      "6d",
+                      "7s",
+                      "8h"
+                    ],
+                    "weight": 0.25
+                  },
+                  {
+                    "cards": [
+                      "5h",
+                      "6h",
+                      "Kd",
+                      "7s",
+                      "8h"
+                    ],
+                    "weight": 0.75
+                  }
+                ]
+              }
+            ],
+            "sizing": {
+              "type": "MIN_MID_MAX",
+              "maxAggressions": 3
+            },
+            "rake": {
+              "type": "NONE",
+              "basis": "BEFORE_FEES"
+            }
+          },
+          "expectedRevisionKey": "40fb79893cb436b64ca55bb586099f0faff0296dcf579decda85835b856daafc"
+        },
+        {
+          "id": "progressive-overlapping_terminal_call-4",
+          "input": {
+            "multiway": {
+              "schemaVersion": 1,
+              "enabled": true,
+              "config": {
+                "variant": "PLO5_HIGH",
+                "playerCount": 2,
+                "heroPosition": "SB",
+                "startingStack": 2,
+                "smallBlind": 0.5,
+                "bigBlind": 1,
+                "heroCards": [
+                  "Ac",
+                  "Ad",
+                  "Qh",
+                  "Js",
+                  "Ts"
+                ],
+                "players": [
+                  {
+                    "playerId": "01191d32-7d11-47c0-865f-09274bcfd7d4",
+                    "name": "You"
+                  },
+                  {
+                    "playerId": "fdb07165-3532-4ee2-806c-7fa18d25695c",
+                    "name": "A1"
+                  }
+                ]
+              },
+              "events": [
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CALL",
+                  "eventId": "c1395646-3f92-46ac-a69e-ef9d0f791115"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "fbc7b804-f2f8-4559-beb4-250ae8efbf34"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2c",
+                    "3d",
+                    "4h"
+                  ],
+                  "eventId": "ac771576-f311-4d0d-98e2-4f2bed4e2e5b"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "cbdebe66-c7ab-41fd-9d2d-33084fbbcf27"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CHECK",
+                  "eventId": "674733b3-b8f8-4720-ba96-c191fd5199a7"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2c",
+                    "3d",
+                    "4h",
+                    "8s"
+                  ],
+                  "eventId": "19a6f021-feb4-49b0-825b-ec75c6b2dc15"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "0778eff1-6171-426c-bf8d-c8dfefe36a03"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CHECK",
+                  "eventId": "b02b7b62-4030-4a75-ad56-fbdb902df117"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2c",
+                    "3d",
+                    "4h",
+                    "8s",
+                    "9c"
+                  ],
+                  "eventId": "3fef3893-dfc9-4b41-9ad3-be7c2a97f4ee"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "BET",
+                  "to": 1,
+                  "eventId": "8ebf9327-e5b1-44f7-ae36-11be69f2d480"
+                }
+              ],
+              "handId": "27999efa-7d61-00ad-d33a-d7dc70dfeabf",
+              "editEpoch": 0
+            },
+            "ranges": [
+              {
+                "seatId": 0,
+                "complete": true,
+                "source": "EXPLICIT_LOCAL_BENCHMARK",
+                "combos": [
+                  {
+                    "cards": [
+                      "Ac",
+                      "Ad",
+                      "Qh",
+                      "Js",
+                      "Ts"
+                    ],
+                    "weight": 1
+                  }
+                ]
+              },
+              {
+                "seatId": 1,
+                "complete": true,
+                "source": "EXPLICIT_LOCAL_BENCHMARK",
+                "combos": [
+                  {
+                    "cards": [
+                      "Kc",
+                      "Kd",
+                      "6h",
+                      "7s",
+                      "8d"
+                    ],
+                    "weight": 0.25
+                  },
+                  {
+                    "cards": [
+                      "5d",
+                      "6d",
+                      "Kh",
+                      "7s",
+                      "8d"
+                    ],
+                    "weight": 0.75
+                  }
+                ]
+              }
+            ],
+            "sizing": {
+              "type": "MIN_MID_MAX",
+              "maxAggressions": 3
+            },
+            "rake": {
+              "type": "NONE",
+              "basis": "BEFORE_FEES"
+            }
+          },
+          "expectedRevisionKey": "e7d61d07e472323bb3f0aabd0a836a4d6ad6465d822b4fdaa170857da31e4e24"
+        },
+        {
+          "id": "progressive-overlapping_terminal_call-5",
+          "input": {
+            "multiway": {
+              "schemaVersion": 1,
+              "enabled": true,
+              "config": {
+                "variant": "PLO5_HIGH",
+                "playerCount": 2,
+                "heroPosition": "SB",
+                "startingStack": 2,
+                "smallBlind": 0.5,
+                "bigBlind": 1,
+                "heroCards": [
+                  "As",
+                  "Ad",
+                  "Qc",
+                  "Jh",
+                  "Th"
+                ],
+                "players": [
+                  {
+                    "playerId": "01191d32-7d11-47c0-865f-09274bcfd7d4",
+                    "name": "You"
+                  },
+                  {
+                    "playerId": "fdb07165-3532-4ee2-806c-7fa18d25695c",
+                    "name": "A1"
+                  }
+                ]
+              },
+              "events": [
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CALL",
+                  "eventId": "c1395646-3f92-46ac-a69e-ef9d0f791115"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "fbc7b804-f2f8-4559-beb4-250ae8efbf34"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2s",
+                    "3d",
+                    "4c"
+                  ],
+                  "eventId": "ac771576-f311-4d0d-98e2-4f2bed4e2e5b"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "cbdebe66-c7ab-41fd-9d2d-33084fbbcf27"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CHECK",
+                  "eventId": "674733b3-b8f8-4720-ba96-c191fd5199a7"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2s",
+                    "3d",
+                    "4c",
+                    "8h"
+                  ],
+                  "eventId": "19a6f021-feb4-49b0-825b-ec75c6b2dc15"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "0778eff1-6171-426c-bf8d-c8dfefe36a03"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CHECK",
+                  "eventId": "b02b7b62-4030-4a75-ad56-fbdb902df117"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2s",
+                    "3d",
+                    "4c",
+                    "8h",
+                    "9s"
+                  ],
+                  "eventId": "3fef3893-dfc9-4b41-9ad3-be7c2a97f4ee"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "BET",
+                  "to": 1,
+                  "eventId": "8ebf9327-e5b1-44f7-ae36-11be69f2d480"
+                }
+              ],
+              "handId": "c5f5aeaa-73b0-6f11-f279-806cd94a129d",
+              "editEpoch": 0
+            },
+            "ranges": [
+              {
+                "seatId": 0,
+                "complete": true,
+                "source": "EXPLICIT_LOCAL_BENCHMARK",
+                "combos": [
+                  {
+                    "cards": [
+                      "As",
+                      "Ad",
+                      "Qc",
+                      "Jh",
+                      "Th"
+                    ],
+                    "weight": 1
+                  }
+                ]
+              },
+              {
+                "seatId": 1,
+                "complete": true,
+                "source": "EXPLICIT_LOCAL_BENCHMARK",
+                "combos": [
+                  {
+                    "cards": [
+                      "Ks",
+                      "Kd",
+                      "6c",
+                      "7h",
+                      "8d"
+                    ],
+                    "weight": 0.25
+                  },
+                  {
+                    "cards": [
+                      "5d",
+                      "6d",
+                      "Kc",
+                      "7h",
+                      "8d"
+                    ],
+                    "weight": 0.75
+                  }
+                ]
+              }
+            ],
+            "sizing": {
+              "type": "MIN_MID_MAX",
+              "maxAggressions": 3
+            },
+            "rake": {
+              "type": "NONE",
+              "basis": "BEFORE_FEES"
+            }
+          },
+          "expectedRevisionKey": "140d60ac788802a1c4d158560f5250222c80b66482c6dda846c8fcc56b9a3174"
+        }
+      ]
+    },
+    {
+      "id": "small_four_world_five_actions",
+      "label": "Small reference · Four worlds / five actions",
+      "expectation": {
+        "comparisonStatus": "CONCLUSIVE",
+        "bestActionId": "CHECK",
+        "actionValues": {
+          "FOLD": 0.75,
+          "CHECK": 1.25,
+          "BET:1.00": 1,
+          "BET:1.50": 0.875,
+          "BET:2.00": 0.75
+        },
+        "globalStatus": "APPROXIMATE"
+      },
+      "variants": [
+        {
+          "id": "progressive-four_world_five_actions-1",
+          "input": {
+            "multiway": {
+              "schemaVersion": 1,
+              "enabled": true,
+              "config": {
+                "variant": "PLO5_HIGH",
+                "playerCount": 2,
+                "heroPosition": "SB",
+                "startingStack": 20,
+                "smallBlind": 0.5,
+                "bigBlind": 1,
+                "heroCards": [
+                  "Ah",
+                  "Ac",
+                  "Qd",
+                  "Js",
+                  "Ts"
+                ],
+                "players": [
+                  {
+                    "playerId": "d7a2fee7-76c1-4245-a931-63840d114f3b",
+                    "name": "You"
+                  },
+                  {
+                    "playerId": "551dd1d2-0d45-4a08-b323-0784ee18d737",
+                    "name": "A1"
+                  }
+                ]
+              },
+              "events": [
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CALL",
+                  "eventId": "cc3fc079-1c4c-48e1-86e9-f08a482aa8f4"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "16bfab31-fea4-4911-a688-8f9cc4d52ad7"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2h",
+                    "3c",
+                    "4d"
+                  ],
+                  "eventId": "0a2d8d29-36b7-4eaf-b628-eaa553df7f68"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "b0660b70-a0d2-464c-985f-c6446c0e2799"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CHECK",
+                  "eventId": "9d7a93b8-ef60-4e1d-858a-643f45da2748"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2h",
+                    "3c",
+                    "4d",
+                    "8s"
+                  ],
+                  "eventId": "8547932d-0cc9-4c71-9a1f-b7a67cbbd4b6"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "a43a906c-a0fd-4ca5-9d40-5bc7c9e9f79d"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CHECK",
+                  "eventId": "6ed1b1cd-1df4-4822-bee0-49d55c12aa03"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2h",
+                    "3c",
+                    "4d",
+                    "8s",
+                    "9h"
+                  ],
+                  "eventId": "ad61b376-ae13-403e-8bc7-22393f5db592"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "f0435051-b442-4368-bc06-b7d39971ced0"
+                }
+              ],
+              "handId": "d2322eee-ca52-bb79-06dd-f0ca32622da4",
+              "editEpoch": 0
+            },
+            "ranges": [
+              {
+                "seatId": 0,
+                "complete": true,
+                "source": "INDEPENDENT_LP_REFERENCE",
+                "combos": [
+                  {
+                    "cards": [
+                      "Ah",
+                      "Ac",
+                      "Qd",
+                      "Js",
+                      "Ts"
+                    ],
+                    "weight": 1
+                  },
+                  {
+                    "cards": [
+                      "5h",
+                      "6h",
+                      "Qd",
+                      "Js",
+                      "Ts"
+                    ],
+                    "weight": 1
+                  }
+                ]
+              },
+              {
+                "seatId": 1,
+                "complete": true,
+                "source": "INDEPENDENT_LP_REFERENCE",
+                "combos": [
+                  {
+                    "cards": [
+                      "Kh",
+                      "Kc",
+                      "6d",
+                      "7s",
+                      "8c"
+                    ],
+                    "weight": 1
+                  },
+                  {
+                    "cards": [
+                      "5c",
+                      "6c",
+                      "Kd",
+                      "7s",
+                      "8c"
+                    ],
+                    "weight": 1
+                  }
+                ]
+              }
+            ],
+            "sizing": {
+              "type": "MIN_MID_MAX",
+              "maxAggressions": 1
+            },
+            "rake": {
+              "type": "NONE",
+              "basis": "BEFORE_FEES"
+            }
+          },
+          "expectedRevisionKey": "2d01c010dc07ebb6fb1b4399570aff543d9a8e1b715b51c6dd0a20bc7bf0f832"
+        },
+        {
+          "id": "progressive-four_world_five_actions-2",
+          "input": {
+            "multiway": {
+              "schemaVersion": 1,
+              "enabled": true,
+              "config": {
+                "variant": "PLO5_HIGH",
+                "playerCount": 2,
+                "heroPosition": "SB",
+                "startingStack": 20,
+                "smallBlind": 0.5,
+                "bigBlind": 1,
+                "heroCards": [
+                  "Ad",
+                  "Ah",
+                  "Qc",
+                  "Js",
+                  "Ts"
+                ],
+                "players": [
+                  {
+                    "playerId": "d7a2fee7-76c1-4245-a931-63840d114f3b",
+                    "name": "You"
+                  },
+                  {
+                    "playerId": "551dd1d2-0d45-4a08-b323-0784ee18d737",
+                    "name": "A1"
+                  }
+                ]
+              },
+              "events": [
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CALL",
+                  "eventId": "cc3fc079-1c4c-48e1-86e9-f08a482aa8f4"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "16bfab31-fea4-4911-a688-8f9cc4d52ad7"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2d",
+                    "3h",
+                    "4c"
+                  ],
+                  "eventId": "0a2d8d29-36b7-4eaf-b628-eaa553df7f68"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "b0660b70-a0d2-464c-985f-c6446c0e2799"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CHECK",
+                  "eventId": "9d7a93b8-ef60-4e1d-858a-643f45da2748"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2d",
+                    "3h",
+                    "4c",
+                    "8s"
+                  ],
+                  "eventId": "8547932d-0cc9-4c71-9a1f-b7a67cbbd4b6"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "a43a906c-a0fd-4ca5-9d40-5bc7c9e9f79d"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CHECK",
+                  "eventId": "6ed1b1cd-1df4-4822-bee0-49d55c12aa03"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2d",
+                    "3h",
+                    "4c",
+                    "8s",
+                    "9d"
+                  ],
+                  "eventId": "ad61b376-ae13-403e-8bc7-22393f5db592"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "f0435051-b442-4368-bc06-b7d39971ced0"
+                }
+              ],
+              "handId": "be1257ad-f07d-1da5-aa84-24b2dae23549",
+              "editEpoch": 0
+            },
+            "ranges": [
+              {
+                "seatId": 0,
+                "complete": true,
+                "source": "INDEPENDENT_LP_REFERENCE",
+                "combos": [
+                  {
+                    "cards": [
+                      "Ad",
+                      "Ah",
+                      "Qc",
+                      "Js",
+                      "Ts"
+                    ],
+                    "weight": 1
+                  },
+                  {
+                    "cards": [
+                      "5d",
+                      "6d",
+                      "Qc",
+                      "Js",
+                      "Ts"
+                    ],
+                    "weight": 1
+                  }
+                ]
+              },
+              {
+                "seatId": 1,
+                "complete": true,
+                "source": "INDEPENDENT_LP_REFERENCE",
+                "combos": [
+                  {
+                    "cards": [
+                      "Kd",
+                      "Kh",
+                      "6c",
+                      "7s",
+                      "8h"
+                    ],
+                    "weight": 1
+                  },
+                  {
+                    "cards": [
+                      "5h",
+                      "6h",
+                      "Kc",
+                      "7s",
+                      "8h"
+                    ],
+                    "weight": 1
+                  }
+                ]
+              }
+            ],
+            "sizing": {
+              "type": "MIN_MID_MAX",
+              "maxAggressions": 1
+            },
+            "rake": {
+              "type": "NONE",
+              "basis": "BEFORE_FEES"
+            }
+          },
+          "expectedRevisionKey": "1caad0c2a672606d5625a5ea79613128bca80f7a925eda6482ba923437cdfea0"
+        },
+        {
+          "id": "progressive-four_world_five_actions-3",
+          "input": {
+            "multiway": {
+              "schemaVersion": 1,
+              "enabled": true,
+              "config": {
+                "variant": "PLO5_HIGH",
+                "playerCount": 2,
+                "heroPosition": "SB",
+                "startingStack": 20,
+                "smallBlind": 0.5,
+                "bigBlind": 1,
+                "heroCards": [
+                  "Ac",
+                  "Ah",
+                  "Qd",
+                  "Js",
+                  "Ts"
+                ],
+                "players": [
+                  {
+                    "playerId": "d7a2fee7-76c1-4245-a931-63840d114f3b",
+                    "name": "You"
+                  },
+                  {
+                    "playerId": "551dd1d2-0d45-4a08-b323-0784ee18d737",
+                    "name": "A1"
+                  }
+                ]
+              },
+              "events": [
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CALL",
+                  "eventId": "cc3fc079-1c4c-48e1-86e9-f08a482aa8f4"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "16bfab31-fea4-4911-a688-8f9cc4d52ad7"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2c",
+                    "3h",
+                    "4d"
+                  ],
+                  "eventId": "0a2d8d29-36b7-4eaf-b628-eaa553df7f68"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "b0660b70-a0d2-464c-985f-c6446c0e2799"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CHECK",
+                  "eventId": "9d7a93b8-ef60-4e1d-858a-643f45da2748"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2c",
+                    "3h",
+                    "4d",
+                    "8s"
+                  ],
+                  "eventId": "8547932d-0cc9-4c71-9a1f-b7a67cbbd4b6"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "a43a906c-a0fd-4ca5-9d40-5bc7c9e9f79d"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CHECK",
+                  "eventId": "6ed1b1cd-1df4-4822-bee0-49d55c12aa03"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2c",
+                    "3h",
+                    "4d",
+                    "8s",
+                    "9c"
+                  ],
+                  "eventId": "ad61b376-ae13-403e-8bc7-22393f5db592"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "f0435051-b442-4368-bc06-b7d39971ced0"
+                }
+              ],
+              "handId": "69ac4fcb-a48d-48c9-2a77-45f89a26d4ec",
+              "editEpoch": 0
+            },
+            "ranges": [
+              {
+                "seatId": 0,
+                "complete": true,
+                "source": "INDEPENDENT_LP_REFERENCE",
+                "combos": [
+                  {
+                    "cards": [
+                      "Ac",
+                      "Ah",
+                      "Qd",
+                      "Js",
+                      "Ts"
+                    ],
+                    "weight": 1
+                  },
+                  {
+                    "cards": [
+                      "5c",
+                      "6c",
+                      "Qd",
+                      "Js",
+                      "Ts"
+                    ],
+                    "weight": 1
+                  }
+                ]
+              },
+              {
+                "seatId": 1,
+                "complete": true,
+                "source": "INDEPENDENT_LP_REFERENCE",
+                "combos": [
+                  {
+                    "cards": [
+                      "Kc",
+                      "Kh",
+                      "6d",
+                      "7s",
+                      "8h"
+                    ],
+                    "weight": 1
+                  },
+                  {
+                    "cards": [
+                      "5h",
+                      "6h",
+                      "Kd",
+                      "7s",
+                      "8h"
+                    ],
+                    "weight": 1
+                  }
+                ]
+              }
+            ],
+            "sizing": {
+              "type": "MIN_MID_MAX",
+              "maxAggressions": 1
+            },
+            "rake": {
+              "type": "NONE",
+              "basis": "BEFORE_FEES"
+            }
+          },
+          "expectedRevisionKey": "304ef2d59c7a9a008271da0d9e2b2a895ab4093340818c90ed464b2d87189531"
+        },
+        {
+          "id": "progressive-four_world_five_actions-4",
+          "input": {
+            "multiway": {
+              "schemaVersion": 1,
+              "enabled": true,
+              "config": {
+                "variant": "PLO5_HIGH",
+                "playerCount": 2,
+                "heroPosition": "SB",
+                "startingStack": 20,
+                "smallBlind": 0.5,
+                "bigBlind": 1,
+                "heroCards": [
+                  "Ac",
+                  "Ad",
+                  "Qh",
+                  "Js",
+                  "Ts"
+                ],
+                "players": [
+                  {
+                    "playerId": "d7a2fee7-76c1-4245-a931-63840d114f3b",
+                    "name": "You"
+                  },
+                  {
+                    "playerId": "551dd1d2-0d45-4a08-b323-0784ee18d737",
+                    "name": "A1"
+                  }
+                ]
+              },
+              "events": [
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CALL",
+                  "eventId": "cc3fc079-1c4c-48e1-86e9-f08a482aa8f4"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "16bfab31-fea4-4911-a688-8f9cc4d52ad7"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2c",
+                    "3d",
+                    "4h"
+                  ],
+                  "eventId": "0a2d8d29-36b7-4eaf-b628-eaa553df7f68"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "b0660b70-a0d2-464c-985f-c6446c0e2799"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CHECK",
+                  "eventId": "9d7a93b8-ef60-4e1d-858a-643f45da2748"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2c",
+                    "3d",
+                    "4h",
+                    "8s"
+                  ],
+                  "eventId": "8547932d-0cc9-4c71-9a1f-b7a67cbbd4b6"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "a43a906c-a0fd-4ca5-9d40-5bc7c9e9f79d"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CHECK",
+                  "eventId": "6ed1b1cd-1df4-4822-bee0-49d55c12aa03"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2c",
+                    "3d",
+                    "4h",
+                    "8s",
+                    "9c"
+                  ],
+                  "eventId": "ad61b376-ae13-403e-8bc7-22393f5db592"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "f0435051-b442-4368-bc06-b7d39971ced0"
+                }
+              ],
+              "handId": "551f63d9-bb4c-c196-b1aa-810e8087f78f",
+              "editEpoch": 0
+            },
+            "ranges": [
+              {
+                "seatId": 0,
+                "complete": true,
+                "source": "INDEPENDENT_LP_REFERENCE",
+                "combos": [
+                  {
+                    "cards": [
+                      "Ac",
+                      "Ad",
+                      "Qh",
+                      "Js",
+                      "Ts"
+                    ],
+                    "weight": 1
+                  },
+                  {
+                    "cards": [
+                      "5c",
+                      "6c",
+                      "Qh",
+                      "Js",
+                      "Ts"
+                    ],
+                    "weight": 1
+                  }
+                ]
+              },
+              {
+                "seatId": 1,
+                "complete": true,
+                "source": "INDEPENDENT_LP_REFERENCE",
+                "combos": [
+                  {
+                    "cards": [
+                      "Kc",
+                      "Kd",
+                      "6h",
+                      "7s",
+                      "8d"
+                    ],
+                    "weight": 1
+                  },
+                  {
+                    "cards": [
+                      "5d",
+                      "6d",
+                      "Kh",
+                      "7s",
+                      "8d"
+                    ],
+                    "weight": 1
+                  }
+                ]
+              }
+            ],
+            "sizing": {
+              "type": "MIN_MID_MAX",
+              "maxAggressions": 1
+            },
+            "rake": {
+              "type": "NONE",
+              "basis": "BEFORE_FEES"
+            }
+          },
+          "expectedRevisionKey": "442f31a5b624c3b0041844f91f90dd8b253a48b9bf11089068228e4b545dd473"
+        },
+        {
+          "id": "progressive-four_world_five_actions-5",
+          "input": {
+            "multiway": {
+              "schemaVersion": 1,
+              "enabled": true,
+              "config": {
+                "variant": "PLO5_HIGH",
+                "playerCount": 2,
+                "heroPosition": "SB",
+                "startingStack": 20,
+                "smallBlind": 0.5,
+                "bigBlind": 1,
+                "heroCards": [
+                  "As",
+                  "Ad",
+                  "Qc",
+                  "Jh",
+                  "Th"
+                ],
+                "players": [
+                  {
+                    "playerId": "d7a2fee7-76c1-4245-a931-63840d114f3b",
+                    "name": "You"
+                  },
+                  {
+                    "playerId": "551dd1d2-0d45-4a08-b323-0784ee18d737",
+                    "name": "A1"
+                  }
+                ]
+              },
+              "events": [
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CALL",
+                  "eventId": "cc3fc079-1c4c-48e1-86e9-f08a482aa8f4"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "16bfab31-fea4-4911-a688-8f9cc4d52ad7"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2s",
+                    "3d",
+                    "4c"
+                  ],
+                  "eventId": "0a2d8d29-36b7-4eaf-b628-eaa553df7f68"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "b0660b70-a0d2-464c-985f-c6446c0e2799"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CHECK",
+                  "eventId": "9d7a93b8-ef60-4e1d-858a-643f45da2748"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2s",
+                    "3d",
+                    "4c",
+                    "8h"
+                  ],
+                  "eventId": "8547932d-0cc9-4c71-9a1f-b7a67cbbd4b6"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "a43a906c-a0fd-4ca5-9d40-5bc7c9e9f79d"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CHECK",
+                  "eventId": "6ed1b1cd-1df4-4822-bee0-49d55c12aa03"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2s",
+                    "3d",
+                    "4c",
+                    "8h",
+                    "9s"
+                  ],
+                  "eventId": "ad61b376-ae13-403e-8bc7-22393f5db592"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "f0435051-b442-4368-bc06-b7d39971ced0"
+                }
+              ],
+              "handId": "e2bac1b9-4769-a2cc-156e-c32b72f24c8c",
+              "editEpoch": 0
+            },
+            "ranges": [
+              {
+                "seatId": 0,
+                "complete": true,
+                "source": "INDEPENDENT_LP_REFERENCE",
+                "combos": [
+                  {
+                    "cards": [
+                      "As",
+                      "Ad",
+                      "Qc",
+                      "Jh",
+                      "Th"
+                    ],
+                    "weight": 1
+                  },
+                  {
+                    "cards": [
+                      "5s",
+                      "6s",
+                      "Qc",
+                      "Jh",
+                      "Th"
+                    ],
+                    "weight": 1
+                  }
+                ]
+              },
+              {
+                "seatId": 1,
+                "complete": true,
+                "source": "INDEPENDENT_LP_REFERENCE",
+                "combos": [
+                  {
+                    "cards": [
+                      "Ks",
+                      "Kd",
+                      "6c",
+                      "7h",
+                      "8d"
+                    ],
+                    "weight": 1
+                  },
+                  {
+                    "cards": [
+                      "5d",
+                      "6d",
+                      "Kc",
+                      "7h",
+                      "8d"
+                    ],
+                    "weight": 1
+                  }
+                ]
+              }
+            ],
+            "sizing": {
+              "type": "MIN_MID_MAX",
+              "maxAggressions": 1
+            },
+            "rake": {
+              "type": "NONE",
+              "basis": "BEFORE_FEES"
+            }
+          },
+          "expectedRevisionKey": "5264a360f25f9cf4f7e352950b7efea015c55a5ce940000c3e74575792c79d92"
+        }
+      ]
+    }
+  ],
+  "cases": [
+    {
+      "id": "growth_4x4_5_sizes",
+      "label": "4×4 worlds · 5 sizes",
+      "expectation": null,
+      "variants": [
+        {
+          "id": "growth-4-5-1",
+          "input": {
+            "multiway": {
+              "schemaVersion": 1,
+              "enabled": true,
+              "config": {
+                "variant": "PLO5_HIGH",
+                "playerCount": 2,
+                "heroPosition": "SB",
+                "startingStack": 20,
+                "smallBlind": 0.5,
+                "bigBlind": 1,
+                "heroCards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Jc",
+                  "Tc"
+                ],
+                "players": [
+                  {
+                    "playerId": "e6db4f46-0910-4705-8b38-f0dc9c081149",
+                    "name": "You"
+                  },
+                  {
+                    "playerId": "74808bbc-63a0-48e5-884a-9ed5796983d5",
+                    "name": "A1"
+                  }
+                ]
+              },
+              "events": [
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CALL",
+                  "eventId": "7de27b12-00ee-4e36-801b-aadbad671829"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "c8aed1b5-a5f3-4f76-ada4-5c3663df75ef"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2s",
+                    "3h",
+                    "4d"
+                  ],
+                  "eventId": "a1084fc2-881d-4f5d-861a-844119b9c8c6"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "f0e201b1-c755-488d-a30a-b3f962051f90"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CHECK",
+                  "eventId": "c91084cc-8b49-47bf-8388-a8bbff333a92"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2s",
+                    "3h",
+                    "4d",
+                    "8c"
+                  ],
+                  "eventId": "839d11ba-e37d-4365-a47d-6fea7f164599"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "cde7e064-9e6c-467f-b23e-d6a7ed69a3f0"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CHECK",
+                  "eventId": "ac0e2bf8-7c60-4c8a-9f45-005e15cb52bb"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2s",
+                    "3h",
+                    "4d",
+                    "8c",
+                    "9s"
+                  ],
+                  "eventId": "92fa0be9-1c15-4827-ac20-4f3d33708d54"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "c16e7eb5-cf6b-476e-9fe2-f9cc536a8d21"
+                }
+              ],
+              "handId": "24739c96-11db-6ea6-fd27-2d334d102e4a",
+              "editEpoch": 0
+            },
+            "ranges": [
+              {
+                "seatId": 0,
+                "complete": true,
+                "source": "EXPLICIT_RIVER_GROWTH_QA",
+                "combos": [
+                  {
+                    "cards": [
+                      "As",
+                      "Ah",
+                      "Qd",
+                      "Jc",
+                      "Tc"
+                    ],
+                    "weight": 1
+                  },
+                  {
+                    "cards": [
+                      "As",
+                      "Ah",
+                      "Qd",
+                      "Jc",
+                      "2c"
+                    ],
+                    "weight": 2
+                  },
+                  {
+                    "cards": [
+                      "As",
+                      "Ah",
+                      "Qd",
+                      "Jc",
+                      "2d"
+                    ],
+                    "weight": 3
+                  },
+                  {
+                    "cards": [
+                      "As",
+                      "Ah",
+                      "Qd",
+                      "Jc",
+                      "2h"
+                    ],
+                    "weight": 4
+                  }
+                ]
+              },
+              {
+                "seatId": 1,
+                "complete": true,
+                "source": "EXPLICIT_RIVER_GROWTH_QA",
+                "combos": [
+                  {
+                    "cards": [
+                      "Ks",
+                      "Kh",
+                      "6d",
+                      "7c",
+                      "8h"
+                    ],
+                    "weight": 1
+                  },
+                  {
+                    "cards": [
+                      "Ks",
+                      "Kh",
+                      "6d",
+                      "7c",
+                      "5h"
+                    ],
+                    "weight": 2
+                  },
+                  {
+                    "cards": [
+                      "Ks",
+                      "Kh",
+                      "6d",
+                      "7c",
+                      "5s"
+                    ],
+                    "weight": 3
+                  },
+                  {
+                    "cards": [
+                      "Ks",
+                      "Kh",
+                      "6d",
+                      "7c",
+                      "6c"
+                    ],
+                    "weight": 4
+                  }
+                ]
+              }
+            ],
+            "sizing": {
+              "type": "EXPLICIT_TOTALS",
+              "levels": [
+                1,
+                1.25,
+                1.5,
+                1.75,
+                2
+              ],
+              "maxAggressions": 1
+            },
+            "rake": {
+              "type": "NONE",
+              "basis": "BEFORE_FEES"
+            }
+          },
+          "expectedRevisionKey": "4be03f43c7a3ff2d47ee733958f65ddf6d7d1cba0410bad329288b1538fa2091"
+        },
+        {
+          "id": "growth-4-5-2",
+          "input": {
+            "multiway": {
+              "schemaVersion": 1,
+              "enabled": true,
+              "config": {
+                "variant": "PLO5_HIGH",
+                "playerCount": 2,
+                "heroPosition": "SB",
+                "startingStack": 20,
+                "smallBlind": 0.5,
+                "bigBlind": 1,
+                "heroCards": [
+                  "Ah",
+                  "Ad",
+                  "Qc",
+                  "Js",
+                  "Ts"
+                ],
+                "players": [
+                  {
+                    "playerId": "e6db4f46-0910-4705-8b38-f0dc9c081149",
+                    "name": "You"
+                  },
+                  {
+                    "playerId": "74808bbc-63a0-48e5-884a-9ed5796983d5",
+                    "name": "A1"
+                  }
+                ]
+              },
+              "events": [
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CALL",
+                  "eventId": "7de27b12-00ee-4e36-801b-aadbad671829"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "c8aed1b5-a5f3-4f76-ada4-5c3663df75ef"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2h",
+                    "3d",
+                    "4c"
+                  ],
+                  "eventId": "a1084fc2-881d-4f5d-861a-844119b9c8c6"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "f0e201b1-c755-488d-a30a-b3f962051f90"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CHECK",
+                  "eventId": "c91084cc-8b49-47bf-8388-a8bbff333a92"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2h",
+                    "3d",
+                    "4c",
+                    "8s"
+                  ],
+                  "eventId": "839d11ba-e37d-4365-a47d-6fea7f164599"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "cde7e064-9e6c-467f-b23e-d6a7ed69a3f0"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CHECK",
+                  "eventId": "ac0e2bf8-7c60-4c8a-9f45-005e15cb52bb"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2h",
+                    "3d",
+                    "4c",
+                    "8s",
+                    "9h"
+                  ],
+                  "eventId": "92fa0be9-1c15-4827-ac20-4f3d33708d54"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "c16e7eb5-cf6b-476e-9fe2-f9cc536a8d21"
+                }
+              ],
+              "handId": "28649701-f2b0-db29-97fe-00152c474700",
+              "editEpoch": 0
+            },
+            "ranges": [
+              {
+                "seatId": 0,
+                "complete": true,
+                "source": "EXPLICIT_RIVER_GROWTH_QA",
+                "combos": [
+                  {
+                    "cards": [
+                      "Ah",
+                      "Ad",
+                      "Qc",
+                      "Js",
+                      "Ts"
+                    ],
+                    "weight": 1
+                  },
+                  {
+                    "cards": [
+                      "Ah",
+                      "Ad",
+                      "Qc",
+                      "Js",
+                      "2s"
+                    ],
+                    "weight": 2
+                  },
+                  {
+                    "cards": [
+                      "Ah",
+                      "Ad",
+                      "Qc",
+                      "Js",
+                      "2c"
+                    ],
+                    "weight": 3
+                  },
+                  {
+                    "cards": [
+                      "Ah",
+                      "Ad",
+                      "Qc",
+                      "Js",
+                      "2d"
+                    ],
+                    "weight": 4
+                  }
+                ]
+              },
+              {
+                "seatId": 1,
+                "complete": true,
+                "source": "EXPLICIT_RIVER_GROWTH_QA",
+                "combos": [
+                  {
+                    "cards": [
+                      "Kh",
+                      "Kd",
+                      "6c",
+                      "7s",
+                      "8d"
+                    ],
+                    "weight": 1
+                  },
+                  {
+                    "cards": [
+                      "Kh",
+                      "Kd",
+                      "6c",
+                      "7s",
+                      "5d"
+                    ],
+                    "weight": 2
+                  },
+                  {
+                    "cards": [
+                      "Kh",
+                      "Kd",
+                      "6c",
+                      "7s",
+                      "5h"
+                    ],
+                    "weight": 3
+                  },
+                  {
+                    "cards": [
+                      "Kh",
+                      "Kd",
+                      "6c",
+                      "7s",
+                      "6s"
+                    ],
+                    "weight": 4
+                  }
+                ]
+              }
+            ],
+            "sizing": {
+              "type": "EXPLICIT_TOTALS",
+              "levels": [
+                1,
+                1.25,
+                1.5,
+                1.75,
+                2
+              ],
+              "maxAggressions": 1
+            },
+            "rake": {
+              "type": "NONE",
+              "basis": "BEFORE_FEES"
+            }
+          },
+          "expectedRevisionKey": "8e9307c3f7e5b455f4dff1c8b26213276b67fd62c5a9cff6fedc407dd831a511"
+        },
+        {
+          "id": "growth-4-5-3",
+          "input": {
+            "multiway": {
+              "schemaVersion": 1,
+              "enabled": true,
+              "config": {
+                "variant": "PLO5_HIGH",
+                "playerCount": 2,
+                "heroPosition": "SB",
+                "startingStack": 20,
+                "smallBlind": 0.5,
+                "bigBlind": 1,
+                "heroCards": [
+                  "Ad",
+                  "Ac",
+                  "Qh",
+                  "Js",
+                  "Ts"
+                ],
+                "players": [
+                  {
+                    "playerId": "e6db4f46-0910-4705-8b38-f0dc9c081149",
+                    "name": "You"
+                  },
+                  {
+                    "playerId": "74808bbc-63a0-48e5-884a-9ed5796983d5",
+                    "name": "A1"
+                  }
+                ]
+              },
+              "events": [
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CALL",
+                  "eventId": "7de27b12-00ee-4e36-801b-aadbad671829"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "c8aed1b5-a5f3-4f76-ada4-5c3663df75ef"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2d",
+                    "3c",
+                    "4h"
+                  ],
+                  "eventId": "a1084fc2-881d-4f5d-861a-844119b9c8c6"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "f0e201b1-c755-488d-a30a-b3f962051f90"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CHECK",
+                  "eventId": "c91084cc-8b49-47bf-8388-a8bbff333a92"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2d",
+                    "3c",
+                    "4h",
+                    "8s"
+                  ],
+                  "eventId": "839d11ba-e37d-4365-a47d-6fea7f164599"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "cde7e064-9e6c-467f-b23e-d6a7ed69a3f0"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CHECK",
+                  "eventId": "ac0e2bf8-7c60-4c8a-9f45-005e15cb52bb"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2d",
+                    "3c",
+                    "4h",
+                    "8s",
+                    "9d"
+                  ],
+                  "eventId": "92fa0be9-1c15-4827-ac20-4f3d33708d54"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "c16e7eb5-cf6b-476e-9fe2-f9cc536a8d21"
+                }
+              ],
+              "handId": "2a425fb2-a91b-b6f7-5501-77a0d6f18406",
+              "editEpoch": 0
+            },
+            "ranges": [
+              {
+                "seatId": 0,
+                "complete": true,
+                "source": "EXPLICIT_RIVER_GROWTH_QA",
+                "combos": [
+                  {
+                    "cards": [
+                      "Ad",
+                      "Ac",
+                      "Qh",
+                      "Js",
+                      "Ts"
+                    ],
+                    "weight": 1
+                  },
+                  {
+                    "cards": [
+                      "Ad",
+                      "Ac",
+                      "Qh",
+                      "Js",
+                      "2s"
+                    ],
+                    "weight": 2
+                  },
+                  {
+                    "cards": [
+                      "Ad",
+                      "Ac",
+                      "Qh",
+                      "Js",
+                      "2h"
+                    ],
+                    "weight": 3
+                  },
+                  {
+                    "cards": [
+                      "Ad",
+                      "Ac",
+                      "Qh",
+                      "Js",
+                      "2c"
+                    ],
+                    "weight": 4
+                  }
+                ]
+              },
+              {
+                "seatId": 1,
+                "complete": true,
+                "source": "EXPLICIT_RIVER_GROWTH_QA",
+                "combos": [
+                  {
+                    "cards": [
+                      "Kd",
+                      "Kc",
+                      "6h",
+                      "7s",
+                      "8c"
+                    ],
+                    "weight": 1
+                  },
+                  {
+                    "cards": [
+                      "Kd",
+                      "Kc",
+                      "6h",
+                      "7s",
+                      "5c"
+                    ],
+                    "weight": 2
+                  },
+                  {
+                    "cards": [
+                      "Kd",
+                      "Kc",
+                      "6h",
+                      "7s",
+                      "5d"
+                    ],
+                    "weight": 3
+                  },
+                  {
+                    "cards": [
+                      "Kd",
+                      "Kc",
+                      "6h",
+                      "7s",
+                      "6s"
+                    ],
+                    "weight": 4
+                  }
+                ]
+              }
+            ],
+            "sizing": {
+              "type": "EXPLICIT_TOTALS",
+              "levels": [
+                1,
+                1.25,
+                1.5,
+                1.75,
+                2
+              ],
+              "maxAggressions": 1
+            },
+            "rake": {
+              "type": "NONE",
+              "basis": "BEFORE_FEES"
+            }
+          },
+          "expectedRevisionKey": "0cdfc2f2943c14cf0434d9bb9ecd3b2663ad75e209deda9c801b3cd6b2aa1df6"
+        }
+      ]
+    },
+    {
+      "id": "growth_8x8_8_sizes",
+      "label": "8×8 worlds · 8 sizes",
+      "expectation": null,
+      "variants": [
+        {
+          "id": "growth-8-8-1",
+          "input": {
+            "multiway": {
+              "schemaVersion": 1,
+              "enabled": true,
+              "config": {
+                "variant": "PLO5_HIGH",
+                "playerCount": 2,
+                "heroPosition": "SB",
+                "startingStack": 20,
+                "smallBlind": 0.5,
+                "bigBlind": 1,
+                "heroCards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Jc",
+                  "Tc"
+                ],
+                "players": [
+                  {
+                    "playerId": "030d9c45-7a4e-4427-bd1b-3a7258134001",
+                    "name": "You"
+                  },
+                  {
+                    "playerId": "e04e501c-f6b4-4afd-b67a-c708ccffb057",
+                    "name": "A1"
+                  }
+                ]
+              },
+              "events": [
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CALL",
+                  "eventId": "3899f064-0d74-4d2d-88c0-098c688180fd"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "4926f181-2d93-4191-9871-e20a26de8f2e"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2s",
+                    "3h",
+                    "4d"
+                  ],
+                  "eventId": "662d0d46-53bf-42c6-a932-bf9860b62cc8"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "0a674cc3-564e-4a01-8edd-c1991e202f5c"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CHECK",
+                  "eventId": "9e7014f2-6e11-4e33-9bc2-695ae64b11da"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2s",
+                    "3h",
+                    "4d",
+                    "8c"
+                  ],
+                  "eventId": "42f2957d-eccf-4a31-96b5-1a82d0c7afe2"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "3fd6833d-42e4-4077-86f6-a22fe57d998b"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CHECK",
+                  "eventId": "87b0342a-886e-4e09-8617-c8cbf6e341d8"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2s",
+                    "3h",
+                    "4d",
+                    "8c",
+                    "9s"
+                  ],
+                  "eventId": "2576758c-6ce8-4dcb-9d59-0f6cfad3f117"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "b6167791-6480-44db-be4a-cf8d8d15e0e4"
+                }
+              ],
+              "handId": "b2c6ae5e-20b8-f819-0306-0935cce11e3c",
+              "editEpoch": 0
+            },
+            "ranges": [
+              {
+                "seatId": 0,
+                "complete": true,
+                "source": "EXPLICIT_RIVER_GROWTH_QA",
+                "combos": [
+                  {
+                    "cards": [
+                      "As",
+                      "Ah",
+                      "Qd",
+                      "Jc",
+                      "Tc"
+                    ],
+                    "weight": 1
+                  },
+                  {
+                    "cards": [
+                      "As",
+                      "Ah",
+                      "Qd",
+                      "Jc",
+                      "2c"
+                    ],
+                    "weight": 2
+                  },
+                  {
+                    "cards": [
+                      "As",
+                      "Ah",
+                      "Qd",
+                      "Jc",
+                      "2d"
+                    ],
+                    "weight": 3
+                  },
+                  {
+                    "cards": [
+                      "As",
+                      "Ah",
+                      "Qd",
+                      "Jc",
+                      "2h"
+                    ],
+                    "weight": 4
+                  },
+                  {
+                    "cards": [
+                      "As",
+                      "Ah",
+                      "Qd",
+                      "Jc",
+                      "3c"
+                    ],
+                    "weight": 5
+                  },
+                  {
+                    "cards": [
+                      "As",
+                      "Ah",
+                      "Qd",
+                      "Jc",
+                      "3d"
+                    ],
+                    "weight": 6
+                  },
+                  {
+                    "cards": [
+                      "As",
+                      "Ah",
+                      "Qd",
+                      "Jc",
+                      "3s"
+                    ],
+                    "weight": 7
+                  },
+                  {
+                    "cards": [
+                      "As",
+                      "Ah",
+                      "Qd",
+                      "Jc",
+                      "4c"
+                    ],
+                    "weight": 8
+                  }
+                ]
+              },
+              {
+                "seatId": 1,
+                "complete": true,
+                "source": "EXPLICIT_RIVER_GROWTH_QA",
+                "combos": [
+                  {
+                    "cards": [
+                      "Ks",
+                      "Kh",
+                      "6d",
+                      "7c",
+                      "8h"
+                    ],
+                    "weight": 1
+                  },
+                  {
+                    "cards": [
+                      "Ks",
+                      "Kh",
+                      "6d",
+                      "7c",
+                      "5h"
+                    ],
+                    "weight": 2
+                  },
+                  {
+                    "cards": [
+                      "Ks",
+                      "Kh",
+                      "6d",
+                      "7c",
+                      "5s"
+                    ],
+                    "weight": 3
+                  },
+                  {
+                    "cards": [
+                      "Ks",
+                      "Kh",
+                      "6d",
+                      "7c",
+                      "6c"
+                    ],
+                    "weight": 4
+                  },
+                  {
+                    "cards": [
+                      "Ks",
+                      "Kh",
+                      "6d",
+                      "7c",
+                      "6h"
+                    ],
+                    "weight": 5
+                  },
+                  {
+                    "cards": [
+                      "Ks",
+                      "Kh",
+                      "6d",
+                      "7c",
+                      "6s"
+                    ],
+                    "weight": 6
+                  },
+                  {
+                    "cards": [
+                      "Ks",
+                      "Kh",
+                      "6d",
+                      "7c",
+                      "7d"
+                    ],
+                    "weight": 7
+                  },
+                  {
+                    "cards": [
+                      "Ks",
+                      "Kh",
+                      "6d",
+                      "7c",
+                      "7h"
+                    ],
+                    "weight": 8
+                  }
+                ]
+              }
+            ],
+            "sizing": {
+              "type": "EXPLICIT_TOTALS",
+              "levels": [
+                1,
+                1.14,
+                1.29,
+                1.43,
+                1.57,
+                1.71,
+                1.86,
+                2
+              ],
+              "maxAggressions": 1
+            },
+            "rake": {
+              "type": "NONE",
+              "basis": "BEFORE_FEES"
+            }
+          },
+          "expectedRevisionKey": "cba76ccddc5f70dab714c42750fedb814668842a55dfc4d7192523b0e904396b"
+        },
+        {
+          "id": "growth-8-8-2",
+          "input": {
+            "multiway": {
+              "schemaVersion": 1,
+              "enabled": true,
+              "config": {
+                "variant": "PLO5_HIGH",
+                "playerCount": 2,
+                "heroPosition": "SB",
+                "startingStack": 20,
+                "smallBlind": 0.5,
+                "bigBlind": 1,
+                "heroCards": [
+                  "Ah",
+                  "Ad",
+                  "Qc",
+                  "Js",
+                  "Ts"
+                ],
+                "players": [
+                  {
+                    "playerId": "030d9c45-7a4e-4427-bd1b-3a7258134001",
+                    "name": "You"
+                  },
+                  {
+                    "playerId": "e04e501c-f6b4-4afd-b67a-c708ccffb057",
+                    "name": "A1"
+                  }
+                ]
+              },
+              "events": [
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CALL",
+                  "eventId": "3899f064-0d74-4d2d-88c0-098c688180fd"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "4926f181-2d93-4191-9871-e20a26de8f2e"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2h",
+                    "3d",
+                    "4c"
+                  ],
+                  "eventId": "662d0d46-53bf-42c6-a932-bf9860b62cc8"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "0a674cc3-564e-4a01-8edd-c1991e202f5c"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CHECK",
+                  "eventId": "9e7014f2-6e11-4e33-9bc2-695ae64b11da"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2h",
+                    "3d",
+                    "4c",
+                    "8s"
+                  ],
+                  "eventId": "42f2957d-eccf-4a31-96b5-1a82d0c7afe2"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "3fd6833d-42e4-4077-86f6-a22fe57d998b"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CHECK",
+                  "eventId": "87b0342a-886e-4e09-8617-c8cbf6e341d8"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2h",
+                    "3d",
+                    "4c",
+                    "8s",
+                    "9h"
+                  ],
+                  "eventId": "2576758c-6ce8-4dcb-9d59-0f6cfad3f117"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "b6167791-6480-44db-be4a-cf8d8d15e0e4"
+                }
+              ],
+              "handId": "8174121d-6913-517f-c000-753a063ea7ea",
+              "editEpoch": 0
+            },
+            "ranges": [
+              {
+                "seatId": 0,
+                "complete": true,
+                "source": "EXPLICIT_RIVER_GROWTH_QA",
+                "combos": [
+                  {
+                    "cards": [
+                      "Ah",
+                      "Ad",
+                      "Qc",
+                      "Js",
+                      "Ts"
+                    ],
+                    "weight": 1
+                  },
+                  {
+                    "cards": [
+                      "Ah",
+                      "Ad",
+                      "Qc",
+                      "Js",
+                      "2s"
+                    ],
+                    "weight": 2
+                  },
+                  {
+                    "cards": [
+                      "Ah",
+                      "Ad",
+                      "Qc",
+                      "Js",
+                      "2c"
+                    ],
+                    "weight": 3
+                  },
+                  {
+                    "cards": [
+                      "Ah",
+                      "Ad",
+                      "Qc",
+                      "Js",
+                      "2d"
+                    ],
+                    "weight": 4
+                  },
+                  {
+                    "cards": [
+                      "Ah",
+                      "Ad",
+                      "Qc",
+                      "Js",
+                      "3s"
+                    ],
+                    "weight": 5
+                  },
+                  {
+                    "cards": [
+                      "Ah",
+                      "Ad",
+                      "Qc",
+                      "Js",
+                      "3c"
+                    ],
+                    "weight": 6
+                  },
+                  {
+                    "cards": [
+                      "Ah",
+                      "Ad",
+                      "Qc",
+                      "Js",
+                      "3h"
+                    ],
+                    "weight": 7
+                  },
+                  {
+                    "cards": [
+                      "Ah",
+                      "Ad",
+                      "Qc",
+                      "Js",
+                      "4s"
+                    ],
+                    "weight": 8
+                  }
+                ]
+              },
+              {
+                "seatId": 1,
+                "complete": true,
+                "source": "EXPLICIT_RIVER_GROWTH_QA",
+                "combos": [
+                  {
+                    "cards": [
+                      "Kh",
+                      "Kd",
+                      "6c",
+                      "7s",
+                      "8d"
+                    ],
+                    "weight": 1
+                  },
+                  {
+                    "cards": [
+                      "Kh",
+                      "Kd",
+                      "6c",
+                      "7s",
+                      "5d"
+                    ],
+                    "weight": 2
+                  },
+                  {
+                    "cards": [
+                      "Kh",
+                      "Kd",
+                      "6c",
+                      "7s",
+                      "5h"
+                    ],
+                    "weight": 3
+                  },
+                  {
+                    "cards": [
+                      "Kh",
+                      "Kd",
+                      "6c",
+                      "7s",
+                      "6s"
+                    ],
+                    "weight": 4
+                  },
+                  {
+                    "cards": [
+                      "Kh",
+                      "Kd",
+                      "6c",
+                      "7s",
+                      "6d"
+                    ],
+                    "weight": 5
+                  },
+                  {
+                    "cards": [
+                      "Kh",
+                      "Kd",
+                      "6c",
+                      "7s",
+                      "6h"
+                    ],
+                    "weight": 6
+                  },
+                  {
+                    "cards": [
+                      "Kh",
+                      "Kd",
+                      "6c",
+                      "7s",
+                      "7c"
+                    ],
+                    "weight": 7
+                  },
+                  {
+                    "cards": [
+                      "Kh",
+                      "Kd",
+                      "6c",
+                      "7s",
+                      "7d"
+                    ],
+                    "weight": 8
+                  }
+                ]
+              }
+            ],
+            "sizing": {
+              "type": "EXPLICIT_TOTALS",
+              "levels": [
+                1,
+                1.14,
+                1.29,
+                1.43,
+                1.57,
+                1.71,
+                1.86,
+                2
+              ],
+              "maxAggressions": 1
+            },
+            "rake": {
+              "type": "NONE",
+              "basis": "BEFORE_FEES"
+            }
+          },
+          "expectedRevisionKey": "7466353468c4138d810d1c5f98cce8fd8c53a32db887a6ad3cf68e158b156f24"
+        },
+        {
+          "id": "growth-8-8-3",
+          "input": {
+            "multiway": {
+              "schemaVersion": 1,
+              "enabled": true,
+              "config": {
+                "variant": "PLO5_HIGH",
+                "playerCount": 2,
+                "heroPosition": "SB",
+                "startingStack": 20,
+                "smallBlind": 0.5,
+                "bigBlind": 1,
+                "heroCards": [
+                  "Ad",
+                  "Ac",
+                  "Qh",
+                  "Js",
+                  "Ts"
+                ],
+                "players": [
+                  {
+                    "playerId": "030d9c45-7a4e-4427-bd1b-3a7258134001",
+                    "name": "You"
+                  },
+                  {
+                    "playerId": "e04e501c-f6b4-4afd-b67a-c708ccffb057",
+                    "name": "A1"
+                  }
+                ]
+              },
+              "events": [
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CALL",
+                  "eventId": "3899f064-0d74-4d2d-88c0-098c688180fd"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "4926f181-2d93-4191-9871-e20a26de8f2e"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2d",
+                    "3c",
+                    "4h"
+                  ],
+                  "eventId": "662d0d46-53bf-42c6-a932-bf9860b62cc8"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "0a674cc3-564e-4a01-8edd-c1991e202f5c"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CHECK",
+                  "eventId": "9e7014f2-6e11-4e33-9bc2-695ae64b11da"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2d",
+                    "3c",
+                    "4h",
+                    "8s"
+                  ],
+                  "eventId": "42f2957d-eccf-4a31-96b5-1a82d0c7afe2"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "3fd6833d-42e4-4077-86f6-a22fe57d998b"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CHECK",
+                  "eventId": "87b0342a-886e-4e09-8617-c8cbf6e341d8"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2d",
+                    "3c",
+                    "4h",
+                    "8s",
+                    "9d"
+                  ],
+                  "eventId": "2576758c-6ce8-4dcb-9d59-0f6cfad3f117"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "b6167791-6480-44db-be4a-cf8d8d15e0e4"
+                }
+              ],
+              "handId": "f76934d9-1615-7820-a8e0-435f009e1065",
+              "editEpoch": 0
+            },
+            "ranges": [
+              {
+                "seatId": 0,
+                "complete": true,
+                "source": "EXPLICIT_RIVER_GROWTH_QA",
+                "combos": [
+                  {
+                    "cards": [
+                      "Ad",
+                      "Ac",
+                      "Qh",
+                      "Js",
+                      "Ts"
+                    ],
+                    "weight": 1
+                  },
+                  {
+                    "cards": [
+                      "Ad",
+                      "Ac",
+                      "Qh",
+                      "Js",
+                      "2s"
+                    ],
+                    "weight": 2
+                  },
+                  {
+                    "cards": [
+                      "Ad",
+                      "Ac",
+                      "Qh",
+                      "Js",
+                      "2h"
+                    ],
+                    "weight": 3
+                  },
+                  {
+                    "cards": [
+                      "Ad",
+                      "Ac",
+                      "Qh",
+                      "Js",
+                      "2c"
+                    ],
+                    "weight": 4
+                  },
+                  {
+                    "cards": [
+                      "Ad",
+                      "Ac",
+                      "Qh",
+                      "Js",
+                      "3s"
+                    ],
+                    "weight": 5
+                  },
+                  {
+                    "cards": [
+                      "Ad",
+                      "Ac",
+                      "Qh",
+                      "Js",
+                      "3h"
+                    ],
+                    "weight": 6
+                  },
+                  {
+                    "cards": [
+                      "Ad",
+                      "Ac",
+                      "Qh",
+                      "Js",
+                      "3d"
+                    ],
+                    "weight": 7
+                  },
+                  {
+                    "cards": [
+                      "Ad",
+                      "Ac",
+                      "Qh",
+                      "Js",
+                      "4s"
+                    ],
+                    "weight": 8
+                  }
+                ]
+              },
+              {
+                "seatId": 1,
+                "complete": true,
+                "source": "EXPLICIT_RIVER_GROWTH_QA",
+                "combos": [
+                  {
+                    "cards": [
+                      "Kd",
+                      "Kc",
+                      "6h",
+                      "7s",
+                      "8c"
+                    ],
+                    "weight": 1
+                  },
+                  {
+                    "cards": [
+                      "Kd",
+                      "Kc",
+                      "6h",
+                      "7s",
+                      "5c"
+                    ],
+                    "weight": 2
+                  },
+                  {
+                    "cards": [
+                      "Kd",
+                      "Kc",
+                      "6h",
+                      "7s",
+                      "5d"
+                    ],
+                    "weight": 3
+                  },
+                  {
+                    "cards": [
+                      "Kd",
+                      "Kc",
+                      "6h",
+                      "7s",
+                      "6s"
+                    ],
+                    "weight": 4
+                  },
+                  {
+                    "cards": [
+                      "Kd",
+                      "Kc",
+                      "6h",
+                      "7s",
+                      "6c"
+                    ],
+                    "weight": 5
+                  },
+                  {
+                    "cards": [
+                      "Kd",
+                      "Kc",
+                      "6h",
+                      "7s",
+                      "6d"
+                    ],
+                    "weight": 6
+                  },
+                  {
+                    "cards": [
+                      "Kd",
+                      "Kc",
+                      "6h",
+                      "7s",
+                      "7h"
+                    ],
+                    "weight": 7
+                  },
+                  {
+                    "cards": [
+                      "Kd",
+                      "Kc",
+                      "6h",
+                      "7s",
+                      "7c"
+                    ],
+                    "weight": 8
+                  }
+                ]
+              }
+            ],
+            "sizing": {
+              "type": "EXPLICIT_TOTALS",
+              "levels": [
+                1,
+                1.14,
+                1.29,
+                1.43,
+                1.57,
+                1.71,
+                1.86,
+                2
+              ],
+              "maxAggressions": 1
+            },
+            "rake": {
+              "type": "NONE",
+              "basis": "BEFORE_FEES"
+            }
+          },
+          "expectedRevisionKey": "3097e757f55de607d73adc65357e1248db06c1e54dae981f766753c6870b0611"
+        }
+      ]
+    },
+    {
+      "id": "growth_12x12_12_sizes",
+      "label": "12×12 worlds · 12 sizes",
+      "expectation": null,
+      "variants": [
+        {
+          "id": "growth-12-12-1",
+          "input": {
+            "multiway": {
+              "schemaVersion": 1,
+              "enabled": true,
+              "config": {
+                "variant": "PLO5_HIGH",
+                "playerCount": 2,
+                "heroPosition": "SB",
+                "startingStack": 20,
+                "smallBlind": 0.5,
+                "bigBlind": 1,
+                "heroCards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Jc",
+                  "Tc"
+                ],
+                "players": [
+                  {
+                    "playerId": "757d196d-4ce2-46a9-a03b-0489c2a9cf0f",
+                    "name": "You"
+                  },
+                  {
+                    "playerId": "f27c3de1-a96c-4900-8dfd-4907ab6202db",
+                    "name": "A1"
+                  }
+                ]
+              },
+              "events": [
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CALL",
+                  "eventId": "629f8059-36fe-4ef9-a81d-ddf4a105e32b"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "5d7d8933-a548-4508-826b-d605a143dd37"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2s",
+                    "3h",
+                    "4d"
+                  ],
+                  "eventId": "6dbdd5c8-5ae4-4c6f-a63e-e1196762f52a"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "61b4b1eb-2354-4db6-9145-e4955b99fefd"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CHECK",
+                  "eventId": "df9de1b3-753c-48c5-9641-69fffdadd4f6"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2s",
+                    "3h",
+                    "4d",
+                    "8c"
+                  ],
+                  "eventId": "2e6b8be4-7861-429f-a05d-8dd53107e822"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "8511b4f8-3dcc-42dc-8c24-639e12bafc84"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CHECK",
+                  "eventId": "56229056-1478-4c93-80c2-61f78efbb2c1"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2s",
+                    "3h",
+                    "4d",
+                    "8c",
+                    "9s"
+                  ],
+                  "eventId": "f3d6145e-a176-4cbc-89fc-1ba0fab33bd0"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "89129ab3-8179-4c98-abe5-7bef8321da37"
+                }
+              ],
+              "handId": "bb226e88-d8ab-2cb2-9c57-a30fb36f795f",
+              "editEpoch": 0
+            },
+            "ranges": [
+              {
+                "seatId": 0,
+                "complete": true,
+                "source": "EXPLICIT_RIVER_GROWTH_QA",
+                "combos": [
+                  {
+                    "cards": [
+                      "As",
+                      "Ah",
+                      "Qd",
+                      "Jc",
+                      "Tc"
+                    ],
+                    "weight": 1
+                  },
+                  {
+                    "cards": [
+                      "As",
+                      "Ah",
+                      "Qd",
+                      "Jc",
+                      "2c"
+                    ],
+                    "weight": 2
+                  },
+                  {
+                    "cards": [
+                      "As",
+                      "Ah",
+                      "Qd",
+                      "Jc",
+                      "2d"
+                    ],
+                    "weight": 3
+                  },
+                  {
+                    "cards": [
+                      "As",
+                      "Ah",
+                      "Qd",
+                      "Jc",
+                      "2h"
+                    ],
+                    "weight": 4
+                  },
+                  {
+                    "cards": [
+                      "As",
+                      "Ah",
+                      "Qd",
+                      "Jc",
+                      "3c"
+                    ],
+                    "weight": 5
+                  },
+                  {
+                    "cards": [
+                      "As",
+                      "Ah",
+                      "Qd",
+                      "Jc",
+                      "3d"
+                    ],
+                    "weight": 6
+                  },
+                  {
+                    "cards": [
+                      "As",
+                      "Ah",
+                      "Qd",
+                      "Jc",
+                      "3s"
+                    ],
+                    "weight": 7
+                  },
+                  {
+                    "cards": [
+                      "As",
+                      "Ah",
+                      "Qd",
+                      "Jc",
+                      "4c"
+                    ],
+                    "weight": 8
+                  },
+                  {
+                    "cards": [
+                      "As",
+                      "Ah",
+                      "Qd",
+                      "Jc",
+                      "4h"
+                    ],
+                    "weight": 9
+                  },
+                  {
+                    "cards": [
+                      "As",
+                      "Ah",
+                      "Qd",
+                      "Jc",
+                      "4s"
+                    ],
+                    "weight": 10
+                  },
+                  {
+                    "cards": [
+                      "As",
+                      "Ah",
+                      "Qd",
+                      "Jc",
+                      "5c"
+                    ],
+                    "weight": 11
+                  },
+                  {
+                    "cards": [
+                      "As",
+                      "Ah",
+                      "Qd",
+                      "Jc",
+                      "5d"
+                    ],
+                    "weight": 12
+                  }
+                ]
+              },
+              {
+                "seatId": 1,
+                "complete": true,
+                "source": "EXPLICIT_RIVER_GROWTH_QA",
+                "combos": [
+                  {
+                    "cards": [
+                      "Ks",
+                      "Kh",
+                      "6d",
+                      "7c",
+                      "8h"
+                    ],
+                    "weight": 1
+                  },
+                  {
+                    "cards": [
+                      "Ks",
+                      "Kh",
+                      "6d",
+                      "7c",
+                      "5h"
+                    ],
+                    "weight": 2
+                  },
+                  {
+                    "cards": [
+                      "Ks",
+                      "Kh",
+                      "6d",
+                      "7c",
+                      "5s"
+                    ],
+                    "weight": 3
+                  },
+                  {
+                    "cards": [
+                      "Ks",
+                      "Kh",
+                      "6d",
+                      "7c",
+                      "6c"
+                    ],
+                    "weight": 4
+                  },
+                  {
+                    "cards": [
+                      "Ks",
+                      "Kh",
+                      "6d",
+                      "7c",
+                      "6h"
+                    ],
+                    "weight": 5
+                  },
+                  {
+                    "cards": [
+                      "Ks",
+                      "Kh",
+                      "6d",
+                      "7c",
+                      "6s"
+                    ],
+                    "weight": 6
+                  },
+                  {
+                    "cards": [
+                      "Ks",
+                      "Kh",
+                      "6d",
+                      "7c",
+                      "7d"
+                    ],
+                    "weight": 7
+                  },
+                  {
+                    "cards": [
+                      "Ks",
+                      "Kh",
+                      "6d",
+                      "7c",
+                      "7h"
+                    ],
+                    "weight": 8
+                  },
+                  {
+                    "cards": [
+                      "Ks",
+                      "Kh",
+                      "6d",
+                      "7c",
+                      "7s"
+                    ],
+                    "weight": 9
+                  },
+                  {
+                    "cards": [
+                      "Ks",
+                      "Kh",
+                      "6d",
+                      "7c",
+                      "8d"
+                    ],
+                    "weight": 10
+                  },
+                  {
+                    "cards": [
+                      "Ks",
+                      "Kh",
+                      "6d",
+                      "7c",
+                      "8s"
+                    ],
+                    "weight": 11
+                  },
+                  {
+                    "cards": [
+                      "Ks",
+                      "Kh",
+                      "6d",
+                      "7c",
+                      "9c"
+                    ],
+                    "weight": 12
+                  }
+                ]
+              }
+            ],
+            "sizing": {
+              "type": "EXPLICIT_TOTALS",
+              "levels": [
+                1,
+                1.09,
+                1.18,
+                1.27,
+                1.36,
+                1.45,
+                1.55,
+                1.64,
+                1.73,
+                1.82,
+                1.91,
+                2
+              ],
+              "maxAggressions": 1
+            },
+            "rake": {
+              "type": "NONE",
+              "basis": "BEFORE_FEES"
+            }
+          },
+          "expectedRevisionKey": "bd25d3c7c894c3d8d21a0c6b7f463ff4dc42a378aeb071d95118afd4c1be4029"
+        },
+        {
+          "id": "growth-12-12-2",
+          "input": {
+            "multiway": {
+              "schemaVersion": 1,
+              "enabled": true,
+              "config": {
+                "variant": "PLO5_HIGH",
+                "playerCount": 2,
+                "heroPosition": "SB",
+                "startingStack": 20,
+                "smallBlind": 0.5,
+                "bigBlind": 1,
+                "heroCards": [
+                  "Ah",
+                  "Ad",
+                  "Qc",
+                  "Js",
+                  "Ts"
+                ],
+                "players": [
+                  {
+                    "playerId": "757d196d-4ce2-46a9-a03b-0489c2a9cf0f",
+                    "name": "You"
+                  },
+                  {
+                    "playerId": "f27c3de1-a96c-4900-8dfd-4907ab6202db",
+                    "name": "A1"
+                  }
+                ]
+              },
+              "events": [
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CALL",
+                  "eventId": "629f8059-36fe-4ef9-a81d-ddf4a105e32b"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "5d7d8933-a548-4508-826b-d605a143dd37"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2h",
+                    "3d",
+                    "4c"
+                  ],
+                  "eventId": "6dbdd5c8-5ae4-4c6f-a63e-e1196762f52a"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "61b4b1eb-2354-4db6-9145-e4955b99fefd"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CHECK",
+                  "eventId": "df9de1b3-753c-48c5-9641-69fffdadd4f6"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2h",
+                    "3d",
+                    "4c",
+                    "8s"
+                  ],
+                  "eventId": "2e6b8be4-7861-429f-a05d-8dd53107e822"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "8511b4f8-3dcc-42dc-8c24-639e12bafc84"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CHECK",
+                  "eventId": "56229056-1478-4c93-80c2-61f78efbb2c1"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2h",
+                    "3d",
+                    "4c",
+                    "8s",
+                    "9h"
+                  ],
+                  "eventId": "f3d6145e-a176-4cbc-89fc-1ba0fab33bd0"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "89129ab3-8179-4c98-abe5-7bef8321da37"
+                }
+              ],
+              "handId": "2774afef-abbf-ada2-7a71-0f77d0cf16a2",
+              "editEpoch": 0
+            },
+            "ranges": [
+              {
+                "seatId": 0,
+                "complete": true,
+                "source": "EXPLICIT_RIVER_GROWTH_QA",
+                "combos": [
+                  {
+                    "cards": [
+                      "Ah",
+                      "Ad",
+                      "Qc",
+                      "Js",
+                      "Ts"
+                    ],
+                    "weight": 1
+                  },
+                  {
+                    "cards": [
+                      "Ah",
+                      "Ad",
+                      "Qc",
+                      "Js",
+                      "2s"
+                    ],
+                    "weight": 2
+                  },
+                  {
+                    "cards": [
+                      "Ah",
+                      "Ad",
+                      "Qc",
+                      "Js",
+                      "2c"
+                    ],
+                    "weight": 3
+                  },
+                  {
+                    "cards": [
+                      "Ah",
+                      "Ad",
+                      "Qc",
+                      "Js",
+                      "2d"
+                    ],
+                    "weight": 4
+                  },
+                  {
+                    "cards": [
+                      "Ah",
+                      "Ad",
+                      "Qc",
+                      "Js",
+                      "3s"
+                    ],
+                    "weight": 5
+                  },
+                  {
+                    "cards": [
+                      "Ah",
+                      "Ad",
+                      "Qc",
+                      "Js",
+                      "3c"
+                    ],
+                    "weight": 6
+                  },
+                  {
+                    "cards": [
+                      "Ah",
+                      "Ad",
+                      "Qc",
+                      "Js",
+                      "3h"
+                    ],
+                    "weight": 7
+                  },
+                  {
+                    "cards": [
+                      "Ah",
+                      "Ad",
+                      "Qc",
+                      "Js",
+                      "4s"
+                    ],
+                    "weight": 8
+                  },
+                  {
+                    "cards": [
+                      "Ah",
+                      "Ad",
+                      "Qc",
+                      "Js",
+                      "4d"
+                    ],
+                    "weight": 9
+                  },
+                  {
+                    "cards": [
+                      "Ah",
+                      "Ad",
+                      "Qc",
+                      "Js",
+                      "4h"
+                    ],
+                    "weight": 10
+                  },
+                  {
+                    "cards": [
+                      "Ah",
+                      "Ad",
+                      "Qc",
+                      "Js",
+                      "5s"
+                    ],
+                    "weight": 11
+                  },
+                  {
+                    "cards": [
+                      "Ah",
+                      "Ad",
+                      "Qc",
+                      "Js",
+                      "5c"
+                    ],
+                    "weight": 12
+                  }
+                ]
+              },
+              {
+                "seatId": 1,
+                "complete": true,
+                "source": "EXPLICIT_RIVER_GROWTH_QA",
+                "combos": [
+                  {
+                    "cards": [
+                      "Kh",
+                      "Kd",
+                      "6c",
+                      "7s",
+                      "8d"
+                    ],
+                    "weight": 1
+                  },
+                  {
+                    "cards": [
+                      "Kh",
+                      "Kd",
+                      "6c",
+                      "7s",
+                      "5d"
+                    ],
+                    "weight": 2
+                  },
+                  {
+                    "cards": [
+                      "Kh",
+                      "Kd",
+                      "6c",
+                      "7s",
+                      "5h"
+                    ],
+                    "weight": 3
+                  },
+                  {
+                    "cards": [
+                      "Kh",
+                      "Kd",
+                      "6c",
+                      "7s",
+                      "6s"
+                    ],
+                    "weight": 4
+                  },
+                  {
+                    "cards": [
+                      "Kh",
+                      "Kd",
+                      "6c",
+                      "7s",
+                      "6d"
+                    ],
+                    "weight": 5
+                  },
+                  {
+                    "cards": [
+                      "Kh",
+                      "Kd",
+                      "6c",
+                      "7s",
+                      "6h"
+                    ],
+                    "weight": 6
+                  },
+                  {
+                    "cards": [
+                      "Kh",
+                      "Kd",
+                      "6c",
+                      "7s",
+                      "7c"
+                    ],
+                    "weight": 7
+                  },
+                  {
+                    "cards": [
+                      "Kh",
+                      "Kd",
+                      "6c",
+                      "7s",
+                      "7d"
+                    ],
+                    "weight": 8
+                  },
+                  {
+                    "cards": [
+                      "Kh",
+                      "Kd",
+                      "6c",
+                      "7s",
+                      "7h"
+                    ],
+                    "weight": 9
+                  },
+                  {
+                    "cards": [
+                      "Kh",
+                      "Kd",
+                      "6c",
+                      "7s",
+                      "8c"
+                    ],
+                    "weight": 10
+                  },
+                  {
+                    "cards": [
+                      "Kh",
+                      "Kd",
+                      "6c",
+                      "7s",
+                      "8h"
+                    ],
+                    "weight": 11
+                  },
+                  {
+                    "cards": [
+                      "Kh",
+                      "Kd",
+                      "6c",
+                      "7s",
+                      "9s"
+                    ],
+                    "weight": 12
+                  }
+                ]
+              }
+            ],
+            "sizing": {
+              "type": "EXPLICIT_TOTALS",
+              "levels": [
+                1,
+                1.09,
+                1.18,
+                1.27,
+                1.36,
+                1.45,
+                1.55,
+                1.64,
+                1.73,
+                1.82,
+                1.91,
+                2
+              ],
+              "maxAggressions": 1
+            },
+            "rake": {
+              "type": "NONE",
+              "basis": "BEFORE_FEES"
+            }
+          },
+          "expectedRevisionKey": "5a57b892bc5d40316148f7f20d9eb8c89f8e12dfde1241ece61eb7ec93f9e72a"
+        },
+        {
+          "id": "growth-12-12-3",
+          "input": {
+            "multiway": {
+              "schemaVersion": 1,
+              "enabled": true,
+              "config": {
+                "variant": "PLO5_HIGH",
+                "playerCount": 2,
+                "heroPosition": "SB",
+                "startingStack": 20,
+                "smallBlind": 0.5,
+                "bigBlind": 1,
+                "heroCards": [
+                  "Ad",
+                  "Ac",
+                  "Qh",
+                  "Js",
+                  "Ts"
+                ],
+                "players": [
+                  {
+                    "playerId": "757d196d-4ce2-46a9-a03b-0489c2a9cf0f",
+                    "name": "You"
+                  },
+                  {
+                    "playerId": "f27c3de1-a96c-4900-8dfd-4907ab6202db",
+                    "name": "A1"
+                  }
+                ]
+              },
+              "events": [
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CALL",
+                  "eventId": "629f8059-36fe-4ef9-a81d-ddf4a105e32b"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "5d7d8933-a548-4508-826b-d605a143dd37"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2d",
+                    "3c",
+                    "4h"
+                  ],
+                  "eventId": "6dbdd5c8-5ae4-4c6f-a63e-e1196762f52a"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "61b4b1eb-2354-4db6-9145-e4955b99fefd"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CHECK",
+                  "eventId": "df9de1b3-753c-48c5-9641-69fffdadd4f6"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2d",
+                    "3c",
+                    "4h",
+                    "8s"
+                  ],
+                  "eventId": "2e6b8be4-7861-429f-a05d-8dd53107e822"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "8511b4f8-3dcc-42dc-8c24-639e12bafc84"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 0,
+                  "action": "CHECK",
+                  "eventId": "56229056-1478-4c93-80c2-61f78efbb2c1"
+                },
+                {
+                  "type": "BOARD",
+                  "cards": [
+                    "2d",
+                    "3c",
+                    "4h",
+                    "8s",
+                    "9d"
+                  ],
+                  "eventId": "f3d6145e-a176-4cbc-89fc-1ba0fab33bd0"
+                },
+                {
+                  "type": "ACT",
+                  "actor": 1,
+                  "action": "CHECK",
+                  "eventId": "89129ab3-8179-4c98-abe5-7bef8321da37"
+                }
+              ],
+              "handId": "658af587-ae9a-af7b-8c2b-5b84d060229a",
+              "editEpoch": 0
+            },
+            "ranges": [
+              {
+                "seatId": 0,
+                "complete": true,
+                "source": "EXPLICIT_RIVER_GROWTH_QA",
+                "combos": [
+                  {
+                    "cards": [
+                      "Ad",
+                      "Ac",
+                      "Qh",
+                      "Js",
+                      "Ts"
+                    ],
+                    "weight": 1
+                  },
+                  {
+                    "cards": [
+                      "Ad",
+                      "Ac",
+                      "Qh",
+                      "Js",
+                      "2s"
+                    ],
+                    "weight": 2
+                  },
+                  {
+                    "cards": [
+                      "Ad",
+                      "Ac",
+                      "Qh",
+                      "Js",
+                      "2h"
+                    ],
+                    "weight": 3
+                  },
+                  {
+                    "cards": [
+                      "Ad",
+                      "Ac",
+                      "Qh",
+                      "Js",
+                      "2c"
+                    ],
+                    "weight": 4
+                  },
+                  {
+                    "cards": [
+                      "Ad",
+                      "Ac",
+                      "Qh",
+                      "Js",
+                      "3s"
+                    ],
+                    "weight": 5
+                  },
+                  {
+                    "cards": [
+                      "Ad",
+                      "Ac",
+                      "Qh",
+                      "Js",
+                      "3h"
+                    ],
+                    "weight": 6
+                  },
+                  {
+                    "cards": [
+                      "Ad",
+                      "Ac",
+                      "Qh",
+                      "Js",
+                      "3d"
+                    ],
+                    "weight": 7
+                  },
+                  {
+                    "cards": [
+                      "Ad",
+                      "Ac",
+                      "Qh",
+                      "Js",
+                      "4s"
+                    ],
+                    "weight": 8
+                  },
+                  {
+                    "cards": [
+                      "Ad",
+                      "Ac",
+                      "Qh",
+                      "Js",
+                      "4c"
+                    ],
+                    "weight": 9
+                  },
+                  {
+                    "cards": [
+                      "Ad",
+                      "Ac",
+                      "Qh",
+                      "Js",
+                      "4d"
+                    ],
+                    "weight": 10
+                  },
+                  {
+                    "cards": [
+                      "Ad",
+                      "Ac",
+                      "Qh",
+                      "Js",
+                      "5s"
+                    ],
+                    "weight": 11
+                  },
+                  {
+                    "cards": [
+                      "Ad",
+                      "Ac",
+                      "Qh",
+                      "Js",
+                      "5h"
+                    ],
+                    "weight": 12
+                  }
+                ]
+              },
+              {
+                "seatId": 1,
+                "complete": true,
+                "source": "EXPLICIT_RIVER_GROWTH_QA",
+                "combos": [
+                  {
+                    "cards": [
+                      "Kd",
+                      "Kc",
+                      "6h",
+                      "7s",
+                      "8c"
+                    ],
+                    "weight": 1
+                  },
+                  {
+                    "cards": [
+                      "Kd",
+                      "Kc",
+                      "6h",
+                      "7s",
+                      "5c"
+                    ],
+                    "weight": 2
+                  },
+                  {
+                    "cards": [
+                      "Kd",
+                      "Kc",
+                      "6h",
+                      "7s",
+                      "5d"
+                    ],
+                    "weight": 3
+                  },
+                  {
+                    "cards": [
+                      "Kd",
+                      "Kc",
+                      "6h",
+                      "7s",
+                      "6s"
+                    ],
+                    "weight": 4
+                  },
+                  {
+                    "cards": [
+                      "Kd",
+                      "Kc",
+                      "6h",
+                      "7s",
+                      "6c"
+                    ],
+                    "weight": 5
+                  },
+                  {
+                    "cards": [
+                      "Kd",
+                      "Kc",
+                      "6h",
+                      "7s",
+                      "6d"
+                    ],
+                    "weight": 6
+                  },
+                  {
+                    "cards": [
+                      "Kd",
+                      "Kc",
+                      "6h",
+                      "7s",
+                      "7h"
+                    ],
+                    "weight": 7
+                  },
+                  {
+                    "cards": [
+                      "Kd",
+                      "Kc",
+                      "6h",
+                      "7s",
+                      "7c"
+                    ],
+                    "weight": 8
+                  },
+                  {
+                    "cards": [
+                      "Kd",
+                      "Kc",
+                      "6h",
+                      "7s",
+                      "7d"
+                    ],
+                    "weight": 9
+                  },
+                  {
+                    "cards": [
+                      "Kd",
+                      "Kc",
+                      "6h",
+                      "7s",
+                      "8h"
+                    ],
+                    "weight": 10
+                  },
+                  {
+                    "cards": [
+                      "Kd",
+                      "Kc",
+                      "6h",
+                      "7s",
+                      "8d"
+                    ],
+                    "weight": 11
+                  },
+                  {
+                    "cards": [
+                      "Kd",
+                      "Kc",
+                      "6h",
+                      "7s",
+                      "9s"
+                    ],
+                    "weight": 12
+                  }
+                ]
+              }
+            ],
+            "sizing": {
+              "type": "EXPLICIT_TOTALS",
+              "levels": [
+                1,
+                1.09,
+                1.18,
+                1.27,
+                1.36,
+                1.45,
+                1.55,
+                1.64,
+                1.73,
+                1.82,
+                1.91,
+                2
+              ],
+              "maxAggressions": 1
+            },
+            "rake": {
+              "type": "NONE",
+              "basis": "BEFORE_FEES"
+            }
+          },
+          "expectedRevisionKey": "bc3f562949c22a55f275f73d0d98c0ad2eea60986703e94b01fa1be962f0ff89"
+        }
+      ]
+    }
+  ],
+  "cancellation": {
+    "obsolete": {
+      "id": "growth-cancellation-obsolete",
+      "input": {
+        "multiway": {
+          "schemaVersion": 1,
+          "enabled": true,
+          "config": {
+            "variant": "PLO5_HIGH",
+            "playerCount": 2,
+            "heroPosition": "SB",
+            "startingStack": 20,
+            "smallBlind": 0.5,
+            "bigBlind": 1,
+            "heroCards": [
+              "Ac",
+              "Ah",
+              "Qs",
+              "Jd",
+              "Td"
+            ],
+            "players": [
+              {
+                "playerId": "d7eb6f5f-762b-4892-a969-498a5c0c310d",
+                "name": "You"
+              },
+              {
+                "playerId": "8cf0e4c7-129f-4c1b-a29d-46bdec5fcbe9",
+                "name": "A1"
+              }
+            ]
+          },
+          "events": [
+            {
+              "type": "ACT",
+              "actor": 0,
+              "action": "CALL",
+              "eventId": "6dc64542-a302-484d-a3b3-7fade9f25ef2"
+            },
+            {
+              "type": "ACT",
+              "actor": 1,
+              "action": "CHECK",
+              "eventId": "f1dc38ee-e8d2-4fe4-b3db-c20a450ee3e8"
+            },
+            {
+              "type": "BOARD",
+              "cards": [
+                "2c",
+                "3h",
+                "4s"
+              ],
+              "eventId": "55b9e8df-2b02-447d-8a24-c32b00d0b40e"
+            },
+            {
+              "type": "ACT",
+              "actor": 1,
+              "action": "CHECK",
+              "eventId": "c36785ae-2891-4f60-a88a-f7206e4c211b"
+            },
+            {
+              "type": "ACT",
+              "actor": 0,
+              "action": "CHECK",
+              "eventId": "a5ba4aa7-e80a-4c44-8680-b1e1899477f4"
+            },
+            {
+              "type": "BOARD",
+              "cards": [
+                "2c",
+                "3h",
+                "4s",
+                "8d"
+              ],
+              "eventId": "e44a98d4-108d-4c2a-a327-93dde73fa0b5"
+            },
+            {
+              "type": "ACT",
+              "actor": 1,
+              "action": "CHECK",
+              "eventId": "935a6a25-7167-46fa-826e-f0e46471eb3c"
+            },
+            {
+              "type": "ACT",
+              "actor": 0,
+              "action": "CHECK",
+              "eventId": "e2f44a0a-16e5-478b-aea7-323733c84f80"
+            },
+            {
+              "type": "BOARD",
+              "cards": [
+                "2c",
+                "3h",
+                "4s",
+                "8d",
+                "9c"
+              ],
+              "eventId": "c39826af-85be-4421-b014-0f02d9059d38"
+            },
+            {
+              "type": "ACT",
+              "actor": 1,
+              "action": "CHECK",
+              "eventId": "1c171ede-86ed-40c6-997e-ac99caf86780"
+            }
+          ],
+          "handId": "8c7bf7aa-559d-adc0-97c0-cd14a4b74493",
+          "editEpoch": 0
+        },
+        "ranges": [
+          {
+            "seatId": 0,
+            "complete": true,
+            "source": "EXPLICIT_RIVER_GROWTH_QA",
+            "combos": [
+              {
+                "cards": [
+                  "Ac",
+                  "Ah",
+                  "Qs",
+                  "Jd",
+                  "Td"
+                ],
+                "weight": 1
+              },
+              {
+                "cards": [
+                  "Ac",
+                  "Ah",
+                  "Qs",
+                  "Jd",
+                  "2d"
+                ],
+                "weight": 2
+              },
+              {
+                "cards": [
+                  "Ac",
+                  "Ah",
+                  "Qs",
+                  "Jd",
+                  "2s"
+                ],
+                "weight": 3
+              },
+              {
+                "cards": [
+                  "Ac",
+                  "Ah",
+                  "Qs",
+                  "Jd",
+                  "2h"
+                ],
+                "weight": 4
+              },
+              {
+                "cards": [
+                  "Ac",
+                  "Ah",
+                  "Qs",
+                  "Jd",
+                  "3d"
+                ],
+                "weight": 5
+              },
+              {
+                "cards": [
+                  "Ac",
+                  "Ah",
+                  "Qs",
+                  "Jd",
+                  "3s"
+                ],
+                "weight": 6
+              },
+              {
+                "cards": [
+                  "Ac",
+                  "Ah",
+                  "Qs",
+                  "Jd",
+                  "3c"
+                ],
+                "weight": 7
+              },
+              {
+                "cards": [
+                  "Ac",
+                  "Ah",
+                  "Qs",
+                  "Jd",
+                  "4d"
+                ],
+                "weight": 8
+              },
+              {
+                "cards": [
+                  "Ac",
+                  "Ah",
+                  "Qs",
+                  "Jd",
+                  "4h"
+                ],
+                "weight": 9
+              },
+              {
+                "cards": [
+                  "Ac",
+                  "Ah",
+                  "Qs",
+                  "Jd",
+                  "4c"
+                ],
+                "weight": 10
+              },
+              {
+                "cards": [
+                  "Ac",
+                  "Ah",
+                  "Qs",
+                  "Jd",
+                  "5d"
+                ],
+                "weight": 11
+              },
+              {
+                "cards": [
+                  "Ac",
+                  "Ah",
+                  "Qs",
+                  "Jd",
+                  "5s"
+                ],
+                "weight": 12
+              }
+            ]
+          },
+          {
+            "seatId": 1,
+            "complete": true,
+            "source": "EXPLICIT_RIVER_GROWTH_QA",
+            "combos": [
+              {
+                "cards": [
+                  "Kc",
+                  "Kh",
+                  "6s",
+                  "7d",
+                  "8h"
+                ],
+                "weight": 1
+              },
+              {
+                "cards": [
+                  "Kc",
+                  "Kh",
+                  "6s",
+                  "7d",
+                  "5h"
+                ],
+                "weight": 2
+              },
+              {
+                "cards": [
+                  "Kc",
+                  "Kh",
+                  "6s",
+                  "7d",
+                  "5c"
+                ],
+                "weight": 3
+              },
+              {
+                "cards": [
+                  "Kc",
+                  "Kh",
+                  "6s",
+                  "7d",
+                  "6d"
+                ],
+                "weight": 4
+              },
+              {
+                "cards": [
+                  "Kc",
+                  "Kh",
+                  "6s",
+                  "7d",
+                  "6h"
+                ],
+                "weight": 5
+              },
+              {
+                "cards": [
+                  "Kc",
+                  "Kh",
+                  "6s",
+                  "7d",
+                  "6c"
+                ],
+                "weight": 6
+              },
+              {
+                "cards": [
+                  "Kc",
+                  "Kh",
+                  "6s",
+                  "7d",
+                  "7s"
+                ],
+                "weight": 7
+              },
+              {
+                "cards": [
+                  "Kc",
+                  "Kh",
+                  "6s",
+                  "7d",
+                  "7h"
+                ],
+                "weight": 8
+              },
+              {
+                "cards": [
+                  "Kc",
+                  "Kh",
+                  "6s",
+                  "7d",
+                  "7c"
+                ],
+                "weight": 9
+              },
+              {
+                "cards": [
+                  "Kc",
+                  "Kh",
+                  "6s",
+                  "7d",
+                  "8s"
+                ],
+                "weight": 10
+              },
+              {
+                "cards": [
+                  "Kc",
+                  "Kh",
+                  "6s",
+                  "7d",
+                  "8c"
+                ],
+                "weight": 11
+              },
+              {
+                "cards": [
+                  "Kc",
+                  "Kh",
+                  "6s",
+                  "7d",
+                  "9d"
+                ],
+                "weight": 12
+              }
+            ]
+          }
+        ],
+        "sizing": {
+          "type": "EXPLICIT_TOTALS",
+          "levels": [
+            1,
+            1.09,
+            1.18,
+            1.27,
+            1.36,
+            1.45,
+            1.55,
+            1.64,
+            1.73,
+            1.82,
+            1.91,
+            2
+          ],
+          "maxAggressions": 1
+        },
+        "rake": {
+          "type": "NONE",
+          "basis": "BEFORE_FEES"
+        }
+      },
+      "expectedRevisionKey": "33f9c38abd8354c4341d411b9630996243a642d74c3575d237167434e19dadf2"
+    },
+    "replacement": {
+      "id": "growth-cancellation-replacement",
+      "input": {
+        "multiway": {
+          "schemaVersion": 1,
+          "enabled": true,
+          "config": {
+            "variant": "PLO5_HIGH",
+            "playerCount": 2,
+            "heroPosition": "SB",
+            "startingStack": 20,
+            "smallBlind": 0.5,
+            "bigBlind": 1,
+            "heroCards": [
+              "Ad",
+              "As",
+              "Qc",
+              "Jh",
+              "Th"
+            ],
+            "players": [
+              {
+                "playerId": "2cebd4da-ebec-4d14-ae8d-7122fb14321c",
+                "name": "You"
+              },
+              {
+                "playerId": "dd7d2823-31fb-4f90-a01e-a362f0e62d27",
+                "name": "A1"
+              }
+            ]
+          },
+          "events": [
+            {
+              "type": "ACT",
+              "actor": 0,
+              "action": "CALL",
+              "eventId": "f243cf8a-59a5-4ce7-887b-6c1d94e75b77"
+            },
+            {
+              "type": "ACT",
+              "actor": 1,
+              "action": "CHECK",
+              "eventId": "b1783aa4-4519-44a7-8a76-ddf55cf173d0"
+            },
+            {
+              "type": "BOARD",
+              "cards": [
+                "2d",
+                "3s",
+                "4c"
+              ],
+              "eventId": "880a589f-5feb-44a3-a599-38aa3f56e703"
+            },
+            {
+              "type": "ACT",
+              "actor": 1,
+              "action": "CHECK",
+              "eventId": "2312142f-8f52-418d-98b9-948d5a7c7d75"
+            },
+            {
+              "type": "ACT",
+              "actor": 0,
+              "action": "CHECK",
+              "eventId": "608e61e1-0ee6-4a26-b9c7-69313680cac6"
+            },
+            {
+              "type": "BOARD",
+              "cards": [
+                "2d",
+                "3s",
+                "4c",
+                "8h"
+              ],
+              "eventId": "40fa6847-7157-4080-b6ad-005b726e9e02"
+            },
+            {
+              "type": "ACT",
+              "actor": 1,
+              "action": "CHECK",
+              "eventId": "8f2e4c50-948a-448d-a5ed-1610bb47c2f3"
+            },
+            {
+              "type": "ACT",
+              "actor": 0,
+              "action": "CHECK",
+              "eventId": "859e4bd3-d249-4123-a8f4-86a2e947d421"
+            },
+            {
+              "type": "BOARD",
+              "cards": [
+                "2d",
+                "3s",
+                "4c",
+                "8h",
+                "9d"
+              ],
+              "eventId": "48709d5e-9c4f-4109-a6e3-fc1e25f2ac8a"
+            },
+            {
+              "type": "ACT",
+              "actor": 1,
+              "action": "CHECK",
+              "eventId": "74839322-95c9-44d3-a623-6c52d4a393da"
+            }
+          ],
+          "handId": "f9e0a6ab-601a-24af-9f00-2919d4a4c641",
+          "editEpoch": 0
+        },
+        "ranges": [
+          {
+            "seatId": 0,
+            "complete": true,
+            "source": "EXPLICIT_RIVER_GROWTH_QA",
+            "combos": [
+              {
+                "cards": [
+                  "Ad",
+                  "As",
+                  "Qc",
+                  "Jh",
+                  "Th"
+                ],
+                "weight": 1
+              },
+              {
+                "cards": [
+                  "Ad",
+                  "As",
+                  "Qc",
+                  "Jh",
+                  "2h"
+                ],
+                "weight": 2
+              },
+              {
+                "cards": [
+                  "Ad",
+                  "As",
+                  "Qc",
+                  "Jh",
+                  "2c"
+                ],
+                "weight": 3
+              },
+              {
+                "cards": [
+                  "Ad",
+                  "As",
+                  "Qc",
+                  "Jh",
+                  "2s"
+                ],
+                "weight": 4
+              }
+            ]
+          },
+          {
+            "seatId": 1,
+            "complete": true,
+            "source": "EXPLICIT_RIVER_GROWTH_QA",
+            "combos": [
+              {
+                "cards": [
+                  "Kd",
+                  "Ks",
+                  "6c",
+                  "7h",
+                  "8s"
+                ],
+                "weight": 1
+              },
+              {
+                "cards": [
+                  "Kd",
+                  "Ks",
+                  "6c",
+                  "7h",
+                  "5s"
+                ],
+                "weight": 2
+              },
+              {
+                "cards": [
+                  "Kd",
+                  "Ks",
+                  "6c",
+                  "7h",
+                  "5d"
+                ],
+                "weight": 3
+              },
+              {
+                "cards": [
+                  "Kd",
+                  "Ks",
+                  "6c",
+                  "7h",
+                  "6h"
+                ],
+                "weight": 4
+              }
+            ]
+          }
+        ],
+        "sizing": {
+          "type": "EXPLICIT_TOTALS",
+          "levels": [
+            1,
+            1.25,
+            1.5,
+            1.75,
+            2
+          ],
+          "maxAggressions": 1
+        },
+        "rake": {
+          "type": "NONE",
+          "basis": "BEFORE_FEES"
+        }
+      },
+      "expectedRevisionKey": "b87805c86ffad7f8f89ed00855fa45ae39933ea324fb901a2c894326d62905cb"
+    }
+  }
+}
