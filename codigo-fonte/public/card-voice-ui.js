@@ -9,7 +9,7 @@
   const panel = document.createElement('section'); panel.id = 'card-voice'; panel.setAttribute('aria-label', 'Voice input for cards and observed actions');
   panel.innerHTML = `<div class="voice-heading"><strong>Voice input</strong><span id="voice-capture-state" class="voice-badge" aria-live="polite">Voice off</span><span id="voice-mode-badge" class="voice-badge">Automatic entry</span></div>
     <div class="voice-options"><label>Recognition language<select id="voice-language"><option value="pt-BR">Portuguese (Brazil) · PT-BR</option><option value="en-US">English (US) · EN-US</option></select></label>
-    <label>Audio processing<select id="voice-processing"><option value="browser">Browser speech service</option><option value="device">On this device only</option></select></label></div>
+    <label>Audio processing<select id="voice-processing"><option value="device">This device only</option><option value="browser">Browser speech service</option></select></label></div>
     <p id="voice-language-description" class="voice-help">Choose the language you will speak. The command guide below follows this selection.</p>
     <label class="voice-consent"><input id="voice-auto-apply" type="checkbox" checked> Apply validated final cards and actions automatically</label>
     <p id="voice-privacy" class="voice-help">Your browser's speech service may send audio to its provider. Processing and retention depend on the provider. THEIBS does not record audio or save transcripts.</p>
@@ -25,35 +25,60 @@
       <p class="voice-help">When a player is highlighted, say one short observed action: “fold”, “check”, “call”, “bet twenty”, “raise twenty five” or “all-in”. The action belongs to that player. “A1 fold” names a seat explicitly and must match the current turn. A raise amount is the player's total contribution for this street. Say “raise” alone, then speak the total when the inline field appears. THEIBS never sends a bet to an external table.</p>
       <details><summary>English commands and numbers</summary><p class="voice-help">Ranks: ace, two, three, four, five, six, seven, eight, nine, ten, jack, queen, king. Suits: spades, hearts, diamonds, clubs. “Of” is optional between rank and suit. Digits 2–10 also work; “to”, “for”, “ate”, and “one” are not cards.</p><p class="voice-help">Destinations and edits: “my cards”, “flop”, “turn”, “river”, “board”, “select card three”, “correct card three to queen of diamonds”, “remove selected card”, “undo”, “cancel”. Multiway selects the expected cards automatically; in isolated Analysis, the selected slot is used. You can speak board cards one at a time or as the complete street.</p><p class="voice-help">Multiway actions: “fold”, “check”, “call”, “bet”, “raise”, “all-in”. “Hero”/“I” or “opponent N” may identify the player explicitly; if spoken, that player must be next. “My turn” reports who is next without recording an action. For example, “two point five” means 2.50. Whole numbers are supported up to 999999.99. Call uses the table's current price; all-in uses the available stack only when legal. Speak one action per phrase and provide only the requested detail when prompted.</p></details></section>
     </div>`;
-  // The existing deck lives in Settings. Voice needs the visible Analyze
-  // canvas, where the normal keyboard path and slot selection remain active.
-  const disclosure = document.createElement('details'); disclosure.id = 'card-voice-disclosure';
-  const summary = document.createElement('summary');
-  const summaryLabel = document.createElement('span'); summaryLabel.textContent = 'Voice input · PT-BR';
+  // Keep a single controller and stable inputs across all presentation changes.
+  const disclosure = document.createElement('dialog'); disclosure.id = 'voice-settings-dialog';
+  disclosure.className = 'dashboard-dialog'; disclosure.setAttribute('aria-labelledby', 'voice-settings-title');
+  disclosure.innerHTML = '<div class="dialog-head"><h2 id="voice-settings-title">Voice options</h2><button type="button" class="ghost-button" data-close-dialog aria-label="Close voice options">Close</button></div><div class="dialog-content"></div>';
+  const settingsContent = disclosure.querySelector('.dialog-content');
+  const toolbar = document.createElement('div'); toolbar.className = 'voice-toolbar';
+  const summaryLabel = document.createElement('strong'); summaryLabel.textContent = 'Voice';
   const captureBadge = panel.querySelector('#voice-capture-state');
-  summary.append(summaryLabel, captureBadge);
-  disclosure.append(summary, panel); host.append(disclosure);
-  disclosure.open = false;
   const activation=panel.querySelector('#voice-consent').closest('label'), consent=panel.querySelector('#voice-consent');
   activation.classList.add('voice-activation');
-  const activationCopy=document.createElement('span');
-  activationCopy.innerHTML='<strong>Enable voice commands</strong><small id="voice-consent-description">Turn on to listen continuously; turn off to stop. Browser speech processing may be remote. THEIBS does not record audio.</small>';
-  activation.replaceChildren(consent,activationCopy);
+  consent.setAttribute('role', 'switch'); consent.setAttribute('aria-label', 'Enable voice commands');
+  activation.replaceChildren(consent,summaryLabel);
+  const optionsButton = document.createElement('button'); optionsButton.type = 'button'; optionsButton.id = 'voice-options-open';
+  optionsButton.className = 'text-button'; optionsButton.textContent = 'Options'; optionsButton.setAttribute('aria-haspopup', 'dialog');
+  optionsButton.setAttribute('aria-controls', disclosure.id); optionsButton.setAttribute('aria-label', 'Voice options');
+  toolbar.append(activation,captureBadge,optionsButton);
   const actions=panel.querySelector('.voice-actions'), advanced=document.createElement('details'), help=document.createElement('details');
-  advanced.className='voice-advanced';advanced.innerHTML='<summary>Recognition language & options</summary><div class="voice-extra-actions"></div>';
-  help.className='voice-guide';help.innerHTML='<summary>Voice commands & privacy</summary>';
-  advanced.append(panel.querySelector('.voice-options'),panel.querySelector('#voice-language-description'),panel.querySelector('#voice-auto-apply').closest('label'),panel.querySelector('#voice-mode-badge'));
-  advanced.querySelector('.voice-extra-actions').append(panel.querySelector('#voice-hold'),panel.querySelector('#voice-toggle'));
-  advanced.querySelector('#voice-hold').hidden=true;
-  advanced.querySelector('#voice-toggle').hidden=true;
-  panel.querySelectorAll(':scope > .voice-help').forEach(item=>help.append(item));
-  help.append(panel.querySelector('#voice-language-guides'));
-  panel.querySelector('.voice-heading').after(activation,panel.querySelector('#voice-status'),actions,advanced,help);
+  advanced.className='voice-advanced';advanced.innerHTML='<summary>Entry preferences</summary><div class="voice-extra-actions"></div>';
+  help.className='voice-guide';help.innerHTML='<summary>Command guide</summary>';
+  settingsContent.append(panel.querySelector('.voice-options'),panel.querySelector('#voice-privacy'));
+  panel.querySelector('#voice-language-description').remove();
+  const consentDescription = document.createElement('p'); consentDescription.id = 'voice-consent-description'; consentDescription.className = 'voice-help';
+  const modeBadge = panel.querySelector('#voice-mode-badge');
+  const autoLabel = panel.querySelector('#voice-auto-apply').closest('label');
+  const hold = panel.querySelector('#voice-hold'), toggle = panel.querySelector('#voice-toggle');
+  panel.querySelector('#voice-cancel').hidden=true;
+  advanced.append(autoLabel,modeBadge,consentDescription,actions);
+  advanced.querySelector('.voice-extra-actions').append(hold,toggle); hold.hidden=true; toggle.hidden=true;
+  help.append(panel.querySelector('#voice-language-guides')); settingsContent.append(advanced,help);
   panel.querySelector('.voice-heading').remove();
-  // Voice controls live inside the analysis form, but changing them must not
-  // invalidate the hand while microphone permission is being resolved.
+  panel.prepend(toolbar); panel.append(disclosure); host.append(panel);
+  function openSettings() { if (!disclosure.open) disclosure.showModal(); }
+  optionsButton.onclick = openSettings;
+  disclosure.addEventListener('cancel', event => { event.preventDefault(); disclosure.close(); });
+  disclosure.querySelector('[data-close-dialog]').onclick = () => disclosure.close();
+  // Preferences must not invalidate the hand while microphone permission resolves.
   for (const name of ['input', 'change']) panel.addEventListener(name, event => event.stopPropagation());
   const $ = id => panel.querySelector('#' + id), status = $('voice-status'), review = $('voice-review');
+  const preferenceKey = 'theibs.voice.preferences.v1';
+  try {
+    const saved = JSON.parse(localStorage.getItem(preferenceKey) || 'null');
+    if (['pt-BR','en-US'].includes(saved?.language)) $('voice-language').value = saved.language;
+    if (['device','browser'].includes(saved?.processing)) $('voice-processing').value = saved.processing;
+    if (typeof saved?.autoApply === 'boolean') $('voice-auto-apply').checked = saved.autoApply;
+  } catch { /* Unavailable storage keeps the local-only default. */ }
+  function syncPrivacy() {
+    const local = $('voice-processing').value === 'device';
+    $('voice-consent-description').textContent = 'Voice stays enabled until you turn it off. Alt+V also toggles voice.';
+    $('voice-privacy').textContent = local
+      ? 'Audio is processed on this device when supported. If unavailable, voice stays paused; no cloud fallback. THEIBS does not record audio or save transcripts.'
+      : "Your browser speech service may send audio to its provider. Processing and retention depend on the provider. THEIBS does not record audio or save transcripts.";
+    consent.setAttribute('aria-description', local ? 'Uses on-device speech recognition. No cloud fallback.' : 'Uses your browser speech service, which may send audio to its provider.');
+  }
+  syncPrivacy();
   let run = null, committing = false, monitor = null, restartTimer = null, sample = null, lastLedgerUndo = null;
   let captureHold = false;
   let clarification = null, clarificationTimer = null;
@@ -117,7 +142,7 @@
       !window.theibsVoiceSessionContext?.().expired &&
       !document.querySelector('#analyze-workspace').classList.contains('hidden') &&
       !document.querySelector('#app-shell')?.hidden && !document.querySelector('#app-shell')?.hasAttribute('inert') &&
-      !document.querySelector('dialog[open]') && document.body.dataset.multiwayBusy !== 'true';
+      !document.querySelector('dialog[open]:not(#voice-settings-dialog)') && document.body.dataset.multiwayBusy !== 'true';
   }
   function context() {
     return { revision: keyboard.getRevision(), snapshot: keyboard.state.snapshot(), invalid: keyboard.isManualInvalid(),
@@ -129,13 +154,15 @@
   function controls() {
     const listening = Boolean(run) || wantListening;
     const locale = $('voice-language').value;
-    summaryLabel.textContent = `Voice input · ${locale.toUpperCase()}`;
+    summaryLabel.textContent = 'Voice';
+    activation.title = `Voice input · ${locale.toUpperCase()} · Alt+V`;
     panel.querySelectorAll('[data-voice-language-guide]').forEach(guide => { guide.hidden = guide.dataset.voiceLanguageGuide !== locale; });
     $('voice-mode-badge').textContent = autoApply() ? 'Automatic entry' : 'Review before applying';
     $('voice-toggle').textContent = listening ? 'Stop voice · Alt+V' : 'Start voice · Alt+V';
     $('voice-toggle').setAttribute('aria-pressed', String(listening));
     $('voice-cancel').disabled = !pending() && !committing; panel.classList.toggle('is-listening', audioReady());
     const phase = captureState(); panel.dataset.captureState = phase;
+    status.hidden = !(feedbackKind === 'error' || clarification || blockedReason || session.phase === 'review');
     const badgeState = wantListening && microphonePermission === 'denied' && !audioReady() ? 'permission'
       : feedbackKind === 'error' ? 'error'
       : feedbackKind === 'recognized' && ['idle', 'listening'].includes(phase) ? 'recognized'
@@ -620,7 +647,8 @@
   $('voice-hold').addEventListener('pointercancel', () => suspend('Hold-to-speak gesture cancelled.'));
   $('voice-hold').addEventListener('keydown', event => { if ([' ', 'Enter'].includes(event.key)) { event.preventDefault(); if (!event.repeat) void start({hold:true}); } });
   $('voice-hold').addEventListener('keyup', event => { if ([' ', 'Enter'].includes(event.key)) { event.preventDefault(); stop(); } });
-  $('voice-toggle').onclick = () => run || wantListening ? stop() : void start();
+  function toggleVoice() { if (run || wantListening) stop(); else { $('voice-consent').checked = true; void start(); } }
+  $('voice-toggle').onclick = toggleVoice;
   $('voice-cancel').onclick = () => cancel('Voice stopped. Earlier entries were kept.');
   $('voice-apply').onclick = () => void apply();
   $('voice-undo').onclick = () => { if (committing) return; if (wantListening) suspend('Undoing the last entry.'); else cancel(); sample = null; void apply({explicitCommand:{type:'undo'}}); };
@@ -631,21 +659,18 @@
   });
   for (const id of ['voice-language', 'voice-processing', 'voice-auto-apply']) $(id).addEventListener('change', () => {
     suspend('Voice setting changed. Restarting with the new option.');
-    $('voice-consent-description').textContent = $('voice-processing').value === 'device'
-      ? 'Turn on to listen continuously; turn off to stop. Processing stays on this device. THEIBS does not record audio.'
-      : 'Turn on to listen continuously; turn off to stop. Your browser speech service may process audio remotely. THEIBS does not record audio.';
-    $('voice-privacy').textContent = $('voice-processing').value === 'device'
-      ? 'Recognition is set to this device. THEIBS does not record audio or save transcripts.'
-      : 'Your browser speech service may send audio to its provider. Processing and retention depend on that provider. THEIBS does not record audio or save transcripts.';
+    syncPrivacy();
+    try { localStorage.setItem(preferenceKey, JSON.stringify({language:$('voice-language').value,processing:$('voice-processing').value,autoApply:autoApply()})); } catch {}
     controls();
   });
   document.addEventListener('keydown', event => {
     if (document.querySelector('#billing-dialog[open]')) return;
     if (event.altKey && !event.ctrlKey && !event.metaKey && event.code === 'KeyV' && !event.repeat) {
       if (!active() || event.target.closest?.('input,textarea,select,[contenteditable]')) return;
-      event.preventDefault(); run || wantListening ? stop() : void start(); return;
+      event.preventDefault(); toggleVoice(); return;
     }
     if (!pending() && !committing) return;
+    if (event.key === 'Escape' && disclosure.open) return;
     if (event.key === 'Escape' && !context().multiway?.pendingAmount) { event.preventDefault(); suspend('Phrase discarded. Voice remains enabled.'); }
   }, true);
   for (const name of ['theibs:cards-changed', 'theibs:card-selection']) document.addEventListener(name, () => {
@@ -666,7 +691,7 @@
   const observer = new MutationObserver(() => { if (!committing && run && JSON.stringify(context()) !== expectedContext()) suspend('Page or session changed. Restarting when available.'); });
   for (const element of [document.querySelector('#analyze-workspace'), document.querySelector('#app-shell'), document.body])
     if (element) observer.observe(element, { attributes: true, attributeFilter: ['class', 'hidden', 'inert', 'data-multiway', 'data-multiway-busy'] });
-  window.theibsCardVoice = { cancel, releaseCaptureForEvaluation, getStatus: () => ({ phase: session.phase, listening: Boolean(run) || (wantListening && !blockedReason && session.phase !== 'review'), enabled:wantListening, blocked:Boolean(blockedReason), captureState:captureState(), audioReady:audioReady(), needsClarification:Boolean(clarification), committing, autoApply: autoApply(), pace: 'batch', contextBiasing: Boolean(run?.contextBiasing), finalizing: Boolean(run?.closing), acoustic: 'NOT_EXECUTED' }),
+  window.theibsCardVoice = { cancel, openSettings, releaseCaptureForEvaluation, getStatus: () => ({ phase: session.phase, listening: Boolean(run) || (wantListening && !blockedReason && session.phase !== 'review'), enabled:wantListening, blocked:Boolean(blockedReason), captureState:captureState(), audioReady:audioReady(), needsClarification:Boolean(clarification), committing, autoApply: autoApply(), pace: 'batch', contextBiasing: Boolean(run?.contextBiasing), finalizing: Boolean(run?.closing), acoustic: 'NOT_EXECUTED' }),
     getDiagnostics: () => diagnostics.map(row => ({...row})),
     getMetrics: () => metrics.map(row => ({ ...row })), capability: () => ({ secureContext: window.isSecureContext, constructorPresent: Boolean(Recognition),
       functionalRecognition: 'NOT_VERIFIED', acoustic: 'NOT_EXECUTED', localAvailabilityCheck: typeof Recognition?.available === 'function' }) };

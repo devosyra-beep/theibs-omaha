@@ -152,7 +152,7 @@
     $('#variant-select').value = String(state.count);
     setText('#analysis-variant', `PLO${state.count} HIGH`);
     $('#variant-warning').className='micro variant-status';
-    setText('#variant-warning', `PLO${state.count} ativo · regras e equity habilitadas.`);
+    setText('#variant-warning', `PLO${state.count} active · rules and equity available.`);
     setText('#hero-help', `${state.count} cards · C = hearts, P = clubs.`);
     const cards = state.cards();
     setText('#table-card-count', `${cards.hero.length}/${state.count} hole · ${cards.board.length}/5 board`);

@@ -1,70 +1,47 @@
-#card-voice-disclosure{border:1px solid var(--border, #343b3d);border-radius:10px;padding:12px 16px;margin-top:12px;align-self:stretch;min-width:0}
-#card-voice-disclosure>summary{cursor:pointer;font-size:13px;color:var(--foreground,#e5efe8)}
-#card-voice{border-top:1px solid var(--border, #343b3d);padding:14px 0 2px;margin-top:12px;text-align:left}
-#card-voice .voice-heading,#card-voice .voice-options,#card-voice .voice-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-#card-voice .voice-heading{justify-content:space-between;margin-bottom:10px}
-#card-voice .voice-badge{font-size:11px;padding:3px 8px;border:1px solid #778578;border-radius:12px;color:#bed3bf}
-#card-voice .voice-options label{display:flex;flex-direction:column;gap:4px;font-size:12px;flex:1;min-width:150px}
-#card-voice select{min-height:34px;width:100%}
-#card-voice .voice-help{font-size:12px;line-height:1.5;color:var(--text-muted,#a8b0ae);margin:8px 0}
-#card-voice .voice-consent{display:flex;flex-direction:row;gap:8px;align-items:flex-start;font-size:12px;line-height:1.5;margin:8px 0 12px}
-#card-voice .voice-consent[hidden]{display:none}
-#card-voice .voice-consent input{width:auto;flex:none;margin-top:3px}
-#card-voice button{min-height:38px;padding:7px 12px;border:1px solid #5b6860;border-radius:7px;background:#1e2924;color:#e5efe8;cursor:pointer;font-size:12px}
-#card-voice button:disabled{opacity:.45;cursor:default}
-#card-voice button:focus-visible,#card-voice select:focus-visible{outline:2px solid #afe0b7;outline-offset:3px}
-#card-voice #voice-hold{touch-action:none;user-select:none}
-#card-voice.is-listening{border-top-color:#72d099}
-#card-voice.is-listening #voice-toggle{background:#335f46}
-#voice-status{font-size:12px;line-height:1.5;min-height:1.5em;margin:10px 0}
-#voice-status.voice-error{color:#ffb299}
-#voice-review{padding:10px;background:#1b2620;border:1px solid #677f6c;border-radius:8px}
-#voice-review output,#voice-proposal{display:block;font-size:13px;overflow-wrap:anywhere;margin-bottom:10px}
-#card-voice details summary{cursor:pointer;font-size:12px}
-@media(max-width:600px){#card-voice .voice-actions button{flex:1}#card-voice .voice-options label{min-width:130px}}
-
-/* Activation and state stay visible; setup and reference material open on request. */
-#card-voice-disclosure { padding:10px 14px; }
-#card-voice-disclosure>summary { min-height:44px; display:flex; align-items:center; }
-#card-voice-disclosure>summary { gap:8px; flex-wrap:wrap; list-style:none; font-weight:600; }
-#card-voice-disclosure>summary::-webkit-details-marker { display:none; }
-#card-voice-disclosure>summary::before { content:'›'; font-size:20px; line-height:1; color:var(--primary,#d8b969); transition:transform .16s ease; }
-#card-voice-disclosure[open]>summary::before { transform:rotate(90deg); }
-#card-voice-disclosure>summary>span:first-child { flex:1 1 120px; }
-#card-voice-disclosure>summary .voice-badge { flex:none; max-width:100%; padding:4px 9px; border:1px solid var(--stroke-strong,#667); border-radius:999px; background:var(--surface-raised,#24252b); color:var(--muted,#b8b8bf); font-size:11px; font-weight:600; line-height:1.4; text-align:center; overflow-wrap:anywhere; }
-#card-voice-disclosure>summary .voice-badge[data-state="listening"],#card-voice-disclosure>summary .voice-badge[data-state="clarifying"] { border-color:var(--good,#72d099); color:var(--good,#72d099); background:oklch(.78 .15 155 / 9%); }
-#card-voice-disclosure>summary .voice-badge[data-state="recognized"] { border-color:var(--primary,#d8b969); color:var(--primary,#d8b969); background:var(--gold-soft,transparent); }
-#card-voice-disclosure>summary .voice-badge[data-state="error"],#card-voice-disclosure>summary .voice-badge[data-state="permission"] { border-color:var(--bad,#ffb299); color:#ffb8a2; background:oklch(.68 .19 25 / 9%); }
-#card-voice-disclosure>summary .voice-badge[data-state="starting"],#card-voice-disclosure>summary .voice-badge[data-state="restarting"],#card-voice-disclosure>summary .voice-badge[data-state="processing"] { color:var(--primary,#d8b969); }
-#card-voice-disclosure>summary .voice-badge[data-state="blocked"] { border-color:var(--primary,#d8b969); color:var(--primary,#d8b969); background:var(--gold-soft,transparent); }
-#card-voice { padding-top:10px; margin-top:8px; }
-#card-voice .voice-heading { margin-bottom:8px; }
-#card-voice .voice-heading strong { display:none; }
-#card-voice .voice-activation { display:flex; align-items:center; gap:12px; min-height:60px; padding:10px 12px; border:1px solid #647866; border-radius:9px; background:#1b2821; cursor:pointer; }
-#card-voice .voice-activation input { flex:none; width:22px; height:22px; margin:0; accent-color:#d8b969; }
-#card-voice .voice-activation span { display:grid; gap:3px; min-width:0; }
-#card-voice .voice-activation strong { font-size:14px; color:#f2f1e8; }
-#card-voice .voice-activation small { font-size:11px; line-height:1.4; color:#c6d0ca; }
-#card-voice .voice-activation:focus-within { outline:2px solid #afe0b7; outline-offset:3px; }
-#card-voice.is-listening .voice-activation { border-color:#72d099; background:#213c2b; }
-#card-voice #voice-status { min-height:0; margin:8px 0; }
-#card-voice #voice-status:empty { display:none; }
-#card-voice button[hidden] { display:none!important; }
-#card-voice .voice-actions { margin-bottom:6px; }
-#card-voice .voice-actions button:disabled { display:none; }
-#card-voice .voice-advanced,#card-voice .voice-guide { border-top:1px solid var(--border,#343b3d); padding:8px 0; }
-#card-voice .voice-advanced>summary,#card-voice .voice-guide>summary { min-height:44px; display:flex; align-items:center; font-size:12px; color:#c6d0ca; }
-#card-voice-disclosure>summary:focus-visible,#card-voice .voice-advanced>summary:focus-visible,#card-voice .voice-guide>summary:focus-visible { outline:2px solid #afe0b7; outline-offset:2px; }
-#card-voice .voice-advanced[open]>summary,#card-voice .voice-guide[open]>summary { margin-bottom:10px; }
-#card-voice .voice-advanced .voice-options { margin-bottom:10px; }
-#card-voice .voice-advanced .voice-consent { margin:8px 0; }
-#card-voice .voice-extra-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
-@media(prefers-reduced-motion:reduce){#card-voice-disclosure>summary::before{transition:none}}
-@media(max-width:600px){
- #card-voice-disclosure { padding:10px 12px; }
- #card-voice .voice-heading { align-items:flex-start; }
- #card-voice .voice-heading strong { flex-basis:100%; }
- #card-voice .voice-activation { min-height:68px; }
- #card-voice .voice-actions button { flex:none; }
- #card-voice .voice-options label { flex-basis:100%; }
+/* A stable compact controller; options and practice share one modal. */
+#card-voice { min-width:0; align-self:stretch; text-align:left; }
+#card-voice .voice-toolbar { display:flex; align-items:center; flex-wrap:wrap; gap:8px; min-height:44px; padding:4px 0; }
+#card-voice .voice-activation { display:inline-flex; flex:none; flex-direction:row; align-items:center; gap:8px; min-height:44px; margin:0; cursor:pointer; font-size:13px; white-space:nowrap; }
+#card-voice .voice-activation input { appearance:none; width:32px; height:20px; border:1px solid var(--stroke-strong,#5c5e69); border-radius:12px; background:var(--surface-raised,#1c1d22); cursor:pointer; margin:0; flex:none; position:relative; transition:background .15s; }
+#card-voice .voice-activation input::before { content:''; position:absolute; width:12px; height:12px; border-radius:50%; background:var(--muted,#b6b7c2); left:3px; top:3px; transition:transform .15s; }
+#card-voice .voice-activation input:checked { border-color:var(--primary,#f6d36f); background:var(--primary,#f6d36f); }
+#card-voice .voice-activation input:checked::before { transform:translateX(12px); background:#161616; }
+#card-voice .voice-badge { color:var(--muted,#b6b7c2); font-size:12px; line-height:1.4; }
+#card-voice .voice-badge[data-state="listening"],#card-voice .voice-badge[data-state="clarifying"] { color:var(--good,#72d099); }
+#card-voice .voice-badge[data-state="recognized"],#card-voice .voice-badge[data-state="blocked"],#card-voice .voice-badge[data-state="starting"],#card-voice .voice-badge[data-state="restarting"] { color:var(--primary,#f6d36f); }
+#card-voice .voice-badge[data-state="error"],#card-voice .voice-badge[data-state="permission"],#voice-status.voice-error { color:var(--bad,#ffb299); }
+#voice-options-open { margin-left:4px; min-height:44px; padding:8px; font-size:12px; }
+#voice-status { font-size:13px; line-height:1.5; margin:4px 0 10px; overflow-wrap:anywhere; }
+#voice-review { padding:12px; background:var(--surface-raised,#191b20); border:1px solid var(--border,#34343d); border-radius:8px; }
+#voice-review output,#voice-proposal { display:block; font-size:13px; overflow-wrap:anywhere; margin-bottom:10px; }
+#card-voice [hidden] { display:none!important; }
+#card-voice button:focus-visible,#card-voice select:focus-visible,#card-voice input:focus-visible,#card-voice summary:focus-visible { outline:2px solid var(--primary,#f6d36f); outline-offset:3px; }
+#voice-settings-dialog { width:min(680px,calc(100vw - 32px)); }
+#voice-settings-dialog .dialog-content { display:grid; gap:16px; }
+#voice-settings-dialog .voice-options { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+#voice-settings-dialog label:not(.voice-consent) { display:grid; gap:6px; min-width:0; color:var(--foreground,#f4f4f5); font-size:13px; }
+#voice-settings-dialog select { width:100%; min-width:0; min-height:44px; }
+#voice-settings-dialog .voice-help { font-size:13px; line-height:1.6; color:var(--muted,#b6b7c2); margin:8px 0; }
+#voice-settings-dialog #voice-privacy { margin:0; }
+#voice-settings-dialog .voice-consent { display:flex; flex-direction:row; align-items:flex-start; gap:8px; font-size:13px; line-height:1.5; margin:12px 0; }
+#voice-settings-dialog .voice-consent input { flex:none; width:18px; height:18px; margin:1px 0 0; accent-color:var(--primary,#f6d36f); }
+#voice-settings-dialog details { border-top:1px solid var(--border,#34343d); padding-top:4px; min-width:0; }
+#voice-settings-dialog summary { cursor:pointer; padding:12px 0; min-height:44px; box-sizing:border-box; font-size:14px; font-weight:600; }
+#voice-settings-dialog details[open]>summary { margin-bottom:8px; }
+#voice-settings-dialog .voice-actions { display:flex; gap:8px; flex-wrap:wrap; margin:12px 0; }
+#voice-settings-dialog .voice-actions button,#voice-review button { min-height:44px; padding:8px 12px; border:1px solid var(--border,#34343d); border-radius:8px; background:var(--surface-raised,#191b20); color:var(--foreground,#f4f4f5); font-size:13px; cursor:pointer; }
+#voice-settings-dialog .voice-actions button:disabled { opacity:.45; cursor:default; }
+#voice-settings-dialog .voice-actions #voice-eval-start { color:var(--primary,#f6d36f); border-color:var(--primary,#f6d36f); }
+#voice-settings-dialog #voice-eval-stop:disabled,#voice-settings-dialog #voice-eval-cancel:disabled,#voice-settings-dialog #voice-undo:disabled { display:none; }
+#voice-settings-dialog .voice-prompt { font-size:18px; line-height:1.45; margin:12px 0; }
+#voice-eval-config { display:block; padding-top:4px; color:var(--muted,#b6b7c2); font-size:12px; font-weight:400; line-height:1.5; }
+#voice-settings-dialog .voice-phrase-select { margin-top:16px; }
+#voice-settings-dialog .voice-extra-actions:empty { display:none; }
+@media(max-width:600px) {
+  #voice-settings-dialog { width:calc(100vw - 24px); }
+  #voice-settings-dialog .voice-options { grid-template-columns:1fr; }
+  #voice-settings-dialog .voice-actions button { flex:1 1 auto; }
+}
+@media(prefers-reduced-motion:reduce) {
+  #card-voice .voice-activation input,#card-voice .voice-activation input::before { transition:none; }
 }

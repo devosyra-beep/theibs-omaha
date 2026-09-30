@@ -103,9 +103,13 @@
   function syncMultiwayBoardKeyboard() {
     if (!cardKeyboardPanel || !cardKeyboardHome) return;
     const waiting = Boolean(multiway && multiwayState?.phase === 'WAIT_BOARD');
+    const contextual = activeView === 'analyze' && $('#card-picker')?.open;
+    const pickerButton=$('#open-card-picker'), pickerHeading=cardKeyboardPanel.querySelector('.keyboard-heading');
     if (waiting) {
-      const column = $('#analyze-workspace .table-column'), decision = $('.quick-decision');
-      if (column && cardKeyboardPanel.parentElement !== column) column.insertBefore(cardKeyboardPanel, decision);
+      const controls = $('#multiway-controls'), actions = $('#mw-action-stage');
+      if (controls && actions && cardKeyboardPanel.parentElement !== controls) controls.insertBefore(cardKeyboardPanel, actions);
+      const heading=controls?.querySelector('.mw-control-heading');
+      if (heading && pickerButton?.parentElement !== heading) heading.append(pickerButton);
       cardKeyboardPanel.classList.add('multiway-board-entry');
       const token = `${multiwayState.nextStreet}:${multiwayState.board?.length || 0}:${multiwayState.log?.length || 0}`;
       if (token !== multiwayBoardEntryToken) {
@@ -113,14 +117,22 @@
         window.theibsCardKeyboard?.select?.(cards.state.count + (multiwayState.board?.length || 0));
         multiwayBoardEntryToken = token;
       }
+    } else if (contextual) {
+      if(pickerButton?.parentElement!==pickerHeading)pickerHeading.prepend(pickerButton);
+      const controls = $('#multiway-controls');
+      if (controls && cardKeyboardPanel.nextElementSibling !== controls) controls.before(cardKeyboardPanel);
+      cardKeyboardPanel.classList.remove('multiway-board-entry');
+      cardKeyboardPanel.classList.add('contextual-card-entry');
+      multiwayBoardEntryToken = null;
     } else {
+      if(pickerButton?.parentElement!==pickerHeading)pickerHeading.prepend(pickerButton);
       multiwayBoardEntryToken = null;
       if (cardKeyboardPanel.parentElement !== cardKeyboardHome) {
         window.theibsCardPicker?.close();
         if (cardKeyboardPanel.contains(document.activeElement)) document.activeElement.blur();
         cardKeyboardHome.insertBefore(cardKeyboardPanel, cardKeyboardHomeNext?.parentElement === cardKeyboardHome ? cardKeyboardHomeNext : null);
       }
-      cardKeyboardPanel.classList.remove('multiway-board-entry');
+      cardKeyboardPanel.classList.remove('multiway-board-entry','contextual-card-entry');
     }
   }
   function multiwayContext() {
@@ -143,11 +155,15 @@
     cards.render();
     placeAnalysisFeedback();
     if(!analysisBusy)$('#quick-analyze').innerHTML=multiway?'Analyze hand <span>↗</span>':'Calculate equity <span>↗</span>';
+    const analyzeButton=$('#quick-analyze'), equityPanel=$('#analyze-workspace .insight-panel');
+    if(multiway){if(analyzeButton.parentElement!==equityPanel)equityPanel.append(analyzeButton);}
+    else if(analyzeButton.parentElement!==$('.quick-decision'))$('.quick-decision').append(analyzeButton);
     $('#new-hand').textContent=activeView==='analyze'?'+ New game':'+ New hand';
     $('#new-hand').setAttribute('aria-label',activeView==='analyze'?'New game':'New hand');
     $('#new-hand').title=activeView==='analyze'?'New game · shortcut: apostrophe':'New hand';
-    $('#clear').textContent=multiway?'Reset pending entry':'Reset cards';
-    $('#clear').title=multiway?'Reset pending input · Shift alone':'Clear cards and board, keep table context · Shift alone';
+    $('#clear').textContent='↺';
+    $('#clear').setAttribute('aria-label',multiway?'Discard pending card entry':'Reset cards');
+    $('#clear').title=multiway?'Discard pending card entry · Shift alone':'Clear cards and board, keep table context · Shift alone';
     $('#analysis-form .view-heading h1').textContent=multiway?'Every card, a decision.':'Your cards. Your equity.';
     $('#analysis-form .view-heading .eyebrow').textContent=multiway?'MANUAL ANALYSIS':'EQUITY ANALYSIS';
     $('#analysis-seats').setAttribute('aria-label',multiway?'Table seats; the current player is highlighted. Select a seat to view its position and stack.':'Opponent seats; select a player to mark active or folded.');

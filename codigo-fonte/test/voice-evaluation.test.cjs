@@ -14,6 +14,38 @@ test('52 canonical cards are unique, fixed and disjoint between development and 
   }
 });
 
+test('practice covers each canonical card and supported command type without changing benchmark partitions',()=> {
+  const required = ['destination-hero','destination-board','cards-turn','cards-river','cards-board',
+    'select-hand','select-board','correct-hand','correct-board','remove-card','undo-entry','cancel-entry',
+    'next-actor','short-fold','short-check','short-call','short-all-in','short-bet','short-raise',
+    'pending-total','wrong-seat'];
+  for(const locale of ['pt-BR','en-US'])for(const count of [4,5,6]) {
+    const benchmark=all(locale,count), practice=evaluation.corpus({locale,count,split:'practice'});
+    assert.equal(practice.filter(t=>t.kind==='single').length,52);
+    assert.equal(practice.length,benchmark.length+required.length);
+    assert.equal(new Set(practice.map(t=>t.id)).size,practice.length);
+    assert.ok(practice.every(t=>t.split==='practice'&&Object.isFrozen(t)&&
+      (!t.expected||Object.isFrozen(t.expected))&&(!t.initial||Object.isFrozen(t.initial))));
+    assert.ok(practice.every(t=>!benchmark.some(b=>b.id===t.id)));
+    for(const id of required) assert.ok(practice.some(t=>t.id.endsWith(`${id}-practice`)),`${locale} PLO${count}: ${id}`);
+    for(const item of practice) assert.equal(evaluation.score(item,item.phrase).exact,true,item.id);
+    assert.deepEqual(benchmark,all(locale,count));
+  }
+});
+
+test('practice contextual and editing fixtures preserve actor, target and error boundaries',()=> {
+  const practice=evaluation.corpus({split:'practice'}), trial=id=>practice.find(t=>t.id.endsWith(`${id}-practice`));
+  assert.equal(evaluation.score(trial('cards-turn'),'river, dama de ouros').exact,false);
+  assert.equal(evaluation.score(trial('correct-hand'),'corrigir carta três da mão para ás de espadas').exact,false);
+  assert.equal(evaluation.score(trial('short-call'),'A2 pago').exact,false);
+  assert.equal(evaluation.score(trial('wrong-seat'),trial('wrong-seat').phrase).exact,true);
+  assert.equal(evaluation.score(trial('pending-total'),'vinte').exact,false);
+  assert.equal(evaluation.score(trial('undo-entry'),'desfazer').exact,true);
+  const row=evaluation.record(trial('undo-entry'),evaluation.score(trial('undo-entry'),'desfazer'),{});
+  assert.equal(row.split,'practice');
+  assert.equal(evaluation.aggregate([row]).cells[0].split,'practice');
+});
+
 for (const locale of ['pt-BR','en-US'])for(const count of [4,5,6])test(`all card, sequence, action and rejection prompts score correctly in isolated PLO${count} ${locale}`,()=>{
   for(const item of all(locale,count)) {
     const result=evaluation.score(item,item.phrase);

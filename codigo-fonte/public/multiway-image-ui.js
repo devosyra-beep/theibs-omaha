@@ -198,7 +198,8 @@
     if (!host || $('#mw-image-open')) return;
     const button = document.createElement('button'); button.id = 'mw-image-open'; button.type = 'button';
     button.className = 'text-button'; button.textContent = 'Read image'; button.addEventListener('click', open);
-    host.querySelector('.mw-action-row').after(button);
+    // Image entry remains available while the betting buttons are replaced by board entry.
+    host.querySelector('.mw-control-heading').append(button);
     dialog = document.createElement('dialog'); dialog.id = 'mw-image-dialog'; dialog.className = 'multiway-dialog';
     dialog.innerHTML = `<div class="multiway-dialog-head"><h2>Image · <span id="mw-image-variant"></span></h2><button type="button" class="text-button" data-mw-image-close="true" aria-label="Close">×</button></div>
       <p class="mw-image-intro">Preliminary reading profiles have not been validated with real GGPoker and PokerStars screenshots. Review the cards before recording. The photo is not sent to the server or saved in the history.</p>

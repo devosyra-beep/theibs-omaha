@@ -15,7 +15,7 @@ function harness({release=async()=>{},availability='available',audioStarts=true}
     fire(name,event={}){for(const fn of this.events.get(name)||[])fn(event);}
     hasAttribute(name){return Boolean(this[name]);} click(){return this.onclick?.();}
   }
-  for(const id of ['card-voice','card-voice-disclosure','analyze-workspace','app-shell','voice-language','voice-processing','voice-consent','voice-auto-apply','voice-pace'])elements.set(id,new Element(id));
+  for(const id of ['card-voice','card-voice-disclosure','voice-settings-dialog','analyze-workspace','app-shell','voice-language','voice-processing','voice-consent','voice-auto-apply','voice-pace'])elements.set(id,new Element(id));
   elements.get('voice-language').value='pt-BR';elements.get('voice-processing').value='browser';
   const document=new Element('document');Object.assign(document,{title:'THEIBS 0.14.5 · Omaha Lab',hidden:false,
     createElement:()=>new Element(),querySelector:selector=>selector.startsWith('#')?elements.get(selector.slice(1))||null:null,getElementById:id=>elements.get(id)||null});
@@ -132,4 +132,51 @@ test('reported latency uses the provider speechend event; final arriving before 
   assert.equal(h.status().productionCardLatency,'NOT_MEASURED');
   await h.start();const next=h.instances[1];next.emit('ás de espadas');h.advance(10);next.onspeechend();next.end();
   assert.equal(h.status().total.timing.speechEndEventToFinalMs.n,1);assert.equal(h.status().total.timing.speechEndEventToFinalMs.missing,1);
+});
+
+
+test('practice advances through the checklist without reopening the microphone and permits review',async()=>{
+  const h=harness();h.consent();
+  const first=h.$('prompt').textContent;
+  assert.equal(h.$('split').value,'practice');
+  await h.start();h.instances[0].emit(first);h.instances[0].end();
+  assert.equal(h.instances.length,1);assert.equal(h.active(),false);
+  assert.notEqual(h.$('prompt').textContent,first);assert.match(h.$('progress').textContent,/1 of/);
+  h.$('previous').click();assert.equal(h.$('prompt').textContent,first);assert.match(h.$('progress').textContent,/attempted/);
+  h.$('phrase').value='7';h.$('phrase').fire('change');assert.match(h.$('progress').textContent,/Phrase 8/);
+  assert.equal(h.instances.length,1);
+});
+
+test('closing options releases only the explicit phrase test and ignores late finals',async()=>{
+  const h=harness();h.consent();await h.start();const rec=h.instances[0];
+  h.elements.get('voice-settings-dialog').fire('close');
+  assert.equal(rec.aborts,1);assert.equal(h.active(),true);
+  rec.emit('ás de espadas');rec.end();
+  assert.equal(h.active(),false);assert.equal(h.status().total.cancellations,1);assert.equal(h.status().total.exact,0);
+});
+
+test('failed recognition advances, but microphone startup failures retain the chosen phrase',async()=>{
+  const h=harness();h.consent();const first=h.$('prompt').textContent;
+  await h.start();h.instances[0].emit('not a valid command');h.instances[0].end();
+  assert.notEqual(h.$('prompt').textContent,first);assert.equal(h.status().total.exact,0);
+  const blocked=harness({release:async()=>{throw Error('No capture available');}});blocked.consent();
+  const before=blocked.$('prompt').textContent;await blocked.start();assert.equal(blocked.$('prompt').textContent,before);
+});
+
+test('practice and benchmark progress and visible results remain separate',async()=>{
+  const h=harness();h.consent();await h.start();h.instances[0].emit(h.$('prompt').textContent);h.instances[0].end();
+  h.$('split').value='evaluation';h.$('split').fire('change');
+  assert.match(h.$('summary').textContent,/No microphone tests for this selection/);
+  assert.match(h.$('progress').textContent,/^0 of/);assert.equal(h.$('export').disabled,true);
+  h.$('split').value='practice';h.$('split').fire('change');
+  assert.match(h.$('summary').textContent,/1\/1 exact/);assert.equal(h.$('export').disabled,false);
+  h.$('processing').value='device';h.$('processing').fire('change');
+  assert.match(h.$('progress').textContent,/^0 of/);assert.equal(h.$('export').disabled,true);
+});
+
+test('practice follows main voice preferences until its own setting is explicitly chosen',()=>{
+  const h=harness();const language=h.elements.get('voice-language');
+  language.value='en-US';language.fire('change');assert.equal(h.$('language').value,'en-US');
+  h.$('language').value='pt-BR';h.$('language').fire('change');
+  language.value='en-US';language.fire('change');assert.equal(h.$('language').value,'pt-BR');
 });

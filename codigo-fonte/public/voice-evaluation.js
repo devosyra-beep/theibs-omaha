@@ -15,7 +15,7 @@
   const copy = value => JSON.parse(JSON.stringify(value));
   const freeze = value => { if (value && typeof value === 'object') { Object.values(value).forEach(freeze); Object.freeze(value); } return value; };
   function corpus({ locale = 'pt-BR', count = 5, split = 'development' } = {}) {
-    if (!['pt-BR','en-US'].includes(locale) || ![4,5,6].includes(count) || !['development','evaluation'].includes(split)) throw Error('Invalid evaluation configuration.');
+    if (!['pt-BR','en-US'].includes(locale) || ![4,5,6].includes(count) || !['development','evaluation','practice'].includes(split)) throw Error('Invalid evaluation configuration.');
     const en = locale === 'en-US', list = [], suffix = `${locale}-plo${count}`;
     const add = (id, phrase, expected, kind, partition, extra = {}) => list.push(freeze({ id: `${suffix}-${id}`, locale, count,
       split: partition, phrase, expected, kind, ...extra }));
@@ -47,14 +47,66 @@
     add('unknown', en ? 'the weather is pleasant today' : 'o dia está agradável hoje', null, 'reject', 'evaluation');
     add('ambiguous-number', en ? 'one of clubs' : 'um de paus', null, 'reject', 'evaluation');
     add('duplicate', en ? 'ace of spades, ace of spades' : 'ás de espadas, ás de espadas', null, 'reject', 'evaluation');
+    if (split === 'practice') {
+      // A separate checklist exercises supported command types. Its results
+      // stay in practice; some visible prompts also occur in the fixed
+      // benchmark, so later evaluation is not blind to a practiced speaker.
+      const practice = (id, pt, english, expected, kind, extra = {}) =>
+        add(id, en ? english : pt, expected, kind, 'practice', extra);
+      practice('destination-hero','minhas cartas','my cards',{type:'target',target:'hero'},'destination');
+      practice('destination-board','board','board',{type:'target',target:'board'},'destination');
+      practice('cards-turn','turn, dama de ouros','turn, queen of diamonds',
+        {type:'cards',target:'turn',cards:['Qd']},'sequence',
+        {initial:{board:['As','2h','3c']}});
+      practice('cards-river','river, valete de paus','river, jack of clubs',
+        {type:'cards',target:'river',cards:['Jc']},'sequence',
+        {initial:{board:['As','2h','3c','Qd']}});
+      practice('cards-board','board, dois de espadas, cinco de copas, nove de ouros',
+        'board, two of spades, five of hearts, nine of diamonds',
+        {type:'cards',target:'board',cards:['2s','5h','9d']},'sequence');
+      practice('select-hand','selecionar carta três da mão','select card three in hand',
+        {type:'select',target:'hero',index:2},'edit',{initial:{hero:['As','Kh','2c'],selected:0}});
+      practice('select-board','selecionar carta dois da mesa','select card two on board',
+        {type:'select',target:'board',index:1},'edit',{initial:{board:['As','Kh','2c'],selected:0}});
+      practice('correct-hand','corrigir carta três da mão para dama de ouros','correct card three in hand to queen of diamonds',
+        {type:'correct',target:'hero',index:2,card:'Qd'},'edit',{initial:{hero:['As','Kh','2c'],selected:0}});
+      practice('correct-board','corrigir carta dois da mesa para dama de ouros','correct card two on board to queen of diamonds',
+        {type:'correct',target:'board',index:1,card:'Qd'},'edit',{initial:{board:['As','Kh','2c'],selected:0}});
+      practice('remove-card','remover carta selecionada','remove selected card',
+        {type:'remove',target:'selected'},'edit',{initial:{hero:['As','Kh','2c'],selected:2}});
+      practice('undo-entry','desfazer','undo',{type:'undo'},'edit',
+        {initial:{hero:['As'],selected:0,seedUndo:true}});
+      practice('cancel-entry','cancelar','cancel',{type:'cancel'},'edit');
+      practice('next-actor','minha vez','my turn',{type:'context'},'context',
+        {context:{enabled:true,phase:'BETTING'}});
+      for (const [id, pt, english, action, actor] of [
+        ['short-fold','desistir','fold','FOLD','hero'],
+        ['short-check','passar','check','CHECK','hero'],
+        ['short-call','pago','call','CALL','hero'],
+        ['short-all-in','all-in','all-in','ALL_IN','hero']
+      ]) practice(id,pt,english,{type:'action',actor:null,action},'action',
+        {context:{enabled:true,phase:'BETTING'},actionActor:actor});
+      practice('short-bet','aposto vinte','bet twenty',
+        {type:'action',actor:null,action:'BET',to:20},'action',
+        {context:{enabled:true,phase:'BETTING'},actionActor:'hero'});
+      practice('short-raise','aumento vinte e cinco','raise twenty five',
+        {type:'action',actor:null,action:'RAISE',to:25},'action',
+        {context:{enabled:true,phase:'BETTING'},actionActor:'hero'});
+      practice('pending-total','vinte e cinco','twenty five',{type:'amount',to:25},'action',
+        {context:{enabled:true,phase:'BETTING',pendingAmount:{action:'RAISE'}},actionActor:'hero'});
+      practice('wrong-seat','A2 desiste','A2 folds',null,'reject',
+        {context:{enabled:true,phase:'BETTING'},actionActor:'hero'});
+      return list.map(item => freeze({ ...item, id:`${item.id}-practice`, split:'practice' }));
+    }
     return list.filter(item => item.split === split);
   }
-  function actionState(command) {
+  function actionState(command, trial) {
     const players = [{ id:'hero', hero:true, name:'Hero', position:'BTN', streetPaid:0, stack:100 },
       { id:'v1', hero:false, seatName:'A1', name:'ADV.1', position:'SB', streetPaid:0, stack:100 },
       { id:'v2', hero:false, seatName:'A2', name:'ADV.2', position:'BB', streetPaid:0, stack:100 }];
     const unopened = ['BET','CHECK'].includes(command.action);
-    return { phase:'BETTING', players, heroId:'hero', actor:command.actor.kind === 'hero' ? 'hero' : `v${command.actor.number}`,
+    const actor = trial?.actionActor || (command.actor?.kind === 'opponent' ? `v${command.actor.number}` : 'hero');
+    return { phase:'BETTING', players, heroId:'hero', actor,
       currentBet:unopened ? 0 : 4, bigBlind:2,
       legal:{ actions:unopened ? ['CHECK','BET'] : ['FOLD','CALL','RAISE'], minTo:unopened ? 2 : 8, maxTo:100, toCall:unopened ? 0 : 4 } };
   }
@@ -62,9 +114,25 @@
     if (command.type === 'action') {
       // The fixture actor comes from the expected prompt, never from ASR.
       const expected = trial.expected?.type === 'action' ? trial.expected : { actor:{kind:'hero'} };
-      return { event:voice.resolveAction(command, actionState(expected)) };
+      return { event:voice.resolveAction(command, actionState(expected,trial)) };
+    }
+    if (command.type === 'amount') {
+      if (!trial.context?.pendingAmount || !Number.isFinite(command.to)) throw Error('No pending amount.');
+      const action = trial.context.pendingAmount.action;
+      return { event:voice.resolveAction({type:'action',actor:null,action,to:command.to},
+        actionState({actor:null,action},trial)) };
+    }
+    if (command.type === 'context') {
+      if (!trial.context?.enabled) throw Error('No table context.');
+      return { nextActor:actionState({actor:null,action:'CALL'},trial).actor };
     }
     const state = new cards.CardKeyboardState(trial.count);
+    if (trial.initial) {
+      if (!state.setCards(trial.initial.hero || [],trial.initial.board || [],Boolean(trial.initial.seedUndo)))
+        throw Error(state.error);
+      if (Number.isInteger(trial.initial.selected) && !state.select(trial.initial.selected))
+        throw Error('Invalid initial selection.');
+    }
     if (!state.applyCommand(command)) throw Error(state.error);
     return { snapshot:state.snapshot() };
   }
@@ -77,7 +145,8 @@
   function score(trial, text, { outcome = 'final', finalRevisions = 0 } = {}) {
     let command = null, simulated = null, rejected = false;
     if (outcome === 'final') {
-      try { command = voice.parse(text, trial.locale); simulated = simulate(command, trial); }
+      try { command = trial.context ? voice.parseContextual(text, trial.locale,trial.context)
+        : voice.parse(text, trial.locale); simulated = simulate(command, trial); }
       catch { rejected = true; }
     }
     const expectedRejected = trial.expected === null;

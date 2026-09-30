@@ -25,7 +25,6 @@ body:not([data-view=analyze]) .multiway-controls { display:none!important; }
 #mw-actor { display:inline-flex; align-items:center; min-height:30px; border:1px solid #d6ac46; border-radius:8px; padding:4px 10px; background:#f6d36f12; color:#f6d36f; font-size:15px; font-weight:750; line-height:1.2; white-space:nowrap; }
 #mw-actor.is-hero-turn { background:#f6d36f24; border-color:var(--primary); }
 #mw-actor.is-board-phase { color:#b8d7ff; background:#5796e31c; border-color:#5796e388; }
-#mw-round { color:var(--muted); font-size:12px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 #mw-undo { margin-left:auto; font-size:12px; white-space:nowrap; padding:3px 5px; }
 .mw-action-row { display:flex; align-items:center; gap:7px; }
 .mw-action-row>[data-mw-action] { display:inline-flex; align-items:center; justify-content:center; flex:1; gap:7px; min-height:35px; padding:5px 8px; border-radius:7px; font-size:14px; white-space:nowrap; }
@@ -43,7 +42,7 @@ body:not([data-view=analyze]) .multiway-controls { display:none!important; }
 .multiway-error { color:var(--bad,#ff7777); font-size:13px; line-height:1.4; margin:7px 0 0; }
 #mw-history { position:relative; margin-top:5px; }
 #mw-history>summary { font-size:11px; color:var(--muted); cursor:pointer; }
-#mw-history-list { position:absolute; z-index:8; bottom:24px; right:0; width:min(400px,90vw); margin:0; padding:8px 12px; list-style:none; max-height:140px; overflow:auto; background:var(--card); border:1px solid var(--border); border-radius:8px; box-shadow:0 8px 24px #0008; }
+#mw-history-list { position:static; width:100%; margin:7px 0 0; padding:8px 12px; list-style:none; max-height:none; overflow:visible; background:var(--surface-low); border:1px solid var(--border); border-radius:8px; }
 #mw-history-list li { display:flex; justify-content:space-between; gap:12px; padding:4px 0; border-top:1px solid var(--border); font-size:12px; }
 #mw-history-list li>span:first-child { color:var(--muted); }
 .multiway-dialog { width:min(460px,calc(100vw - 32px)); padding:22px; }
@@ -78,21 +77,12 @@ body[data-multiway=on] .mw-folded-seat .card-back { filter:grayscale(1); }
 body[data-multiway=on] .mw-allin-seat .opponent-name { color:#a5ccff; }
 @media(min-width:1000px) {
  body[data-view=analyze][data-multiway=on] .multiway-controls { position:relative; }
- body[data-view=analyze][data-multiway=on] #mw-history { position:absolute; right:85px; top:7px; margin:0; }
- body[data-view=analyze][data-multiway=on] #mw-history-list { top:24px; bottom:auto; }
- body[data-view=analyze][data-multiway=on] .mw-control-heading { padding-right:91px; }
- body[data-view=analyze][data-multiway=on] #mw-undo { position:absolute; right:9px; top:6px; }
- body[data-view=analyze][data-multiway=on] .card-picker .card-grid { grid-template-columns:repeat(2,minmax(0,1fr)); column-gap:12px; }
+ body[data-view=analyze][data-multiway=on] .card-picker .card-grid { grid-template-columns:1fr; }
  body[data-view=analyze][data-multiway=on] .card-picker .card-row { min-width:0; gap:3px; grid-template-columns:18px minmax(0,1fr); }
  body[data-view=analyze][data-multiway=on] .card-picker .card-ranks { gap:2px; }
  body[data-view=analyze][data-multiway=on] .card-picker .card-key { padding:0; font-size:18px; }
  body[data-view=analyze][data-multiway=on] .card-keyboard { position:relative; }
  body[data-view=analyze][data-multiway=on] .card-picker .picker-tools { position:absolute; top:16px; right:59px; margin:0; }
- body[data-view=analyze][data-multiway=on] .table-column { grid-template-rows:42px minmax(260px,1fr) auto 50px; }
- body[data-view=analyze][data-multiway=on] .analysis-context-bar { grid-row:1; }
- body[data-view=analyze][data-multiway=on] .table-surface { grid-row:2; }
- body[data-view=analyze][data-multiway=on] #multiway-controls { grid-row:3; }
- body[data-view=analyze][data-multiway=on] .table-column>.quick-decision { grid-row:4; }
 }
 @media(min-width:1000px) and (max-height:720px) {
  body[data-view=analyze][data-multiway=on] .table-column { grid-template-rows:38px minmax(230px,1fr) auto 42px; }
@@ -100,7 +90,6 @@ body[data-multiway=on] .mw-allin-seat .opponent-name { color:#a5ccff; }
 }
 @media(max-width:1100px) {
  .mw-control-heading { gap:8px; }
- #mw-round { font-size:11px; }
  .mw-action-row { gap:5px; }
  .mw-action-row>[data-mw-action] { gap:4px; font-size:13px; padding:5px; }
 }
@@ -108,7 +97,6 @@ body[data-multiway=on] .mw-allin-seat .opponent-name { color:#a5ccff; }
   .mw-quick-setup { grid-template-columns:minmax(0,1fr) minmax(120px,auto); }
   .mw-quick-setup button { white-space:normal; }
   .mw-control-heading { flex-wrap:wrap; }
-  #mw-round { order:3; flex-basis:100%; }
   .mw-action-row { flex-wrap:wrap; }
   .mw-action-row>[data-mw-action] { flex-basis:28%; }
   .mw-config-grid { grid-template-columns:1fr; }
@@ -157,7 +145,7 @@ body[data-view=analyze][data-multiway=off] .opponent-place.dense.folded::before 
 .equity-beaters-details ul { margin:7px 0 0; padding-left:16px; }
 .equity-beaters-details li+li { margin-top:4px; }
 
-#mw-image-open { display:block; margin:7px 0 0 auto; font-size:12px; min-height:36px; }
+#mw-image-open { flex:none; display:inline-flex; align-items:center; margin-left:2px; padding:4px 5px; font-size:12px; min-height:30px; white-space:nowrap; }
 #mw-image-dialog { width:min(640px,calc(100vw - 20px)); max-height:calc(100dvh - 20px); overflow:auto; box-sizing:border-box; }
 #mw-image-dialog .multiway-dialog-head { margin-bottom:10px; }
 .mw-image-intro { color:var(--muted); margin:0 0 14px!important; }
@@ -192,27 +180,21 @@ body[data-view=analyze][data-multiway=off] .opponent-place.dense.folded::before 
   .mw-image-coordinates { grid-template-columns:repeat(2,minmax(0,1fr)); }
 }
 
-body[data-view=analyze][data-multiway=on][data-multiway-phase=WAIT_BOARD] .table-column { grid-template-rows:42px minmax(180px,1fr) auto auto 50px; }
+body[data-view=analyze][data-multiway=on][data-multiway-phase=WAIT_BOARD] .table-column { grid-template-rows:42px minmax(180px,1fr) auto 50px; }
 body[data-view=analyze][data-multiway=on][data-multiway-phase=WAIT_BOARD] .analysis-context-bar { grid-row:1; }
 body[data-view=analyze][data-multiway=on][data-multiway-phase=WAIT_BOARD] .table-surface { grid-row:2; }
 body[data-view=analyze][data-multiway=on][data-multiway-phase=WAIT_BOARD] #multiway-controls { grid-row:3; }
-body[data-view=analyze][data-multiway=on][data-multiway-phase=WAIT_BOARD] .card-keyboard { grid-row:4; align-self:start; max-height:none; overflow:visible; padding:6px 9px; }
-body[data-view=analyze][data-multiway=on][data-multiway-phase=WAIT_BOARD] .quick-decision { grid-row:5; }
+body[data-view=analyze][data-multiway=on][data-multiway-phase=WAIT_BOARD] .quick-decision { grid-row:4; }
 
 @media(min-width:1000px) {
-  body[data-view=analyze][data-multiway=on][data-multiway-phase=WAIT_BOARD] .table-column { grid-template-rows:42px minmax(360px,1fr) auto auto 50px; }
+  body[data-view=analyze][data-multiway=on][data-multiway-phase=WAIT_BOARD] .table-column { grid-template-rows:42px minmax(360px,1fr) auto 50px; }
   body[data-view=analyze][data-multiway=on][data-multiway-phase=WAIT_BOARD] .table-surface .poker-table { min-height:330px; }
 }
-@media(min-width:1000px) and (max-height:720px) {
-  body[data-view=analyze][data-multiway=on][data-multiway-phase=WAIT_BOARD] .table-column { grid-template-rows:38px minmax(330px,1fr) auto auto 42px; }
-  body[data-view=analyze][data-multiway=on][data-multiway-phase=WAIT_BOARD] .table-surface .poker-table { min-height:300px; }
-}
-
 /* Quick hand entry: the amount form replaces the buttons in the same slot. */
 .mw-control-heading { justify-content:space-between; margin-bottom:8px; }
 .mw-turn-context { display:flex; align-items:center; gap:9px; min-width:0; flex:1; }
-.mw-turn-context #mw-round { white-space:normal; line-height:1.3; }
 .mw-call-amount { flex:none; display:inline-flex; align-items:baseline; gap:5px; padding:5px 8px; border:1px solid var(--border); border-radius:7px; color:var(--muted); font:11px/1.2 var(--font-sans); white-space:nowrap; }
+.mw-call-amount[hidden],.mw-action-stage[hidden] { display:none!important; }
 .mw-call-amount b { color:var(--foreground); font:700 15px/1.1 var(--font-mono); }
 .mw-action-stage { position:relative; min-height:44px; }
 .mw-action-stage>[hidden],.mw-inline-size>[hidden] { display:none!important; }
@@ -257,17 +239,27 @@ body[data-view=analyze][data-multiway=on][data-multiway-phase=WAIT_BOARD] .quick
 .mw-decision-feedback { display:flex; flex-wrap:wrap; align-items:baseline; gap:3px 10px; margin:7px 0 0!important; padding:7px 9px; border-left:2px solid #c9a85688; background:#f6d36f0b; color:var(--muted); font-size:11px!important; line-height:1.35; }
 .mw-decision-feedback[hidden] { display:none!important; }
 .mw-decision-feedback strong { color:#e9d69b; font-weight:650; }
-body[data-view=analyze][data-multiway=on] .table-column>.quick-decision { display:flex; justify-content:flex-end; align-items:center; min-height:44px; padding:0; margin:0; border:0; }
-body[data-view=analyze][data-multiway=on] .table-column>.quick-decision>div { display:none!important; }
-body[data-view=analyze][data-multiway=on] .table-column>.quick-decision #quick-analyze { min-height:42px; }
+body[data-view=analyze][data-multiway=on] .table-column>.quick-decision { display:none; }
+body[data-view=analyze][data-multiway=on] .insight-panel #quick-analyze { width:100%; min-height:42px; margin-top:7px; font-size:13px; }
 body[data-view=analyze][data-multiway=on] #ev-summary { display:none!important; }
 body[data-view=analyze][data-multiway=on] .context-rail>.mw-decision-ev { margin:0; align-self:start; }
 #mw-history { margin-top:7px; }
 #mw-history>summary { font-size:12px; }
 body[data-view=analyze][data-multiway=on] #mw-history { position:relative; right:auto; top:auto; margin-top:7px; }
-body[data-view=analyze][data-multiway=on] #mw-history-list { top:auto; bottom:24px; }
 body[data-view=analyze][data-multiway=on] .mw-control-heading { padding-right:0; }
 body[data-view=analyze][data-multiway=on] #mw-undo { position:static; margin:0; }
+body[data-view=analyze][data-multiway=on] #open-opponent-inputs { display:none!important; }
+body[data-view=analyze][data-multiway=on] #multiway-controls>.multiway-board-entry { position:relative; max-width:100%; margin:0 0 5px; padding:0; border:0; border-radius:0; background:transparent; box-shadow:none; }
+body[data-view=analyze][data-multiway=on] #multiway-controls>.multiway-board-entry:not(.picker-open) { display:none; }
+body[data-view=analyze][data-multiway=on] .mw-control-heading #open-card-picker { min-height:36px; padding:5px 10px; color:var(--primary); font-size:12px; }
+body[data-view=analyze][data-multiway=on] .multiway-board-entry .keyboard-heading { justify-content:flex-end; min-height:36px; gap:6px; margin:0; }
+body[data-view=analyze][data-multiway=on] .multiway-board-entry:not(.picker-open) .keyboard-heading>:not(#open-card-picker) { display:none!important; }
+body[data-view=analyze][data-multiway=on] .multiway-board-entry #open-card-picker { min-height:36px; padding:5px 10px; font-size:12px; }
+body[data-view=analyze][data-multiway=on] .multiway-board-entry.picker-open { padding-top:7px; border-top:1px solid var(--border); }
+body[data-view=analyze][data-multiway=on] .multiway-board-entry.picker-open .keyboard-heading { justify-content:flex-start; flex-wrap:wrap; }
+body[data-view=analyze][data-multiway=on] .multiway-board-entry.picker-open #clear { margin-left:auto; }
+body[data-view=analyze][data-multiway=on] .multiway-board-entry .keyboard-footer { margin:0; padding:0; min-height:0; }
+body[data-view=analyze][data-multiway=on] .mw-board-prompt:not([hidden]) { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
 
 /* The pot is a single prominent ledger total; side pots are identified separately. */
 body[data-view=analyze][data-multiway=off] .table-pot-summary { display:none; }
@@ -313,6 +305,7 @@ body[data-view=analyze][data-multiway=on] .hero-seat:disabled { cursor:default; 
   #mw-actor { min-height:27px; font-size:13px; }
   .mw-call-amount { order:2; }
   #mw-undo { order:3; margin-left:auto!important; }
+  #mw-image-open { order:4; margin-left:0; }
   .mw-inline-size { gap:4px; }
   .mw-inline-size label { display:none; }
   .mw-inline-size input { width:min(28vw,105px); }
@@ -331,14 +324,14 @@ body[data-view=analyze][data-multiway=on] .hero-seat:disabled { cursor:default; 
   body[data-view=analyze][data-multiway=on] .table-pot-detail { font-size:8px; }
   body[data-view=analyze][data-multiway=on] .multiway-seat { left:var(--seat-x-mobile); top:var(--seat-y-mobile); width:65px; min-width:65px; min-height:44px; gap:1px; }
   body[data-view=analyze][data-multiway=on] .multiway-seat .opponent-cards { display:none; }
-  body[data-view=analyze][data-multiway=on] .multiway-seat .opponent-name { max-width:65px; padding:2px; font-size:9px; }
+  body[data-view=analyze][data-multiway=on] .multiway-seat .opponent-name { max-width:65px; padding:2px; font-size:10px; }
   body[data-view=analyze][data-multiway=on] .multiway-seat .opponent-name b,
-  body[data-view=analyze][data-multiway=on] .multiway-seat .opponent-name span { font-size:9px; }
+  body[data-view=analyze][data-multiway=on] .multiway-seat .opponent-name span { font-size:10px; }
   body[data-view=analyze][data-multiway=on] .mw-seat-stack,
-  body[data-view=analyze][data-multiway=on] .mw-seat-paid { font-size:8px; }
+  body[data-view=analyze][data-multiway=on] .mw-seat-paid { font-size:9px; }
   body[data-view=analyze][data-multiway=on] .mw-seat-stack b,
-  body[data-view=analyze][data-multiway=on] .mw-seat-paid b { font-size:9px; }
-  body[data-view=analyze][data-multiway=on] .multiway-seat-status { max-width:65px; font-size:8px; }
+  body[data-view=analyze][data-multiway=on] .mw-seat-paid b { font-size:11px; }
+  body[data-view=analyze][data-multiway=on] .multiway-seat-status { max-width:65px; font-size:10px; }
   body[data-view=analyze][data-multiway=on] .multiway-seat[data-seat-count="7"],
   body[data-view=analyze][data-multiway=on] .multiway-seat[data-seat-count="8"],
   body[data-view=analyze][data-multiway=on] .multiway-seat[data-seat-count="9"] { width:52px; min-width:52px; }

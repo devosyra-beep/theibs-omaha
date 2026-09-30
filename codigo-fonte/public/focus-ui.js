@@ -30,15 +30,15 @@
   const toggle=document.createElement('button');toggle.id='sidebar-toggle';toggle.type='button';toggle.className='ghost-button';toggle.setAttribute('aria-controls','primary-rail');
   const mobileNavToggle=document.createElement('button');
   mobileNavToggle.id='mobile-nav-toggle';mobileNavToggle.type='button';mobileNavToggle.className='ghost-button';
-  mobileNavToggle.innerHTML=svg('menu')+'<span>Menu</span>';mobileNavToggle.setAttribute('aria-controls','main-nav app-topbar');
+  mobileNavToggle.innerHTML=svg('menu')+'<span>Details</span>';mobileNavToggle.setAttribute('aria-controls','main-nav app-topbar');
   const mainNav=$('.main-nav');mainNav.id='main-nav';
   $('.topbar').id='app-topbar';
   function setMobileNav(open){
     document.body.dataset.mobileNav=open?'open':'closed';
     mobileNavToggle.setAttribute('aria-expanded',String(open));
-    mobileNavToggle.setAttribute('aria-label',open?'Close navigation':'Open navigation');
-    mobileNavToggle.title=open?'Close navigation':'Open navigation';
-    mobileNavToggle.querySelector('span').textContent=open?'Close':'Menu';
+    mobileNavToggle.setAttribute('aria-label',open?'Close details':'Open details');
+    mobileNavToggle.title=open?'Close details':'Open details';
+    mobileNavToggle.querySelector('span').textContent=open?'Close':'Details';
   }
   setMobileNav(false);
   mobileNavToggle.addEventListener('click',()=>setMobileNav(document.body.dataset.mobileNav!=='open'));
@@ -56,6 +56,22 @@
   for(const [view,icon,label]of [['analyze','cards','Analyze'],['train','target','Train'],['history','history','History']]){
     const button=$(`.nav-tab[data-view="${view}"]`);button.innerHTML=svg(icon)+`<span class="nav-label">${label}</span>`;button.title=label;button.setAttribute('aria-label',label);
   }
+  const railWidth=$('#analysis-rail-width'), secondary=$('#analysis-secondary-expanded');
+  const layoutKey='theibs.analysis.layout.v1';
+  const supportingDetails=()=>document.querySelectorAll('#mw-history,.mw-ev-details,#calculation-timeline,#ev-premises,#hand-facts,#study-notes,#ev-scope-details,#equity-breakdown');
+  function applyAnalysisLayout(width='balanced',expanded=false,save=false){
+    const selected=['balanced','compact','wide'].includes(width)?width:'balanced';
+    document.body.dataset.analysisRailWidth=selected;
+    document.body.dataset.analysisSecondary=expanded?'expanded':'collapsed';
+    railWidth.value=selected;secondary.checked=expanded;
+    for(const detail of supportingDetails())detail.open=expanded;
+    if(save){
+      try{localStorage.setItem(layoutKey,JSON.stringify({width:selected,expanded}));}catch{/* Layout remains usable without local storage. */}
+    }
+  }
+  railWidth.addEventListener('change',()=>applyAnalysisLayout(railWidth.value,secondary.checked,true));
+  secondary.addEventListener('change',()=>applyAnalysisLayout(railWidth.value,secondary.checked,true));
+  $('#restore-analysis-layout').addEventListener('click',()=>applyAnalysisLayout('balanced',false,true));
   function restore(collapsed=true){
     document.body.dataset.sidebar=collapsed===false?'expanded':'collapsed';
     iconButton(toggle,collapsed===false?'panel':'expand',collapsed===false?'Collapse menu':'Expand menu');toggle.setAttribute('aria-expanded',String(collapsed===false));
@@ -103,6 +119,11 @@
   // move with it, so there is only one source of truth for analysis inputs.
   const tableColumn=$('#analyze-workspace .table-column'),contextRail=$('#analysis-form .context-rail');
   const equityPanel=$('#analyze-workspace .insight-panel'),quickDecision=$('.quick-decision');
+  const equityEmpty=document.createElement('span');equityEmpty.id='equity-empty-status';equityEmpty.className='micro';equityEmpty.hidden=true;
+  equityPanel.querySelector('#hero-equity').after(equityEmpty);
+  const breakdown=document.createElement('details');breakdown.id='equity-breakdown';breakdown.className='compact-disclosure';
+  breakdown.innerHTML='<summary>Showdown breakdown</summary>';
+  breakdown.append(equityPanel.querySelector('.win-chart'));equityPanel.append(breakdown);
   const quickPrice=document.createElement('details');quickPrice.id='quick-price';quickPrice.className='quick-price';
   quickPrice.innerHTML='<summary>Call price <span>optional</span></summary><div class="quick-price-fields"></div>';
   quickDecision.before(quickPrice);
@@ -122,10 +143,32 @@
   placeQuickAnalysis();
   const reflectEquity=()=>{
     const value=$('#hero-equity').textContent.trim();
-    const pending=/calculando|calculating/i.test($('#equity-range').textContent);
+    const pending=/calculando|calculating|analyzing/i.test($('#equity-range').textContent+' '+$('#quick-analyze').textContent);
     equityPanel.dataset.equityState=pending?'loading':value&&value!=='—'?'ready':'empty';
+    const scope=$('#equity-scope');
+    scope.hidden=equityPanel.dataset.equityState!=='ready'&&scope.textContent.trim()==='Waiting for cards to identify the hand.';
+    const hero=window.theibsCardKeyboard?.state?.cards()?.hero || [];
+    equityEmpty.hidden=document.body.dataset.multiway!=='on'||equityPanel.dataset.equityState==='ready';
+    equityEmpty.textContent=pending?'Calculating equity…':hero.length===window.theibsCardKeyboard?.state?.count?'Equity not calculated.':'Add your cards to calculate equity.';
+    breakdown.hidden=equityPanel.dataset.equityState!=='ready';
   };
-  for(const node of [$('#hero-equity'),$('#equity-range')])new MutationObserver(reflectEquity).observe(node,{childList:true,characterData:true,subtree:true});
+  for(const node of [$('#hero-equity'),$('#equity-range'),$('#equity-scope'),$('#quick-analyze')])new MutationObserver(reflectEquity).observe(node,{childList:true,characterData:true,subtree:true});
+  new MutationObserver(reflectEquity).observe(document.body,{attributes:true,attributeFilter:['data-multiway']});
   reflectEquity();
-  window.theibsFocusUI={restore};restore();
+  // The controller is created by the last page script. Reparent its stable node
+  // beside the table on small screens without rebuilding its listeners.
+  document.addEventListener('DOMContentLoaded',()=>{
+    const voice=$('#card-voice');if(!voice)return;
+    function placeVoice(){
+      if(voice.querySelector('dialog[open]'))return;
+      if(mobileWidth.matches){tableColumn.querySelector('.table-surface').before(voice);}
+      else if(voice.parentElement!==tableColumn||voice!==tableColumn.lastElementChild)tableColumn.append(voice);
+    }
+    mobileWidth.addEventListener('change',placeVoice);
+    voice.querySelector('#voice-settings-dialog')?.addEventListener('close',placeVoice);
+    placeVoice();
+  },{once:true});
+  let savedLayout=null;
+  try{savedLayout=JSON.parse(localStorage.getItem(layoutKey)||'null');}catch{/* Use defaults. */}
+  window.theibsFocusUI={restore};restore();applyAnalysisLayout(savedLayout?.width,savedLayout?.expanded===true);
 })();

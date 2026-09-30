@@ -52,7 +52,12 @@
   }
   const visualSettings=document.createElement('section');visualSettings.className='settings-visuals';
   const visualTitle=document.createElement('h3');visualTitle.textContent='Game & appearance';
-  visualSettings.append(visualTitle,$('.variant-section'),appearance,$('#open-help'));
+  visualSettings.append(visualTitle,$('.variant-section'));
+  const layoutSettings=document.createElement('details');layoutSettings.id='layout-settings';layoutSettings.className='settings-section';
+  layoutSettings.innerHTML='<summary>Workspace layout & appearance</summary><div class="layout-settings-body"><div class="layout-settings-controls"><label for="analysis-rail-width">Results column<select id="analysis-rail-width"><option value="balanced">Balanced</option><option value="compact">Compact</option><option value="wide">Wide</option></select></label><label class="checkbox-label" for="analysis-secondary-expanded"><input id="analysis-secondary-expanded" type="checkbox"> Expand supporting details</label><button id="restore-analysis-layout" type="button" class="ghost-button">Restore default layout</button></div></div>';
+  for(const type of ['input','change'])layoutSettings.addEventListener(type,event=>event.stopPropagation());
+  layoutSettings.querySelector('.layout-settings-body').append(appearance);
+  visualSettings.append(layoutSettings,$('#open-help'));
   const settingsShortcuts=document.createElement('nav');settingsShortcuts.className='settings-shortcuts';
   settingsShortcuts.setAttribute('aria-label','Tools and assistance');
   settingsShortcuts.innerHTML='<button id="settings-cards" type="button" class="ghost-button">Cards & keyboard</button><button id="settings-voice" type="button" class="ghost-button">Voice · PT-BR / EN-US</button><button id="settings-support" type="button" class="ghost-button">Support</button><button id="settings-license" type="button" class="ghost-button">License & access</button>';
@@ -92,8 +97,8 @@
   $('#open-license').addEventListener('click',openLicense);
   $('#license-account').addEventListener('click',()=>{closeDialog(license);requestAnimationFrame(()=>$('#open-auth').click());});
   $('#support-keyboard').addEventListener('click',()=>{closeDialog(support);requestAnimationFrame(()=>openDialog($('#help-dialog')));});
-  $('#settings-cards').addEventListener('click',()=>{closeDialog(settings);requestAnimationFrame(()=>openDialog(entry));});
-  $('#settings-voice').addEventListener('click',()=>{closeDialog(settings);requestAnimationFrame(()=>{const panel=$('#card-voice-disclosure');if(panel){panel.open=true;panel.scrollIntoView({block:'nearest',behavior:'smooth'});panel.querySelector('summary')?.focus();}});});
+  $('#settings-cards').addEventListener('click',()=>{closeDialog(settings);requestAnimationFrame(()=>document.body.dataset.view==='analyze'?window.theibsCardPicker?.open():openDialog(entry));});
+  $('#settings-voice').addEventListener('click',()=>{closeDialog(settings);requestAnimationFrame(()=>window.theibsCardVoice?.openSettings?.());});
   $('#settings-support').addEventListener('click',()=>{closeDialog(settings);requestAnimationFrame(()=>openDialog(support));});
   $('#settings-license').addEventListener('click',()=>{closeDialog(settings);requestAnimationFrame(openLicense);});
   engine.querySelector('.dialog-content').innerHTML=`<section id="llama-controls" aria-label="Hand assistant">
@@ -166,9 +171,22 @@
   keyboardHeading.prepend(pickerButton);
   keyboardHeading.append($('#remove-card'),$('#undo-card'),clear);
   $('.keyboard-actions').remove();
-  const setPickerOpen=open=>{picker.open=open;pickerButton.setAttribute('aria-expanded',String(open));keyboard.classList.toggle('picker-open',open);};
+  const setPickerOpen=open=>{
+    picker.open=open;pickerButton.setAttribute('aria-expanded',String(open));keyboard.classList.toggle('picker-open',open);
+    const boardEntry=document.body.dataset.multiway==='on'&&document.body.dataset.multiwayPhase==='WAIT_BOARD';
+    if(boardEntry)return;
+    const controls=$('#multiway-controls');
+    if(open&&document.body.dataset.view==='analyze'&&controls){
+      controls.before(keyboard);keyboard.classList.add('contextual-card-entry');
+    }else if(keyboard.classList.contains('contextual-card-entry')){
+      settings.querySelector('.controls-panel').before(keyboard);keyboard.classList.remove('contextual-card-entry');
+    }
+  };
   pickerButton.onclick=()=>setPickerOpen(!picker.open);
   picker.addEventListener('toggle',()=>setPickerOpen(picker.open));
+  for(const slots of [$('#hero-slots'),$('#board-slots')])slots.addEventListener('click',event=>{
+    if(document.body.dataset.view==='analyze' && event.target.closest('[data-slot]:not(:disabled)'))setPickerOpen(true);
+  });
   document.addEventListener('keydown',event=>{
     if(document.body.dataset.view!=='analyze'||document.querySelector('dialog[open]')||event.target.closest('input,textarea,select,[contenteditable]'))return;
     const step=!event.ctrlKey&&!event.metaKey&&!event.altKey&&['ArrowLeft','ArrowRight'].includes(event.key);
