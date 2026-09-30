@@ -87,14 +87,16 @@
     let actor=null,actorText='',opponentMissing=false,phrase=input;
     const hero=input.match(en?/^(hero|i)(?:\s+|$)/:/^(eu|heroi)(?:\s+|$)/);
     const opponent=input.match(en?/^(opponent)(?:\s+|$)/:/^(adversario|oponente)(?:\s+|$)/);
+    const seat=input.match(/^(?:a|adv\.?)([1-9])(?:\s+|$)/);
     if(hero){actor={kind:'hero'};actorText=hero[1];phrase=input.slice(hero[0].length);}
+    else if(seat){actor={kind:'opponent',number:Number(seat[1])};actorText=seat[0].trim();phrase=input.slice(seat[0].length);}
     else if(opponent){
       const rest=input.slice(opponent[0].length),word=rest.split(' ')[0],number=opponentNumber(word,locale);
       if(number!==null){actor={kind:'opponent',number};actorText=opponent[1]+' '+word;phrase=rest.slice(word.length).trim();}
       else if(!rest||Object.hasOwn(names,word)||allInPhrase(rest,en)){opponentMissing=true;actorText=opponent[1];phrase=rest;}
       else throw Error('Identify the opponent by the number shown at the table.');
     }
-    if(!hero&&!opponent&&!Object.hasOwn(names,phrase.split(' ')[0])&&!allInPhrase(phrase,en))return null;
+    if(!hero&&!opponent&&!seat&&!Object.hasOwn(names,phrase.split(' ')[0])&&!allInPhrase(phrase,en))return null;
     const draft={actor,actorText,opponentMissing,action:null,actionWord:'',basis:null,rawValue:'',unitText:'',unit:'chips'};
     if(!phrase)return draft;
     if(allInPhrase(phrase,en))return {...draft,action:'ALL_IN',actionWord:phrase};
@@ -141,11 +143,46 @@
     }
     return command;
   }
+  // The quick-entry path supplies the next actor from the confirmed ledger.
+  // The older explicit grammar remains available for commands outside it.
+  function parseContextual(text,locale='pt-BR',context=null) {
+    if(!['pt-BR','en-US'].includes(locale))throw Error('Choose Portuguese or English as the recognition language.');
+    if (!context?.enabled) return parse(text,locale);
+    const utterance=String(text||'').trim();
+    if(!utterance || utterance.length>800)throw Error('Say one complete command.');
+    const normalized=actionText(utterance),en=locale==='en-US';
+    if(normalized===(en?'my turn':'minha vez'))return {type:'context'};
+    if(context.phase!=='BETTING')return parse(utterance,locale);
+    if(normalized===(en?'undo':'desfazer')||normalized===(en?'cancel':'cancelar'))return parse(utterance,locale);
+    if(context.pendingAmount){
+      const value=parseChips(utterance,locale);
+      if(value<=0)throw Error('Enter a positive total for this street.');
+      return {type:'amount',to:value};
+    }
+    const draft=readAction(utterance,locale);
+    if(!draft)return parse(utterance,locale);
+    if(draft.opponentMissing)throw Error(clarificationPrompt('opponentNumber',locale));
+    if(!draft.action)throw Error(clarificationPrompt('action',locale));
+    const command={type:'action',actor:draft.actor,action:draft.action};
+    if(['BET','RAISE'].includes(draft.action)){
+      if(draft.amountTail)throw Error(clarificationPrompt('amountTail',locale));
+      if(draft.value!==undefined){
+        command[draft.basis==='by'?'by':'to']=draft.value;
+        if(draft.unit==='bb')command.unit='bb';
+      }else if(draft.unitText)throw Error(clarificationPrompt('amount',locale));
+    }
+    return command;
+  }
   function resolveAction(command,state) {
     if(command?.type!=='action'||!state||state.phase!=='BETTING')throw Error('Voice actions require an active Multiway betting round.');
     const players=state.players||[];
+    const seatNumber=command.actor?.kind==='opponent'?command.actor.number:null;
+    const seatName=Number.isInteger(seatNumber)?`A${seatNumber}`:null;
+    const heroIndex=players.findIndex(p=>p.id===state.heroId);
+    const cyclicSeat=seatName&&heroIndex>=0&&seatNumber<players.length?players[(heroIndex+seatNumber)%players.length]:null;
     const player=command.actor?.kind==='hero'?players.find(p=>p.id===state.heroId)
-      :command.actor?.kind==='opponent'&&Number.isInteger(command.actor.number)?players.filter(p=>!p.hero)[command.actor.number-1]:null;
+      :seatName?players.find(p=>p.seatName===seatName||p.name===seatName) || cyclicSeat
+      :command.actor==null?players.find(p=>p.id===state.actor):null;
     if(!player)throw Error('That player is not at this table.');
     if(player.folded||player.allIn)throw Error('That player cannot act in the current state.');
     if(player.id!==state.actor)throw Error('It is not that player’s turn. Nothing was recorded.');
@@ -346,6 +383,26 @@
     preview() { return [...this.segments].sort((a, b) => a[0] - b[0]).map(([, s]) => s.text).join(', '); }
     hasPending() { return [...this.segments.keys()].some(index => index >= this.cursor); }
     pendingPreview() { return [...this.segments].filter(([index]) => index >= this.cursor).sort((a, b) => a[0] - b[0]).map(([, s]) => s.text).join(', '); }
+    readyFinalCount() {
+      let count=0;
+      while(this.segments.get(this.cursor+count)?.final)count++;
+      return count;
+    }
+    // In the sequential action flow, each final ASR result is one event.
+    // Text equality is irrelevant: two players may both call in succession.
+    prepareNextFinal(id,context,parseCommand=parse) {
+      if(id!==this.id || this.phase!=='listening')return null;
+      if(token(context)!==this.context){this.reject('The table context changed. No pending entry was applied.');return null;}
+      if(this.error)return null;
+      if(this.resultCount!==null && ([...this.segments.keys()].some(index=>index>=this.resultCount)||
+        [...this.segments.keys()].some((index,i,keys)=>index!==i))){this.reject('A phrase segment is missing. Say the command again.');return null;}
+      if(this.resultCount!==null && this.resultCount>this.cursor+1)return null;
+      const segment=this.segments.get(this.cursor);
+      if(!segment?.final)return null;
+      if(!segment.text.trim()){this.reject('The browser speech service returned empty text. Say the command again.');return null;}
+      try {this.proposal=parseCommand(segment.text,context.locale);this.proposalEnd=this.cursor+1;this.phase='review';return this.proposal;}
+      catch(error){this.reject(error.message);return null;}
+    }
     prepareReady(id, context, parseCommand = parse) { return this.prepare(id, context, false, parseCommand); }
     finish(id, context, parseCommand = parse) { return this.prepare(id, context, true, parseCommand); }
     prepare(id, context, finishing, parseCommand = parse) {
@@ -391,5 +448,5 @@
     }
     cancel() { this.id = null; this.phase = 'cancelled'; this.segments = new Map(); this.proposal = null; this.cursor = 0; this.proposalEnd = null; this.resultCount = null; }
   }
-  return { RANKS, SUITS, EN_RANKS, EN_SUITS, normalize, parse, parseChips, resolveAction, getClarification, completeClarification, RecognitionSession, qualityGate: Object.freeze({ acoustic: 'NOT_EXECUTED', autoApply: true, rule: 'FINAL_VALIDATED_ONLY' }) };
+  return { RANKS, SUITS, EN_RANKS, EN_SUITS, normalize, parse, parseContextual, parseChips, resolveAction, getClarification, completeClarification, RecognitionSession, qualityGate: Object.freeze({ acoustic: 'NOT_EXECUTED', autoApply: true, rule: 'FINAL_VALIDATED_ONLY' }) };
 });

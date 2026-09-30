@@ -48,8 +48,8 @@
             <section class="table-surface" aria-label="Analysis table and card entry" data-entry-surface tabindex="0">
               <div class="mesa-stage"><div class="poker-table"><div class="table-felt">
                 <div id="analysis-seats" class="analysis-seats" aria-label="Illustrative positions; opponent stacks not provided"></div>
-                <div class="table-center"><span class="eyebrow">POT · CHIPS</span><strong class="pot-value" id="table-pot">—</strong><div id="board-slots" class="board-cards" role="group" aria-label="Community cards"></div></div>
-                <div class="hero-position"><div id="hero-slots" class="hero-cards" role="group" aria-label="Your hole cards"></div><div class="seat hero-seat"><span id="table-position">YOU · BTN</span><b id="table-stack">100</b></div></div>
+                <div class="table-center"><div class="table-pot-summary" aria-label="Total pot in chips"><span class="eyebrow">TOTAL POT · CHIPS</span><strong class="pot-value" id="table-pot">—</strong><span id="table-pot-detail" class="table-pot-detail" hidden></span></div><div id="board-slots" class="board-cards" role="group" aria-label="Community cards"></div></div>
+                <div class="hero-position"><div id="hero-slots" class="hero-cards" role="group" aria-label="Your hole cards"></div><button type="button" class="seat hero-seat" id="mw-hero-seat" aria-label="Your seat"><span id="table-position">YOU · BTN</span><span class="hero-stack-line">Stack <b id="table-stack">100</b></span><small id="hero-street-paid" hidden></small></button></div>
               </div></div></div>
               <p id="selected-card-label" class="selected-card-label"></p>
               <div class="table-meta"><span>To call <b id="table-call">—</b></span><span id="table-card-count">0/5 hole · 0/5 board</span></div>

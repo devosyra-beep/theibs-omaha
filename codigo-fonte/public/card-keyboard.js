@@ -16,6 +16,7 @@
   let renderedCount = null, slotElements = [], renderedCards = [], deckButtons = [];
   let renderedDeckState = null;
   let multiwayBoardDraft = null;
+  let ledgerUndoPending = false;
   const cardTemplate = document.createElement('template');
   const setText = (selector, text) => {
     const element = $(selector);
@@ -227,6 +228,86 @@
     }
     if (state.undo()) writeInputs('undo');
   }
+  function discardDraft() {
+    clearPending();
+    const app=window.theibsApp?.getState?.();
+    if(document.body.dataset.multiway==='on' && app?.multiway && app?.multiwayState){
+      const before=JSON.stringify(state.snapshot()),hadInvalid=manualInvalid;
+      const count=Number(app.multiway.config.variant.match(/\d/)[0]);
+      const hero=(app.multiway.config.heroCards||[]).map(api.fromCanonical);
+      const board=(app.multiwayState.board||[]).map(api.fromCanonical);
+      multiwayBoardDraft=null;
+      state.restore({count,slots:[...hero,...Array(count-hero.length).fill(null),...board,...Array(5-board.length).fill(null)],selected:0});
+      state.undoStack=[];manualInvalid=false;
+      if(before!==JSON.stringify(state.snapshot())||hadInvalid)writeInputs('reset-pending');
+      else render();
+      return;
+    }
+    const draft=multiwayBoardDraft;
+    if(draft){multiwayBoardDraft=null;state.restore(draft.snapshot);state.undoStack=draft.undoStack.map(entry=>({...entry,slots:[...entry.slots]}));}
+    message='';render();
+  }
+  function addPendingVoiceBoardCards(cards,expectedRevision,expectedStateToken) {
+    const range=multiwayBoardRange();
+    if(!active() || manualInvalid || expectedRevision!==revision || !range || range.context.stateToken!==expectedStateToken)
+      return {ok:false,error:'The board changed. Speak the cards again.'};
+    if(!Array.isArray(cards) || !cards.length)return {ok:false,error:'Say at least one complete board card.'};
+    const empty=[];
+    for(let index=range.start;index<range.end;index++)if(!state.slots[index])empty.push(index);
+    if(cards.length>=empty.length)return {ok:false,error:'The final board cards must be committed together.'};
+    let decoded;
+    try{decoded=cards.map(api.fromCanonical);}catch(error){return {ok:false,error:error.message};}
+    const snapshot=state.snapshot(),undo=copyUndoStack(),priorDraft=multiwayBoardDraft;
+    rememberMultiwayBoardDraft(range);
+    for(let i=0;i<decoded.length;i++){
+      state.select(empty[i]);
+      if(!state.assign(decoded[i])){
+        state.restore(snapshot);state.undoStack=undo;
+        multiwayBoardDraft=priorDraft;
+        return {ok:false,error:state.error||'The board card was not accepted.'};
+      }
+    }
+    revision++;clearPending();render();
+    announce(`${range.street==='FLOP'?'Flop':range.street}: ${range.needed-empty.length+cards.length}/${range.needed}. Speak the remaining card${empty.length-cards.length===1?'':'s'}.`);
+    return {ok:true,pendingBoard:true,revision};
+  }
+  function undoPendingBoard(expectedRevision,expectedStateToken) {
+    const draft=multiwayBoardDraft;
+    if(!draft || draft.stateToken!==expectedStateToken || expectedRevision!==revision)
+      return {ok:false,error:'The pending board entry changed. Check the table before undoing.'};
+    state.restore(draft.snapshot);
+    state.undoStack=draft.undoStack.map(entry=>({...entry,slots:[...entry.slots]}));
+    multiwayBoardDraft=null;revision++;clearPending();render();
+    announce('Pending board cards cleared. Confirmed table events were kept.');
+    return {ok:true,pendingBoardUndo:true,revision};
+  }
+  async function undoConfirmedTableEvent({expectedRevisionKey}={}) {
+    if(ledgerUndoPending)return false;
+    const captured=multiwayContext(),initial=window.theibsApp?.getState?.();
+    if(!captured?.enabled || !initial?.multiway?.events?.length ||
+      expectedRevisionKey!==undefined && captured.revisionKey!==expectedRevisionKey)return false;
+    const before={revisionKey:captured.revisionKey,eventsLength:initial.multiway.events.length};
+    ledgerUndoPending=true;
+    try{
+      discardDraft();
+      const deadline=performance.now()+3000;
+      let current=multiwayContext();
+      while(current?.busy && performance.now()<deadline){
+        await new Promise(resolve=>setTimeout(resolve,40));
+        current=multiwayContext();
+      }
+      const app=window.theibsApp?.getState?.();
+      if(!current?.enabled || current.busy || current.revisionKey!==before.revisionKey ||
+        app?.multiway?.events?.length!==before.eventsLength)
+        throw Error('The table changed before Undo. Check the current hand.');
+      const undoAction=window.theibsMultiwayUI?.undoAction;
+      if(typeof undoAction!=='function')throw Error('Table undo is unavailable.');
+      const ok=await undoAction({expectedToken:current.token});
+      announce(ok?'Last confirmed table event undone.':'No confirmed table event to undo.',!ok);
+      return ok;
+    }catch(error){announce(error?.message||'Could not undo the table event.',true);return false;}
+    finally{ledgerUndoPending=false;}
+  }
   function removeSelected() {
     const range = multiwayBoardRange();
     if (range && isMultiwayBoardSlot(state.selected, range)) {
@@ -283,8 +364,16 @@
   document.addEventListener('keydown', (event) => {
     if (!active() || isEditing(event.target) || event.isComposing || event.repeat) return;
     if (event.ctrlKey || event.metaKey) {
+      if(event.shiftKey)return;
       const key = event.key.toLowerCase();
-      if (key === 'z') { event.preventDefault(); undo(); }
+      if (key === 'z') {
+        event.preventDefault();
+        const table=multiwayContext();
+        if(table?.enabled && ['BETTING','WAIT_BOARD'].includes(table.phase)){
+          if(!window.theibsApp?.getState?.().multiway?.events?.length){undo();return;}
+          void undoConfirmedTableEvent({expectedRevisionKey:table.revisionKey});
+        }else undo();
+      }
       else if (key === 'c') { event.preventDefault(); copy(); }
       else if (key === 's') { event.preventDefault(); exportDraft(); }
       else if (/^[1-4]$/.test(key)) { event.preventDefault(); select(({ 1: 0, 2: state.count, 3: state.count + 3, 4: state.count + 4 })[key]); }
@@ -340,6 +429,10 @@
       return { ok: true, revision, snapshot: state.snapshot() };
     },
     cancelPending() { clearPending(); render(); },
+    discardDraft,
+    undoConfirmedTableEvent,
+    addPendingVoiceBoardCards,
+    undoPendingBoard,
     manualDraft() { return manualInvalid ? { hero: heroInput.value, board: boardInput.value, invalid: true } : null; },
     restoreManualDraft(draft) {
       if (!draft || draft.invalid !== true || typeof draft.hero !== 'string' || typeof draft.board !== 'string') return;

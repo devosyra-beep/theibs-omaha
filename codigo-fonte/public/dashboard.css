@@ -929,3 +929,17 @@ body[data-view=analyze] #card-voice-disclosure>summary { color:var(--foreground)
  .table-surface .hero-cards { gap:2px; }
  .table-surface .hero-cards:has(> :nth-child(6)) { --hand-card-width:clamp(38px,11.8cqw,45px); }
 }
+
+/* The New hand/game button gains an icon-button class before app.js sets its
+   visible label. Give that label its own width on desktop and a plus on mobile. */
+.topbar #new-hand.icon-button { width:auto; min-width:108px; height:40px; padding:8px 12px!important; white-space:nowrap; flex:none; line-height:1.2; }
+@media(max-width:700px) {
+  .topbar #new-hand.icon-button { position:relative; width:44px; min-width:44px; height:44px; padding:0!important; font-size:0!important; }
+  .topbar #new-hand.icon-button::before { content:''; position:absolute; top:50%; left:50%; width:20px; height:20px; transform:translate(-50%,-50%); background:linear-gradient(currentColor,currentColor) center/16px 2px no-repeat,linear-gradient(currentColor,currentColor) center/2px 16px no-repeat; pointer-events:none; }
+  .primary-rail { padding-bottom:5px; }
+  .topbar { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; height:54px; min-height:54px; gap:8px; }
+  .topbar .breadcrumb { min-width:0; }
+  .topbar #view-title { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12px; }
+  .topbar .top-actions { display:flex; align-items:center; gap:8px; flex:none; }
+  .topbar #mobile-tools>summary { height:44px; min-width:78px; }
+}

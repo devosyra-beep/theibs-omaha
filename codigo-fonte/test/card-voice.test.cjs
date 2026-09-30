@@ -282,7 +282,8 @@ test('six-player CO table keeps opponent numbers after Adv.1 folds in both langu
  const mw=require('../src/multiway-session');
  for(const locale of ['pt-BR','en-US']){
   const en=locale==='en-US';let record=mw.start({variant:'PLO5_HIGH',playerCount:6,heroPosition:'CO',startingStack:100,smallBlind:1,bigBlind:2,heroCards:['As','Kh','Qd','Jc','Ts']});
-  const opponents=record.state.players.filter(p=>!p.hero),ids=opponents.map(p=>p.id);
+   const tableIds=record.state.players.filter(p=>!p.hero).map(p=>p.id);
+   const opponents=record.state.players.filter(p=>!p.hero).sort((a,b)=>Number(a.seatName.slice(1))-Number(b.seatName.slice(1))),ids=opponents.map(p=>p.id);
   for(let n=0;n<6&&record.state.phase==='BETTING';n++){
    const actor=record.state.players.find(p=>p.id===record.state.actor),ordinal=ids.indexOf(actor.id)+1;
    const action=actor.id===ids[0]?'FOLD':record.state.legal.actions.includes('CALL')?'CALL':'CHECK';
@@ -295,7 +296,7 @@ test('six-player CO table keeps opponent numbers after Adv.1 folds in both langu
   assert.equal(record.state.actor,ids[1]);
   assert.throws(()=>resolveAction(parse(en?'opponent one check':'adversário um passa',locale),record.state));
   assert.equal(resolveAction(parse(en?'opponent two check':'adversário dois passa',locale),record.state).actor,ids[1]);
-  assert.deepEqual(record.state.players.filter(p=>!p.hero).map(p=>p.id),ids);
+   assert.deepEqual(record.state.players.filter(p=>!p.hero).map(p=>p.id),tableIds);
  }
 });
 test('voice actions use actual actor/legal sizing and produce canonical ledger events in both languages',()=>{

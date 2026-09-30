@@ -36,19 +36,15 @@
     const hero=state.players.findIndex(p=>p.hero);
     const opponents=Array.from({length:state.players.length-1},(_,i)=>state.players[(hero+i+1)%state.players.length]);
     return opponents.map((p,i)=>{
-      const count=opponents.length, topCount=Math.min(5,count), spread=topCount===1?0:topCount===2?20:topCount===3?28:topCount===4?34:38;
-      const position=i<topCount
-        ? [50-spread+(topCount===1?0:2*spread*i/(topCount-1)),3]
-        : [i%2===topCount%2?12:88,22+Math.floor((i-topCount)/2)*20];
-      const mobileTopCount=Math.min(5,count),mobileSpread=mobileTopCount===1?0:mobileTopCount===2?20:mobileTopCount===3?29:mobileTopCount===4?34:38;
-      const mobilePosition=i<mobileTopCount
-        ? [50-mobileSpread+(mobileTopCount===1?0:2*mobileSpread*i/(mobileTopCount-1)),3]
-        : [20+((i-mobileTopCount)%4)*20,19+Math.floor((i-mobileTopCount)/4)*20];
-      const [x,y]=position;
+      // A1 starts left of Hero. Seats continue around the far edge of the
+      // table, independently of poker position and without moving on folds.
+      const count=opponents.length, arc=count===1?0:Math.PI*i/(count-1);
+      const x=count===1?9:50-42*Math.cos(arc), y=count===1?54:54-66*Math.sin(arc);
+      const mobileX=count===1?6:50-44*Math.cos(arc), mobileY=count===1?42:42-42*Math.sin(arc);
       const status=p.folded?'Folded':p.allIn?'All-in':state.actor===p.id?'To act':p.lastAction||'';
       const checked=!p.folded&&!p.allIn&&state.actor!==p.id&&p.lastAction==='CHECK';
-      const name=(p.name||`Opp. ${state.players.filter(item=>!item.hero).findIndex(item=>item.id===p.id)+1}`).replace(/^Adv\./i,'Opp.');
-      return `<button type="button" class="opponent-place multiway-seat${p.folded?' folded':''}${state.actor===p.id?' acting to-act':''}${checked?' checked':''}" style="--seat-x:${x}%;--seat-y:${y}%;--seat-x-mobile:${mobilePosition[0]}%;--seat-y-mobile:${mobilePosition[1]}%" data-multiway-player="${p.id}" aria-label="${esc(name)} · ${esc(p.position)}: ${esc(status)}, stack ${money(p.stack)}">${hiddenCards(holeCount)}<span class="opponent-name">${esc(name)} · ${esc(p.position)} · ${money(p.stack)}</span>${status?`<span class="multiway-seat-status">${esc(({CALL:'Called',CHECK:'Checked',BET:'Bet',RAISE:'Raised',FOLD:'Folded','To act':'TO ACT'})[status]||status)}</span>`:''}</button>`;
+      const name=(p.seatName||p.name||`A${i+1}`).replace(/^Adv\./i,'Opp.');
+      return `<button type="button" class="opponent-place multiway-seat${p.folded?' folded':''}${state.actor===p.id?' acting to-act':''}${checked?' checked':''}" style="--seat-x:${x.toFixed(2)}%;--seat-y:${y.toFixed(2)}%;--seat-x-mobile:${mobileX.toFixed(2)}%;--seat-y-mobile:${mobileY.toFixed(2)}%" data-multiway-player="${p.id}" data-seat-count="${count}" data-seat-index="${i+1}" aria-haspopup="dialog" aria-label="${esc(name)}, ${esc(p.position)}, stack ${money(p.stack)}, ${money(p.streetPaid)} committed this street${status?', '+esc(status):''}. View seat.">${hiddenCards(holeCount)}<span class="opponent-name"><b>${esc(name)}</b><span>${esc(p.position)}</span></span><span class="mw-seat-stack">Stack <b>${money(p.stack)}</b></span><span class="mw-seat-paid">In <b>${money(p.streetPaid)}</b></span>${status?`<span class="multiway-seat-status">${esc(({CALL:'Called',CHECK:'Checked',BET:'Bet',RAISE:'Raised',FOLD:'Folded','To act':'TO ACT'})[status]||status)}</span>`:''}</button>`;
     }).join('');
   }
   window.EssenceUI = { esc, cardMarkup, canonicalCard, money, trainingTable, hiddenCards, opponentSeats, multiwaySeats };

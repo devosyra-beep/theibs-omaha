@@ -46,6 +46,43 @@ test('stateless start and observed fold preserve pot, physical seats and canonic
   assert.equal((await post('/api/multiway/step', { multiway: next.multiway, expectedRevision: 0, event: act(2, 'CALL') })).httpStatus, 409);
 });
 
+test('revision key rejects delayed actions after undo and New Game even when event counts match', async () => {
+  const first = await post('/api/multiway/start', { config });
+  assert.match(first.multiway.handId, /^[0-9a-f-]{36}$/i);
+  assert.equal(first.multiway.editEpoch, 0);
+  const firstKey = first.state.revisionKey;
+  const acted = await post('/api/multiway/step', { multiway: first.multiway, event: act(2, 'CALL'),
+    expectedRevision: 0, expectedRevisionKey: firstKey });
+  assert.equal(acted.httpStatus, 200, acted.reason);
+  assert.notEqual(acted.state.revisionKey, firstKey);
+  const undone = await post('/api/multiway/undo', { multiway: acted.multiway, expectedRevisionKey: acted.state.revisionKey });
+  assert.equal(undone.httpStatus, 200, undone.reason);
+  assert.equal(undone.multiway.handId, first.multiway.handId);
+  assert.equal(undone.multiway.editEpoch, 1);
+  assert.equal(undone.state.revision, 0);
+  assert.equal(undone.state.actor, first.state.actor);
+  assert.equal(undone.state.pot, first.state.pot);
+  assert.deepEqual(undone.state.players.map(player => player.stack), first.state.players.map(player => player.stack));
+  assert.notEqual(undone.state.revisionKey, firstKey);
+  assert.equal((await post('/api/multiway/step', { multiway: undone.multiway, event: act(2, 'CALL'),
+    expectedRevision: 0, expectedRevisionKey: firstKey })).httpStatus, 409);
+  const newGame = await post('/api/multiway/start', { config });
+  assert.notEqual(newGame.multiway.handId, first.multiway.handId);
+  assert.notEqual(newGame.state.revisionKey, firstKey);
+  assert.equal((await post('/api/multiway/step', { multiway: newGame.multiway, event: act(2, 'CALL'),
+    expectedRevision: 0, expectedRevisionKey: firstKey })).httpStatus, 409);
+});
+
+test('legacy Multiway workspace can replay and receives an identity on mutation', () => {
+  const current = multiway.start(config).multiway;
+  const legacy = { schemaVersion: 1, enabled: true, config: current.config, events: [] };
+  assert.deepEqual(multiway.validateRecord(legacy), legacy);
+  const next = multiway.step(legacy, act(2, 'CALL'));
+  assert.match(next.multiway.handId, /^[0-9a-f-]{36}$/i);
+  assert.equal(next.multiway.editEpoch, 0);
+  assert.equal(next.state.revision, 1);
+});
+
 test('analyze and doubt derive observed facts and withhold unknown responses instead of recommending fold by default', async () => {
   const record = multiway.start(config).multiway;
   const payload = { ...simple, multiway: record, potBeforeAction: 99999, amountToCall: 99, players: 9,

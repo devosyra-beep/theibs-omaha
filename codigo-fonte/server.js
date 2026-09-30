@@ -350,7 +350,8 @@ const server = http.createServer(async (request, response) => {
       if (route === '/api/equity') return json(response, 200, await analyzeInWorker.equity(prepareOpponentOverrides(buildInput(payload)), response));
       if (route === '/api/multiway/start') return json(response, 200, multiway.start(payload.config));
       if (route === '/api/multiway/state') return json(response, 200, multiway.envelope(payload.multiway));
-      if (route === '/api/multiway/step') return json(response, 200, multiway.step(payload.multiway, payload.event, payload.expectedRevision));
+      if (route === '/api/multiway/step') return json(response, 200, multiway.step(payload.multiway, payload.event, payload.expectedRevision, payload.expectedRevisionKey));
+      if (route === '/api/multiway/undo') return json(response, 200, multiway.undo(payload.multiway, payload.expectedRevisionKey));
       if (route === '/api/training/start') {
         const session = createSession(payload);
         if (sessions.size >= 100) {

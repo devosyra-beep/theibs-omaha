@@ -121,7 +121,7 @@
   $('.context-rail').append(facts);
   const modelLabel=document.createElement('label');modelLabel.innerHTML='Unknown opponent hands<select id="opponentModel"><option value="UNIFORM">Baseline: random hands</option><option value="EXPLICIT">Use only the entered hand / range</option></select><small>The random estimate includes every opponent still in the hand.</small>';
   $('#opponentHand').closest('.controls-panel').querySelector('.form-grid').before(modelLabel);
-  const auto=document.createElement('label');auto.className='checkbox-label multiway-auto-toggle';auto.innerHTML='<input id="auto-analysis" type="checkbox" checked> Calculate automatically when cards are complete';
+  const auto=document.createElement('label');auto.className='checkbox-label multiway-auto-toggle';auto.innerHTML='<input id="auto-analysis" type="checkbox" checked> Calculate automatically in standalone analysis';
   settings.querySelector('.dialog-content').prepend(auto);
   $('#assumeNoRake').checked=true;
   const scenarios=document.createElement('details');scenarios.className='panel controls-panel';scenarios.id='raise-model-panel';

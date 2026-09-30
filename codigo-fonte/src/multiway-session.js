@@ -1,4 +1,5 @@
 'use strict';
+const { createHash, randomUUID } = require('node:crypto');
 const { replay, POSITIONS } = require('./hand-flow');
 const { normalizeCards, cardCodes } = require('./cards');
 const { holeCount } = require('./variants');
@@ -46,9 +47,26 @@ function canonicalEvent(raw) {
 function validateRecord(raw) {
   if (!object(raw) || raw.schemaVersion !== 1 || typeof raw.enabled !== 'boolean') throw Error('Invalid Multiway record.');
   if (!Array.isArray(raw.events) || raw.events.length > 500) throw Error('Multiway accepts up to 500 events per hand.');
-  const record = { schemaVersion: 1, enabled: raw.enabled, config: canonicalConfig(raw.config), events: raw.events.map(canonicalEvent) };
+  // Older saved workspaces have neither field. Keep them readable, then give
+  // the hand an identity when it is next changed.
+  if (raw.handId !== undefined && (typeof raw.handId !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(raw.handId))) throw Error('Invalid Multiway hand identity.');
+  if (raw.editEpoch !== undefined && (!Number.isSafeInteger(raw.editEpoch) || raw.editEpoch < 0)) throw Error('Invalid Multiway edit epoch.');
+  const record = { schemaVersion: 1, enabled: raw.enabled, config: canonicalConfig(raw.config), events: raw.events.map(canonicalEvent),
+    ...(raw.handId ? { handId: raw.handId } : {}), ...(raw.editEpoch !== undefined ? { editEpoch: raw.editEpoch } : {}) };
   replay(record.config, record.events);
   return record;
+}
+
+function revisionKey(record) {
+  return createHash('sha256').update(JSON.stringify({ handId: record.handId || null, editEpoch: record.editEpoch || 0,
+    enabled: record.enabled, config: record.config, events: record.events })).digest('hex');
+}
+
+function requireRevision(record, expectedRevision, expectedRevisionKey) {
+  if ((expectedRevision !== undefined && expectedRevision !== record.events.length) ||
+      (expectedRevisionKey !== undefined && expectedRevisionKey !== revisionKey(record))) {
+    const error = Error('Multiway revision changed; refresh the state before recording.'); error.statusCode = 409; throw error;
+  }
 }
 
 function envelope(raw) {
@@ -76,19 +94,27 @@ function envelope(raw) {
     actionHistory: state.log, sidePots: state.hasSidePots };
   const warnings = ['Actions and contributions were entered by the user. They do not determine opponent cards or response frequencies.'];
   if (multiway.events.some(event => event.type === 'MARK_FOLD')) warnings.push('An out-of-turn fold was recorded: the observed history is partial; no intervening action was invented.');
-  return { status: 'OK', multiway, state: { ...state, revision: multiway.events.length, source: SOURCE },
+  return { status: 'OK', multiway, state: { ...state, revision: multiway.events.length,
+    revisionKey: revisionKey(multiway), handId: multiway.handId || null, source: SOURCE },
     analysis: { available: reasons.length === 0, reasons, input, source: SOURCE,
       activeOpponentIds: opponents.map(player => player.id), warnings } };
 }
 
-function start(config) { return envelope({ schemaVersion: 1, enabled: true, config, events: [] }); }
-function step(raw, rawEvent, expectedRevision) {
+function start(config) { return envelope({ schemaVersion: 1, enabled: true, config, events: [], handId: randomUUID(), editEpoch: 0 }); }
+function step(raw, rawEvent, expectedRevision, expectedRevisionKey) {
   const record = validateRecord(raw);
-  if (expectedRevision !== undefined && expectedRevision !== record.events.length) {
-    const error = Error('Multiway revision changed; refresh the state before recording.'); error.statusCode = 409; throw error;
-  }
+  requireRevision(record, expectedRevision, expectedRevisionKey);
   if (!record.enabled) throw Error('Turn on Multiway to record actions.');
-  return envelope({ ...record, events: [...record.events, canonicalEvent(rawEvent)] });
+  return envelope({ ...record, handId: record.handId || randomUUID(), editEpoch: record.editEpoch || 0,
+    events: [...record.events, canonicalEvent(rawEvent)] });
+}
+
+function undo(raw, expectedRevisionKey) {
+  const record = validateRecord(raw);
+  requireRevision(record, undefined, expectedRevisionKey);
+  if (!record.events.length) throw Error('There is no confirmed event to undo.');
+  return envelope({ ...record, handId: record.handId || randomUUID(), editEpoch: (record.editEpoch || 0) + 1,
+    events: record.events.slice(0, -1) });
 }
 
 function sameSeats(ids, expected) {
@@ -201,4 +227,4 @@ function guardResult(result, prepared) {
   return result;
 }
 
-module.exports = { SOURCE, validateRecord, envelope, start, step, prepareAnalysis, blockedResult, guardResult };
+module.exports = { SOURCE, validateRecord, envelope, start, step, undo, prepareAnalysis, blockedResult, guardResult };

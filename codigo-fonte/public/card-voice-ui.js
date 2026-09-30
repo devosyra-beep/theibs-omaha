@@ -11,19 +11,19 @@
     <div class="voice-options"><label>Recognition language<select id="voice-language"><option value="pt-BR">Portuguese (Brazil) · PT-BR</option><option value="en-US">English (US) · EN-US</option></select></label>
     <label>Audio processing<select id="voice-processing"><option value="browser">Browser speech service</option><option value="device">On this device only</option></select></label></div>
     <p id="voice-language-description" class="voice-help">Choose the language you will speak. The command guide below follows this selection.</p>
-    <label class="voice-consent"><input id="voice-auto-apply" type="checkbox" checked> Apply recognized cards and advance to the next position</label>
+    <label class="voice-consent"><input id="voice-auto-apply" type="checkbox" checked> Apply validated final cards and actions automatically</label>
     <p id="voice-privacy" class="voice-help">Your browser's speech service may send audio to its provider. Processing and retention depend on the provider. THEIBS does not record audio or save transcripts.</p>
     <label class="voice-consent"><input id="voice-consent" type="checkbox"> Enable voice commands</label>
     <div class="voice-actions"><button id="voice-hold" type="button">Hold to speak</button><button id="voice-toggle" type="button" aria-pressed="false" title="Alt+V">Start voice · Alt+V</button><button id="voice-cancel" type="button" disabled>Cancel</button><button id="voice-undo" type="button" disabled>Undo last entry</button></div>
     <p id="voice-status" role="status" aria-live="polite">Select the language you will speak. The card keyboard remains available.</p>
     <div id="voice-review" hidden><p class="voice-help">Review the phrase and destination before applying:</p><output id="voice-transcript"></output><strong id="voice-proposal"></strong><button id="voice-apply" type="button">Apply reviewed batch</button></div>
     <div id="voice-language-guides">
-      <section data-voice-language-guide="pt-BR"><p class="voice-help">Speak a complete rank and suit for each card in one phrase, for example: “minhas cartas, ás de espadas, valete de copas, dama de ouros, dez de paus”. A batch may contain 4, 5, or 6 hole cards. Say “desfazer” to undo.</p>
-      <p class="voice-help">For Multiway, record one observed action at a time, for example: “eu pago” or “adversário um aumenta para seis”. The actor must be next to act. A raise amount is the total for this street; THEIBS never sends a bet to an external table.</p>
-      <details><summary>Portuguese commands and numbers</summary><p class="voice-help">Ranks: ás, dois, três, quatro, cinco, seis, sete, oito, nove, dez, valete, dama/rainha, rei. Suits: espadas, copas, ouros, paus. Digits 2–10 also work; “ás/A” and “valete/jota/jack” are accepted variants.</p><p class="voice-help">Destinations and edits: “minhas cartas”, “flop”, “turn”, “river”, “board”, “selecionar carta três”, “corrigir carta três para dama de ouros”, “remover carta selecionada”, “desfazer”, “cancelar”. Without a destination, the selected slot is used. One batch stays within its street.</p><p class="voice-help">Multiway actions: “eu”/“herói” or “adversário N” (N is the table's opponent number); “desistir”, “passar”, “pagar”, “apostar”, “aumenta para”, “aumenta em”, “all-in”. For example, “dois vírgula cinquenta” means 2.50. Whole numbers are supported up to 999999.99. Call uses the table's current price; all-in uses the available stack only when legal. Speak one action per phrase and provide only the requested detail when prompted.</p></details></section>
-      <section data-voice-language-guide="en-US" hidden><p class="voice-help">Speak a complete rank and suit for each card in one phrase, for example: “my cards, ace of spades, jack of hearts, queen of diamonds, ten of clubs”. A batch may contain 4, 5, or 6 hole cards. Say “undo” to correct an entry.</p>
-      <p class="voice-help">For Multiway, record one observed action at a time, for example: “hero call” or “opponent one raises to six”. The actor must be next to act. A raise amount is the total for this street; THEIBS never sends a bet to an external table.</p>
-      <details><summary>English commands and numbers</summary><p class="voice-help">Ranks: ace, two, three, four, five, six, seven, eight, nine, ten, jack, queen, king. Suits: spades, hearts, diamonds, clubs. Digits 2–10 also work; “to”, “for”, “ate”, and “one” are not cards.</p><p class="voice-help">Destinations and edits: “my cards”, “flop”, “turn”, “river”, “board”, “select card three”, “correct card three to queen of diamonds”, “remove selected card”, “undo”, “cancel”. Without a destination, the selected slot is used. One batch stays within its street.</p><p class="voice-help">Multiway actions: “hero”/“I” or “opponent N” (N is the table's opponent number); “fold”, “check”, “call”, “bet”, “raise to”, “raise by”, “all-in”. For example, “two point five” means 2.50. Whole numbers are supported up to 999999.99. Call uses the table's current price; all-in uses the available stack only when legal. Speak one action per phrase and provide only the requested detail when prompted.</p></details></section>
+      <section data-voice-language-guide="pt-BR"><p class="voice-help">Speak complete cards in one phrase, for example: “ás copas, dez paus, dama ouros, valete espadas”. In Multiway, the table selects Hero or the next board street. You can name a destination to edit it explicitly.</p>
+      <p class="voice-help">When a player is highlighted, say one short observed action: “desistir”, “passar”, “pago”, “aposto vinte”, “aumento vinte e cinco” or “all-in”. The action belongs to that player. “A1 desistir” names a seat explicitly and must match the current turn. A raise amount is the player's total contribution for this street. Say “aumento” alone, then speak the total when the inline field appears. THEIBS never sends a bet to an external table.</p>
+      <details><summary>Portuguese commands and numbers</summary><p class="voice-help">Ranks: ás, dois, três, quatro, cinco, seis, sete, oito, nove, dez, valete, dama/rainha, rei. Suits: espadas, copas, ouros, paus. Digits 2–10 also work; “ás/A” and “valete/jota/jack” are accepted variants. “De” is optional between rank and suit.</p><p class="voice-help">Destinations and edits: “minhas cartas”, “flop”, “turn”, “river”, “board”, “selecionar carta três”, “corrigir carta três para dama de ouros”, “remover carta selecionada”, “desfazer”, “cancelar”. Multiway selects the expected cards automatically; in isolated Analysis, the selected slot is used. You can speak board cards one at a time or as the complete street.</p><p class="voice-help">Multiway actions: “desistir”, “passar”, “pagar”, “apostar”, “aumentar”, “all-in”. “Eu”/“herói” or “adversário N” may identify the player explicitly; if spoken, that player must be next. “Minha vez” reports who is next without recording an action. For example, “dois vírgula cinquenta” means 2.50. Whole numbers are supported up to 999999.99. Call uses the table's current price; all-in uses the available stack only when legal. Speak one action per phrase and provide only the requested detail when prompted.</p></details></section>
+      <section data-voice-language-guide="en-US" hidden><p class="voice-help">Speak complete cards in one phrase, for example: “ace hearts, ten clubs, queen diamonds, jack spades”. In Multiway, the table selects Hero or the next board street. You can name a destination to edit it explicitly.</p>
+      <p class="voice-help">When a player is highlighted, say one short observed action: “fold”, “check”, “call”, “bet twenty”, “raise twenty five” or “all-in”. The action belongs to that player. “A1 fold” names a seat explicitly and must match the current turn. A raise amount is the player's total contribution for this street. Say “raise” alone, then speak the total when the inline field appears. THEIBS never sends a bet to an external table.</p>
+      <details><summary>English commands and numbers</summary><p class="voice-help">Ranks: ace, two, three, four, five, six, seven, eight, nine, ten, jack, queen, king. Suits: spades, hearts, diamonds, clubs. “Of” is optional between rank and suit. Digits 2–10 also work; “to”, “for”, “ate”, and “one” are not cards.</p><p class="voice-help">Destinations and edits: “my cards”, “flop”, “turn”, “river”, “board”, “select card three”, “correct card three to queen of diamonds”, “remove selected card”, “undo”, “cancel”. Multiway selects the expected cards automatically; in isolated Analysis, the selected slot is used. You can speak board cards one at a time or as the complete street.</p><p class="voice-help">Multiway actions: “fold”, “check”, “call”, “bet”, “raise”, “all-in”. “Hero”/“I” or “opponent N” may identify the player explicitly; if spoken, that player must be next. “My turn” reports who is next without recording an action. For example, “two point five” means 2.50. Whole numbers are supported up to 999999.99. Call uses the table's current price; all-in uses the available stack only when legal. Speak one action per phrase and provide only the requested detail when prompted.</p></details></section>
     </div>`;
   // The existing deck lives in Settings. Voice needs the visible Analyze
   // canvas, where the normal keyboard path and slot selection remain active.
@@ -149,7 +149,8 @@
     $('voice-hold').disabled = committing || !Recognition || !window.isSecureContext;
     $('voice-toggle').disabled = (committing && !listening) || !Recognition || !window.isSecureContext;
     $('voice-consent').disabled = committing;
-    $('voice-undo').disabled = committing || (!keyboard.state.undoStack.length && !lastLedgerUndo);
+    const tableUndo=window.theibsMultiwayUI?.getState?.()?.state?.log?.some(event=>!['SB','BB'].includes(event.action));
+    $('voice-undo').disabled = committing || !(tableUndo || keyboard.state.undoStack.length || lastLedgerUndo);
   }
   // Speak a full card or action sequence. Interim speech never closes capture.
   function requestFinal(current, reason) {
@@ -210,16 +211,17 @@
     await waitForNativeRelease();
   }
   function parseFinal(text, locale) {
+    const multiway=context().multiway;
     if (clarification) {
       if (performance.now() >= clarification.expiresAt || JSON.stringify(context()) !== clarification.contextKey) throw Error('The follow-up request expired. Say the full command again.');
       // A player may repeat the whole card instead of answering only the
       // missing rank or suit. Treat that as a fresh complete command.
-      try { return voice.parse(text, locale); } catch {}
+      try { return voice.parseContextual(text, locale, multiway); } catch {}
       const result = voice.completeClarification(clarification.request, text, locale);
       if (result.command) return result.command;
       return { type:'clarify', clarification: result.clarification || clarification.request, error: result.error };
     }
-    try { return voice.parse(text, locale); }
+    try { return voice.parseContextual(text, locale, multiway); }
     catch (error) {
       const request = voice.getClarification(text, locale);
       if (request) return { type:'clarify', clarification:request };
@@ -253,25 +255,40 @@
   function boardCommand(command, captured) {
     const mw = captured.multiway;
     if (!mw?.enabled) { if(command.type==='action')throw Error('Enable Multiway to record observed actions.'); return null; }
-    if(command.type==='action')return {action:voice.resolveAction(command,mw.actionState)};
-    if (command.type === 'undo') {
-      if (lastLedgerUndo && mw.token === lastLedgerUndo.token) return { undo: true, kind:lastLedgerUndo.kind };
-      const prior = keyboard.state.undoStack.at(-1);
-      if (prior && prior.count === captured.snapshot.count &&
-        JSON.stringify(prior.slots.slice(prior.count)) === JSON.stringify(captured.snapshot.slots.slice(prior.count))) return null;
-      throw Error('No card batch can be undone in this context. Use Multiway Undo to review the action history.');
+    if(command.type==='context')return {context:true};
+    if(command.type==='amount'){
+      if(!mw.pendingAmount)throw Error('No bet or raise amount is pending for this player.');
+      return {amount:command.to};
     }
-    const boardTarget = ['flop', 'turn', 'river', 'board'].includes(command.target);
+    if(command.type==='action')return command.to===undefined&&command.by===undefined&&['BET','RAISE'].includes(command.action)
+      ? {actionPending:command} : {action:voice.resolveAction(command,mw.actionState)};
+    if(command.type==='cancel'&&mw.pendingAmount)return {cancelPending:true};
+    if(command.type==='cards'&&command.target==='selected'&&mw.phase==='BETTING'&&mw.destination!=='hero')
+      throw Error('The table is waiting for the highlighted player’s action. Select a card destination explicitly to edit cards.');
+    if (command.type === 'undo') {
+      const start=captured.snapshot.count+(mw.board?.length||0),needed=mw.nextStreet==='FLOP'?3:1;
+      if(mw.phase==='WAIT_BOARD'&&captured.snapshot.slots.slice(start,start+needed).some(Boolean))return {undoPendingBoard:true};
+      if(window.theibsApp?.getState?.().multiway?.events?.length)return {undo:true};
+      if(keyboard.state.undoStack.length)return null;
+      throw Error('No confirmed action or card entry can be undone in this context.');
+    }
+    const boardTarget = ['flop', 'turn', 'river', 'board'].includes(command.target) ||
+      command.type==='cards' && command.target==='selected' && mw.phase==='WAIT_BOARD' && mw.destination==='board' &&
+      captured.snapshot.selected>=captured.snapshot.count;
     if (!boardTarget) return null;
     if (mw.phase !== 'WAIT_BOARD') throw Error('The Multiway board accepts the next street only after betting ends.');
     if (command.type !== 'cards') throw Error('For Multiway, say the street together with all of its cards.');
     const target = mw.nextStreet.toLowerCase();
-    if (command.target !== target && command.target !== 'board') throw Error('The spoken street is not the next street in the action history.');
-    if (command.cards.length !== (target === 'flop' ? 3 : 1)) throw Error('Speak the whole street: three flop cards or one turn/river card.');
+    if (command.target !== target && command.target !== 'board' && command.target !== 'selected') throw Error('The spoken street is not the next street in the action history.');
+    const needed=target==='flop'?3:1,start=captured.snapshot.count+(mw.board?.length||0);
+    const staged=captured.snapshot.slots.slice(start,start+needed).filter(Boolean).map(window.TheibsCards.toCanonical);
+    if(!command.cards.length||command.cards.length>needed-staged.length)
+      throw Error(`Speak up to ${needed-staged.length} remaining ${target} card${needed-staged.length===1?'':'s'}.`);
     const hero = captured.snapshot.slots.slice(0, captured.snapshot.count).filter(Boolean).map(window.TheibsCards.toCanonical);
-    const known = [...hero, ...(mw.board || []), ...command.cards];
+    const known = [...hero, ...(mw.board || []), ...staged, ...command.cards];
     if (new Set(known).size !== known.length) throw Error('A card is duplicated in the hand or board.');
-    return { addedCards: command.cards };
+    return command.cards.length<needed-staged.length ? {pendingBoard:command.cards}
+      : {addedCards:[...staged,...command.cards]};
   }
   function validate(command, captured) {
     if (!captured.active || captured.invalid) throw Error('Open Analyze and correct the text entry before speaking.');
@@ -285,7 +302,16 @@
   }
   function cardLabel(card) { return card.slice(0,-1).replace('T','10')+({s:'♠',h:'♥',d:'♦',c:'♣'})[card.slice(-1)]; }
   function describe(command, captured) {
+    if(command.type==='context'){
+      const actor=captured.multiway?.actionState?.players?.find(p=>p.id===captured.multiway.actionState.actor);
+      return actor?`${actor.name} · ${actor.position} is next to act`:'The table is waiting for its next entry';
+    }
+    if(command.type==='amount')return `Total ${command.to} chips this street for the highlighted player`;
     if(command.type==='action'){
+      if(command.to===undefined&&command.by===undefined&&['BET','RAISE'].includes(command.action)){
+        const actor=captured.multiway.actionState.players.find(p=>p.id===captured.multiway.actionState.actor);
+        return `${actor?.name||'Current player'} · ${command.action} · enter the total for this street`;
+      }
       const event=voice.resolveAction(command,captured.multiway.actionState),player=captured.multiway.actionState.players.find(p=>p.id===event.actor);
       const chips=n=>n.toLocaleString(captured.locale,{maximumFractionDigits:2});
       const amount=event.to!==undefined?` · ${chips(event.to)} chips total this street · add ${chips(event.to-player.streetPaid)} chips`
@@ -296,6 +322,17 @@
       ? (captured.snapshot.selected < captured.snapshot.count ? 'hand' : 'board') + ` · slot ${captured.snapshot.selected < captured.snapshot.count ? captured.snapshot.selected + 1 : captured.snapshot.selected - captured.snapshot.count + 1}`
       : ({ hero: 'hand', flop: 'flop', turn: 'turn', river: 'river', board: 'board' })[command.target] || 'current entry';
     return `${target} → ${command.cards?.map(cardLabel).join(' · ') || (command.card && cardLabel(command.card)) || ({ undo: 'undo', remove: 'remove card', select: `select position ${command.index + 1}`, target: 'select destination' })[command.type] || command.type}`;
+  }
+  function prepareProposal(id,captured,finishing=false) {
+    const sequential=captured.multiway?.enabled && captured.multiway.phase==='BETTING';
+    if(sequential){
+      if(session.readyFinalCount()>1){
+        session.reject('Several actions arrived in one speech result. Say one action at a time; nothing was recorded.');
+        return null;
+      }
+      return session.prepareNextFinal(id,captured,parseFinal);
+    }
+    return finishing?session.finish(id,captured,parseFinal):session.prepareReady(id,captured,parseFinal);
   }
   function applySpeechHints(recognizer, locale) {
     const Phrase = window.SpeechRecognitionPhrase || window.webkitSpeechRecognitionPhrase;
@@ -383,7 +420,7 @@
       return;
     }
     const started = performance.now(), captured = context();
-    const proposal = session.finish(current.id, captured, current.automatic ? parseFinal : voice.parse);
+    const proposal = prepareProposal(current.id, captured, true);
     sample = timing(current, started); controls();
     if (!proposal) {
       const error = displayError(session.error || 'Incomplete phrase.');
@@ -391,7 +428,7 @@
       else suspend(error + ' Say the complete card again.', true);
       return;
     }
-    if (proposal.type === 'cancel') { suspend('Phrase cancelled. Earlier entries were kept.'); return; }
+    if (proposal.type === 'cancel' && !captured.multiway?.pendingAmount) { suspend('Phrase cancelled. Earlier entries were kept.'); return; }
     if (proposal.type === 'clarify') { askForComplement(null, captured, proposal); return; }
     try { validate(proposal, captured); }
     catch (error) {
@@ -474,9 +511,9 @@
         for (let i = 0; i < event.results.length; i++) session.accept(current.id, i, event.results[i][0].transcript, event.results[i].isFinal);
         if (session.error) { discardOrRetry(current, capturedNow, session.error); return; }
         if (current.automatic) {
-          const proposal = session.prepareReady(current.id, capturedNow, parseFinal);
+           const proposal = prepareProposal(current.id, capturedNow);
           if (session.error) { discardOrRetry(current, capturedNow, session.error); return; }
-          if (proposal?.type === 'cancel') { suspend('Phrase cancelled. Earlier entries were kept.'); return; }
+           if (proposal?.type === 'cancel' && !capturedNow.multiway?.pendingAmount) { suspend('Phrase cancelled. Earlier entries were kept.'); return; }
           if (proposal?.type === 'clarify') { askForComplement(current, capturedNow, proposal); return; }
           if (proposal) {
             try { validate(proposal, capturedNow); }
@@ -537,18 +574,28 @@
     try {
       validate(command, captured);
       clearTimeout(clarificationTimer); clarificationTimer = null;
-      const board = boardCommand(command, captured), label = describe(command, captured);
-      let result;
-      if (board) {
+       const board = boardCommand(command, captured), label = describe(command, captured);
+       let result;
+       if (board) {
         // No speech can queue an action against a ledger that is changing.
         // Resume a fresh recognizer only after the HTTP transaction resolves.
         if (current && run === current) { run = null; try { current.recognition.abort(); } catch {} }
         const mw = window.theibsMultiwayUI;
-        const ok = board.undo ? await (board.kind==='ACT'?mw.undoVoiceAction:mw.undoVoiceBoard)({ expectedToken: captured.multiway.token })
-          : board.action ? await mw.commitVoiceAction({command,expectedToken:captured.multiway.token})
-          : await mw.commitVoiceBoard({ addedCards: board.addedCards, expectedToken: captured.multiway.token });
-        result = { ok, error: 'The transaction was not applied. Check the table and session before retrying.' };
-        lastLedgerUndo = ok && !board.undo ? {token:mw.voiceContext().token,kind:board.action?'ACT':'BOARD'} : null;
+         const outcome = board.context ? true
+           : board.cancelPending ? mw.cancelPendingAmount()
+           : board.undo ? await keyboard.undoConfirmedTableEvent({expectedRevisionKey:captured.multiway.revisionKey})
+           : board.undoPendingBoard ? keyboard.undoPendingBoard(captured.revision,captured.multiway.stateToken)
+           : board.amount ? await mw.submitPendingAmount({to:board.amount,expectedToken:captured.multiway.token})
+           : board.action || board.actionPending ? await mw.commitVoiceAction({command,expectedToken:captured.multiway.token})
+           : board.pendingBoard ? keyboard.addPendingVoiceBoardCards(board.pendingBoard,captured.revision,captured.multiway.stateToken)
+           : await mw.commitVoiceBoard({ addedCards: board.addedCards, expectedToken: captured.multiway.token });
+         const pendingAmount = outcome?.pending === true;
+         const pendingBoard=outcome?.pendingBoard===true;
+         result = { ok: outcome === true || outcome?.ok===true || pendingAmount || pendingBoard, pendingAmount,pendingBoard,
+           error: outcome?.error||'The transaction was not applied. Check the table and session before retrying.' };
+         if(result.ok && !pendingAmount && !pendingBoard && !board.context && !board.cancelPending && !board.undo)
+           lastLedgerUndo = {token:mw.voiceContext().token,kind:board.action||board.amount?'ACT':'BOARD'};
+         else if(board.undo || board.undoPendingBoard || board.cancelPending)lastLedgerUndo=null;
       } else result = keyboard.commitCommand(command, captured.revision);
       if (!result.ok) throw Error(result.error);
       if (epoch !== operationEpoch || !active()) return;
@@ -564,7 +611,12 @@
         if (automatic && finalAt) measured.finalToAppliedSecondRafMs = performance.now() - finalAt;
         metrics.push(measured); if (metrics.length > 100) metrics.shift();
       }));
-      lastApplied = `Applied: ${label}. ${command.type==='action'?'Action recorded at the table.':'Next card position selected.'} Say “${captured.locale === 'pt-BR' ? 'desfazer' : 'undo'}” to correct it.`;
+       lastApplied = result.pendingAmount ? `${label}. Speak the total amount next, or enter it in the inline field.`
+         : result.pendingBoard ? `${label}. Speak the remaining board cards to complete this street.`
+         : command.type==='context' ? `${label}. No action was recorded.`
+         : board?.cancelPending ? 'Pending amount cancelled. No action was recorded.'
+         : board?.undoPendingBoard ? 'Pending board cards cleared. Confirmed actions were kept.'
+         : `Applied: ${label}. ${command.type==='action'||command.type==='amount'?'Action recorded at the table.':'Next card position selected.'} Say “${captured.locale === 'pt-BR' ? 'desfazer' : 'undo'}” to correct it.`;
       softRetryCount = 0;
       review.hidden = true; $('voice-transcript').textContent = ''; $('voice-proposal').textContent = '';
       if (automatic && current && run === current && !current.closing && wantListening) {
@@ -609,7 +661,7 @@
       event.preventDefault(); run || wantListening ? stop() : void start(); return;
     }
     if (!pending() && !committing) return;
-    if (event.key === 'Escape') { event.preventDefault(); suspend('Phrase discarded. Voice remains enabled.'); }
+    if (event.key === 'Escape' && !context().multiway?.pendingAmount) { event.preventDefault(); suspend('Phrase discarded. Voice remains enabled.'); }
   }, true);
   for (const name of ['theibs:cards-changed', 'theibs:card-selection']) document.addEventListener(name, () => {
     if (run && !committing) suspend('Table or card selection changed. Restarting in the new context.');

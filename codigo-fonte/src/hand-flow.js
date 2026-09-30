@@ -81,7 +81,9 @@ function create(config) {
   if (sb >= bb) throw Error('Small blind must be lower than big blind.');
   if (config.heroCards?.length && normalizeCards(config.heroCards).length !== count) throw Error('Complete your hole cards before starting.');
   const players = positions.map((position,id) => ({ id, position, hero:id===heroId,
-    name:id===heroId?'You':`Opp. ${id < heroId ? id+1 : id}`, folded:false,
+    // A1 is the first physical seat after Hero, independently of poker position.
+    name:id===heroId?'You':`A${(id-heroId+n)%n}`, seatName:id===heroId?'You':`A${(id-heroId+n)%n}`,
+    startingStack:cents(config.stacks?.[id] ?? config.startingStack, 'Stack', true), folded:false,
     stack:cents(config.stacks?.[id] ?? config.startingStack, 'Stack', true), streetPaid:0,totalPaid:0,lastActedBet:null,raiseThreshold:bb,lastAction:null }));
   const s = { schema:'THEIBS_OBSERVED_HAND_V1', variant:config.variant, heroId, heroPosition:config.heroPosition,
     initialPlayerCount:n, buttonId:n===2?0:n-1, players, street:'PREFLOP', board:[], phase:'BETTING', pot:0,
@@ -201,9 +203,13 @@ function publicState(s, config) {
   if((config.heroCards||[]).length!==holeCount(s.variant))reasonCodes.push('HERO_CARDS_INCOMPLETE');
   const analysisReadiness={status:s.phase==='WAIT_BOARD'?'WAIT_BOARD':reasonCodes.length?'BLOCKED':'READY',reasonCodes};
   return {...s, pot:chips(s.pot),bigBlind:chips(s.bigBlind),currentBet:chips(s.currentBet),lastFullRaise:chips(s.lastFullRaise),totalChips:chips(s.totalChips),rake:chips(s.rake),
-    players:s.players.map(p=>({...p,stack:chips(p.stack),streetPaid:chips(p.streetPaid),totalPaid:chips(p.totalPaid),
+    players:s.players.map(p=>({...p,stack:chips(p.stack),startingStack:chips(p.startingStack),streetPaid:chips(p.streetPaid),totalPaid:chips(p.totalPaid),
       allIn:s.phase!=='FINISHED'&&!p.folded&&p.stack===0,canMarkFold:markFoldReason(s,p.id)===null,markFoldReason:markFoldReason(s,p.id)})),
     legal:legal(s),pots:sidePots.map(p=>({...p,amount:chips(p.amount)})),
+    nextPlayerId:s.phase==='BETTING'?s.actor:null,
+    cardTarget:s.phase==='FINISHED'?null:(config.heroCards||[]).length!==holeCount(s.variant)?'HERO':s.phase==='WAIT_BOARD'?'BOARD':null,
+    cardsExpected:s.phase==='FINISHED'?0:(config.heroCards||[]).length!==holeCount(s.variant)?holeCount(s.variant):s.phase==='WAIT_BOARD'?({FLOP:3,TURN:1,RIVER:1}[s.nextStreet]||0):0,
+    pendingValue:null,
     heroToCall:chips(Math.min(hero.stack,Math.max(0,s.currentBet-hero.streetPaid))),heroFolded:hero.folded,
     activePlayers:active.length,activeOpponentIds:opponents.map(player=>player.id),activeOpponentCount:opponents.length,
     hasSidePots,analysisReadiness,

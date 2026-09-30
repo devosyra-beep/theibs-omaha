@@ -42,6 +42,55 @@ test('out-of-turn exit keeps the current actor, physical IDs and all invested ch
   conserved(state);
 });
 
+test('stable A seats follow physical order after Hero, independent of poker positions and folds', () => {
+  const initial = replay(config), folded = replay(config, [exit(3)]);
+  assert.deepEqual(initial.players.map(player => player.name), ['A2', 'A3', 'You', 'A1']);
+  assert.deepEqual(folded.players.map(player => player.seatName), initial.players.map(player => player.seatName));
+  assert.deepEqual(folded.players.map(player => player.position), initial.players.map(player => player.position));
+  assert.deepEqual(initial.players.map(player => player.startingStack), [100, 100, 100, 100]);
+});
+
+test('card destination follows phase, not simply Hero turn', () => {
+  const empty = replay({ ...config, heroCards: [] });
+  assert.equal(empty.actor, 2);
+  assert.equal(empty.cardTarget, 'HERO');
+  assert.equal(empty.cardsExpected, 5);
+  const preflop = replay(config);
+  assert.equal(preflop.actor, 2);
+  assert.equal(preflop.cardTarget, null);
+  const events = [act(2, 'CALL'), act(3, 'CALL'), act(0, 'CALL'), act(1, 'CHECK')];
+  const waitFlop = replay(config, events);
+  assert.equal(waitFlop.phase, 'WAIT_BOARD');
+  assert.equal(waitFlop.cardTarget, 'BOARD');
+  assert.equal(waitFlop.cardsExpected, 3);
+  const flop = replay(config, [...events, board(['2s', '3h', '4d'])]);
+  assert.equal(flop.actor, 0);
+  assert.equal(flop.cardTarget, null);
+  assert.equal(flop.nextPlayerId, flop.actor);
+  assert.equal(flop.pendingValue, null);
+});
+
+test('raise total, calls of the unpaid difference and pot cap use exact cents', () => {
+  const cfg = { ...config, playerCount: 3, heroPosition: 'BTN' };
+  const events = [act(2, 'RAISE', 3.5), act(0, 'RAISE', 11.5)];
+  let state = replay(cfg, events);
+  assert.equal(state.actor, 1);
+  assert.equal(state.legal.maxTo, 38);
+  assert.equal(state.legal.minTo, 19.5);
+  assert.throws(() => replay(cfg, [...events, act(1, 'RAISE', 38.01)]), /between/);
+  events.push(act(1, 'RAISE', 25));
+  state = replay(cfg, events);
+  assert.equal(state.actor, 2);
+  assert.equal(state.legal.toCall, 21.5);
+  events.push(act(2, 'CALL'), act(0, 'CALL'));
+  state = replay(cfg, events);
+  assert.equal(state.phase, 'WAIT_BOARD');
+  assert.equal(state.pot, 75);
+  assert.deepEqual(state.players.map(player => player.totalPaid), [25, 25, 25]);
+  assert.deepEqual(state.log.slice(-3).map(event => event.amount), [24, 21.5, 13.5]);
+  conserved(state);
+});
+
 test('exit of the current opponent advances only to the next pending physical seat', () => {
   const cfg = { ...config, playerCount: 6, heroPosition: 'BTN' };
   let state = replay(cfg);
