@@ -47,7 +47,10 @@ heavy.ranges[0].combos.push({cards:['Ts','Th','Qd','Jc','Tc'],weight:1});
 heavy.ranges[1].combos.push({cards:['Qs','Qh','6d','7c','8h'],weight:1});
 // Current coverage is unchanged: two players, three combinations per seat.
 const obsolete=variant('cancellation-obsolete',permute(heavy,'dsch'));
-const replacementInput=clone(obsolete.input);replacementInput.rake={type:'FIXED',amount:.02};
+// The obsolete study is intentionally heavy enough to observe cancellation.
+// Its replacement is a supported small decision, so resource exhaustion of a
+// second heavy tree cannot be confused with failure to cancel the first job.
+const replacementInput=permute(terminalCallInput(false),'cshd');replacementInput.rake={type:'FIXED',amount:.02};
 const replacement=variant('cancellation-replacement',replacementInput);
 const output={schemaVersion:1,baselineCommit:'1c9a91fd1555297b50c3db5e092868516436b60e',version:'0.14.9',generatedAt:new Date().toISOString(),
   methodology:'Cold candidates are five bijective suit permutations per scenario. A consistent suit bijection preserves rank ordering, flushes, blockers and utilities. No canonicalization is added. Report actual cache hit/miss; an existing hit is not a cold sample.',
