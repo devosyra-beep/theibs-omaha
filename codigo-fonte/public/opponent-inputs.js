@@ -41,9 +41,13 @@
     $('#opponent-input-scope').textContent = activeRows
       ? `${activeRows} active opponent(s) with manual information. ${unknown.length} without a response rate; none was assumed. ${unknown.length ? 'Equity remains available; BET/RAISE may lack a complete model.' : 'Entered rates are assumptions, not verified frequencies.'}`
       : 'Equity uses random legal hands for everyone. This panel is optional. THEIBS does not observe or infer opponent profiles.';
+    const contextual=c.mode==='MULTIWAY';
+    $('#opponent-call-probability').closest('label').hidden=contextual;
+    $('#opponent-study-accepted').closest('label').hidden=contextual;
+    if(contextual)$('#opponent-input-scope').textContent='Optional card-range hypotheses for this hand. Confirmed actions and the frozen player profile inform the continuation model; hypotheses are not observed cards or statistics.';
     $('#opponent-input-list').replaceChildren(...players.filter(p => rows.has(p.seatId)).map(p => {
       const node = document.createElement('li'), row = rows.get(p.seatId);
-      node.textContent = `${p.label}: ${row.range ? 'manual range' : 'unknown cards'}; ${row.callProbability == null ? 'unknown response' : `call ${Number((row.callProbability * 100).toFixed(2))}% (assumption)`}`;
+      node.textContent = contextual ? `${p.label}: ${row.range ? 'manual range' : 'unknown cards'} · contextual response model` : `${p.label}: ${row.range ? 'manual range' : 'unknown cards'}; ${row.callProbability == null ? 'unknown response' : `call ${Number((row.callProbability * 100).toFixed(2))}% (assumption)`}`;
       return node;
     }));
   }
@@ -61,7 +65,7 @@
       refresh();
       const c = context();
       if (c.busy || !active(c).some(p => p.seatId === seatId)) throw Error('This opponent is unavailable in the current context.');
-      const range = parseRange(hand, rangeText), raw = String(rateText).trim(), rate = raw === '' ? null : Number(raw) / 100;
+      const range = parseRange(hand, rangeText), raw = c.mode==='MULTIWAY' ? '' : String(rateText).trim(), rate = raw === '' ? null : Number(raw) / 100;
       if (rate !== null && (!Number.isFinite(rate) || rate < 0 || rate > 1)) throw Error('Call chance must be between 0 and 100%.');
       if (!range && rate === null) throw Error('Enter a hand, range or call chance, or remove this assumption.');
       rows.set(seatId, { seatId, enabled: true, ...(range ? { range } : {}), ...(rate === null ? {} : { callProbability: rate }) });

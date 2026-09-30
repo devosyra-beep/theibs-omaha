@@ -1,3 +1,19 @@
+## 0.14.8 — 30/09/2026 — Multiway hand continuity and contextual action EV
+
+Explicit street/hand transitions, optional shown cards, per-pot reported results,
+pending unknown results and next-hand reconciliation. Stable player identities,
+local profiles, frozen pre-hand priors and idempotent observations. Hero cards
+are not required for action recording. Deterministic voice sequences validate
+atomically and stop before Hero; Shift retains the current ledger.
+
+Joint-world action continuation evaluates legal sizing candidates, future actions,
+all-ins, returns, ties and side pots with declared costs. Heuristic policy and
+numerical uncertainty remain explicit; no GTO or globally best play is claimed.
+Action EV defaults to before-fee calculation without a mandatory fee input.
+An optional fee assumption stays separate from recorded chip settlement.
+Llama remains optional and disabled. Details and evidence boundaries are recorded
+in `codigo-fonte/docs/multiway-continuity.md`; publication is verified separately.
+
 ## 0.14.5 — 28/09/2026 — continuidade, interpretação e avaliação da voz
 
 Estados de captura reais, preservação da escuta em frases completas, encerramento rápido somente quando há entrada pendente e exclusão entre capturas. Esclarecimento contextual com prazo, desfazer no painel, all-in legal, raise por total/incremento e BB explícito. Novos testes de integração e corpus sintético pareado, mantendo falhas nos denominadores.

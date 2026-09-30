@@ -19,6 +19,14 @@ function state() {
   };
 }
 
+test('missing Hero cards and idle calculations are not presented as running EV', () => {
+  const waiting = describe(state(), null, {heroDraftReady:false, analysisBusy:false});
+  assert.equal(waiting.stage, 'WAITING_CARDS');
+  assert.ok(waiting.rows.every(row => row.evBB === null && row.status === 'NOT_MODELED'));
+  assert.equal(describe(state(), null, {heroDraftReady:true, analysisBusy:false}).stage, 'IDLE');
+  assert.equal(describe(state(), null, {heroDraftReady:true, analysisBusy:true}).stage, 'PENDING');
+});
+
 test('EV display keeps uncovered legal actions unknown and does not promote a partial leader', () => {
   const analysis = { status: 'OK', analysisStage: 'FINAL', observedState: { revisionKey: 'hand-1:4' }, ev: {
     bigBlind: 2, potBeforeDecision: 30, bestModeledAction: 'CALL', comparisonComplete: false,
@@ -53,7 +61,14 @@ test('current revision, hero turn and finite EV are required before display', ()
   assert.equal(pending.bestModeledAction, null);
   assert.ok(pending.rows.every(row => row.evBB === null));
   const provisional = { ...stale, analysisStage: 'PROVISIONAL', observedState: { revisionKey: current.revisionKey } };
-  assert.equal(describe(current, provisional).bestModeledAction, null);
+  const firstPass = describe(current, provisional);
+  assert.equal(firstPass.stage, 'PROVISIONAL');
+  assert.equal(firstPass.bestModeledAction, null);
+  assert.equal(firstPass.globalBestSupported, false);
+  assert.equal(firstPass.leaderConclusive, false);
+  assert.equal(firstPass.gapBestSecondBB, null);
+  assert.ok(firstPass.rows.every(row => row.differenceBB === null));
+  assert.equal(firstPass.rows.find(row => row.action === 'CALL').evBB, 499.5);
   assert.equal(describe({ ...current, actor: 0 }, stale), null);
   assert.equal(describe({ ...current, phase: 'WAIT_BOARD' }, stale), null);
   const unavailable = describe(current, { status: 'NO_DECISION', reason: 'Hero cards incomplete.' });
@@ -85,4 +100,24 @@ test('complete action EV uses contracted bb and sizing rather than inferring mis
   analysis.ev.gapBestSecondBB = null;
   assert.equal(describe(state(), analysis).stage, 'INCOMPARABLE');
   assert.equal(describe(state(), analysis).bestModeledAction, null);
+});
+
+test('finite sizing grid displays every candidate and compares the top two sizes without claiming a solved strategy', () => {
+  const candidates = [
+    {action:'FOLD',optionId:'FOLD',size:null,status:'MODELED',ev:0,evBB:0,differenceToBestModeledBB:2,confidenceInterval95:[0,0],samples:0},
+    {action:'CALL',optionId:'CALL',size:null,status:'MODELED',ev:2,evBB:1,differenceToBestModeledBB:1,confidenceInterval95:[-2,6],samples:96},
+    {action:'RAISE',optionId:'RAISE:14',size:14,status:'MODELED',ev:4,evBB:2,differenceToBestModeledBB:0,confidenceInterval95:[-1,9],samples:96},
+    {action:'RAISE',optionId:'RAISE:30',size:30,status:'MODELED',ev:3.8,evBB:1.9,differenceToBestModeledBB:.1,confidenceInterval95:[-3,11],samples:96}
+  ];
+  const result=describe(state(),{status:'OK',analysisStage:'FINAL',observedState:{revisionKey:'hand-1:4'},ev:{candidates,
+    bestModeledAction:'RAISE',bestModeledOptionId:'RAISE:14',bigBlind:2,comparisonComplete:true,globalBestSupported:false,leaderConclusive:false,
+    gapBestSecondBB:1,gapBestSecondCandidateBB:.1}});
+  assert.equal(result.rows.length,4);
+  assert.deepEqual(Array.from(result.rows.filter(item=>item.action==='RAISE'),item=>item.size),[14,30]);
+  assert.equal(result.bestModeledSize,14);
+  assert.equal(result.gapBestSecondBB,.1);
+  assert.equal(result.finiteSizeGrid,true);
+  assert.equal(result.stage,'INCONCLUSIVE');
+  assert.equal(result.rows[3].samples,96);
+  assert.deepEqual(Array.from(result.rows[3].numericalBounds),[-3,11]);
 });

@@ -31,6 +31,7 @@ function actionReason(action, strategy) {
 }
 
 function decide(input) {
+  if (input?.multiwayEvaluation) return require('./multiway-evaluator').evaluateMultiway(input);
   const inputState = normalizeGameState(input);
   const warnings = [...inputState.warnings];
   if (!inputState.valid) {

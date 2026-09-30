@@ -160,7 +160,8 @@
     if(context.phase!=='BETTING')return withCardDestination(parse(utterance,locale),context);
     if(normalized===(en?'undo':'desfazer')||normalized===(en?'cancel':'cancelar'))return parse(utterance,locale);
     if(context.pendingAmount){
-      const value=parseChips(utterance,locale);
+      const correction = normalized.match(en ? /^(?:correct(?:ion)?(?: it)?[, ]*|it was )(.+)$/ : /^(?:corrigir[, ]*(?:era )?|correcao[, ]*(?:era )?|era )(.+)$/);
+      const value=parseChips(correction ? correction[1] : utterance,locale);
       if(value<=0)throw Error('Enter a positive total for this street.');
       return {type:'amount',to:value};
     }
@@ -178,12 +179,47 @@
     }
     return command;
   }
+  // A sequence is grammar, not free-text interpretation. Parse the entire
+  // phrase before any ledger mutation; the server validates every legal turn.
+  function parseActionSequence(text, locale = 'pt-BR', context = null) {
+    if (!context?.enabled || context.phase !== 'BETTING' || context.pendingAmount) return null;
+    if (!['pt-BR', 'en-US'].includes(locale)) throw Error('Choose Portuguese or English as the recognition language.');
+    const input = actionText(text), words = input.split(' ');
+    if (!input || input.length > 800 || words.length > 80) return null;
+    try { if (parseContextual(input, locale, context).type === 'action') return null; } catch {}
+    const names = actionNames(locale === 'en-US');
+    const starts = word => Object.hasOwn(names, word) || /^(?:all(?:-in)?|hero|i|eu|heroi|opponent|adversario|oponente|a[1-9]|a|adv\.?)$/.test(word);
+    const skipConnector = index => {
+      if (['then','depois'].includes(words[index])) return index + 1;
+      if ((words[index] === 'and' && words[index + 1] === 'then') || (words[index] === 'e' && words[index + 1] === 'depois')) return index + 2;
+      return index;
+    };
+    const solutions = [];
+    function visit(start, commands, phrases) {
+      if (solutions.length > 1 || commands.length >= 6 || !starts(words[start])) return;
+      for (let end = start + 1; end <= words.length; end++) {
+        const next = skipConnector(end);
+        if (end < words.length && (!starts(words[next]) || next >= words.length)) continue;
+        const phrase = words.slice(start, end).join(' ');
+        let command;
+        try { command = parseContextual(phrase, locale, context); } catch { continue; }
+        if (command.type !== 'action' || ['BET','RAISE'].includes(command.action) && command.to === undefined && command.by === undefined) continue;
+        const chain = [...commands, command], parts = [...phrases, phrase];
+        if (end === words.length) { if (chain.length > 1) solutions.push({ type: 'actionSequence', commands: chain, phrases: parts }); }
+        else visit(next, chain, parts);
+      }
+    }
+    visit(0, [], []);
+    if (solutions.length > 1) throw Error('The action sequence is ambiguous. Say one action at a time.');
+    return solutions[0] || null;
+  }
   function withCardDestination(command,context) {
     if(command?.type!=='cards'||command.target!=='selected'||!context?.enabled)return command;
     // The confirmed ledger determines where a bare card phrase belongs. An
     // explicit destination still wins and is validated by the caller.
     if(context.destination==='board'&&context.phase==='WAIT_BOARD')return {...command,target:'board'};
     if(context.destination==='hero')return {...command,target:'hero'};
+    if(context.destination==='shown')return {...command,target:'shown'};
     return command;
   }
   function recognitionHints(locale='pt-BR',context=null) {
@@ -487,5 +523,5 @@
     }
     cancel() { this.id = null; this.phase = 'cancelled'; this.segments = new Map(); this.proposal = null; this.cursor = 0; this.proposalEnd = null; this.resultCount = null; }
   }
-  return { RANKS, SUITS, EN_RANKS, EN_SUITS, normalize, parse, parseContextual, withCardDestination, recognitionHints, parseChips, resolveAction, getClarification, completeClarification, RecognitionSession, qualityGate: Object.freeze({ acoustic: 'NOT_EXECUTED', autoApply: true, rule: 'FINAL_VALIDATED_ONLY' }) };
+  return { RANKS, SUITS, EN_RANKS, EN_SUITS, normalize, parse, parseContextual, parseActionSequence, withCardDestination, recognitionHints, parseChips, resolveAction, getClarification, completeClarification, RecognitionSession, qualityGate: Object.freeze({ acoustic: 'NOT_EXECUTED', autoApply: true, rule: 'FINAL_VALIDATED_ONLY' }) };
 });

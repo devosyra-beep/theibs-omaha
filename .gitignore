@@ -19,6 +19,7 @@ codigo-fonte/data/
 *.jsonl
 workspace.json
 llm-config.json
+codigo-fonte/src/multiway-assistant-validation.json
 
 # Dependências, segredos e arquivos temporários
 node_modules/

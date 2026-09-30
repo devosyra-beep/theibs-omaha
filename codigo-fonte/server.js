@@ -14,6 +14,8 @@ const { importHands } = require('./src/hand-importer');
 const { readWorkspace, saveWorkspace } = require('./src/workspace-store');
 const analyzeInWorker = require('./src/analysis-worker');
 const multiway = require('./src/multiway-session');
+const multiwayAssistant = require('./src/multiway-assistant');
+const playerProfiles = require('./src/player-profiles');
 const authService = require('./src/supabase-service');
 const billing = require('./src/abacatepay');
 const billingService = require('./src/billing-service');
@@ -59,6 +61,12 @@ function allowedRequestOrigin(origin, host) {
   if (!origin) return true;
   if (origin === `http://${host}` || origin === `https://${host}`) return true;
   return origin === publicOrigin();
+}
+
+function isDeviceLocalRequest(request) {
+  const hostname = new URL(`http://${request.headers.host}`).hostname;
+  return ['127.0.0.1','localhost','[::1]'].includes(hostname) &&
+    ['127.0.0.1','::1','::ffff:127.0.0.1'].includes(request.socket.remoteAddress);
 }
 
 function userStoragePath(auth, name) {
@@ -185,11 +193,26 @@ function serveStatic(request, response) {
 }
 
 async function analyzeManual(payload, response, owner = 'local') {
+  const releasePriority=multiwayAssistant.prioritize();
+  try {
   const started = performance.now(), input = buildInput(payload);
   const preview = payload.analysisPhase === 'PREVIEW';
-  const prepared = payload.multiway?.enabled === true ? multiway.prepareAnalysis(payload.multiway, input) : null;
+  const contextual = payload.multiway?.enabled === true && payload.multiwayEvaluation && typeof payload.multiwayEvaluation === 'object';
+  const observed = contextual ? multiway.envelope(payload.multiway) : null;
+  const prepared = !contextual && payload.multiway?.enabled === true ? multiway.prepareAnalysis(payload.multiway, input) : null;
   if (prepared && !prepared.available) return attachAnalysisContract(multiway.blockedResult(prepared), { ...prepared.input, multiway: payload.multiway });
-  const computeInput = { ...(prepared?.input || prepareOpponentOverrides(input)) };
+  if(observed){
+    const coverage=observed.continuationAnalysis || {...observed.analysis,reasons:observed.analysis.reasons.filter(item=>!['SIDE_POTS_UNSUPPORTED','ALL_IN_UNSUPPORTED','CALL_REACHES_ALL_IN'].includes(item.code))};
+    if(coverage.reasons.length)return attachAnalysisContract(multiway.blockedResult({...coverage,available:false,observed,opponentHypotheses:[],warnings:[]}),{...coverage.input,multiway:observed.multiway});
+  }
+  const computeInput = observed ? {...input,multiwayEvaluation:{
+    profileSnapshot:payload.multiwayEvaluation.profileSnapshot,ranges:payload.multiwayEvaluation.ranges,
+    chosenSize:payload.multiwayEvaluation.chosenSize,rake:payload.multiwayEvaluation.rake,
+    rakeSchedule:payload.multiwayEvaluation.rakeSchedule,assumeNoRake:payload.multiwayEvaluation.assumeNoRake===true,
+    feeBasis:payload.multiwayEvaluation.feeBasis==='BEFORE_FEES' && payload.multiwayEvaluation.assumeNoRake===true ? 'BEFORE_FEES' : undefined,
+    config:observed.multiway.config,events:observed.multiway.events,handId:observed.multiway.handId,
+    revisionKey:observed.state.revisionKey,samples:preview?32:128,timeBudgetMs:preview?350:1800
+  }} : { ...(prepared?.input || prepareOpponentOverrides(input)) };
   if (preview) {
     if(!Number.isInteger(computeInput.samples)||computeInput.samples<1||computeInput.samples>50000)throw Error('samples must be an integer between 1 and 50000.');
     computeInput.samplingMode = 'FIXED';
@@ -210,10 +233,16 @@ async function analyzeManual(payload, response, owner = 'local') {
   result.analysisStage = preview ? 'PROVISIONAL' : 'FINAL';
   // Build the public assessment only after street guards and the final/preview
   // stage are known; an unguarded worker result cannot supply a green signal.
-  result = attachAnalysisContract(result, prepared ? { ...computeInput, multiway: payload.multiway } : computeInput);
+  if(!observed)result = attachAnalysisContract(result, prepared ? { ...computeInput, multiway: payload.multiway } : computeInput);
   result.performance = { ...result.performance, cacheHit: false };
   if (result.status === 'OK' && !response.destroyed) putBounded(manualCache, key, { result: structuredClone(result), createdAt: Date.now(), expires: Date.now() + CACHE_TTL_MS });
   return result;
+  } finally { releasePriority(); }
+}
+
+async function priorityCalculation(task) {
+  const release=multiwayAssistant.prioritize();
+  try { return await task(); } finally { release(); }
 }
 
 function collectBody(request) {
@@ -315,11 +344,30 @@ const server = http.createServer(async (request, response) => {
     try { return json(response, 200, { status: 'OK', ...readWorkspace(userStoragePath(auth, 'workspace.json')) }); }
     catch (error) { return json(response, 500, { status: 'ERROR', reason: `Could not read the draft: ${error.message}` }); }
   }
+  if (request.method === 'GET' && route === '/api/multiway/capabilities') {
+    const local = isDeviceLocalRequest(request);
+    const assistant = multiwayAssistant.capabilities();
+    const allowed = assistant.processing === 'REMOTE_TEXT_ONLY' || local;
+    return json(response, 200, {status:'OK',ownerKey:crypto.createHash('sha256').update(String(auth.user.id)).digest('hex'),
+      storage:'THIS_DEVICE_ONLY',assistant:{...assistant,local,enabled:allowed&&assistant.enabled,
+        ...(!allowed?{reason:'The optional assistant is not configured on this server.'}:{})}});
+  }
+  // Reject before reading text unless the current provider passed its gate.
+  // Remote text opt-in is distinct from on-device audio recognition.
+  if (request.method === 'POST' && route.startsWith('/api/multiway/assistant/')) {
+    const assistant = multiwayAssistant.capabilities();
+    if (!assistant.enabled || assistant.processing !== 'REMOTE_TEXT_ONLY' && !isDeviceLocalRequest(request)) {
+      return json(response,403,{status:'UNAVAILABLE',reason:'The optional assistant is unavailable. Use the action buttons or a short voice command.'});
+    }
+    if (assistant.processing === 'REMOTE_TEXT_ONLY' && request.headers['x-theibs-remote-text-consent'] !== 'true') {
+      return json(response,403,{status:'CONSENT_REQUIRED',reason:'Allow text interpretation in Voice options before sending a phrase.'});
+    }
+  }
 
   if (request.method === 'POST' && route.startsWith('/api/')) {
     try {
       const payload = JSON.parse(await collectBody(request));
-      if (!payload || typeof payload !== 'object' || Array.isArray(payload)) throw new Error('Envie um objeto JSON.');
+      if (!payload || typeof payload !== 'object' || Array.isArray(payload)) throw new Error('Send a JSON object.');
       if (authService.settings().required && ['/api/llm/config', '/api/llm/start'].includes(route)) {
         return json(response, 403, { status: 'ERROR', reason: 'Assistant configuration is available only on the server.' });
       }
@@ -360,11 +408,24 @@ const server = http.createServer(async (request, response) => {
       }
       if (route === '/api/workspace') return json(response, 200, { status: 'OK', ...saveWorkspace(payload.workspace, payload.expectedRevision, userStoragePath(auth, 'workspace.json')) });
       if (route === '/api/analyze') return json(response, 200, await analyzeManual(payload, response, auth.user.id));
-      if (route === '/api/equity') return json(response, 200, await analyzeInWorker.equity(prepareOpponentOverrides(buildInput(payload)), response));
+      if (route === '/api/equity') return json(response, 200, await priorityCalculation(()=>analyzeInWorker.equity(prepareOpponentOverrides(buildInput(payload)), response)));
       if (route === '/api/multiway/start') return json(response, 200, multiway.start(payload.config));
       if (route === '/api/multiway/state') return json(response, 200, multiway.envelope(payload.multiway));
-      if (route === '/api/multiway/step') return json(response, 200, multiway.step(payload.multiway, payload.event, payload.expectedRevision, payload.expectedRevisionKey));
-      if (route === '/api/multiway/undo') return json(response, 200, multiway.undo(payload.multiway, payload.expectedRevisionKey));
+      if (route === '/api/multiway/step') return json(response, 200, await priorityCalculation(()=>multiway.step(payload.multiway, payload.event, payload.expectedRevision, payload.expectedRevisionKey)));
+      if (route === '/api/multiway/preview-sequence') return json(response, 200, await priorityCalculation(()=>multiway.previewSequence(payload.multiway,payload.commands,{expectedRevisionKey:payload.expectedRevisionKey,originEventId:payload.originEventId})));
+      if (route === '/api/multiway/batch') return json(response, 200, await priorityCalculation(()=>multiway.batch(payload.multiway,payload.commands,{expectedRevisionKey:payload.expectedRevisionKey,originEventId:payload.originEventId,expectedPreviewKey:payload.expectedPreviewKey})));
+      if (route === '/api/multiway/undo') return json(response, 200, await priorityCalculation(()=>multiway.undo(payload.multiway, payload.expectedRevisionKey)));
+      if (route === '/api/multiway/next-hand') return json(response,200,await priorityCalculation(()=>multiway.nextHand(payload.multiway,payload.options||{},payload.expectedRevisionKey)));
+      if (route === '/api/multiway/observations') {
+        const observed=multiway.envelope(payload.multiway);
+        return json(response,200,{status:'OK',...playerProfiles.deriveObservations(observed.multiway),sourceRevisionKey:observed.state.revisionKey});
+      }
+      if (route === '/api/multiway/assistant/interpret') {
+        const controller=new AbortController(),cancel=()=>{if(!response.writableEnded)controller.abort();};
+        response.once('close',cancel);
+        try {return json(response,200,await multiwayAssistant.interpret(payload,{owner:auth.user.id,signal:controller.signal}));}
+        finally {response.removeListener('close',cancel);}
+      }
       if (route === '/api/training/start') {
         const session = createSession(payload);
         if (sessions.size >= 100) {

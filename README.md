@@ -1,6 +1,24 @@
 # THEIBS — laboratório Omaha
 
-Versão do código: **0.14.5**. Análise e treino de Omaha High PLO4, PLO5 e PLO6, com equity, EV condicionado às premissas, coach, entrada de cartas e histórico.
+Versão do código: **0.14.8**. Análise e treino de Omaha High PLO4, PLO5 e PLO6, com equity, EV condicionado às premissas, coach, entrada de cartas e histórico.
+
+## Multiway 0.14.8
+
+The observed table now distinguishes a new street from a new hand, keeps stable
+player identities and requires reconciliation for unknown results. Actions can
+be recorded before Hero cards are entered. Local Players history feeds a frozen
+pre-hand contextual profile, with notes kept separate from observed statistics.
+
+Action EV uses an explicit heuristic continuation model, including legal sizing
+candidates and side pots. It is not a solver or GTO strategy. The interface
+automatically calculates EV before room fees; a specific fee is an optional
+advanced assumption. No room fee is inferred. Overlapping numerical intervals
+remain inconclusive.
+Known voice sequences use the deterministic parser. Optional Llama assistance
+is disabled for this delivery and is not required for voice or calculations.
+
+See [the Multiway contract and limitations](codigo-fonte/docs/multiway-continuity.md)
+and [the optional provider boundary](codigo-fonte/docs/multiway-llm-provider.md).
 
 ## Produto e validação
 

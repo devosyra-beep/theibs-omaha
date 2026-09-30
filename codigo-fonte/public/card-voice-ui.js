@@ -20,10 +20,10 @@
     <div id="voice-language-guides">
       <section data-voice-language-guide="pt-BR"><p class="voice-help">Speak complete cards in one phrase, for example: “ás copas, dez paus, dama ouros, valete espadas”. In Multiway, the table selects Hero or the next board street. You can name a destination to edit it explicitly.</p>
       <p class="voice-help">When a player is highlighted, say one short observed action: “desistir”, “passar”, “pago”, “aposto vinte”, “aumento vinte e cinco” or “all-in”. The action belongs to that player. “A1 desistir” names a seat explicitly and must match the current turn. A raise amount is the player's total contribution for this street. Say “aumento” alone, then speak the total when the inline field appears. THEIBS never sends a bet to an external table.</p>
-      <details><summary>Portuguese commands and numbers</summary><p class="voice-help">Ranks: ás, dois, três, quatro, cinco, seis, sete, oito, nove, dez, valete, dama/rainha, rei. Suits: espadas, copas, ouros, paus. Digits 2–10 also work; “ás/A” and “valete/jota/jack” are accepted variants. “De” is optional between rank and suit.</p><p class="voice-help">Destinations and edits: “minhas cartas”, “flop”, “turn”, “river”, “board”, “selecionar carta três”, “corrigir carta três para dama de ouros”, “remover carta selecionada”, “desfazer”, “cancelar”. Multiway selects the expected cards automatically; in isolated Analysis, the selected slot is used. You can speak board cards one at a time or as the complete street.</p><p class="voice-help">Multiway actions: “desistir”, “passar”, “pagar”, “apostar”, “aumentar”, “all-in”. “Eu”/“herói” or “adversário N” may identify the player explicitly; if spoken, that player must be next. “Minha vez” reports who is next without recording an action. For example, “dois vírgula cinquenta” means 2.50. Whole numbers are supported up to 999999.99. Call uses the table's current price; all-in uses the available stack only when legal. Speak one action per phrase and provide only the requested detail when prompted.</p></details></section>
+      <details><summary>Portuguese commands and numbers</summary><p class="voice-help">Ranks: ás, dois, três, quatro, cinco, seis, sete, oito, nove, dez, valete, dama/rainha, rei. Suits: espadas, copas, ouros, paus. Digits 2–10 also work; “ás/A” and “valete/jota/jack” are accepted variants. “De” is optional between rank and suit.</p><p class="voice-help">Destinations and edits: “minhas cartas”, “flop”, “turn”, “river”, “board”, “selecionar carta três”, “corrigir carta três para dama de ouros”, “remover carta selecionada”, “desfazer”, “cancelar”. Multiway selects the expected cards automatically; in isolated Analysis, the selected slot is used. You can speak board cards one at a time or as the complete street.</p><p class="voice-help">Multiway actions: “desistir”, “passar”, “pagar”, “apostar”, “aumentar”, “all-in”. “Eu”/“herói” or “adversário N” may identify the player explicitly; if spoken, that player must be next. “Minha vez” reports who is next without recording an action. For example, “dois vírgula cinquenta” means 2.50. Whole numbers are supported up to 999999.99. Call uses the table's current price; all-in uses the available stack only when legal. Short sequences of observed actions stop before your turn. Unclear phrases wait for review; provide only the requested detail when prompted.</p></details></section>
       <section data-voice-language-guide="en-US" hidden><p class="voice-help">Speak complete cards in one phrase, for example: “ace hearts, ten clubs, queen diamonds, jack spades”. In Multiway, the table selects Hero or the next board street. You can name a destination to edit it explicitly.</p>
       <p class="voice-help">When a player is highlighted, say one short observed action: “fold”, “check”, “call”, “bet twenty”, “raise twenty five” or “all-in”. The action belongs to that player. “A1 fold” names a seat explicitly and must match the current turn. A raise amount is the player's total contribution for this street. Say “raise” alone, then speak the total when the inline field appears. THEIBS never sends a bet to an external table.</p>
-      <details><summary>English commands and numbers</summary><p class="voice-help">Ranks: ace, two, three, four, five, six, seven, eight, nine, ten, jack, queen, king. Suits: spades, hearts, diamonds, clubs. “Of” is optional between rank and suit. Digits 2–10 also work; “to”, “for”, “ate”, and “one” are not cards.</p><p class="voice-help">Destinations and edits: “my cards”, “flop”, “turn”, “river”, “board”, “select card three”, “correct card three to queen of diamonds”, “remove selected card”, “undo”, “cancel”. Multiway selects the expected cards automatically; in isolated Analysis, the selected slot is used. You can speak board cards one at a time or as the complete street.</p><p class="voice-help">Multiway actions: “fold”, “check”, “call”, “bet”, “raise”, “all-in”. “Hero”/“I” or “opponent N” may identify the player explicitly; if spoken, that player must be next. “My turn” reports who is next without recording an action. For example, “two point five” means 2.50. Whole numbers are supported up to 999999.99. Call uses the table's current price; all-in uses the available stack only when legal. Speak one action per phrase and provide only the requested detail when prompted.</p></details></section>
+      <details><summary>English commands and numbers</summary><p class="voice-help">Ranks: ace, two, three, four, five, six, seven, eight, nine, ten, jack, queen, king. Suits: spades, hearts, diamonds, clubs. “Of” is optional between rank and suit. Digits 2–10 also work; “to”, “for”, “ate”, and “one” are not cards.</p><p class="voice-help">Destinations and edits: “my cards”, “flop”, “turn”, “river”, “board”, “select card three”, “correct card three to queen of diamonds”, “remove selected card”, “undo”, “cancel”. Multiway selects the expected cards automatically; in isolated Analysis, the selected slot is used. You can speak board cards one at a time or as the complete street.</p><p class="voice-help">Multiway actions: “fold”, “check”, “call”, “bet”, “raise”, “all-in”. “Hero”/“I” or “opponent N” may identify the player explicitly; if spoken, that player must be next. “My turn” reports who is next without recording an action. For example, “two point five” means 2.50. Whole numbers are supported up to 999999.99. Call uses the table's current price; all-in uses the available stack only when legal. Short sequences of observed actions stop before your turn. Unclear phrases wait for review; provide only the requested detail when prompted.</p></details></section>
     </div>`;
   // Keep a single controller and stable inputs across all presentation changes.
   const disclosure = document.createElement('dialog'); disclosure.id = 'voice-settings-dialog';
@@ -56,7 +56,7 @@
   help.append(panel.querySelector('#voice-language-guides')); settingsContent.append(advanced,help);
   panel.querySelector('.voice-heading').remove();
   panel.prepend(toolbar); panel.append(disclosure); host.append(panel);
-  function openSettings() { if (!disclosure.open) disclosure.showModal(); }
+  function openSettings() { if (!disclosure.open) disclosure.showModal(); void assistantUI?.refreshCapabilities(); }
   optionsButton.onclick = openSettings;
   disclosure.addEventListener('cancel', event => { event.preventDefault(); disclosure.close(); });
   disclosure.querySelector('[data-close-dialog]').onclick = () => disclosure.close();
@@ -80,6 +80,8 @@
   }
   syncPrivacy();
   let run = null, committing = false, monitor = null, restartTimer = null, sample = null, lastLedgerUndo = null;
+  let assistantUI = null, proposalOrigin = null;
+  const voicePageId = window.crypto?.randomUUID?.() || `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
   let captureHold = false;
   let clarification = null, clarificationTimer = null;
   const nativeCaptures = new Set(), diagnostics = [];
@@ -138,17 +140,18 @@
     feedbackTimer = setTimeout(() => { feedbackKind = null; feedbackTimer = null; controls(); }, 2600);
   }
   function active() {
+    const archivedReveal = window.theibsPlayersUI?.voiceRevealContext?.();
     return window.isSecureContext && !document.hidden && navigator.onLine !== false &&
       !window.theibsVoiceSessionContext?.().expired &&
-      !document.querySelector('#analyze-workspace').classList.contains('hidden') &&
+      (!document.querySelector('#analyze-workspace').classList.contains('hidden') || archivedReveal?.enabled === true) &&
       !document.querySelector('#app-shell')?.hidden && !document.querySelector('#app-shell')?.hasAttribute('inert') &&
-      !document.querySelector('dialog[open]:not(#voice-settings-dialog)') && document.body.dataset.multiwayBusy !== 'true';
+      !document.querySelector('dialog[open]:not(#voice-settings-dialog):not(#mw-reveal-dialog):not(#players-reveal-dialog)') && document.body.dataset.multiwayBusy !== 'true';
   }
   function context() {
     return { revision: keyboard.getRevision(), snapshot: keyboard.state.snapshot(), invalid: keyboard.isManualInvalid(),
       locale: $('voice-language').value, processing: $('voice-processing').value, pace: 'batch', autoApply: autoApply(),
       active: active(), app: window.theibsApp?.getVoiceContext?.() || { activeView: window.theibsApp?.getState?.().activeView },
-      multiway: window.theibsMultiwayUI?.voiceContext?.() || null };
+      multiway: window.theibsPlayersUI?.voiceRevealContext?.() || window.theibsMultiwayUI?.voiceContext?.() || null };
   }
   const pending = () => Boolean(run) || wantListening || session.phase === 'review';
   function controls() {
@@ -187,7 +190,9 @@
     try { current.recognition.stop(); } catch { if (wantListening) suspend('Could not finish the phrase. Restarting the microphone.', true); else cancel('Microphone stopped after a finalization error.'); }
   }
   function clearTimers() { clearInterval(monitor); monitor = null; clearTimeout(restartTimer); restartTimer = null; restartContext = null; }
-  function cancel(message) {
+  function cancel(message, { preserveAssistant = false } = {}) {
+    if (!preserveAssistant) assistantUI?.cancel();
+    proposalOrigin = null;
     const old = run; run = null; wantListening = false; captureHold = false; operationEpoch++; session.cancel(); clearTimers(); review.hidden = true;
     clearTimeout(rebindTimer); rebindTimer = null; blockedReason = '';
     clearTimeout(feedbackTimer); feedbackTimer = null; feedbackKind = null;
@@ -213,6 +218,7 @@
     }, delay);
   }
   function suspend(message, error = false) {
+    assistantUI?.checkContext();
     if (!wantListening && !$('voice-consent').checked) return;
     const old = run; run = null; wantListening = true; captureHold = false; operationEpoch++;
     session.cancel(); clearTimers(); review.hidden = true;
@@ -237,8 +243,22 @@
     suspend('Table voice input is paused during the voice evaluation.');
     await waitForNativeRelease();
   }
+  function parseLocal(text, locale, multiway) {
+    try { return voice.parseContextual(text, locale, multiway); }
+    catch (error) {
+      const sequence = voice.parseActionSequence(text, locale, multiway);
+      if (sequence) return sequence;
+      throw error;
+    }
+  }
   function parseFinal(text, locale) {
     const multiway=context().multiway;
+    if (assistantUI?.hasBarrier()) {
+      // Parse known grammar locally, but keep the final in order until the
+      // unresolved preceding action has been explicitly resolved.
+      let command; try { command = parseLocal(text, locale, multiway); } catch {}
+      return { type: 'assistant', text, ...(command ? { command } : {}) };
+    }
     if (clarification) {
       if (performance.now() >= clarification.expiresAt || JSON.stringify(context()) !== clarification.contextKey) throw Error('The follow-up request expired. Say the full command again.');
       // A player may repeat the whole card instead of answering only the
@@ -248,10 +268,11 @@
       if (result.command) return voice.withCardDestination(result.command, multiway);
       return { type:'clarify', clarification: result.clarification || clarification.request, error: result.error };
     }
-    try { return voice.parseContextual(text, locale, multiway); }
+    try { return parseLocal(text, locale, multiway); }
     catch (error) {
       const request = voice.getClarification(text, locale);
       if (request) return { type:'clarify', clarification:request };
+      if (multiway?.enabled && multiway.phase === 'BETTING' && !multiway.pendingAmount) return { type:'assistant', text };
       throw error;
     }
   }
@@ -282,6 +303,14 @@
   function boardCommand(command, captured) {
     const mw = captured.multiway;
     if (!mw?.enabled) { if(command.type==='action')throw Error('Enable Multiway to record observed actions.'); return null; }
+    if (mw.destination === 'shown') {
+      if (command.type !== 'cards' || command.target !== 'shown') throw Error('Speak complete cards for the selected shown-card player, or close this editor first.');
+      if (!mw.shownTarget || !Number.isInteger(mw.shownTarget.actor)) throw Error('Select a player before entering shown cards.');
+      return { shownCards: command.cards, archived: mw.archive === true };
+    }
+    if (['SHOWDOWN','FINISHED'].includes(mw.phase) && ['cards','replace','remove'].includes(command.type))
+      throw Error('Open Shown cards and select the player before recording cards after the hand.');
+    if (command.type === 'actionSequence') return { sequence: command };
     if(command.type==='context')return {context:true};
     if(command.type==='amount'){
       if(!mw.pendingAmount)throw Error('No bet or raise amount is pending for this player.');
@@ -329,6 +358,9 @@
   }
   function cardLabel(card) { return card.slice(0,-1).replace('T','10')+({s:'♠',h:'♥',d:'♦',c:'♣'})[card.slice(-1)]; }
   function describe(command, captured) {
+    if (command.type === 'cards' && captured.multiway?.destination === 'shown')
+      return `Shown cards · ${command.cards.map(cardLabel).join(' · ')}`;
+    if (command.type === 'actionSequence') return `${command.commands.length} observed actions · pause before your turn`;
     if(command.type==='context'){
       const actor=captured.multiway?.actionState?.players?.find(p=>p.id===captured.multiway.actionState.actor);
       return actor?`${actor.name} · ${actor.position} is next to act`:'The table is waiting for its next entry';
@@ -352,14 +384,46 @@
   }
   function prepareProposal(id,captured,finishing=false) {
     const sequential=captured.multiway?.enabled && captured.multiway.phase==='BETTING';
+    let proposal;
     if(sequential){
       if(session.readyFinalCount()>1){
-        session.reject('Several actions arrived in one speech result. Say one action at a time; nothing was recorded.');
-        return null;
+        const packets = [...session.segments].filter(([index]) => index >= session.cursor).sort((a,b) => a[0]-b[0])
+          .map(([index, segment]) => ({ text: segment.text, locale: captured.locale, originEventId: `voice:${voicePageId}:${id}:${index}` }));
+        const commands = [], phrases = [];
+        let known = !assistantUI?.hasBarrier();
+        for (const packet of packets) {
+          try {
+            const command = parseLocal(packet.text, captured.locale, captured.multiway);
+            if (command.type === 'actionSequence') { commands.push(...command.commands); phrases.push(...command.phrases); }
+            else if (command.type === 'action' && (!['BET','RAISE'].includes(command.action) || command.to !== undefined || command.by !== undefined)) { commands.push(command); phrases.push(packet.text); }
+            else known = false;
+          } catch { known = false; }
+        }
+        proposal = session.prepareReady(id,captured,() => known && commands.length <= 6
+          ? { type:'actionSequence',commands,phrases } : { type:'assistant',packets });
+      } else {
+        proposal = session.prepareNextFinal(id,captured,parseFinal);
       }
-      return session.prepareNextFinal(id,captured,parseFinal);
+    } else {
+      proposal = finishing?session.finish(id,captured,parseFinal):session.prepareReady(id,captured,parseFinal);
     }
-    return finishing?session.finish(id,captured,parseFinal):session.prepareReady(id,captured,parseFinal);
+    if (proposal) proposalOrigin = `voice:${voicePageId}:${id}:${session.proposalEnd - 1}`;
+    return proposal;
+  }
+  function interpretUnresolved(current, captured, proposal) {
+    const originEventId = proposalOrigin;
+    if (!assistantUI || !session.take(captured)) { suspend('The entry changed. Say the command again.'); return; }
+    review.hidden = true; sample = null; proposalOrigin = null;
+    if (current && run === current) {
+      if (!session.resume(current.id, captured)) { suspend('Say the full command again.'); return; }
+      current.firstResultAt = null;
+      watchContext();
+    } else session.cancel();
+    // Interpretation never occupies the microphone or the direct parser.
+    const packets = proposal.packets || [{ text: proposal.text, command: proposal.command, originEventId, locale: captured.locale, allowInterpret: proposal.allowInterpret }];
+    for (const packet of packets) assistantUI.acceptFinal(packet);
+    controls();
+    if (!run && wantListening) resumeCapture();
   }
   function applySpeechHints(recognizer, locale, multiway) {
     const Phrase = window.SpeechRecognitionPhrase || window.webkitSpeechRecognitionPhrase;
@@ -441,8 +505,12 @@
     }
     if (proposal.type === 'cancel' && !captured.multiway?.pendingAmount) { suspend('Phrase cancelled. Earlier entries were kept.'); return; }
     if (proposal.type === 'clarify') { askForComplement(null, captured, proposal); return; }
+    if (proposal.type === 'assistant') { interpretUnresolved(null, captured, proposal); return; }
     try { validate(proposal, captured); }
     catch (error) {
+      if (['action','actionSequence'].includes(proposal.type) && captured.multiway?.phase === 'BETTING') {
+        interpretUnresolved(null,captured,{text:session.pendingPreview(),command:proposal,allowInterpret:false}); return;
+      }
       if (wantListening && $('voice-consent').checked && active()) { session.cancel(); resumeCapture({ retry: true, notice: `${displayError(error)} This batch was not applied.` }); }
       else suspend(displayError(error) + ' This batch was not applied.', true);
       return;
@@ -462,7 +530,7 @@
     const requested = resume ? wantListening : true, requestedHold = resume ? captureHold : hold;
     const savedClarification = resume ? clarification : null;
     const optedIn = $('voice-consent').checked;
-    cancel();
+    cancel(undefined, { preserveAssistant: resume });
     $('voice-consent').checked = optedIn;
     if (savedClarification && savedClarification.expiresAt > performance.now() && savedClarification.contextKey === JSON.stringify(context())) {
       clarification = savedClarification;
@@ -519,16 +587,26 @@
         session.reconcileResultCount(current.id, event.results.length);
         // Results is cumulative. Inspect every index to catch changed final
         // segments and prevent repeated provider events from applying twice.
-        for (let i = 0; i < event.results.length; i++) session.accept(current.id, i, event.results[i][0].transcript, event.results[i].isFinal);
+        for (let i = 0; i < event.results.length; i++) {
+          const previous = session.segments.get(i), text = event.results[i][0].transcript;
+          if (i >= session.cursor && (!previous || previous.text !== text)) assistantUI?.newSpeech();
+          session.accept(current.id, i, text, event.results[i].isFinal);
+        }
         if (session.error) { discardOrRetry(current, capturedNow, session.error); return; }
-        if (current.automatic) {
+        if (current.automatic || assistantUI?.hasBarrier()) {
            const proposal = prepareProposal(current.id, capturedNow);
           if (session.error) { discardOrRetry(current, capturedNow, session.error); return; }
            if (proposal?.type === 'cancel' && !capturedNow.multiway?.pendingAmount) { suspend('Phrase cancelled. Earlier entries were kept.'); return; }
           if (proposal?.type === 'clarify') { askForComplement(current, capturedNow, proposal); return; }
+          if (proposal?.type === 'assistant') { interpretUnresolved(current, capturedNow, proposal); return; }
           if (proposal) {
             try { validate(proposal, capturedNow); }
-            catch (error) { discardOrRetry(current, capturedNow, error.message); return; }
+            catch (error) {
+              if (['action','actionSequence'].includes(proposal.type) && capturedNow.multiway?.phase === 'BETTING') {
+                interpretUnresolved(current,capturedNow,{text:session.pendingPreview(),command:proposal,allowInterpret:false}); return;
+              }
+              discardOrRetry(current, capturedNow, error.message); return;
+            }
             sample = timing(current, started); void apply({ automatic: true, current }); current.firstResultAt = null;
           }
           else if (session.hasPending() && !current.closing) say('Recognizing the phrase… speak the complete rank and suit.');
@@ -550,7 +628,7 @@
         trace(current,'speech-end');
         // Keep capture open across pauses so the player can dictate the whole sequence.
       };
-      recognizer.onspeechstart = () => { trace(current,'speech-start'); current.speechEndedAt = null; };
+      recognizer.onspeechstart = () => { if (run === current && !current.cancelled) assistantUI?.newSpeech(); trace(current,'speech-start'); current.speechEndedAt = null; };
       current.released = new Promise(resolve => { current.release = resolve; });
       recognizer.onend = () => {
         current.audioActive = false; nativeCaptures.delete(current); current.release(); trace(current,'end');
@@ -567,6 +645,7 @@
     } catch (error) { if (run === current) suspend(displayError(error) || 'Could not start speech recognition.', true); }
   }
   function stop() {
+    assistantUI?.cancel();
     wantListening = false; clearTimeout(restartTimer); restartTimer = null;
     $('voice-consent').checked = false;
     const current = run; if (!current) { cancel('Microphone stopped. Earlier entries were kept.'); return; }
@@ -574,9 +653,11 @@
     current.stoppedAt ||= performance.now(); say('Closing the microphone and waiting for the final phrase…');
     requestFinal(current, 'USER_STOP');
   }
-  async function apply({ automatic = false, current = null, explicitCommand = null } = {}) {
+  async function apply({ automatic = false, current = null, explicitCommand = null, originEventId: explicitOrigin = null, assistantConfirmed = false } = {}) {
     if (committing) return;
     const captured = context(), command = explicitCommand || session.take(captured), epoch = operationEpoch;
+    const originEventId = explicitCommand ? explicitOrigin : proposalOrigin;
+    if (!assistantConfirmed) assistantUI?.checkContext();
     if (!command) { if (wantListening) suspend('The entry changed. Say the command again.'); else cancel('The entry changed. Say the command again.'); return; }
     committing = true; clearTimers(); clearTimeout(rebindTimer); rebindTimer = null; $('voice-apply').disabled = true; controls();
     say(automatic ? 'Applying recognized entry…' : 'Applying reviewed batch…');
@@ -590,21 +671,35 @@
        if (board) {
         // No speech can queue an action against a ledger that is changing.
         // Resume a fresh recognizer only after the HTTP transaction resolves.
-        if (current && run === current) { run = null; try { current.recognition.abort(); } catch {} }
+        if (current && run === current && !board.shownCards) { run = null; try { current.recognition.abort(); } catch {} }
         const mw = window.theibsMultiwayUI;
-         const outcome = board.context ? true
+         const outcome = board.shownCards ? await (board.archived ? window.theibsPlayersUI?.commitVoiceReveal : mw.commitVoiceShownCards)?.({ cards: board.shownCards, expectedToken: captured.multiway.token, originEventId })
+           : board.sequence ? await mw.commitVoiceSequence?.({ commands: command.commands, expectedToken: captured.multiway.token, originEventId })
+           : board.context ? true
            : board.cancelPending ? mw.cancelPendingAmount()
            : board.undo ? await keyboard.undoConfirmedTableEvent({expectedRevisionKey:captured.multiway.revisionKey})
            : board.undoPendingBoard ? keyboard.undoPendingBoard(captured.revision,captured.multiway.stateToken)
-           : board.amount ? await mw.submitPendingAmount({to:board.amount,expectedToken:captured.multiway.token})
-           : board.action || board.actionPending ? await mw.commitVoiceAction({command,expectedToken:captured.multiway.token})
+           : board.amount ? await mw.submitPendingAmount({to:board.amount,expectedToken:captured.multiway.token,originEventId})
+           : board.action || board.actionPending ? await mw.commitVoiceAction({command,expectedToken:captured.multiway.token,originEventId})
            : board.pendingBoard ? keyboard.addPendingVoiceBoardCards(board.pendingBoard,captured.revision,captured.multiway.stateToken)
-           : await mw.commitVoiceBoard({ addedCards: board.addedCards, expectedToken: captured.multiway.token });
+           : await mw.commitVoiceBoard({ addedCards: board.addedCards, expectedToken: captured.multiway.token,originEventId });
          const pendingAmount = outcome?.pending === true;
          const pendingBoard=outcome?.pendingBoard===true;
-         result = { ok: outcome === true || outcome?.ok===true || pendingAmount || pendingBoard, pendingAmount,pendingBoard,
+         const remaining = outcome?.sequence?.remainingCommands || outcome?.remainingCommands || [];
+         if (remaining.length) {
+           const offset = command.commands.length - remaining.length;
+           remaining.forEach((item,index) => assistantUI?.acceptFinal({ command:item, text:command.phrases?.[offset+index] || '',
+             locale:captured.locale,originEventId:`${originEventId}:${offset+index}`,allowInterpret:false }));
+         }
+         result = { ok: outcome === true || outcome?.ok===true || pendingAmount || pendingBoard, pendingAmount,pendingBoard, reviewRequired:outcome?.reviewRequired===true,
+           sequenceApplied: board.sequence ? Number(outcome?.sequence?.appliedCount ?? outcome?.appliedCount ?? 0) : null,
+           sequenceWaiting: remaining.length,
            error: outcome?.error||'The transaction was not applied. Check the table and session before retrying.' };
-         if(result.ok && !pendingAmount && !pendingBoard && !board.context && !board.cancelPending && !board.undo)
+         if (board.sequence && !result.ok && !remaining.length) {
+           assistantUI?.acceptFinal({ command, text:command.phrases?.join(' · ') || '', locale:captured.locale,
+             originEventId,allowInterpret:false });
+         }
+         if(result.ok && !pendingAmount && !pendingBoard && !board.context && !board.cancelPending && !board.undo && !board.shownCards && (!board.sequence || result.sequenceApplied > 0))
            lastLedgerUndo = {token:mw.voiceContext().token,kind:board.action||board.amount?'ACT':'BOARD'};
          else if(board.undo || board.undoPendingBoard || board.cancelPending)lastLedgerUndo=null;
       } else result = keyboard.commitCommand(command, captured.revision);
@@ -622,7 +717,10 @@
         if (automatic && finalAt) measured.finalToAppliedSecondRafMs = performance.now() - finalAt;
         metrics.push(measured); if (metrics.length > 100) metrics.shift();
       }));
-       lastApplied = result.pendingAmount ? `${label}. Speak the total amount next, or enter it in the inline field.`
+       lastApplied = board?.sequence ? `${result.sequenceApplied} observed action${result.sequenceApplied === 1 ? '' : 's'} recorded.${result.sequenceWaiting ? ' Review the remaining actions before recording them.' : ''}`
+         : result.reviewRequired ? `${label}. Review the shown cards and save in the editor.`
+         : board?.shownCards ? `${label}. Shown cards recorded.`
+         : result.pendingAmount ? `${label}. Speak the total amount next, or enter it in the inline field.`
          : result.pendingBoard ? `${label}. Speak the remaining board cards to complete this street.`
          : command.type==='context' ? `${label}. No action was recorded.`
          : board?.cancelPending ? 'Pending amount cancelled. No action was recorded.'
@@ -636,7 +734,8 @@
       } else if (wantListening) { session.cancel(); restart = true; say(lastApplied); }
       else cancel(lastApplied);
       recognized();
-    } catch (error) { if (wantListening) { suspend(displayError(error), true); restart = true; } else { cancel(); say(displayError(error), true); } }
+      return true;
+    } catch (error) { if (wantListening) { suspend(displayError(error), true); restart = true; } else { cancel(); say(displayError(error), true); } return false; }
     finally {
       committing = false; $('voice-apply').disabled = false; controls();
       if (wantListening && !run && session.phase !== 'review') scheduleRebind(restart ? 80 : 180);
@@ -671,13 +770,15 @@
     }
     if (!pending() && !committing) return;
     if (event.key === 'Escape' && disclosure.open) return;
+    if (event.key === 'Escape' && assistantUI?.hasBarrier() && !committing) { event.preventDefault(); assistantUI.discard(); return; }
     if (event.key === 'Escape' && !context().multiway?.pendingAmount) { event.preventDefault(); suspend('Phrase discarded. Voice remains enabled.'); }
   }, true);
   for (const name of ['theibs:cards-changed', 'theibs:card-selection']) document.addEventListener(name, () => {
+    assistantUI?.checkContext();
     if (run && !committing) suspend('Table or card selection changed. Restarting in the new context.');
     controls();
   });
-  document.addEventListener('theibs:voice-session-changed', () => { if (pending() || committing) suspend('Session changed. Voice is waiting for a valid session.'); });
+  document.addEventListener('theibs:voice-session-changed', () => { assistantUI?.resetConsent(); if (pending() || committing) suspend('Session changed. Voice is waiting for a valid session.'); });
   document.addEventListener('theibs:billing-modal-open', () => { if (pending() || committing) suspend('Voice paused while account and payment are open.'); });
   document.addEventListener('theibs:billing-modal-close', () => { if (wantListening) scheduleRebind(0); });
   // Auth owns storage/session continuity: a healthy token refresh preserves
@@ -691,7 +792,44 @@
   const observer = new MutationObserver(() => { if (!committing && run && JSON.stringify(context()) !== expectedContext()) suspend('Page or session changed. Restarting when available.'); });
   for (const element of [document.querySelector('#analyze-workspace'), document.querySelector('#app-shell'), document.body])
     if (element) observer.observe(element, { attributes: true, attributeFilter: ['class', 'hidden', 'inert', 'data-multiway', 'data-multiway-busy'] });
-  window.theibsCardVoice = { cancel, openSettings, releaseCaptureForEvaluation, getStatus: () => ({ phase: session.phase, listening: Boolean(run) || (wantListening && !blockedReason && session.phase !== 'review'), enabled:wantListening, blocked:Boolean(blockedReason), captureState:captureState(), audioReady:audioReady(), needsClarification:Boolean(clarification), committing, autoApply: autoApply(), pace: 'batch', contextBiasing: Boolean(run?.contextBiasing), finalizing: Boolean(run?.closing), acoustic: 'NOT_EXECUTED' }),
+  if (window.TheibsMultiwayAssistantUI) {
+    assistantUI = window.TheibsMultiwayAssistantUI.mount({ panel, settingsContent,
+      request: (url, options) => {
+        if (!window.theibsApp?.requestJson) return Promise.reject(Error('Authenticated requests are unavailable.'));
+        return window.theibsApp.requestJson(url, options);
+      },
+      getContext: () => {
+        const captured = context(), appState = window.theibsApp?.getState?.(), table = appState?.multiway, mw = captured.multiway;
+        return { enabled: wantListening && mw?.enabled === true, active: captured.active && !captured.invalid && !committing,
+          phase: mw?.phase, pendingAmount: Boolean(mw?.pendingAmount), actor: mw?.actionState?.actor,
+          players: mw?.actionState?.players, token: mw?.token, revisionKey: mw?.revisionKey,
+          handId: table?.handId, multiway: table, contextKey: JSON.stringify(captured), voiceContext: captured,
+          analysisBusy: Boolean(appState?.analysisBusy) };
+      },
+      resolve: (packet, entryContext) => {
+        const captured = entryContext.voiceContext;
+        const command = packet.command || parseLocal(packet.text, packet.locale, captured.multiway);
+        // Amount-only or unfinished raises need the table's inline editor.
+        if (command.type === 'action' && ['BET','RAISE'].includes(command.action) && command.to === undefined && command.by === undefined)
+          throw Error('Choose the action and enter its amount at the table.');
+        validate(command, captured);
+        return { command, label: describe(command, captured) };
+      },
+      commit: async ({ command, expectedToken, revisionKey, originEventId }) => {
+        const captured = context(), mw = captured.multiway;
+        if (committing || !wantListening || !captured.active || captured.invalid || !mw?.enabled ||
+          mw.token !== expectedToken || mw.revisionKey !== revisionKey) return false;
+        validate(command, captured);
+        sample = null;
+        return apply({ current: run, explicitCommand: command, originEventId, assistantConfirmed: true });
+      }
+    });
+    Promise.resolve(window.theibsApp?.ready).then(() => assistantUI.refreshCapabilities()).catch(() => {});
+  }
+  document.addEventListener('theibs:analysis-painted', event => {
+    if (event.detail?.phase === 'FINAL') assistantUI?.noteCalculation(event.detail.httpElapsedMs);
+  });
+  window.theibsCardVoice = { cancel, toggle: toggleVoice, openSettings, releaseCaptureForEvaluation, getStatus: () => ({ phase: session.phase, listening: Boolean(run) || (wantListening && !blockedReason && session.phase !== 'review'), enabled:wantListening, blocked:Boolean(blockedReason), captureState:captureState(), audioReady:audioReady(), needsClarification:Boolean(clarification), committing, autoApply: autoApply(), pace: 'batch', contextBiasing: Boolean(run?.contextBiasing), finalizing: Boolean(run?.closing), acoustic: 'NOT_EXECUTED' }),
     getDiagnostics: () => diagnostics.map(row => ({...row})),
     getMetrics: () => metrics.map(row => ({ ...row })), capability: () => ({ secureContext: window.isSecureContext, constructorPresent: Boolean(Recognition),
       functionalRecognition: 'NOT_VERIFIED', acoustic: 'NOT_EXECUTED', localAvailabilityCheck: typeof Recognition?.available === 'function' }) };

@@ -47,21 +47,26 @@ function pots(s) {
   },[]);
 }
 function finishRound(s) {
-  const ranked = [...s.players].sort((a,b)=>b.streetPaid-a.streetPaid);
-  const refund = ranked[0].streetPaid - ranked[1].streetPaid;
-  if (refund > 0) {
-    const p = ranked[0]; p.stack += refund; p.streetPaid -= refund; p.totalPaid -= refund; s.pot -= refund;
-    s.log.push({ street:s.street, actor:p.id, action:'RETURN', amount:chips(refund) });
-  }
+  returnUncalled(s);
   s.actor = null; s.pending = [];
   if (s.street === 'RIVER') s.phase = 'SHOWDOWN';
   else { s.phase = 'WAIT_BOARD'; s.nextStreet = STREETS[STREETS.indexOf(s.street)+1]; }
 }
+function returnUncalled(s) {
+  const ranked = [...s.players].sort((a,b)=>b.streetPaid-a.streetPaid);
+  const refund = ranked[0].streetPaid - ranked[1].streetPaid;
+  if (refund > 0 && !ranked[0].folded) {
+    const p = ranked[0]; p.stack += refund; p.streetPaid -= refund; p.totalPaid -= refund; s.pot -= refund;
+    s.log.push({ street:s.street, actor:p.id, action:'RETURN', amount:chips(refund) });
+  }
+}
 function resolveRound(s, previousActor) {
   if (live(s).length === 1) {
+    returnUncalled(s);
     const winner = live(s)[0]; const award = s.pot; winner.stack += award; s.pot = 0;
     s.phase = 'FINISHED'; s.actor = null; s.pending = [];
-    s.result = { reason:'ALL_FOLDED', winners:[winner.id], awards:[{player:winner.id,amount:chips(award)}] };
+    s.result = { reason:'ALL_FOLDED', status:'RECONCILED', winners:[winner.id], awards:[{player:winner.id,amount:chips(award)}],
+      pots:[{amount:chips(award),rake:0,winners:[winner.id],awards:[{player:winner.id,amount:chips(award)}]}] };
     return;
   }
   s.pending = s.pending.filter(id=>!s.players[id].folded && s.players[id].stack > 0);
@@ -82,7 +87,9 @@ function create(config) {
   if (config.heroCards?.length && normalizeCards(config.heroCards).length !== count) throw Error('Complete your hole cards before starting.');
   const players = positions.map((position,id) => ({ id, position, hero:id===heroId,
     // A1 is the first physical seat after Hero, independently of poker position.
-    name:id===heroId?'You':`A${(id-heroId+n)%n}`, seatName:id===heroId?'You':`A${(id-heroId+n)%n}`,
+    playerId:config.players?.[id]?.playerId || null,
+    name:config.players?.[id]?.name || (id===heroId?'You':`A${(id-heroId+n)%n}`), seatName:id===heroId?'You':`A${(id-heroId+n)%n}`,
+    shownCards:[],
     startingStack:cents(config.stacks?.[id] ?? config.startingStack, 'Stack', true), folded:false,
     stack:cents(config.stacks?.[id] ?? config.startingStack, 'Stack', true), streetPaid:0,totalPaid:0,lastActedBet:null,raiseThreshold:bb,lastAction:null }));
   const s = { schema:'THEIBS_OBSERVED_HAND_V1', variant:config.variant, heroId, heroPosition:config.heroPosition,
@@ -120,6 +127,28 @@ function markFoldReason(s, id) {
 }
 function apply(s, event, config) {
   if (!event || typeof event !== 'object') throw Error('Invalid event.');
+  if (event.type === 'REVEAL') {
+    if (!['SHOWDOWN','FINISHED'].includes(s.phase)) throw Error('Record shown cards after betting is complete.');
+    const player = Number.isInteger(event.actor) ? s.players[event.actor] : null;
+    if (!player) throw Error('Invalid shown-card seat.');
+    const cards = cardCodes(normalizeCards(event.cards || []));
+    if (cards.length > holeCount(s.variant)) throw Error('Too many shown cards for this variant.');
+    if (player.hero && config.heroCards?.length && cards.some(card => !config.heroCards.includes(card))) throw Error('Shown cards do not match the recorded Hero hand.');
+    const knownHero = player.hero ? [] : [...new Set([...(config.heroCards || []),...s.players[s.heroId].shownCards])];
+    const otherShown = s.players.filter(other => other.id !== player.id && !other.hero).flatMap(other => other.shownCards);
+    normalizeCards([...s.board,...knownHero,...otherShown,...cards]);
+    player.shownCards = cards;
+    s.log.push({street:s.street,actor:player.id,action:'REVEAL',cards:[...cards],source:'USER_SHOWN_CARDS'});
+    return;
+  }
+  if (event.type === 'SKIP_RESULT') {
+    if (s.phase !== 'SHOWDOWN') throw Error('An unknown result can only be recorded after betting and runout are complete.');
+    s.phase = 'FINISHED'; s.actor = null; s.pending = [];
+    s.result = {reason:'UNKNOWN',status:'PENDING',winners:[],awards:[],unresolvedPot:chips(s.pot),
+      pots:pots(s).map(pot=>({amount:chips(pot.amount),eligible:[...pot.eligible],winners:[],awards:[],status:'PENDING'}))};
+    s.log.push({street:s.street,action:'RESULT_UNKNOWN'});
+    return;
+  }
   if (event.type === 'MARK_FOLD') {
     const reason = markFoldReason(s, event.actor);
     if (reason) {
@@ -148,23 +177,28 @@ function apply(s, event, config) {
     resolveRound(s,s.players.length===2?0:s.players.length-1); return;
   }
   if (event.type === 'SETTLE') {
-    if (s.phase !== 'SHOWDOWN') throw Error('The result can only be entered at showdown.');
+    if (s.phase !== 'SHOWDOWN' && !(s.phase === 'FINISHED' && s.result?.reason === 'UNKNOWN')) throw Error('The result can only be entered at showdown or while its result is pending.');
     const layers = pots(s);
     if (!Array.isArray(event.winners) || event.winners.length!==layers.length) throw Error('Enter the winners of each pot.');
     const rake = cents(event.rake ?? 0,'Rake');
     if (rake>s.pot) throw Error('Rake cannot exceed the pot.');
-    let remainingRake=rake;const awards=new Map();
+    let remainingRake=rake;const awards=new Map(), distributions=[];
     for (let i=0;i<layers.length;i++) {
       const layer=layers[i], ids=event.winners[i];
       if (!Array.isArray(ids)||!ids.length||new Set(ids).size!==ids.length||ids.some(id=>!layer.eligible.includes(id))) throw Error('Invalid winner or winner ineligible for this pot.');
       const deduction=Math.min(layer.amount,remainingRake);remainingRake-=deduction;
       const amount=layer.amount-deduction, share=Math.floor(amount/ids.length);let extra=amount%ids.length;
       // Seat order begins left of the button; it also breaks odd-chip ties.
-      for (const id of [...ids].sort((a,b)=>s.players.length===2?b-a:a-b)) awards.set(id,(awards.get(id)||0)+share+(extra-->0?1:0));
+      const distribution=[];
+      for (const id of [...ids].sort((a,b)=>s.players.length===2?b-a:a-b)) {
+        const prize=share+(extra-->0?1:0); awards.set(id,(awards.get(id)||0)+prize);
+        distribution.push({player:id,amount:chips(prize)});
+      }
+      distributions.push({amount:chips(layer.amount),rake:chips(deduction),eligible:[...layer.eligible],winners:[...ids],awards:distribution});
     }
     for (const [id,amount] of awards) s.players[id].stack+=amount;
     s.rake=rake;s.pot=0;s.phase='FINISHED';s.actor=null;
-    s.result={reason:'REPORTED_SHOWDOWN',winners:[...awards.keys()],awards:[...awards].map(([player,amount])=>({player,amount:chips(amount)}))};
+    s.result={reason:'REPORTED_SHOWDOWN',status:'RECONCILED',winners:[...awards.keys()],awards:[...awards].map(([player,amount])=>({player,amount:chips(amount)})),pots:distributions};
     s.log.push({street:s.street,action:'SHOWDOWN',winners:event.winners,rake:chips(rake)});return;
   }
   if (event.type !== 'ACT' || event.actor !== s.actor || s.phase !== 'BETTING') throw Error('Action out of turn or betting round ended.');
@@ -207,8 +241,8 @@ function publicState(s, config) {
       allIn:s.phase!=='FINISHED'&&!p.folded&&p.stack===0,canMarkFold:markFoldReason(s,p.id)===null,markFoldReason:markFoldReason(s,p.id)})),
     legal:legal(s),pots:sidePots.map(p=>({...p,amount:chips(p.amount)})),
     nextPlayerId:s.phase==='BETTING'?s.actor:null,
-    cardTarget:s.phase==='FINISHED'?null:(config.heroCards||[]).length!==holeCount(s.variant)?'HERO':s.phase==='WAIT_BOARD'?'BOARD':null,
-    cardsExpected:s.phase==='FINISHED'?0:(config.heroCards||[]).length!==holeCount(s.variant)?holeCount(s.variant):s.phase==='WAIT_BOARD'?({FLOP:3,TURN:1,RIVER:1}[s.nextStreet]||0):0,
+    cardTarget:['FINISHED','SHOWDOWN'].includes(s.phase)?null:s.phase==='WAIT_BOARD'?'BOARD':(config.heroCards||[]).length!==holeCount(s.variant)?'HERO':null,
+    cardsExpected:['FINISHED','SHOWDOWN'].includes(s.phase)?0:s.phase==='WAIT_BOARD'?({FLOP:3,TURN:1,RIVER:1}[s.nextStreet]||0):(config.heroCards||[]).length!==holeCount(s.variant)?holeCount(s.variant):0,
     pendingValue:null,
     heroToCall:chips(Math.min(hero.stack,Math.max(0,s.currentBet-hero.streetPaid))),heroFolded:hero.folded,
     activePlayers:active.length,activeOpponentIds:opponents.map(player=>player.id),activeOpponentCount:opponents.length,

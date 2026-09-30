@@ -37,6 +37,17 @@
 #voice-eval-config { display:block; padding-top:4px; color:var(--muted,#b6b7c2); font-size:12px; font-weight:400; line-height:1.5; }
 #voice-settings-dialog .voice-phrase-select { margin-top:16px; }
 #voice-settings-dialog .voice-extra-actions:empty { display:none; }
+#card-voice .voice-assistant-inline { display:flex; align-items:center; flex-wrap:wrap; gap:8px 16px; padding:10px 0; border-top:1px solid var(--border,#34343d); }
+#card-voice .voice-assistant-message { flex:1 1 200px; min-width:0; overflow-wrap:anywhere; }
+#card-voice .voice-assistant-message strong { display:block; font-size:13px; line-height:1.5; font-weight:500; }
+#card-voice .voice-assistant-message span { display:block; color:var(--muted,#b6b7c2); font-size:12px; line-height:1.5; }
+#card-voice .voice-assistant-message details { margin-top:4px; font-size:13px; line-height:1.5; }
+#card-voice .voice-assistant-message summary { display:inline-flex; align-items:center; min-height:44px; color:var(--muted,#b6b7c2); cursor:pointer; }
+#card-voice .voice-assistant-message details p { margin:4px 0; overflow-wrap:anywhere; }
+#card-voice .voice-assistant-actions { display:flex; gap:8px; flex-wrap:wrap; }
+#card-voice .voice-assistant-actions button { min-height:44px; padding:8px 12px; font-size:13px; border:1px solid var(--border,#34343d); border-radius:8px; background:var(--surface-raised,#191b20); color:var(--foreground,#f4f4f5); cursor:pointer; }
+#card-voice #voice-assistant-confirm { color:var(--primary,#f6d36f); border-color:var(--primary,#f6d36f); }
+#card-voice .voice-assistant-actions button:disabled { opacity:.5; cursor:default; }
 @media(max-width:600px) {
   #voice-settings-dialog { width:calc(100vw - 24px); }
   #voice-settings-dialog .voice-options { grid-template-columns:1fr; }

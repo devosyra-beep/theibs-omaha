@@ -51,7 +51,9 @@ if (!isMainThread) {
           workerReused: job.workerReused,
           monteCarloSamples,
           simulationsPerSecond: monteCarloSamples === null ? null : monteCarloSamples * 1000 / requestElapsedMs,
-          measurementScope: job.kind === 'TRAINING' ? 'TRAINING_WORKER_REQUEST_WALL_TIME' : 'ANALYSIS_WORKER_REQUEST_WALL_TIME'
+          measurementScope: job.kind === 'TRAINING' ? 'TRAINING_WORKER_REQUEST_WALL_TIME'
+            : result.multiwayEvaluation ? 'MULTIWAY_CONTINUATION_WORKER_REQUEST_WALL_TIME' : 'ANALYSIS_WORKER_REQUEST_WALL_TIME',
+          ...(result.multiwayEvaluation ? { simulationUnit: 'JOINT_CARD_WORLD_WITH_ALL_ACTION_CONTINUATIONS' } : {})
         };
       }
       job.resolve(result);
@@ -85,7 +87,7 @@ if (!isMainThread) {
         slot.job = job;
         slot.worker.ref();
         job.cancel = () => { if (!response.writableEnded) finish(slot, Error('Calculation cancelled.'), null, true); };
-        job.timer = setTimeout(() => finish(slot, Error('Calculation timed out. No incomplete result was used. Try again when the server is less busy.'), null, true), kind === 'TRAINING' ? trainingTimeoutMs : input?.samplingMode === 'ADAPTIVE' ? adaptiveTimeoutMs : fixedTimeoutMs);
+        job.timer = setTimeout(() => finish(slot, Error('Calculation timed out. No incomplete result was used. Try again when the server is less busy.'), null, true), kind === 'TRAINING' ? trainingTimeoutMs : input?.samplingMode === 'ADAPTIVE' || input?.multiwayEvaluation ? adaptiveTimeoutMs : fixedTimeoutMs);
         response?.on?.('close', job.cancel);
         try { slot.worker.postMessage({ id: job.id, input, kind }); }
         catch (error) { finish(slot, error, null, true); }

@@ -54,6 +54,24 @@ body:not([data-view=analyze]) .multiway-controls { display:none!important; }
 .multiway-dialog input { width:100%; min-height:46px; font-size:20px; }
 .multiway-dialog p { line-height:1.5; font-size:14px; margin:0; }
 .multiway-dialog .primary-button,.multiway-dialog .ghost-button { font-size:15px; padding:11px 14px; }
+.mw-completion-content { display:grid; gap:16px; }
+.mw-result-summary { color:var(--muted); }
+.mw-result-actions { display:flex; flex-wrap:wrap; align-items:center; gap:10px; }
+.mw-result-actions[hidden] { display:none!important; }
+.mw-result-actions button { min-height:44px; }
+.mw-completion-content details>summary { min-height:44px; display:flex; align-items:center; gap:8px; cursor:pointer; color:var(--primary); font-size:14px; }
+.mw-completion-content details>summary::before { content:'▸'; }
+.mw-completion-content details[open]>summary::before { content:'▾'; }
+.mw-result-pot { min-width:0; border:1px solid var(--border); border-radius:8px; margin:0; padding:8px 12px; }
+.mw-result-pot legend { font-size:14px; padding:0 5px; }
+.mw-result-pot label { display:flex; align-items:center; min-height:44px; gap:10px; }
+.mw-result-pot input { width:20px; height:20px; min-height:20px; flex:0 0 auto; accent-color:var(--primary); }
+.mw-ending-stack-grid { display:grid; gap:10px; }
+.multiway-dialog .mw-stack-row { display:grid; grid-template-columns:minmax(0,1fr) minmax(100px,140px); align-items:center; gap:12px; }
+.mw-stack-row small { color:var(--muted); margin-left:6px; }
+#mw-reveal-player { width:100%; min-height:44px; }
+#mw-reveal-cards { font:18px var(--font-mono); }
+#mw-completion-dialog,#mw-reveal-dialog { max-height:calc(100dvh - 32px); overflow:auto; }
 #mw-size-limits,#mw-board-existing,.mw-card-legend,#mw-seat-note { color:var(--muted); }
 #mw-size-cost { color:var(--primary); }
 #mw-seat-note { margin-top:10px; }

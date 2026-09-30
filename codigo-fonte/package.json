@@ -1,6 +1,6 @@
 {
   "name": "poker-omaha5-realtime-assistance",
-  "version": "0.14.7",
+  "version": "0.14.8",
   "private": true,
   "description": "THEIBS: Omaha High PLO4, PLO5 and PLO6 analysis and training lab.",
   "type": "commonjs",
