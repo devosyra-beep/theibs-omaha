@@ -2,9 +2,11 @@
 
 ## Current status
 
-Migration preparation only. No Oracle VM or Cloudflare application has been deployed by this change. Render remains the active backend and must remain available until all cutover gates pass.
+Frontend staging is deployed on Cloudflare, with Render still serving the API. No Oracle VM is provisioned and the backend/data migration is incomplete. Render must remain available until all cutover gates pass.
 
-The in-app browser now has an authenticated Cloudflare session. A separate account named `THEIBS` was created at the user's request, with free-tier defaults and without inheriting other accounts' payment methods or plans. Brandi and Osyra were not changed. The preparation code is published on `hosting/cloudflare-oracle-migration`. The user connected `devosyra-beep/theibs-omaha` and created Worker `theibs-omaha` in that account. Its first build used `main`, root `/`, no build command and `npx wrangler deploy`, and failed before publishing because it could not detect static assets. The prepared Wrangler name is now aligned with that existing Worker. Corrected provider build settings and a successful live deployment must still be verified. Oracle eligibility and capacity remain unverified. Render remains active.
+The in-app browser has an authenticated Cloudflare session. A separate account named `THEIBS` was created at the user's request, with free-tier defaults and without inheriting other accounts' payment methods or plans. Brandi and Osyra were not changed. The user connected `devosyra-beep/theibs-omaha` and created Worker `theibs-omaha` in that account. Its first build used `main`, root `/`, no build command and `npx wrangler deploy`, and failed before publishing because it could not detect static assets. After aligning the Wrangler name and correcting the provider branch, commands, root and four build variables, commit `2c47b99a6699e667e054b1d4a3dc3f510caf05a2` automatically produced successful build `956ad8ec-4c3d-419a-b7ae-e09063d78bc3` in 53 seconds. The provider settings persisted across reload. Authenticated gameplay, data portability, deployed cancellation and Oracle performance gates remain open. Oracle still requires user sign-in and its eligibility/capacity remain unverified.
+
+The first successful provider build detected `PNPM_VERSION=11.19.0` but Corepack downloaded pnpm 11.24.0 because the package did not declare its package manager. The hosting package now explicitly pins `packageManager: pnpm@11.19.0`; verify the next provider log uses that exact version before claiming a fully reproducible build environment.
 
 - Source baseline: `9ccbd33e29d1d8f5af19ba0c72c3160f10131bff`.
 - Published runtime baseline: `9cac713297108d106fd4d3ee75cf99cb82035600`, version `0.14.10`.
