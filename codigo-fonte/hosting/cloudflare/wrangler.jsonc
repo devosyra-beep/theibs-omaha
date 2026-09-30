@@ -5,6 +5,7 @@
   "compatibility_date": "2026-09-30",
   "compatibility_flags": ["enable_request_signal"],
   "workers_dev": true,
+  "preview_urls": false,
   "assets": {
     "directory": ".output/assets",
     "binding": "ASSETS",
