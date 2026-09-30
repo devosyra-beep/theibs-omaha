@@ -212,7 +212,7 @@
     const amountToCall = state?.phase === 'BETTING' ? Number(state.legal?.toCall) : 0;
     $('.mw-call-amount').hidden = !Number.isFinite(amountToCall) || amountToCall <= 0;
     $('#mw-to-call').textContent = amountToCall > 0 ? money(amountToCall) : '';
-    $('#mw-action-stage').hidden = state?.phase !== 'BETTING';
+    $('#mw-action-stage').hidden = state?.phase !== 'BETTING' || view.heroDraftReady === false;
     for (const command of COMMANDS) {
       const button = $(`[data-mw-command="${command.id}"]`), actionCode = resolveCommand(command);
       button.disabled = !actionCode; button.dataset.mwAction = actionCode || '';
