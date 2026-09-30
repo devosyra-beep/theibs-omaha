@@ -47,3 +47,36 @@
   window.addEventListener('pageshow', revealHeader);
   window.addEventListener('resize', revealHeader);
 })();
+
+// The landing notice reads the same server access state as the app. It never
+// treats a checkout return URL or browser storage as proof of payment.
+(() => {
+  const notice = document.getElementById('trial-expired-notice');
+  if (!notice || !window.TheibsAuthSession) return;
+  let manager = null, checking = false;
+  async function updateNotice() {
+    if (checking) return;
+    checking = true;
+    try {
+      if (!manager) {
+        const response = await fetch('/api/public-config', { cache:'no-store' });
+        const data = await response.json();
+        if (!response.ok || !data.auth?.required) return;
+        const withLock = navigator.locks?.request ? (task, options) => navigator.locks.request(
+          'theibs-auth-refresh-v1', { mode:'exclusive', signal:options.signal }, task) : null;
+        manager = window.TheibsAuthSession.create({ config:data.auth, fetch:window.fetch.bind(window),
+          storage:localStorage, baseUrl:location.href, withLock });
+        manager.load();
+      }
+      if (!manager.hasSession()) { notice.hidden = true; return; }
+      const response = await manager.request('/api/access');
+      const data = await response.json().catch(() => ({}));
+      notice.hidden = !response.ok || data.access?.state !== 'EXPIRED' || data.access?.allowed;
+    } catch { notice.hidden = true; }
+    finally { checking = false; }
+  }
+  void updateNotice();
+  window.addEventListener('focus', updateNotice);
+  window.addEventListener('pageshow', updateNotice);
+  window.addEventListener('pagehide', () => manager?.dispose());
+})();

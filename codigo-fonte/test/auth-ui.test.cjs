@@ -30,7 +30,9 @@ async function boot({ required = true, loggedIn = true, logout } = {}) {
     } };
   const location = { origin: 'http://localhost:4175', href: 'http://localhost:4175/app', pathname: '/app', search: '', hash: '',
     replace(url) { navigations.push(url); } };
-  vm.runInNewContext(source, { window, location, document: { getElementById: element, body: { style: {} }, dispatchEvent() {} },
+  const document = { getElementById: element, body: { style: {} }, hidden: false, listeners: {},
+    addEventListener(name, handler) { this.listeners[name] = handler; }, dispatchEvent() {} };
+  vm.runInNewContext(source, { window, location, document,
     localStorage: { getItem: k => storage.get(k), setItem: (k, v) => storage.set(k, v), removeItem: k => storage.delete(k) },
     history: { replaceState() {} }, URL, URLSearchParams, Headers, Request, AbortController, AbortSignal, atob, CustomEvent, console, clearTimeout, setTimeout: (fn, delay) => setTimeout(fn, delay).unref() });
   await window.listeners.DOMContentLoaded();

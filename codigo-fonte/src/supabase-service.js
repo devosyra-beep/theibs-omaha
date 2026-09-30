@@ -1,6 +1,8 @@
 'use strict';
 
+const crypto = require('node:crypto');
 const { evaluateAccess } = require('./access-policy');
+const { billingConfig } = require('./abacatepay');
 
 function trimSlash(value) { return String(value || '').trim().replace(/\/+$/, ''); }
 function isTrue(value) { return /^(1|true|yes|on)$/i.test(String(value || '')); }
@@ -42,7 +44,7 @@ function publicConfig(env = process.env) {
     supabasePublishableKey: config.required ? config.publishableKey : null,
     providers: { google: config.required && config.googleEnabled },
     trialDays: config.trialDays,
-    billingEnabled: config.required && Boolean(env.ABACATEPAY_API_KEY && env.ABACATEPAY_PRODUCT_ID),
+    billingEnabled: config.required && billingConfig(env).configured,
     planPriceBrl: Number(env.THEIBS_PLAN_PRICE_BRL || 250)
   };
 }
@@ -110,26 +112,83 @@ async function accessFor(auth, env = process.env, fetchImpl = fetch, now = Date.
     user: { id: auth.user.id, email: auth.user.email || null } };
 }
 
-async function insertPaymentEvent(event, env = process.env, fetchImpl = fetch) {
+async function orderRequest(path, { method = 'GET', body, prefer, env = process.env, fetchImpl = fetch } = {}) {
   const config = settings(env);
-  const response = await fetchImpl(`${config.url}/rest/v1/theibs_payment_events`, {
-    method: 'POST', headers: adminHeaders(config, { 'Content-Type': 'application/json', Prefer: 'resolution=ignore-duplicates,return=representation' }),
-    body: JSON.stringify([{ event_id: event.id, event_type: event.event, dev_mode: event.devMode === true, payload: event }]),
-    signal: AbortSignal.timeout(10000)
+  const response = await fetchImpl(`${config.url}/rest/v1/${path}`, {
+    method, headers: adminHeaders(config, { ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
+      ...(prefer ? { Prefer: prefer } : {}) }),
+    ...(body === undefined ? {} : { body: JSON.stringify(body) }), signal: AbortSignal.timeout(10000)
   });
   const data = await readJson(response);
-  if (!response.ok) throw new Error(`Could not record the event (${response.status}).`);
-  return Array.isArray(data) && data.length > 0;
+  return { status: response.status, ok: response.ok, data };
 }
 
-async function upsertEntitlement(record, env = process.env, fetchImpl = fetch) {
-  const config = settings(env);
-  const response = await fetchImpl(`${config.url}/rest/v1/theibs_entitlements?on_conflict=user_id`, {
-    method: 'POST', headers: adminHeaders(config, { 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates,return=minimal' }),
-    body: JSON.stringify([{ ...record, updated_at: new Date().toISOString() }]), signal: AbortSignal.timeout(10000)
+async function assertBillingEnvironment(expected, env = process.env, fetchImpl = fetch) {
+  const result = await orderRequest('theibs_billing_environment?singleton=eq.true&select=environment&limit=1',
+    { env, fetchImpl });
+  if (!result.ok || result.data?.[0]?.environment !== expected) {
+    throw Object.assign(new Error('Payment environment does not match the database.'), { statusCode: 503 });
+  }
+}
+
+async function findOrderById(id, env = process.env, fetchImpl = fetch) {
+  if (!/^[0-9a-f-]{36}$/i.test(String(id || ''))) return null;
+  const result = await orderRequest(`theibs_payment_orders?id=eq.${encodeURIComponent(id)}&select=*&limit=1`, { env, fetchImpl });
+  if (!result.ok) throw new Error(`Could not read payment order (${result.status}).`);
+  return result.data?.[0] || null;
+}
+
+async function latestOrder(userId, env = process.env, fetchImpl = fetch) {
+  const result = await orderRequest(`theibs_payment_orders?user_id=eq.${encodeURIComponent(userId)}&select=*&order=created_at.desc&limit=1`, { env, fetchImpl });
+  if (!result.ok) throw new Error(`Could not read payment order (${result.status}).`);
+  return result.data?.[0] || null;
+}
+
+async function activeOrder(userId, productId, environment, env = process.env, fetchImpl = fetch) {
+  const query = `theibs_payment_orders?user_id=eq.${encodeURIComponent(userId)}&product_id=eq.${encodeURIComponent(productId)}&environment=eq.${encodeURIComponent(environment)}&status=in.(CREATING,PENDING,PAID)&select=*&order=created_at.desc&limit=1`;
+  const result = await orderRequest(query, { env, fetchImpl });
+  if (!result.ok) throw new Error(`Could not read payment order (${result.status}).`);
+  return result.data?.[0] || null;
+}
+
+async function reserveOrder({ userId, method, productId, priceCents, environment }, env = process.env, fetchImpl = fetch) {
+  const existing = await activeOrder(userId, productId, environment, env, fetchImpl);
+  if (existing) return { order: existing, created: false };
+  const record = { id: crypto.randomUUID(), user_id: userId, method, product_id: productId,
+    amount_cents: priceCents, environment, status: 'CREATING' };
+  const result = await orderRequest('theibs_payment_orders?select=*', { method: 'POST', body: [record],
+    prefer: 'return=representation', env, fetchImpl });
+  if (result.ok && result.data?.[0]) return { order: result.data[0], created: true };
+  if (result.status === 409) {
+    const raced = await activeOrder(userId, productId, environment, env, fetchImpl);
+    if (raced) return { order: raced, created: false };
+  }
+  throw new Error(`Could not reserve payment order (${result.status}).`);
+}
+
+async function setOrderCharge(orderId, charge, method, env = process.env, fetchImpl = fetch) {
+  const body = { provider_charge_id: charge.id, status: 'PENDING',
+    provider_url: method === 'CARD' ? charge.url : null, expires_at: method === 'PIX' ? charge.expiresAt : null,
+    pix_br_code: method === 'PIX' ? charge.brCode : null,
+    pix_qr_base64: method === 'PIX' ? charge.brCodeBase64 : null, updated_at: new Date().toISOString() };
+  // Completion can only consume this server-reserved, still-CREATING order.
+  const result = await orderRequest(`theibs_payment_orders?id=eq.${encodeURIComponent(orderId)}&status=eq.CREATING&select=*`, {
+    method: 'PATCH', body, prefer: 'return=representation', env, fetchImpl
   });
-  if (!response.ok) { await response.text(); throw new Error(`Could not update access (${response.status}).`); }
+  if (!result.ok || !result.data?.[0]) throw new Error('Could not save payment order.');
+  return result.data[0];
+}
+
+async function processPaymentEvent({ orderId, eventId, eventType, status, providerChargeId, payload },
+  env = process.env, fetchImpl = fetch) {
+  const result = await orderRequest('rpc/theibs_apply_payment_event', { method: 'POST',
+    body: { p_order_id: orderId, p_event_id: eventId, p_event_type: eventType, p_status: status,
+      p_provider_charge_id: providerChargeId, p_payload: payload },
+    env, fetchImpl });
+  if (!result.ok) throw new Error(`Could not process payment event (${result.status}).`);
+  return result.data;
 }
 
 module.exports = { settings, publicConfig, validateSettings, bearerToken, authenticateRequest, fetchEntitlement, accessFor,
-  insertPaymentEvent, upsertEntitlement };
+  assertBillingEnvironment, findOrderById, latestOrder, activeOrder, reserveOrder, setOrderCharge,
+  processPaymentEvent };

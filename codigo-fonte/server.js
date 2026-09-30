@@ -15,6 +15,7 @@ const analyzeInWorker = require('./src/analysis-worker');
 const multiway = require('./src/multiway-session');
 const authService = require('./src/supabase-service');
 const billing = require('./src/abacatepay');
+const billingService = require('./src/billing-service');
 const { publicOrigin, runtimeConfig, validateDeployment } = require('./src/hosting-config');
 const { experimentReport } = require('./src/analysis-experiment-report');
 const { prepareOpponentOverrides } = require('./src/opponent-overrides');
@@ -253,11 +254,9 @@ const server = http.createServer(async (request, response) => {
       if (!verified) return json(response, 401, { status: 'ERROR', reason: 'Invalid webhook.' });
       const event = JSON.parse(rawBody);
       if (!event?.id || !event?.event || !event?.data) return json(response, 400, { status: 'ERROR', reason: 'Invalid event.' });
-      await authService.insertPaymentEvent(event);
-      const entitlement = billing.entitlementFromEvent(event);
-      if (entitlement) await authService.upsertEntitlement(entitlement);
+      await billingService.applyWebhook(event);
       return json(response, 200, { status: 'OK' });
-    } catch (error) { return json(response, error.statusCode || 400, { status: 'ERROR', reason: error.message }); }
+    } catch (error) { return json(response, error.statusCode || 503, { status: 'ERROR', reason: error.message }); }
   }
   if (request.method === 'GET' && route === '/api/status') {
     let modelState;
@@ -281,9 +280,22 @@ const server = http.createServer(async (request, response) => {
       auth = await authService.authenticateRequest(request);
       access = await authService.accessFor(auth);
       if (request.method === 'GET' && route === '/api/access') return json(response, 200, { status: 'OK', access });
+      if (request.method === 'GET' && route === '/api/billing/offer') {
+        return json(response, 200, { status: 'OK', offer: await billingService.offer(access), access });
+      }
+      if (request.method === 'GET' && route === '/api/billing/order') {
+        const order = await billingService.currentOrder(auth);
+        return json(response, 200, { status: 'OK', order, access: await authService.accessFor(auth) });
+      }
       if (request.method === 'POST' && route === '/api/billing/checkout') {
-        const checkout = await billing.createPaymentCheckout(auth.user);
-        return json(response, 200, { status: 'OK', checkout });
+        let input;
+        try { input = JSON.parse(await collectBody(request)); }
+        catch { return json(response, 400, { status: 'ERROR', reason: 'Invalid payment request.' }); }
+        if (!input || typeof input !== 'object' || Array.isArray(input) || !['PIX', 'CARD'].includes(input.method)) {
+          return json(response, 400, { status: 'ERROR', reason: 'Choose an available payment method.' });
+        }
+        const order = await billingService.checkout(auth, access, input.method);
+        return json(response, 200, { status: 'OK', order, access });
       }
       if (!access.allowed) return json(response, 402, { status: 'PAYMENT_REQUIRED', access });
     } catch (error) { return json(response, error.statusCode || 503, { status: 'ERROR', reason: error.message }); }

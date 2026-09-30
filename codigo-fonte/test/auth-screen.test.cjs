@@ -23,7 +23,8 @@ function mount(fetch, saved = null) {
   let start;
   const storage = new Map(saved ? [['theibs.auth.session.v1', JSON.stringify(saved)]] : []);
   const window = { fetch, addEventListener: (name, cb) => { if (name === 'DOMContentLoaded') start = cb; } };
-  const document = { getElementById: get, body: { style: {} }, title: 'THEIBS', dispatchEvent() {} };
+  const document = { getElementById: get, body: { style: {} }, title: 'THEIBS', hidden: false,
+    addEventListener() {}, dispatchEvent() {} };
   vm.runInNewContext(source, { window, document, localStorage: { getItem: k => storage.get(k), setItem: (k,v) => storage.set(k,v), removeItem: k => storage.delete(k) },
     location: { href: 'https://theibs.example/app', origin: 'https://theibs.example', pathname: '/app', search: '', hash: '', replace() {}, assign() {} },
     history: { replaceState() {} }, URL, URLSearchParams, Headers, Request, AbortController, AbortSignal, atob, Date, CustomEvent, clearTimeout, setTimeout: (fn, delay) => setTimeout(fn, delay).unref() });

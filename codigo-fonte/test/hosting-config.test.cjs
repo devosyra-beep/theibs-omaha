@@ -36,11 +36,15 @@ test('public startup fails closed without the configured Google authentication b
 });
 
 test('free preview cannot enable payments with incomplete configuration or ephemeral history', () => {
-  const billing = { ...hosted, ABACATEPAY_API_KEY: 'dev_test', ABACATEPAY_PRODUCT_ID: 'prod_test', THEIBS_ABACATEPAY_WEBHOOK_SECRET: 'test-secret' };
+  const billing = { ...hosted, ABACATEPAY_API_KEY: 'dev_test', ABACATEPAY_PRODUCT_ID: 'prod_test',
+    THEIBS_ABACATEPAY_WEBHOOK_SECRET: 'test-secret', THEIBS_BILLING_ENV: 'development',
+    THEIBS_PAYMENT_METHODS: 'PIX,CARD', THEIBS_BILLING_SCHEMA_VERIFIED: 'true' };
   assert.throws(() => validateDeployment({ ...hosted, ABACATEPAY_API_KEY: 'dev_test' }), /webhook secret/);
   assert.throws(() => validateDeployment(billing), /persistent user storage/);
   assert.throws(() => validateDeployment({ ...billing, THEIBS_USER_DATA_ROOT: '/data/users' }), /persistent user storage/);
   assert.equal(validateDeployment({ ...billing, THEIBS_USER_DATA_ROOT: '/data/users', THEIBS_STORAGE_PERSISTENT: 'true' }).hosted, true);
+  assert.throws(() => validateDeployment({ ...billing, THEIBS_USER_DATA_ROOT: '/data/users',
+    THEIBS_STORAGE_PERSISTENT: 'true', SUPABASE_URL: 'https://kevcwoeqgdwvfsvdpghe.supabase.co' }), /isolated development/);
 });
 
 test('misplaced privileged keys cannot reach the public config or start a hosted server', () => {

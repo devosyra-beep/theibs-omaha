@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; img-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; connect-src 'self' https://*.supabase.co; img-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
   <meta name="theme-color" content="#101012">
   <meta name="description" content="Poker training for everyone. Clear cards, keyboard controls, guided explanations and optional voice entry for hand analysis. By Osyra Studio.">
   <meta property="og:title" content="THEIBS — Omaha Lab">
@@ -14,7 +14,7 @@
   <title>THEIBS — Omaha Lab</title>
   <link rel="icon" href="/icons/theibs.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/landing.css">
-  <script src="/landing.js" defer></script>
+  <script src="/auth-session.js" defer></script><script src="/landing.js" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
@@ -26,6 +26,7 @@
       </a>
     </nav>
   </header>
+  <aside id="trial-expired-notice" class="trial-notice" hidden aria-labelledby="trial-notice-title"><div class="container trial-notice-inner"><div><strong id="trial-notice-title">Your free trial has ended.</strong><p>Your account is still available. Review your access and the payment methods currently offered.</p></div><a class="button" href="/app?login=1&amp;intent=checkout">Review account &amp; payment <span aria-hidden="true">→</span></a></div></aside>
   <main id="main">
     <section class="hero" id="top" aria-labelledby="hero-title">
       <div class="container hero-inner">
@@ -90,7 +91,7 @@
           <li>PLO4, PLO5 &amp; PLO6</li>
           <li>Clear EV &amp; equity calculations</li>
         </ul>
-        <a class="button primary-cta" href="/app?login=1">Get access <span aria-hidden="true">→</span></a>
+        <a class="button primary-cta" href="/app?login=1&amp;intent=checkout">Review access options <span aria-hidden="true">→</span></a>
       </div>
     </section>
   </main>

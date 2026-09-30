@@ -56,6 +56,24 @@ test('API recusa visitante e libera usuário dentro dos três dias', async () =>
   assert.equal(accepted.status, 200); assert.equal(body.access.state, 'TRIAL'); assert.equal(body.access.allowed, true);
 });
 
+test('payment routes remain visible but cannot charge without validated billing setup', async () => {
+  const headers = { Authorization: 'Bearer valid-jwt' };
+  assert.equal((await originalFetch(origin + '/api/billing/offer')).status, 401);
+  const offerResponse = await originalFetch(origin + '/api/billing/offer', { headers });
+  const offer = await offerResponse.json();
+  assert.equal(offerResponse.status, 200);
+  assert.equal(offer.offer.priceCents, 25000);
+  assert.deepEqual(offer.offer.methods, []);
+  const orderResponse = await originalFetch(origin + '/api/billing/order', { headers });
+  assert.equal(orderResponse.status, 200);
+  assert.equal((await orderResponse.json()).order, null);
+  const checkoutResponse = await originalFetch(origin + '/api/billing/checkout', {
+    method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ method: 'PIX', amount: 1, userId: 'someone-else' })
+  });
+  assert.equal(checkoutResponse.status, 503);
+});
+
 test('hosting health check is public and exposes no configuration or user data', async () => {
   const response = await originalFetch(origin + '/healthz');
   assert.equal(response.status, 200);

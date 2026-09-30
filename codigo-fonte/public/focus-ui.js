@@ -28,7 +28,31 @@
   const rail=$('.primary-rail');rail.id='primary-rail';
   const header=document.createElement('div');header.className='rail-header';
   const toggle=document.createElement('button');toggle.id='sidebar-toggle';toggle.type='button';toggle.className='ghost-button';toggle.setAttribute('aria-controls','primary-rail');
-  header.append($('.brand'),toggle);rail.prepend(header);
+  const mobileNavToggle=document.createElement('button');
+  mobileNavToggle.id='mobile-nav-toggle';mobileNavToggle.type='button';mobileNavToggle.className='ghost-button';
+  mobileNavToggle.innerHTML=svg('menu')+'<span>Menu</span>';mobileNavToggle.setAttribute('aria-controls','main-nav app-topbar');
+  const mainNav=$('.main-nav');mainNav.id='main-nav';
+  $('.topbar').id='app-topbar';
+  function setMobileNav(open){
+    document.body.dataset.mobileNav=open?'open':'closed';
+    mobileNavToggle.setAttribute('aria-expanded',String(open));
+    mobileNavToggle.setAttribute('aria-label',open?'Close navigation':'Open navigation');
+    mobileNavToggle.title=open?'Close navigation':'Open navigation';
+    mobileNavToggle.querySelector('span').textContent=open?'Close':'Menu';
+  }
+  setMobileNav(false);
+  mobileNavToggle.addEventListener('click',()=>setMobileNav(document.body.dataset.mobileNav!=='open'));
+  mainNav.addEventListener('click',event=>{
+    if(event.target.closest('.nav-tab') && window.matchMedia('(max-width:700px)').matches){
+      setMobileNav(false);mobileNavToggle.focus();
+    }
+  });
+  document.addEventListener('keydown',event=>{
+    if(event.key==='Escape' && document.body.dataset.mobileNav==='open' && window.matchMedia('(max-width:700px)').matches){
+      setMobileNav(false);mobileNavToggle.focus();
+    }
+  });
+  header.append($('.brand'),mobileNavToggle,toggle);rail.prepend(header);
   for(const [view,icon,label]of [['analyze','cards','Analyze'],['train','target','Train'],['history','history','History']]){
     const button=$(`.nav-tab[data-view="${view}"]`);button.innerHTML=svg(icon)+`<span class="nav-label">${label}</span>`;button.title=label;button.setAttribute('aria-label',label);
   }

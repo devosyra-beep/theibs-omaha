@@ -656,6 +656,7 @@
     controls();
   });
   document.addEventListener('keydown', event => {
+    if (document.querySelector('#billing-dialog[open]')) return;
     if (event.altKey && !event.ctrlKey && !event.metaKey && event.code === 'KeyV' && !event.repeat) {
       if (!active() || event.target.closest?.('input,textarea,select,[contenteditable]')) return;
       event.preventDefault(); run || wantListening ? stop() : void start(); return;
@@ -668,6 +669,8 @@
     controls();
   });
   document.addEventListener('theibs:voice-session-changed', () => { if (pending() || committing) suspend('Session changed. Voice is waiting for a valid session.'); });
+  document.addEventListener('theibs:billing-modal-open', () => { if (pending() || committing) suspend('Voice paused while account and payment are open.'); });
+  document.addEventListener('theibs:billing-modal-close', () => { if (wantListening) scheduleRebind(0); });
   // Auth owns storage/session continuity: a healthy token refresh preserves
   // its epoch. Logout, identity changes and failures emit the event above.
   for (const name of ['offline', 'pagehide']) window.addEventListener(name, () => { if (pending()) suspend('Voice paused until the page and connection return.'); });
