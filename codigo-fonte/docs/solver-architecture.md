@@ -150,8 +150,10 @@ the result:
 5. Passed known-game and applicable independent poker-reference validation.
 6. Clear restriction of the claim to the validated game or abstraction.
 
-Missing external poker reference validation is a GTO-label release gate, even
-when small toy games pass. A numerically solved supported subgame still cannot
+Broader independent poker-reference validation remains a GTO-label release gate.
+The selected small river heads-up fixtures checked by the independent LP reference
+do not certify every supported input, and production does not run LP for each
+request. A numerically solved supported subgame still cannot
 be called full-hand GTO. A forced betting abstraction cannot claim full-action PLO5
 optimality. Multiplayer empirical strength is also a different claim: the
 [Pluribus paper](https://doi.org/10.1126/science.aay2400) explicitly studies

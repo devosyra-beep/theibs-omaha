@@ -4,12 +4,19 @@ const {Worker}=require('node:worker_threads');
 const {createSolutionCache,keyFor}=require('./solution-cache');
 const BUDGETS={FAST:{timeMs:500,iterations:50},STANDARD:{timeMs:3000,iterations:1000},DEEP:{timeMs:30000,iterations:20000}};
 const LIMITS={maxNodes:12000,maxWorlds:27,maxMemoryBytes:48*1024*1024,maxBuildMs:750};
+const TERMINAL_PHASES=new Set(['COMPLETE','FAILED','UNSUPPORTED','CANCELLED']);
 const workIterations=checkpoint=>Number.isSafeInteger(checkpoint?.workIterations)?checkpoint.workIterations:Number.isSafeInteger(checkpoint?.iterations)?checkpoint.iterations:0;
 function createSolverService({cacheDirectory,maxJobs=24,maxQueued=2,workerFile=path.join(__dirname,'job-worker.js')}={}){
   const jobs=new Map(),generations=new Map(),decisions=new Map(),cache=createSolutionCache({directory:cacheDirectory});let active=null,priority=0,closed=false,cacheWriteTail=Promise.resolve();
   const metrics={started:0,completed:0,cancelled:0,workerErrors:0};
   function view(job){return {status:job.result?.status || (['COMPLETE','FAILED','CANCELLED','UNSUPPORTED'].includes(job.phase)?'NOT_SOLVED':'REFINING'),jobId:job.id,revisionKey:job.revisionKey,handId:job.handId,budget:job.budget,phase:job.phase,
-    result:job.result ? structuredClone(job.result) : null,reason:job.reason || null,cache:{hit:job.cacheHit,...cache.stats()},timing:{acknowledgementMs:job.ackMs,firstValueMs:job.firstValueMs??null,totalMs:Math.round(performance.now()-job.started),workerMs:job.workerMs||0,decisionComputeMs:job.decision?.consumedMs||0,decisionWorkIterations:job.decision?.workIterations||0},limits:LIMITS};}
+    result:job.result ? structuredClone(job.result) : null,reason:job.reason || null,cache:{hit:job.cacheHit,...cache.stats()},timing:{acknowledgementMs:job.ackMs,firstValueMs:job.firstValueMs??null,completionMs:job.completionMs??null,totalMs:Math.round(performance.now()-job.started),workerMs:job.workerMs||0,decisionComputeMs:job.decision?.consumedMs||0,decisionWorkIterations:job.decision?.workIterations||0},limits:LIMITS};}
+  function setPhase(job,phase){
+    job.phase=phase;
+    // Time to the logical terminal state, frozen before later polling. Worker
+    // teardown may finish later; this is not a worker-exit/cancellation latency.
+    if(TERMINAL_PHASES.has(phase)&&job.completionMs==null)job.completionMs=Math.max(0,Math.round(performance.now()-job.started));
+  }
   function account(job,reported){
     if(!Number.isFinite(reported))return;
     const delta=Math.max(0,reported-job.runReportedMs);job.runReportedMs=Math.max(job.runReportedMs,reported);
@@ -18,7 +25,7 @@ function createSolverService({cacheDirectory,maxJobs=24,maxQueued=2,workerFile=p
   function ownerJob(owner,id){const job=jobs.get(id);if(!job||job.owner!==owner){const error=Error('Solver job was not found.');error.statusCode=404;throw error;}return job;}
   function cancelJob(job,reason='State changed'){
     if(['COMPLETE','CANCELLED','FAILED','UNSUPPORTED'].includes(job.phase))return;
-    job.phase='CANCELLED';job.reason=reason;metrics.cancelled++;
+    setPhase(job,'CANCELLED');job.reason=reason;metrics.cancelled++;
     if(active?.job===job){account(job,performance.now()-active.started);Atomics.store(active.cancel,0,1);void active.worker.terminate();active=null;kick();}
   }
   function current(job,slot){return !closed&&active===slot&&job.phase!=='CANCELLED'&&generations.get(job.owner)===job.generation;}
@@ -60,22 +67,22 @@ function createSolverService({cacheDirectory,maxJobs=24,maxQueued=2,workerFile=p
     if(closed||active||priority)return;
     const job=[...jobs.values()].filter(item=>item.phase==='QUEUED'&&generations.get(item.owner)===item.generation).sort((a,b)=>b.started-a.started)[0];if(!job)return;
     const remaining={timeMs:BUDGETS[job.budget].timeMs-job.decision.consumedMs,iterations:BUDGETS[job.budget].iterations-job.decision.workIterations};
-    if(remaining.timeMs<=0||remaining.iterations<=0){job.phase='COMPLETE';job.reason='Cumulative calculation budget reached.';kick();return;}
+    if(remaining.timeMs<=0||remaining.iterations<=0){setPhase(job,'COMPLETE');job.reason='Cumulative calculation budget reached.';kick();return;}
     job.phase='BUILDING';job.runReportedMs=0;const cancel=new Int32Array(new SharedArrayBuffer(4));
     const worker=new Worker(workerFile,{resourceLimits:{maxOldGenerationSizeMb:128,maxYoungGenerationSizeMb:16,stackSizeMb:4}});
     const slot=active={job,worker,cancel,started:performance.now()};
     const finish=()=>{if(active===slot)active=null;void worker.terminate();kick();};
-    const timer=setTimeout(()=>{if(active!==slot)return;account(job,performance.now()-slot.started);job.phase='COMPLETE';job.reason='Budget reached; retained the last completed refinement.';Atomics.store(cancel,0,1);finish();},remaining.timeMs+LIMITS.maxBuildMs+2000);timer.unref();
+    const timer=setTimeout(()=>{if(active!==slot)return;account(job,performance.now()-slot.started);setPhase(job,'COMPLETE');job.reason='Budget reached; retained the last completed refinement.';Atomics.store(cancel,0,1);finish();},remaining.timeMs+LIMITS.maxBuildMs+2000);timer.unref();
     worker.on('message',async message=>{
       if(!current(job,slot))return;
       if(message.type==='progress'){job.phase='REFINING';job.saveChain=job.saveChain.then(()=>save(job,message,slot));await job.saveChain;return;}
       clearTimeout(timer);
-      if(message.type==='error'){job.phase='FAILED';job.reason=message.error;metrics.workerErrors++;}
-      else {job.saveChain=job.saveChain.then(()=>save(job,message,slot));await job.saveChain;if(!current(job,slot))return;job.phase=message.paused?'QUEUED':job.result?.status==='NOT_SOLVED'?'UNSUPPORTED':'COMPLETE';if(!message.paused)metrics.completed++;}
+      if(message.type==='error'){setPhase(job,'FAILED');job.reason=message.error;metrics.workerErrors++;}
+      else {job.saveChain=job.saveChain.then(()=>save(job,message,slot));await job.saveChain;if(!current(job,slot))return;setPhase(job,message.paused?'QUEUED':job.result?.status==='NOT_SOLVED'?'UNSUPPORTED':'COMPLETE');if(!message.paused)metrics.completed++;}
       finish();
     });
-    worker.on('error',error=>{if(active!==slot)return;clearTimeout(timer);job.phase='FAILED';job.reason=error.code==='ERR_WORKER_OUT_OF_MEMORY'?'Solver memory limit reached.':error.message;metrics.workerErrors++;finish();});
-    worker.on('exit',code=>{if(active!==slot)return;clearTimeout(timer);job.phase='FAILED';job.reason=`Solver worker stopped (${code}).`;finish();});
+    worker.on('error',error=>{if(active!==slot)return;clearTimeout(timer);setPhase(job,'FAILED');job.reason=error.code==='ERR_WORKER_OUT_OF_MEMORY'?'Solver memory limit reached.':error.message;metrics.workerErrors++;finish();});
+    worker.on('exit',code=>{if(active!==slot)return;clearTimeout(timer);setPhase(job,'FAILED');job.reason=`Solver worker stopped (${code}).`;finish();});
     worker.postMessage({input:job.input,budget:remaining,checkpoint:job.checkpoint,cancel:cancel.buffer});
   }
   async function start(owner,input,{budget='STANDARD',revisionKey,handId}={}){
@@ -83,7 +90,9 @@ function createSolverService({cacheDirectory,maxJobs=24,maxQueued=2,workerFile=p
     const started=performance.now(),generation=(generations.get(owner)||0)+1;generations.set(owner,generation);
     // The API supplies a validated canonical ledger. Profiles/exploit data and
     // client memory/time budgets never enter this reference-strategy input.
-    const normalized={multiway:input.multiway,ranges:input.ranges,sizing:input.sizing,rake:input.rake,budget:LIMITS};
+    // Queueing/cache I/O can outlive the caller's object. Fingerprint and run
+    // the same detached snapshot, including nested ranges and ledger events.
+    const normalized=structuredClone({multiway:input.multiway,ranges:input.ranges,sizing:input.sizing,rake:input.rake,budget:LIMITS});
     const coverage=require('./plo-river-game').coverage(normalized);
     const key=keyFor(coverage.status==='READY' ? {game:coverage.key,heroInformationSet:coverage.heroInformationSet} : normalized);
     const existing=[...jobs.values()].find(job=>job.owner===owner&&job.key===key&&job.revisionKey===revisionKey&&job.handId===handId&&['QUEUED','BUILDING','REFINING'].includes(job.phase));
@@ -104,7 +113,7 @@ function createSolverService({cacheDirectory,maxJobs=24,maxQueued=2,workerFile=p
     if(coverage.status!=='READY'){job.phase='UNSUPPORTED';job.result={status:'NOT_SOLVED',actions:[],reasons:coverage.reasons,qualification:{gto:false},metrics:coverage.metrics};}
     jobs.set(id,job);metrics.started++;
     if(job.phase==='QUEUED'&&[...jobs.values()].filter(item=>item.phase==='QUEUED').length>maxQueued){job.phase='UNSUPPORTED';job.reason='Solver queue is full; retry refinement later.';}
-    job.ackMs=Math.round(performance.now()-started);if(found)job.firstValueMs=job.ackMs;kick();return view(job);
+    job.ackMs=Math.round(performance.now()-started);if(found)job.firstValueMs=job.ackMs;setPhase(job,job.phase);kick();return view(job);
   }
   function prioritize(){priority++;if(active)Atomics.store(active.cancel,0,1);let released=false;return()=>{if(released)return;released=true;priority=Math.max(0,priority-1);kick();};}
   return {start,get:(owner,id)=>view(ownerJob(owner,id)),cancel:(owner,id)=>{const job=ownerJob(owner,id);cancelJob(job,'Cancelled by the user.');return view(job);},prioritize,

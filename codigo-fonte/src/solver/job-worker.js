@@ -7,7 +7,7 @@ const actionConditioned=require('./action-conditioned');
 const {qualify,THRESHOLD_BB}=require('./solution-status');
 const {solverDecisionPrecision}=require('../decision-precision');
 
-const VERSION='THEIBS_HU_ADAPTIVE_V1';
+const {ADAPTIVE_VERSION:VERSION}=require('./versions');
 const LIMITS=Object.freeze({maxNodes:12000,maxInformationSets:12000,maxWorkingBytes:64*1024*1024,maxDepth:256});
 const clone=value=>value==null?value:structuredClone(value);
 const finite=Number.isFinite;
@@ -114,7 +114,7 @@ function execute({input,budget,checkpoint,shouldCancel=()=>false,onProgress=()=>
       limitations:[...meta.limitations,'CFR+ has no general multiplayer Nash-convergence guarantee. Exact unilateral-deviation evaluation measures the returned profile.',
         'Action certificate intervals concern the ex-ante value of the original game with one private-information-set commitment, not the EV of that hand in the original equilibrium.',
         'Global strategy frequencies and conditional profile EV are kept separate from commitment-value certificates.',
-        'Independent PLO reference validation is pending. This release never labels a poker result GTO.']};
+        'Independent linear-programming checks cover selected small heads-up PLO5 river test cases. LP is not run for each request. This release does not label poker results GTO.']};
     result.decisionPrecision=solverDecisionPrecision(result);
     return result;
   }

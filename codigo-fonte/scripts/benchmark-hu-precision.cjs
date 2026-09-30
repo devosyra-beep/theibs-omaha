@@ -14,7 +14,7 @@ const {riverMixedInput}=require('../test/helpers/solver-reference-fixtures.cjs')
 const session=require('../src/multiway-session');
 
 const SAMPLES=5,POLL_MS=2;
-const output=path.resolve(__dirname,'../../validacao/hu-precision-performance.json');
+const output=process.argv[2]?path.resolve(process.argv[2]):path.resolve(__dirname,'../../validacao/hu-precision-performance.json');
 const terminalPhases=new Set(['COMPLETE','FAILED','CANCELLED','UNSUPPORTED']);
 const rounded=value=>Number.isFinite(value)?Math.round(value*1000)/1000:null;
 const percentile=(values,p)=>{const sorted=values.filter(Number.isFinite).sort((a,b)=>a-b);return sorted.length?sorted[Math.max(0,Math.ceil(sorted.length*p)-1)]:null;};

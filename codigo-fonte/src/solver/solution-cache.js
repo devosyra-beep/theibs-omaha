@@ -3,7 +3,7 @@ const fs=require('node:fs/promises'),path=require('node:path'),crypto=require('n
 const VERSION='THEIBS_SOLVER_CACHE_V3';
 const hash=value=>crypto.createHash('sha256').update(value).digest('hex');
 function stable(value){if(Array.isArray(value))return '['+value.map(stable).join(',')+']';if(value&&typeof value==='object')return '{'+Object.keys(value).sort().filter(key=>value[key]!==undefined).map(key=>JSON.stringify(key)+':'+stable(value[key])).join(',')+'}';return JSON.stringify(value);}
-function keyFor(input){return hash(stable({...input,version:VERSION,solver:require('./extensive-solver').VERSION,rules:require('./plo-river-game').RULES_VERSION,adapter:require('./plo-river-game').VERSION,qualification:require('./solution-status').VERSION,precision:require('../decision-precision').VERSION,actionCertificate:require('./action-conditioned').VERSION,adaptive:'THEIBS_HU_ADAPTIVE_V1'}));}
+function keyFor(input){return hash(stable({...input,version:VERSION,solver:require('./extensive-solver').VERSION,rules:require('./plo-river-game').RULES_VERSION,adapter:require('./plo-river-game').VERSION,qualification:require('./solution-status').VERSION,precision:require('../decision-precision').VERSION,actionCertificate:require('./action-conditioned').VERSION,adaptive:require('./versions').ADAPTIVE_VERSION}));}
 function createSolutionCache({directory,maxBytes=32*1024*1024,maxEntryBytes=4*1024*1024,maxEntries=16}={}){
   const entries=new Map();let bytes=0;const stats={hits:0,misses:0,diskHits:0,writes:0,evictions:0};
   const idFor=(owner,key)=>hash(String(owner))+'.'+key;

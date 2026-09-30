@@ -57,6 +57,9 @@ test('publishes the original profile first, refines all contenders and preserves
   assert.deepEqual(output.result.actions.map(row=>row.frequency),[1,0,0]);
   assert.deepEqual(output.result.actionPrecision.focus.survivingActionIds,['A']);
   assert.equal(output.result.adaptation.stopReason,'GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION');
+  assert.equal(output.result.qualification.gto,false);
+  assert.match(output.result.limitations.join(' '),/selected small heads-up PLO5 river test cases/);
+  assert.match(output.result.limitations.join(' '),/LP is not run for each request/);
   assert.equal(output.result.actionPrecision.supportedGameClass,true);
   assert.equal(output.result.actionPrecision.actions[2].iterations,2);
   assert.equal(output.result.metrics.costs.globalSolveMs,4);

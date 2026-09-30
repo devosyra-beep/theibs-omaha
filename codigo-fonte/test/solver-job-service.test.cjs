@@ -70,6 +70,16 @@ async function until(read, accept, timeoutMs = 3000) {
   assert.fail(`Timed out waiting for solver lifecycle state: ${JSON.stringify(read())}`);
 }
 
+async function assertCompletionFrozen(service, owner, completed) {
+  assert.ok(Number.isFinite(completed.timing.completionMs));
+  assert.ok(completed.timing.completionMs >= 0);
+  assert.ok(completed.timing.completionMs <= completed.timing.totalMs);
+  await delay(30);
+  const later = service.get(owner, completed.jobId);
+  assert.equal(later.timing.completionMs, completed.timing.completionMs, 'polling must not increase time to completion');
+  assert.ok(later.timing.totalMs > completed.timing.totalMs, 'totalMs remains job age for compatibility');
+}
+
 test('cache fingerprints ignore object-key order but invalidate mathematical input changes', () => {
   const original = { board: ['2s', '3h', '4d', '8c', '9s'], stack: 20, variant: 'PLO5_HIGH',
     positions: ['SB', 'BB'], sizing: [2, 4], rake: { type: 'NONE' }, ranges: [{ cards: ['As', 'Ah'], weight: .5 }] };
@@ -135,6 +145,7 @@ test('active cancellation cannot be overwritten by a late worker result', async 
     await delay(180);
     const cancelled = service.get('owner', job.jobId);
     assert.equal(cancelled.phase, 'CANCELLED');
+    await assertCompletionFrozen(service, 'owner', cancelled);
     assert.equal(service.stats().active, false);
     assert.equal(service.stats().completed, 0);
   } finally { await service.close(); }
@@ -149,6 +160,7 @@ test('foreground priority pauses background work and resumes its completed check
     release = service.prioritize();
     const paused = await until(() => service.get('owner', job.jobId), item => item.phase === 'QUEUED');
     assert.equal(paused.result.iterations, 1);
+    assert.equal(paused.timing.completionMs, null, 'a foreground pause is not completion');
     assert.equal(service.stats().active, false);
     release(); release = null;
     const finished = await until(() => service.get('owner', job.jobId), item => item.phase === 'COMPLETE');
@@ -270,6 +282,7 @@ test('FAST, STANDARD and DEEP share actual time and all global/action iterations
     assert.equal(refined.timing.decisionComputeMs,3000);assert.equal(refined.timing.decisionWorkIterations,1000);
     const repeated=await service.start('owner',input,{...options,budget:'STANDARD'});
     assert.equal(repeated.phase,'COMPLETE');assert.match(repeated.reason,/Cumulative/);
+    await assertCompletionFrozen(service,'owner',repeated);
     const deep=await service.start('owner',input,{...options,budget:'DEEP'});
     const completed=await until(()=>service.get('owner',deep.jobId),item=>item.phase==='COMPLETE');
     assert.deepEqual(completed.result.receivedBudget,{timeMs:27000,iterations:19000});
@@ -281,4 +294,60 @@ test('FAST, STANDARD and DEEP share actual time and all global/action iterations
     assert.equal(reused.cache.hit,true);
     assert.deepEqual(reused.result.receivedBudget,{timeMs:3000,iterations:1000},'reusing exact cached mathematics from another decision consumes no new compute');
   }finally{await service.close();}
+});
+
+test('completion time freezes for cold worker results and warm FAST cache hits', async t => {
+  const workerFile = await mockWorker(t), service = createSolverService({ workerFile });
+  try {
+    const input = inputFixture(), options = { budget: 'FAST', revisionKey: 'timed', handId: input.multiway.handId };
+    const job = await service.start('owner', input, options);
+    assert.equal(job.timing.completionMs, null);
+    const completed = await until(() => service.get('owner', job.jobId), item => item.phase === 'COMPLETE');
+    assert.ok(completed.timing.firstValueMs <= completed.timing.completionMs);
+    await assertCompletionFrozen(service, 'owner', completed);
+    const warm = await service.start('owner', input, { ...options, revisionKey: 'warm-revision' });
+    assert.equal(warm.cache.hit, true); assert.equal(warm.phase, 'COMPLETE');
+    assert.equal(warm.timing.workerMs, 0, 'a cache-only job did not run a worker');
+    assert.ok(warm.timing.firstValueMs <= warm.timing.completionMs);
+    await assertCompletionFrozen(service, 'owner', warm);
+  } finally { await service.close(); }
+});
+
+test('unsupported inputs, full queues and queued cancellation all freeze terminal completion time', async () => {
+  const service = createSolverService({ maxQueued: 1 }), release = service.prioritize();
+  try {
+    const input = inputFixture();
+    const unsupported = await service.start('invalid-owner', { ...input, rake: null });
+    assert.equal(unsupported.phase, 'UNSUPPORTED');
+    await assertCompletionFrozen(service, 'invalid-owner', unsupported);
+    const queued = await service.start('owner', input);
+    assert.equal(queued.phase, 'QUEUED'); assert.equal(queued.timing.completionMs, null);
+    const overflow = await service.start('other-owner', input);
+    assert.equal(overflow.phase, 'UNSUPPORTED'); assert.match(overflow.reason, /queue is full/);
+    await assertCompletionFrozen(service, 'other-owner', overflow);
+    const cancelled = service.cancel('owner', queued.jobId);
+    assert.equal(cancelled.phase, 'CANCELLED');
+    await assertCompletionFrozen(service, 'owner', cancelled);
+  } finally { await service.close(); release(); }
+});
+
+test('worker rejection, exception, unexpected exit and timeout freeze completion time', async t => {
+  const directory = await temporaryDirectory(t);
+  for (const [name, body, phase] of [
+    ['reported-error', "parentPort.postMessage({type:'error',error:'Fixture failure'});", 'FAILED'],
+    ['exception', "throw Error('Fixture exception');", 'FAILED'],
+    ['exit', 'process.exit(7);', 'FAILED'],
+    ['unsupported', "parentPort.postMessage({type:'done',result:{status:'NOT_SOLVED',actions:[]},workerMs:1});", 'UNSUPPORTED'],
+    ['timeout', 'setInterval(()=>{},100);', 'COMPLETE']
+  ]) await t.test(name, async () => {
+    const workerFile = path.join(directory, name + '.cjs');
+    await fs.writeFile(workerFile, `const {parentPort}=require('node:worker_threads');parentPort.on('message',()=>{${body}});`);
+    const service = createSolverService({ workerFile });
+    try {
+      const job = await service.start('owner', inputFixture(), { budget: 'FAST' });
+      const completed = await until(() => service.get('owner', job.jobId), item => item.phase === phase, 6000);
+      if (name === 'timeout') assert.match(completed.reason, /Budget reached/);
+      await assertCompletionFrozen(service, 'owner', completed);
+    } finally { await service.close(); }
+  });
 });
