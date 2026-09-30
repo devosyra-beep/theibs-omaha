@@ -4,7 +4,7 @@
 
 Migration preparation only. No Oracle VM or Cloudflare application has been deployed by this change. Render remains the active backend and must remain available until all cutover gates pass.
 
-The accessible in-app browser still shows Oracle and Cloudflare sign-in pages. The connected personal Chrome profile has no provider panel; the Osyra Chrome profile is unavailable to automation. The user's reported login has therefore not yet yielded an accessible authenticated provider session. This is an access blocker, not evidence about Oracle account eligibility or capacity.
+The in-app browser now has an authenticated Cloudflare session. A separate account named `THEIBS` was created at the user's request, with free-tier defaults and without inheriting other accounts' payment methods or plans. Brandi and Osyra were not changed. The preparation code is published on `hosting/cloudflare-oracle-migration`; provider-side Git integration and deployment remain pending. The Git connection button has not advanced the visible form through automation, and the user was asked to connect only `devosyra-beep/theibs-omaha`. The Oracle tab still shows the sign-in page; its eligibility and capacity remain unverified. Render remains active.
 
 - Source baseline: `9ccbd33e29d1d8f5af19ba0c72c3160f10131bff`.
 - Published runtime baseline: `9cac713297108d106fd4d3ee75cf99cb82035600`, version `0.14.10`.
@@ -55,6 +55,8 @@ The first local run exposed that this workerd version rejects `redirect: 'error'
 
 **Open runtime check:** the dedicated client-disconnect probe in local Wrangler/workerd did not observe incoming cancellation propagating to its pending upstream, either before headers or with a hanging response body. This is a failed runtime gate, not a passed production cancellation test. The Node harness does demonstrate handling when the signal is delivered; the flag alone does not prove the deployed runtime will deliver it. Investigate the ingress/runtime behavior and repeat on the actual Cloudflare deployment before claiming client-disconnect propagation. Explicit state/job cancellation endpoints and stale-result validation remain unchanged, but their authenticated new-host smoke is also pending.
 
+An independent test with the installed official Windows workerd executable, without Wrangler or Miniflare, reproduced the failure in all 18 stalled cases across pre-header, empty-body and initial-chunk responses with fetch abort, TCP close and TCP reset. Direct signal-property checks also remained false in all six real disconnect cases. Synthetic signals worked in both positive controls. When output was written every 100 ms, write failure let the production gateway abort the upstream in all six gateway cases, but incoming `Request.signal` still did not fire. This rules out Wrangler ingress as the sole explanation in the tested Windows setup; it does not isolate runtime core versus Windows sockets and does not establish production behavior. QA helpers were stopped and the original preview was preserved. The provider runtime cancellation gate remains open.
+
 Reproduce the post-header probe in a fresh process, from the Cloudflare hosting directory:
 
 ```powershell
@@ -83,7 +85,9 @@ Create a dedicated `theibs` system user and persistent directories owned by it:
 
 Install the reviewed service template as `/etc/systemd/system/theibs.service`. Populate `/etc/theibs/runtime.env` from `hosting/oracle/runtime.env.example`, root-owned with mode 0600. Configure the existing Supabase project, publishable/secret keys, access policy and any existing explicitly authorized optional integrations directly on the server. Do not print secrets, copy them to Cloudflare assets or commit the populated file.
 
-The Node server binds to loopback only. A trusted HTTPS reverse proxy terminates TLS, using a controlled hostname and valid certificate. A purchased domain is not needed for the Cloudflare `workers.dev` frontend, but a stable trusted HTTPS backend endpoint must be available before replacing Render. Do not use an ephemeral quick tunnel as permanent production, send bearer tokens to an HTTP IP address or disable TLS verification. Review firewall/SSH exposure against the actual VM configuration before starting it.
+The Node server binds to loopback only. A trusted HTTPS reverse proxy terminates TLS, using a controlled hostname or public IP with a valid publicly trusted certificate. A purchased domain is not needed for the Cloudflare `workers.dev` frontend, but a stable trusted HTTPS backend endpoint must be available before replacing Render. Do not use an ephemeral quick tunnel as permanent production, send bearer tokens to an HTTP IP address or disable TLS verification. Review firewall/SSH exposure against the actual VM configuration before starting it.
+
+A possible domain-free backend is the VM's public IP with a Let's Encrypt IP certificate. IP certificates are generally available and valid for 160 hours; Certbot 5.4 or later supports IP webroot issuance. This option requires checking the actual Oracle IP allocation and zero-cost configuration, then proving automatic renewal and reverse-proxy reload before cutover. Certbot does not install IP certificates into the webserver automatically; use the reverse proxy's supported certificate/key configuration and protect private-key permissions. It is a documented option only, not a provisioned or validated endpoint. [Let's Encrypt availability](https://letsencrypt.org/2026/01/15/6day-and-ip-general-availability), [Certbot support and renewal requirements](https://letsencrypt.org/2026/03/11/shorter-certs-certbot).
 
 Payments remain unconfigured. Storage persistence is required independently of billing; setting an environment flag alone does not prove persistence. Verify files survive a service restart and a VM reboot, and restore an actual backup into a clean test directory before cutover. Free-tier capacity and idle-instance reclamation remain operational limitations.
 
@@ -109,7 +113,7 @@ All are required before suspending Render:
 - Repeat cold/warm cache tests and every mathematically relevant invalidation, stale-job cancellation, progressive first response and final resolution measurements. Report p50/p95, bounds cost, memory, misses and hits against the 0.14.10 baseline. No precision relaxation or new coverage.
 - Validate desktop/mobile routes, menus, keyboard, voice settings and active voice panel behavior in the browser. Human recognition and concurrent voice/EV tests must be labeled unexecuted if not actually run.
 - Switch `API_UPSTREAM` to the verified Oracle HTTPS origin and repeat the same production smokes through Cloudflare.
-- Keep a documented rollback to Render until no migration gate remains. Then reversibly suspend the old service; do not delete it or its data.
+- Keep a documented rollback until no migration gate remains. Preserve and restore any Oracle writes made after cutover before reverting traffic; pointing at an older ephemeral Render instance is not a complete rollback. Then reversibly suspend the old service; do not delete it or its data.
 
 ## References
 
