@@ -1,0 +1,891 @@
+{
+  "schemaVersion": 1,
+  "version": "0.14.9",
+  "comparisonBaselineCommit": "1c9a91fd1555297b50c3db5e092868516436b60e",
+  "validatedBaselineCommit": "26dfae4e74552a2a0e509bfcc952e38d9fb344c1",
+  "runtimeCommit": "26dfae4e74552a2a0e509bfcc952e38d9fb344c1",
+  "fixtureTree": "f899cdb633733fe13a2b3810b42feb801e8b3c77",
+  "deployedAtUtc": "2026-09-30T11:09:22Z",
+  "render": {
+    "serviceId": "srv-das7of8jo6nc73aisi6g",
+    "deployId": "dep-dauergqd0e5s73ffr530"
+  },
+  "methodology": {
+    "percentile": "nearest rank; five observations per scenario; descriptive, not an SLA",
+    "browserPollIntervalMs": 350,
+    "firstHttpResponseMs": "Browser time to first /start response, including network and authentication transport; not time to strategy",
+    "firstObservedStrategyMs": "Browser elapsed time from /start to the first observed strategy result, including 350 ms polling",
+    "serverFirstStrategyMs": "Solver service elapsed time to first usable strategy value",
+    "certifiedResolutionObservedMs": "Sum of observed FAST and optional STANDARD browser phase durations; not a continuous end-to-end UI transaction clock",
+    "serverResolutionMs": "Sum of fixed server completion durations for FAST and optional STANDARD jobs; excludes HTTP transport and the gap between jobs",
+    "warmHttpMs": "Browser HTTP time for exact compatible FAST cache read after final certified result",
+    "cumulativeDecisionComputeMs": "Cumulative worker compute charged to the synthetic decision; distinct from browser and server wall time",
+    "actionBoundsComputeMs": "Cumulative worker action-conditioned solve cost",
+    "heapUsedBytes": "Last reported worker heap-used sample, not peak process memory",
+    "nashConv": "Exact measured deviation for the returned profile in the declared subgame, not an action-value error bar"
+  },
+  "browser": {
+    "local": {
+      "environment": "LOCAL",
+      "status": "PASS",
+      "startedAt": "2026-09-30T11:09:41.823Z",
+      "completedAt": "2026-09-30T11:09:54.966Z",
+      "checks": {
+        "PASS": 42
+      },
+      "scenarios": [
+        {
+          "id": "separated_terminal_call",
+          "samples": 5,
+          "coldMisses": 5,
+          "warmHits": 5,
+          "firstHttpResponseMs": {
+            "n": 5,
+            "p50": 12,
+            "p95": 20,
+            "max": 20
+          },
+          "firstObservedStrategyMs": {
+            "n": 5,
+            "p50": 378,
+            "p95": 387,
+            "max": 387
+          },
+          "serverFirstStrategyMs": {
+            "n": 5,
+            "p50": 60,
+            "p95": 73,
+            "max": 73
+          },
+          "certifiedResolutionObservedMs": {
+            "n": 5,
+            "p50": 750,
+            "p95": 776,
+            "max": 776
+          },
+          "serverFastCompletionMs": {
+            "n": 5,
+            "p50": 100,
+            "p95": 128,
+            "max": 128
+          },
+          "serverResolutionMs": {
+            "n": 5,
+            "p50": 204,
+            "p95": 231,
+            "max": 231
+          },
+          "cumulativeDecisionComputeMs": {
+            "n": 5,
+            "p50": 37.5663999999997,
+            "p95": 38.514000000000124,
+            "max": 38.514000000000124
+          },
+          "actionBoundsComputeMs": {
+            "n": 5,
+            "p50": 4.723500000000058,
+            "p95": 5.192100000001119,
+            "max": 5.192100000001119
+          },
+          "warmHttpMs": {
+            "n": 5,
+            "p50": 10,
+            "p95": 12,
+            "max": 12
+          },
+          "warmWorkerMs": {
+            "n": 5,
+            "p50": 0,
+            "p95": 0,
+            "max": 0
+          },
+          "heapUsedBytes": {
+            "n": 5,
+            "p50": 8801208,
+            "p95": 9142096,
+            "max": 9142096
+          },
+          "nashConv": {
+            "n": 5,
+            "p50": 0.0071428571428571175,
+            "p95": 0.0071428571428571175,
+            "max": 0.0071428571428571175
+          },
+          "statuses": [
+            "SOLVED"
+          ],
+          "comparisonStatuses": [
+            "CONCLUSIVE"
+          ]
+        },
+        {
+          "id": "overlapping_terminal_call",
+          "samples": 5,
+          "coldMisses": 5,
+          "warmHits": 5,
+          "firstHttpResponseMs": {
+            "n": 5,
+            "p50": 11,
+            "p95": 24,
+            "max": 24
+          },
+          "firstObservedStrategyMs": {
+            "n": 5,
+            "p50": 379,
+            "p95": 393,
+            "max": 393
+          },
+          "serverFirstStrategyMs": {
+            "n": 5,
+            "p50": 60,
+            "p95": 77,
+            "max": 77
+          },
+          "certifiedResolutionObservedMs": {
+            "n": 5,
+            "p50": 759,
+            "p95": 767,
+            "max": 767
+          },
+          "serverFastCompletionMs": {
+            "n": 5,
+            "p50": 103,
+            "p95": 116,
+            "max": 116
+          },
+          "serverResolutionMs": {
+            "n": 5,
+            "p50": 218,
+            "p95": 225,
+            "max": 225
+          },
+          "cumulativeDecisionComputeMs": {
+            "n": 5,
+            "p50": 41.05609999999979,
+            "p95": 46.59339999999975,
+            "max": 46.59339999999975
+          },
+          "actionBoundsComputeMs": {
+            "n": 5,
+            "p50": 4.4056000000000495,
+            "p95": 6.264499999999316,
+            "max": 6.264499999999316
+          },
+          "warmHttpMs": {
+            "n": 5,
+            "p50": 9,
+            "p95": 10,
+            "max": 10
+          },
+          "warmWorkerMs": {
+            "n": 5,
+            "p50": 0,
+            "p95": 0,
+            "max": 0
+          },
+          "heapUsedBytes": {
+            "n": 5,
+            "p50": 11125712,
+            "p95": 11445560,
+            "max": 11445560
+          },
+          "nashConv": {
+            "n": 5,
+            "p50": 0,
+            "p95": 0,
+            "max": 0
+          },
+          "statuses": [
+            "SOLVED"
+          ],
+          "comparisonStatuses": [
+            "INCONCLUSIVE"
+          ]
+        },
+        {
+          "id": "four_world_five_actions",
+          "samples": 5,
+          "coldMisses": 5,
+          "warmHits": 5,
+          "firstHttpResponseMs": {
+            "n": 5,
+            "p50": 10,
+            "p95": 174,
+            "max": 174
+          },
+          "firstObservedStrategyMs": {
+            "n": 5,
+            "p50": 377,
+            "p95": 545,
+            "max": 545
+          },
+          "serverFirstStrategyMs": {
+            "n": 5,
+            "p50": 72,
+            "p95": 77,
+            "max": 77
+          },
+          "certifiedResolutionObservedMs": {
+            "n": 5,
+            "p50": 762,
+            "p95": 920,
+            "max": 920
+          },
+          "serverFastCompletionMs": {
+            "n": 5,
+            "p50": 118,
+            "p95": 125,
+            "max": 125
+          },
+          "serverResolutionMs": {
+            "n": 5,
+            "p50": 299,
+            "p95": 320,
+            "max": 320
+          },
+          "cumulativeDecisionComputeMs": {
+            "n": 5,
+            "p50": 75.08020000000033,
+            "p95": 86.15499999999884,
+            "max": 86.15499999999884
+          },
+          "actionBoundsComputeMs": {
+            "n": 5,
+            "p50": 14.019899999997506,
+            "p95": 16.838300000001254,
+            "max": 16.838300000001254
+          },
+          "warmHttpMs": {
+            "n": 5,
+            "p50": 10,
+            "p95": 15,
+            "max": 15
+          },
+          "warmWorkerMs": {
+            "n": 5,
+            "p50": 0,
+            "p95": 0,
+            "max": 0
+          },
+          "heapUsedBytes": {
+            "n": 5,
+            "p50": 11173288,
+            "p95": 11222432,
+            "max": 11222432
+          },
+          "nashConv": {
+            "n": 5,
+            "p50": 0.005876603919422685,
+            "p95": 0.005876603919422685,
+            "max": 0.005876603919422685
+          },
+          "statuses": [
+            "APPROXIMATE"
+          ],
+          "comparisonStatuses": [
+            "CONCLUSIVE"
+          ]
+        }
+      ],
+      "invalidation": {
+        "total": 9,
+        "misses": 9
+      },
+      "cancellation": {
+        "supersede": {
+          "obsoleteInitialPhase": "BUILDING",
+          "obsoleteFinalPhase": "CANCELLED",
+          "replacementPhase": "COMPLETE",
+          "observed": true,
+          "superseded": true
+        },
+        "explicit": {
+          "initialPhase": "BUILDING",
+          "cancelResponsePhase": "CANCELLED",
+          "finalPhase": "CANCELLED",
+          "observed": true
+        }
+      }
+    },
+    "production": {
+      "environment": "LIVE",
+      "status": "PASS",
+      "startedAt": "2026-09-30T11:10:44.791Z",
+      "completedAt": "2026-09-30T11:12:21.034Z",
+      "checks": {
+        "PASS": 42
+      },
+      "scenarios": [
+        {
+          "id": "separated_terminal_call",
+          "samples": 5,
+          "coldMisses": 5,
+          "warmHits": 5,
+          "firstHttpResponseMs": {
+            "n": 5,
+            "p50": 691,
+            "p95": 754,
+            "max": 754
+          },
+          "firstObservedStrategyMs": {
+            "n": 5,
+            "p50": 1729,
+            "p95": 1886,
+            "max": 1886
+          },
+          "serverFirstStrategyMs": {
+            "n": 5,
+            "p50": 547,
+            "p95": 656,
+            "max": 656
+          },
+          "certifiedResolutionObservedMs": {
+            "n": 5,
+            "p50": 3556,
+            "p95": 3650,
+            "max": 3650
+          },
+          "serverFastCompletionMs": {
+            "n": 5,
+            "p50": 646,
+            "p95": 756,
+            "max": 756
+          },
+          "serverResolutionMs": {
+            "n": 5,
+            "p50": 1273,
+            "p95": 1306,
+            "max": 1306
+          },
+          "cumulativeDecisionComputeMs": {
+            "n": 5,
+            "p50": 404.6345189999993,
+            "p95": 502.6442959999986,
+            "max": 502.6442959999986
+          },
+          "actionBoundsComputeMs": {
+            "n": 5,
+            "p50": 6.046470000001136,
+            "p95": 96.52754699999059,
+            "max": 96.52754699999059
+          },
+          "warmHttpMs": {
+            "n": 5,
+            "p50": 693,
+            "p95": 765,
+            "max": 765
+          },
+          "warmWorkerMs": {
+            "n": 5,
+            "p50": 0,
+            "p95": 0,
+            "max": 0
+          },
+          "heapUsedBytes": {
+            "n": 5,
+            "p50": 8743752,
+            "p95": 8795760,
+            "max": 8795760
+          },
+          "nashConv": {
+            "n": 5,
+            "p50": 0.0071428571428571175,
+            "p95": 0.0071428571428571175,
+            "max": 0.0071428571428571175
+          },
+          "statuses": [
+            "SOLVED"
+          ],
+          "comparisonStatuses": [
+            "CONCLUSIVE"
+          ]
+        },
+        {
+          "id": "overlapping_terminal_call",
+          "samples": 5,
+          "coldMisses": 5,
+          "warmHits": 5,
+          "firstHttpResponseMs": {
+            "n": 5,
+            "p50": 719,
+            "p95": 770,
+            "max": 770
+          },
+          "firstObservedStrategyMs": {
+            "n": 5,
+            "p50": 1814,
+            "p95": 1851,
+            "max": 1851
+          },
+          "serverFirstStrategyMs": {
+            "n": 5,
+            "p50": 639,
+            "p95": 686,
+            "max": 686
+          },
+          "certifiedResolutionObservedMs": {
+            "n": 5,
+            "p50": 3608,
+            "p95": 3635,
+            "max": 3635
+          },
+          "serverFastCompletionMs": {
+            "n": 5,
+            "p50": 735,
+            "p95": 786,
+            "max": 786
+          },
+          "serverResolutionMs": {
+            "n": 5,
+            "p50": 1418,
+            "p95": 1735,
+            "max": 1735
+          },
+          "cumulativeDecisionComputeMs": {
+            "n": 5,
+            "p50": 506.7295790000062,
+            "p95": 597.6848939999909,
+            "max": 597.6848939999909
+          },
+          "actionBoundsComputeMs": {
+            "n": 5,
+            "p50": 93.14835000000312,
+            "p95": 181.98794200000702,
+            "max": 181.98794200000702
+          },
+          "warmHttpMs": {
+            "n": 5,
+            "p50": 688,
+            "p95": 727,
+            "max": 727
+          },
+          "warmWorkerMs": {
+            "n": 5,
+            "p50": 0,
+            "p95": 0,
+            "max": 0
+          },
+          "heapUsedBytes": {
+            "n": 5,
+            "p50": 8862616,
+            "p95": 8916608,
+            "max": 8916608
+          },
+          "nashConv": {
+            "n": 5,
+            "p50": 0,
+            "p95": 0,
+            "max": 0
+          },
+          "statuses": [
+            "SOLVED"
+          ],
+          "comparisonStatuses": [
+            "INCONCLUSIVE"
+          ]
+        },
+        {
+          "id": "four_world_five_actions",
+          "samples": 5,
+          "coldMisses": 5,
+          "warmHits": 5,
+          "firstHttpResponseMs": {
+            "n": 5,
+            "p50": 716,
+            "p95": 839,
+            "max": 839
+          },
+          "firstObservedStrategyMs": {
+            "n": 5,
+            "p50": 1873,
+            "p95": 2721,
+            "max": 2721
+          },
+          "serverFirstStrategyMs": {
+            "n": 5,
+            "p50": 780,
+            "p95": 885,
+            "max": 885
+          },
+          "certifiedResolutionObservedMs": {
+            "n": 5,
+            "p50": 5068,
+            "p95": 5777,
+            "max": 5777
+          },
+          "serverFastCompletionMs": {
+            "n": 5,
+            "p50": 874,
+            "p95": 887,
+            "max": 887
+          },
+          "serverResolutionMs": {
+            "n": 5,
+            "p50": 2442,
+            "p95": 2532,
+            "max": 2532
+          },
+          "cumulativeDecisionComputeMs": {
+            "n": 5,
+            "p50": 1496.414152000012,
+            "p95": 1591.1986549999856,
+            "max": 1591.1986549999856
+          },
+          "actionBoundsComputeMs": {
+            "n": 5,
+            "p50": 494.4039730000368,
+            "p95": 581.0106299999752,
+            "max": 581.0106299999752
+          },
+          "warmHttpMs": {
+            "n": 5,
+            "p50": 696,
+            "p95": 741,
+            "max": 741
+          },
+          "warmWorkerMs": {
+            "n": 5,
+            "p50": 0,
+            "p95": 0,
+            "max": 0
+          },
+          "heapUsedBytes": {
+            "n": 5,
+            "p50": 9449064,
+            "p95": 10398736,
+            "max": 10398736
+          },
+          "nashConv": {
+            "n": 5,
+            "p50": 0.005876603919422685,
+            "p95": 0.005876603919422685,
+            "max": 0.005876603919422685
+          },
+          "statuses": [
+            "APPROXIMATE"
+          ],
+          "comparisonStatuses": [
+            "CONCLUSIVE"
+          ]
+        }
+      ],
+      "invalidation": {
+        "total": 9,
+        "misses": 9
+      },
+      "cancellation": {
+        "supersede": {
+          "obsoleteInitialPhase": "BUILDING",
+          "obsoleteFinalPhase": "CANCELLED",
+          "replacementPhase": "COMPLETE",
+          "observed": true,
+          "superseded": true
+        },
+        "explicit": {
+          "initialPhase": "BUILDING",
+          "cancelResponsePhase": "CANCELLED",
+          "finalPhase": "CANCELLED",
+          "observed": true
+        }
+      }
+    }
+  },
+  "worker": {
+    "classification": "LOCAL_REAL_SOLVER_WORKER_SYNTHETIC_DECLARED_HU_RIVER_STUDIES",
+    "environment": {
+      "platform": "win32",
+      "release": "10.0.26200",
+      "architecture": "x64",
+      "node": "v24.19.0",
+      "cpu": "12th Gen Intel(R) Core(TM) i5-1235U",
+      "logicalCPUCount": 12,
+      "totalMemoryBytes": 16849256448
+    },
+    "samplesPerScenario": 5,
+    "pollIntervalMs": 2,
+    "coldDefinition": "Empty service cache and a fresh real worker thread per FAST/STANDARD job; OS file caches and the parent Node process are not flushed.",
+    "warmDefinition": "Exact in-memory compatible FAST cache read after the adaptive run; no worker launched and numerical result unchanged.",
+    "scenarios": [
+      {
+        "id": "separated_terminal_call",
+        "summary": {
+          "coldFirstProfileMs": {
+            "count": 5,
+            "p50": 73.129,
+            "p95": 79.348,
+            "min": 68.76,
+            "max": 79.348
+          },
+          "coldFullCertificateMs": {
+            "count": 5,
+            "p50": 149.241,
+            "p95": 162.801,
+            "min": 136.024,
+            "max": 162.801
+          },
+          "coldCompletionMs": {
+            "count": 5,
+            "p50": 149.302,
+            "p95": 162.859,
+            "min": 140.67,
+            "max": 162.859
+          },
+          "cumulativeComputeMs": {
+            "count": 5,
+            "p50": 39.536,
+            "p95": 44.036,
+            "min": 35.093,
+            "max": 44.036
+          },
+          "warmCacheMs": {
+            "count": 5,
+            "p50": 1.477,
+            "p95": 1.736,
+            "min": 0.86,
+            "max": 1.736
+          },
+          "globalComputeMs": {
+            "count": 5,
+            "p50": 4.478,
+            "p95": 4.987,
+            "min": 4.087,
+            "max": 4.987
+          },
+          "actionComputeMs": {
+            "count": 5,
+            "p50": 4.549,
+            "p95": 5.407,
+            "min": 3.681,
+            "max": 5.407
+          },
+          "peakProcessRSSBytes": {
+            "count": 5,
+            "p50": 81219584,
+            "p95": 82534400,
+            "min": 76660736,
+            "max": 82534400
+          },
+          "globalIterations": {
+            "count": 5,
+            "p50": 20,
+            "p95": 20,
+            "min": 20,
+            "max": 20
+          },
+          "actionIterations": {
+            "count": 5,
+            "p50": 80,
+            "p95": 80,
+            "min": 80,
+            "max": 80
+          },
+          "conclusiveSamples": 5,
+          "stoppingReasons": [
+            "GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION"
+          ]
+        }
+      },
+      {
+        "id": "tied_terminal_call",
+        "summary": {
+          "coldFirstProfileMs": {
+            "count": 5,
+            "p50": 73.593,
+            "p95": 81.701,
+            "min": 69.431,
+            "max": 81.701
+          },
+          "coldFullCertificateMs": {
+            "count": 5,
+            "p50": 153.779,
+            "p95": 162.971,
+            "min": 145.228,
+            "max": 162.971
+          },
+          "coldCompletionMs": {
+            "count": 5,
+            "p50": 153.84,
+            "p95": 168.194,
+            "min": 145.297,
+            "max": 168.194
+          },
+          "cumulativeComputeMs": {
+            "count": 5,
+            "p50": 43.959,
+            "p95": 46.385,
+            "min": 41.464,
+            "max": 46.385
+          },
+          "warmCacheMs": {
+            "count": 5,
+            "p50": 0.961,
+            "p95": 1.154,
+            "min": 0.747,
+            "max": 1.154
+          },
+          "globalComputeMs": {
+            "count": 5,
+            "p50": 4.923,
+            "p95": 5.298,
+            "min": 4.717,
+            "max": 5.298
+          },
+          "actionComputeMs": {
+            "count": 5,
+            "p50": 4.642,
+            "p95": 5.439,
+            "min": 4.35,
+            "max": 5.439
+          },
+          "peakProcessRSSBytes": {
+            "count": 5,
+            "p50": 88662016,
+            "p95": 89214976,
+            "min": 85766144,
+            "max": 89214976
+          },
+          "globalIterations": {
+            "count": 5,
+            "p50": 10,
+            "p95": 10,
+            "min": 10,
+            "max": 10
+          },
+          "actionIterations": {
+            "count": 5,
+            "p50": 90,
+            "p95": 90,
+            "min": 90,
+            "max": 90
+          },
+          "conclusiveSamples": 0,
+          "stoppingReasons": [
+            "FIXED_CONTINUATIONS_FULLY_EVALUATED"
+          ]
+        }
+      },
+      {
+        "id": "four_world_five_action_river",
+        "summary": {
+          "coldFirstProfileMs": {
+            "count": 5,
+            "p50": 87.047,
+            "p95": 88.572,
+            "min": 79.172,
+            "max": 88.572
+          },
+          "coldFullCertificateMs": {
+            "count": 5,
+            "p50": 189.869,
+            "p95": 198.982,
+            "min": 186.253,
+            "max": 198.982
+          },
+          "coldCompletionMs": {
+            "count": 5,
+            "p50": 189.95,
+            "p95": 199.094,
+            "min": 186.332,
+            "max": 199.094
+          },
+          "cumulativeComputeMs": {
+            "count": 5,
+            "p50": 84.437,
+            "p95": 88.396,
+            "min": 79.082,
+            "max": 88.396
+          },
+          "warmCacheMs": {
+            "count": 5,
+            "p50": 1.175,
+            "p95": 1.482,
+            "min": 0.876,
+            "max": 1.482
+          },
+          "globalComputeMs": {
+            "count": 5,
+            "p50": 9.508,
+            "p95": 10.336,
+            "min": 8.479,
+            "max": 10.336
+          },
+          "actionComputeMs": {
+            "count": 5,
+            "p50": 15.394,
+            "p95": 15.57,
+            "min": 13.418,
+            "max": 15.57
+          },
+          "peakProcessRSSBytes": {
+            "count": 5,
+            "p50": 93855744,
+            "p95": 96747520,
+            "min": 90492928,
+            "max": 96747520
+          },
+          "globalIterations": {
+            "count": 5,
+            "p50": 30,
+            "p95": 30,
+            "min": 30,
+            "max": 30
+          },
+          "actionIterations": {
+            "count": 5,
+            "p50": 220,
+            "p95": 220,
+            "min": 220,
+            "max": 220
+          },
+          "conclusiveSamples": 5,
+          "stoppingReasons": [
+            "GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION"
+          ]
+        }
+      }
+    ]
+  },
+  "independentReference": {
+    "classification": "MODEL_INDEPENDENT_SEQUENCE_FORM_LP_REFERENCE",
+    "method": "Independent sparse sequence-form primal/dual LP with HiGHS dual simplex. Core CFR, best-response traversal and conditioning are not imported by the Python reference.",
+    "target": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+    "sampleCount": 36,
+    "pass": true,
+    "limitations": [
+      "Numerically validated LP reference, not a symbolic rational proof.",
+      "Containment is checked with the independent LP residual tolerance.",
+      "Commitment values are full-prior ex ante values. They are not original current-hand conditional action EVs.",
+      "Alternative equilibrium strategies may differ without changing attainable value. No equality of strategies is required.",
+      "Local process measurements include no network, hosted service or real microphone. Native Python solver memory is not captured by tracemalloc."
+    ]
+  },
+  "tests": {
+    "suitePass": 788,
+    "suiteFail": 0,
+    "independentLpSamples": 36,
+    "independentLpPass": true
+  },
+  "scope": {
+    "variant": "PLO5_HIGH",
+    "street": "RIVER",
+    "originalSeats": 2,
+    "ranges": "Explicit complete finite weighted ranges",
+    "betting": "Declared bounded legal action tree",
+    "supportedClaim": "Numerical qualifications and action-conditioned commitments only within the declared subgame",
+    "fullHandGto": false,
+    "endToEndThreeSecondSla": false,
+    "liveDynamicVersionMutation": false,
+    "actualMicrophoneBenchmark": false
+  },
+  "evidence": {
+    "localRaw": "../../../validacao/river-baseline-local-final.json",
+    "localSummary": "../../../validacao/river-baseline-local-summary-final.json",
+    "productionRaw": "../../../validacao/river-baseline-production-final.json",
+    "productionSummary": "../../../validacao/river-baseline-production-summary-final.json",
+    "worker": "../../../validacao/river-baseline-v2-worker-performance.json",
+    "independentLp": "../../../validacao/solver-sequence-form-reference.json",
+    "releaseTests": "../../../validacao/river-baseline-release-tests.log",
+    "initialProductionLimit": "../../../validacao/river-baseline-production-initial-limit.json",
+    "liveAssets": "../../../validacao/river-baseline-live-assets.json"
+  }
+}
