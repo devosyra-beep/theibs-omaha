@@ -1,0 +1,12 @@
+{
+  "name": "theibs-cloudflare-hosting",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node prepare.cjs && wrangler deploy --dry-run --outdir .output/worker",
+    "dev": "node prepare.cjs && wrangler dev --port 4182",
+    "deploy": "node prepare.cjs && wrangler deploy"
+  },
+  "devDependencies": { "wrangler": "4.145.0" }
+}

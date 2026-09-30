@@ -1,0 +1,5 @@
+# Replace the hostname with a controlled DNS name pointing to the approved VM.
+# Do not substitute HTTP or disable certificate verification in the gateway.
+api.example.invalid {
+  reverse_proxy 127.0.0.1:4173
+}

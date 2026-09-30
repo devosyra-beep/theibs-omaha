@@ -1,0 +1,25 @@
+[Unit]
+Description=THEIBS numerical API and river HU solver
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=theibs
+Group=theibs
+WorkingDirectory=/opt/theibs/current/codigo-fonte
+EnvironmentFile=/etc/theibs/runtime.env
+ExecStartPre=/usr/bin/node --check server.js
+ExecStart=/usr/bin/node server.js
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=40
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/theibs
+
+[Install]
+WantedBy=multi-user.target
