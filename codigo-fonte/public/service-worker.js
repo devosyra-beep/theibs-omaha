@@ -1,6 +1,6 @@
 'use strict';
 
-const CACHE = 'theibs-shell-v0.14.8-river-solver-20260930';
+const CACHE = 'theibs-shell-v0.14.9-hu-action-bounds-20260930';
 const SHELL = [
   '/', '/landing.html', '/landing.css', '/landing.js', '/landing-assets/theibs-logo.png', '/landing-assets/osyra-studio.svg',
   '/landing-assets/theibs-app.png', '/landing-assets/theibs-training.png', '/app', '/styles.css', '/dashboard.css', '/multiway.css', '/pwa.js', '/auth-session.js', '/auth-ui.js',

@@ -4,16 +4,22 @@ const {Worker}=require('node:worker_threads');
 const {createSolutionCache,keyFor}=require('./solution-cache');
 const BUDGETS={FAST:{timeMs:500,iterations:50},STANDARD:{timeMs:3000,iterations:1000},DEEP:{timeMs:30000,iterations:20000}};
 const LIMITS={maxNodes:12000,maxWorlds:27,maxMemoryBytes:48*1024*1024,maxBuildMs:750};
+const workIterations=checkpoint=>Number.isSafeInteger(checkpoint?.workIterations)?checkpoint.workIterations:Number.isSafeInteger(checkpoint?.iterations)?checkpoint.iterations:0;
 function createSolverService({cacheDirectory,maxJobs=24,maxQueued=2,workerFile=path.join(__dirname,'job-worker.js')}={}){
-  const jobs=new Map(),generations=new Map(),cache=createSolutionCache({directory:cacheDirectory});let active=null,priority=0,closed=false,cacheWriteTail=Promise.resolve();
+  const jobs=new Map(),generations=new Map(),decisions=new Map(),cache=createSolutionCache({directory:cacheDirectory});let active=null,priority=0,closed=false,cacheWriteTail=Promise.resolve();
   const metrics={started:0,completed:0,cancelled:0,workerErrors:0};
   function view(job){return {status:job.result?.status || (['COMPLETE','FAILED','CANCELLED','UNSUPPORTED'].includes(job.phase)?'NOT_SOLVED':'REFINING'),jobId:job.id,revisionKey:job.revisionKey,handId:job.handId,budget:job.budget,phase:job.phase,
-    result:job.result ? structuredClone(job.result) : null,reason:job.reason || null,cache:{hit:job.cacheHit,...cache.stats()},timing:{acknowledgementMs:job.ackMs,firstValueMs:job.firstValueMs??null,totalMs:Math.round(performance.now()-job.started),workerMs:job.workerMs||0},limits:LIMITS};}
+    result:job.result ? structuredClone(job.result) : null,reason:job.reason || null,cache:{hit:job.cacheHit,...cache.stats()},timing:{acknowledgementMs:job.ackMs,firstValueMs:job.firstValueMs??null,totalMs:Math.round(performance.now()-job.started),workerMs:job.workerMs||0,decisionComputeMs:job.decision?.consumedMs||0,decisionWorkIterations:job.decision?.workIterations||0},limits:LIMITS};}
+  function account(job,reported){
+    if(!Number.isFinite(reported))return;
+    const delta=Math.max(0,reported-job.runReportedMs);job.runReportedMs=Math.max(job.runReportedMs,reported);
+    job.consumedMs+=delta;job.workerMs=job.consumedMs;job.decision.consumedMs+=delta;
+  }
   function ownerJob(owner,id){const job=jobs.get(id);if(!job||job.owner!==owner){const error=Error('Solver job was not found.');error.statusCode=404;throw error;}return job;}
   function cancelJob(job,reason='State changed'){
     if(['COMPLETE','CANCELLED','FAILED','UNSUPPORTED'].includes(job.phase))return;
     job.phase='CANCELLED';job.reason=reason;metrics.cancelled++;
-    if(active?.job===job){Atomics.store(active.cancel,0,1);void active.worker.terminate();active=null;kick();}
+    if(active?.job===job){account(job,performance.now()-active.started);Atomics.store(active.cancel,0,1);void active.worker.terminate();active=null;kick();}
   }
   function current(job,slot){return !closed&&active===slot&&job.phase!=='CANCELLED'&&generations.get(job.owner)===job.generation;}
   function hasStrategy(result){
@@ -28,7 +34,7 @@ function createSolverService({cacheDirectory,maxJobs=24,maxQueued=2,workerFile=p
     // when executing, not only when the worker originally posted the message.
     if(!current(job,slot))return;
     const reported=Number.isFinite(message.workerMs)?Math.max(0,message.workerMs):job.runReportedMs;
-    job.consumedMs+=Math.max(0,reported-job.runReportedMs);job.runReportedMs=Math.max(job.runReportedMs,reported);job.workerMs=job.consumedMs;
+    account(job,reported);
     if(!message.result)return;
     const usable=hasStrategy(message.result);
     // A resumed worker may be preempted while rebuilding, before producing any
@@ -36,7 +42,11 @@ function createSolverService({cacheDirectory,maxJobs=24,maxQueued=2,workerFile=p
     if(!usable&&hasStrategy(job.result))return;
     job.result=message.result;
     if(!usable){job.checkpoint=null;return;}
-    job.checkpoint=message.checkpoint||null;
+    if(message.checkpoint){
+      const nextWork=workIterations(message.checkpoint);
+      job.decision.workIterations+=Math.max(0,nextWork-job.lastWorkIterations);job.lastWorkIterations=nextWork;
+      job.checkpoint=message.checkpoint;
+    }
     job.firstValueMs ??= Math.round(performance.now()-job.started);
     if(message.checkpoint){
       const result=job.result,checkpoint=job.checkpoint;
@@ -49,13 +59,13 @@ function createSolverService({cacheDirectory,maxJobs=24,maxQueued=2,workerFile=p
   function kick(){
     if(closed||active||priority)return;
     const job=[...jobs.values()].filter(item=>item.phase==='QUEUED'&&generations.get(item.owner)===item.generation).sort((a,b)=>b.started-a.started)[0];if(!job)return;
-    const remaining={timeMs:BUDGETS[job.budget].timeMs-job.consumedMs,iterations:BUDGETS[job.budget].iterations-((job.checkpoint?.iterations||0)-job.initialIterations)};
+    const remaining={timeMs:BUDGETS[job.budget].timeMs-job.decision.consumedMs,iterations:BUDGETS[job.budget].iterations-job.decision.workIterations};
     if(remaining.timeMs<=0||remaining.iterations<=0){job.phase='COMPLETE';job.reason='Cumulative calculation budget reached.';kick();return;}
     job.phase='BUILDING';job.runReportedMs=0;const cancel=new Int32Array(new SharedArrayBuffer(4));
     const worker=new Worker(workerFile,{resourceLimits:{maxOldGenerationSizeMb:128,maxYoungGenerationSizeMb:16,stackSizeMb:4}});
-    const slot=active={job,worker,cancel};
+    const slot=active={job,worker,cancel,started:performance.now()};
     const finish=()=>{if(active===slot)active=null;void worker.terminate();kick();};
-    const timer=setTimeout(()=>{if(active!==slot)return;job.phase='COMPLETE';job.reason='Budget reached; retained the last completed refinement.';Atomics.store(cancel,0,1);finish();},remaining.timeMs+LIMITS.maxBuildMs+2000);timer.unref();
+    const timer=setTimeout(()=>{if(active!==slot)return;account(job,performance.now()-slot.started);job.phase='COMPLETE';job.reason='Budget reached; retained the last completed refinement.';Atomics.store(cancel,0,1);finish();},remaining.timeMs+LIMITS.maxBuildMs+2000);timer.unref();
     worker.on('message',async message=>{
       if(!current(job,slot))return;
       if(message.type==='progress'){job.phase='REFINING';job.saveChain=job.saveChain.then(()=>save(job,message,slot));await job.saveChain;return;}
@@ -80,9 +90,17 @@ function createSolverService({cacheDirectory,maxJobs=24,maxQueued=2,workerFile=p
     if(existing&&existing.budget===budget){existing.generation=generation;return view(existing);}
     for(const job of jobs.values())if(job.owner===owner&&['QUEUED','BUILDING','REFINING'].includes(job.phase))cancelJob(job,'Superseded by the current decision.');
     while(jobs.size>=maxJobs){const old=[...jobs.values()].find(job=>!['QUEUED','BUILDING','REFINING'].includes(job.phase));if(!old){const error=Error('Solver queue is full. The table remains available.');error.statusCode=429;throw error;}jobs.delete(old.id);}
-    const found=await cache.get(owner,key),id=crypto.randomUUID();
+    let found=await cache.get(owner,key);const id=crypto.randomUUID();
     if(generations.get(owner)!==generation){const error=Error('The solver request was superseded.');error.statusCode=409;throw error;}
-    const job={id,owner,key,input:normalized,budget,revisionKey,handId,started,generation,saveChain:Promise.resolve(),consumedMs:0,runReportedMs:0,initialIterations:found?.checkpoint?.iterations||0,result:found?.result||null,checkpoint:found?.checkpoint,cacheHit:Boolean(found),phase:found&&budget==='FAST'?'COMPLETE':'QUEUED'};
+    // The same decision shares its safety ceiling across FAST, STANDARD and
+    // foreground pauses. An exact cache hit from another hand adds no cost.
+    const decisionKey=crypto.createHash('sha256').update(JSON.stringify([owner,handId,revisionKey,key])).digest('hex');
+    let decision=decisions.get(decisionKey);
+    if(!decision){decision={consumedMs:0,workIterations:0};decisions.set(decisionKey,decision);}
+    for(const previous of jobs.values())if(previous.owner===owner&&previous.key===key&&previous.checkpoint&&hasStrategy(previous.result)&&workIterations(previous.checkpoint)>workIterations(found?.checkpoint))
+      found={result:previous.result,checkpoint:previous.checkpoint};
+    while(decisions.size>maxJobs*2){const old=[...decisions.keys()].find(value=>![...jobs.values()].some(item=>item.decisionKey===value&&['QUEUED','BUILDING','REFINING'].includes(item.phase)));if(!old)break;decisions.delete(old);}
+    const job={id,owner,key,input:normalized,budget,revisionKey,handId,started,generation,decisionKey,decision,saveChain:Promise.resolve(),consumedMs:0,runReportedMs:0,lastWorkIterations:workIterations(found?.checkpoint),result:found?.result||null,checkpoint:found?.checkpoint,cacheHit:Boolean(found),phase:found&&budget==='FAST'?'COMPLETE':'QUEUED'};
     if(coverage.status!=='READY'){job.phase='UNSUPPORTED';job.result={status:'NOT_SOLVED',actions:[],reasons:coverage.reasons,qualification:{gto:false},metrics:coverage.metrics};}
     jobs.set(id,job);metrics.started++;
     if(job.phase==='QUEUED'&&[...jobs.values()].filter(item=>item.phase==='QUEUED').length>maxQueued){job.phase='UNSUPPORTED';job.reason='Solver queue is full; retry refinement later.';}

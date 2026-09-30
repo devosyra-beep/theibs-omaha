@@ -165,7 +165,7 @@ take that action. Unavailable EV/frequency is `null`, never numerical zero.
 ## Decision differences and numerical precision
 
 `src/decision-precision.js` owns the comparison contract
-`THEIBS_DECISION_PRECISION_V1`. A point difference is a descriptive quantity,
+`THEIBS_DECISION_PRECISION_V2`. A point difference is a descriptive quantity,
 not evidence that its sign is resolved. `decisionPrecision.deltaEVBB` reports
 the difference between the largest and second-largest comparable point EVs.
 It is separate from the chosen action's loss and that loss as a percentage of
@@ -200,13 +200,136 @@ interval and is never added to or subtracted from action EV. Multiple exact
 equilibria can assign different values to an unused action. A rare hand's
 conditional regret can also be large while global NashConv is small.
 
-Therefore current solver comparisons use target `EQUILIBRIUM_ACTION_EV` and
-remain `INCONCLUSIVE` with reason
+Solver snapshots without action-conditioned certificates retain target
+`EQUILIBRIUM_ACTION_EV` and remain `INCONCLUSIVE` with reason
 `EQUILIBRIUM_ACTION_VALUE_UNCERTAINTY_UNAVAILABLE`, including when the subgame's
 separate solution status is `SOLVED`. The point difference and returned
 strategic frequencies remain available with their original scope. A solver
 solution certificate and a conclusive action ranking are different claims.
 No selected-action error classification is authorized by NashConv alone.
+
+### Action-conditioned bounds, limited to river HU
+
+`src/solver/action-conditioned.js` introduces the separate value target
+`PRIVATE_INFORMATION_SET_COMMITMENT_VALUE`. For each root action it creates a
+restricted game in which only that action at Hero's queried information set is
+available. Other private combinations, chance worlds, prior weights and all
+other information sets remain unchanged. In particular, the opponent does not
+learn Hero's actual cards through a filtered chance distribution.
+
+The target is the **ex ante minimax value of this commitment over the full
+original prior**. It is not the conditional EV of this one hand under the
+original average profile, nor a guarantee about an equilibrium of the full hand.
+For a multi-combination Hero range, even fixing Fold at one information set can
+leave positive value contributed by other combinations. Dividing this value by
+the probability of the current hand would not fix this semantic distinction.
+
+For the restricted two-player constant-sum game, write Hero's payoff as
+`u(x,y)` and the payoff sum as `K`. Any feasible strategy pair provides:
+
+`L(x) = min_y u(x,y) = K - max_y u_opponent(x,y)`
+
+`U(y) = max_x u(x,y)`
+
+`L(x) <= restricted_game_value <= U(y)`.
+
+Each best response chooses one action for an entire information set, never one
+action per hidden world. Production certificates round arithmetic outward at
+every operation and treat supplied chance/strategy rows as normalized binary64
+weights. The estimate is the midpoint of the certified saddle interval; its
+method is recorded explicitly. These are deterministic game-value bounds, not
+statistical confidence intervals or `EV +/- NashConv`.
+
+For a declared constant-sum game, certification explicitly represents the
+opponent's payoff as `K - uHero`. This preserves Hero's terminal utilities and
+avoids turning binary64 cancellation in decimal fees into a spurious strategic
+gap. The certificate records the original payoff-sum interval and maximum
+normalization residual. Unsupported general-sum games cannot use this path.
+
+The original profile EV and mix remain in `actions`; the new estimates and
+bounds live in `actionPrecision.actions`. The UI labels them **Range commitment
+EV**, with the original hand/profile EV and frequencies in details. The
+comparison contract never puts commitment bounds around original-profile EV.
+
+An action is conclusively best within this declared commitment comparison only
+when its lower bound exceeds the upper bound of **every** other root action,
+plus a conservative `16 * EPSILON * max(1, absolute bounds)` comparison guard.
+That guard only withholds conclusions; it does not manufacture a value bound.
+`SOLVED` remains the separate original-subgame qualification. Missing, touching
+or overlapping bounds retain `Current EV leader` and `INCONCLUSIVE`. A valid
+separation allows `Best action`, within the prominently labeled commitment scope.
+
+Certificates record estimate, lower/upper, origin, exact bound-module version,
+solver version, root action fixed, queried player/information set, iterations,
+time, rounding method and utility scope. A base game hash and a context hash bind
+the original state, ranges, fees, utility, tree/sizings and queried information
+set. Different conditioned-game hashes are expected across actions, but their
+base context must agree. Altered, missing or incompatible provenance prevents
+a conclusion and never receives a synthetic interval.
+
+### Adaptive refinement and diagnostics
+
+The initial strategy is published before completion of deeper precision work.
+Global convergence and action bounds are measured independently. The worker
+alternates global CFR+ checkpoints with conditioned solves and continues from
+the compatible checkpoint of each action. Iteration/time/memory limits are
+explicit resource ceilings, not evidence of convergence.
+
+After the first pass, focus uses certified intervals. An action can stop
+receiving focused effort only when `upper + numerical_guard < best lower`.
+No point estimate can prune a candidate. This does not remove actions from the
+original game or modify its strategy tree. A third action with a wide upper
+bound remains competitive even if its current estimate is low.
+
+Automatic FAST-to-STANDARD refinement can continue after global NashConv meets
+its threshold if the action comparison still needs precision. Explicit resource
+ceilings stop unresolved ties without promoting them to conclusions. The
+decision keeps the last complete snapshot; UI, keyboard, voice and hand recording
+remain independent. Cancellation/revision checks apply to bounds as well as EV.
+When all surviving conditioned games have no remaining strategic choices and
+have valid certificates, further CFR work is unnecessary. They stop with
+`FIXED_CONTINUATIONS_FULLY_EVALUATED`; touching roundoff bounds still remain
+`INCONCLUSIVE`.
+
+Per decision, diagnostics include global NashConv/exploitability, one-step regret
+at the queried root information set, action EVs and frequency/EV changes across
+compatible checkpoints. Root regret and checkpoint stability are descriptive
+diagnostics, not substitutes for a global convergence proof or action bounds.
+Build, global solve/evaluation, conditioned solves and total compute time are
+recorded separately. p50/p95 evidence identifies sample counts, cache conditions
+and hardware; local timing is not a hosted latency guarantee.
+
+Run `node scripts/benchmark-hu-precision.cjs` to measure actual worker/service
+latency for five repetitions of three river HU scenarios, followed by exact
+warm-cache reads. It records first profile, first complete set of certificates,
+completion, global/action compute and sampled combined process RSS. The separate
+browser harness verifies cancellation, keyboard and synthetic voice while solving;
+neither report claims real acoustic accuracy or a cloud-host performance SLA.
+
+### Independent mathematical reference
+
+The QA-only Python sequence-form compiler and HiGHS primal/dual LP live under
+`scripts/reference/`. They do not call the CFR, production best-response or
+action-conditioning implementation. The compiler creates realization-plan
+constraints and a chance-weighted payoff matrix, then checks both primal/dual
+residuals and independent best-response LPs. See the
+[reference methodology and reproduction instructions](../scripts/reference/README.md).
+
+The oracle validates the finite original game and each independently restricted
+action game. Tests include unique and nonunique equilibria, both player
+orientations, the analytic Kuhn value, independent PLO five-card ranking with
+exact two-hole/three-board enumeration, blockers, fees and preservation of the
+full prior. Numerical values and certified intervals are checked, not merely a
+solver success status. Equivalent optimal strategies are allowed; matching one
+arbitrary LP equilibrium is not required.
+
+The LP uses floating-point arithmetic with explicit residual tolerances; it is
+an independent numerical reference, not a symbolic proof. SciPy/HiGHS are optional
+test dependencies and are never installed or invoked by the application. A
+release precision gate runs these tests with the dependency present; a normal
+checkout without it reports explicit skips rather than claiming reference passes.
+This validates the supplied small river HU models, without widening street,
+player-count or sizing coverage.
 
 Other explicit reasons distinguish missing origin, fewer than two available
 values, missing alternatives, absent defensible uncertainty, invalid intervals,
@@ -323,7 +446,9 @@ an action-EV error bar. `test/decision-precision.test.cjs` additionally rejects
 explicit evaluator-version mismatches, and the Multiway evaluator tests check
 the integrated provenance, point gap and inconclusive contract.
 
-These tests strengthen the bounded slice's correctness evidence. They do not
-replace external PLO solver references, expand the represented range support or
-certify a full-hand equilibrium. Production poker results keep `gto: false`
-while independent PLO reference validation is pending.
+These tests strengthen the bounded slice's correctness evidence. The new
+independent sequence-form LP reference validates the tested small river HU
+fixtures and their action bounds (see `scripts/reference/README.md`). It does
+not validate every supported input, expand the represented range support or
+certify a full-hand equilibrium. Production poker results keep `gto: false`;
+the broader external poker-reference and release qualification remain separate.

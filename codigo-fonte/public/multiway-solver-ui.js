@@ -77,7 +77,10 @@
   async function completed(mine,bound) {
     if (!current(mine,bound)) return;
     const coveredBudgetStop = view.phase === 'UNSUPPORTED' && view.result?.reasons?.some(reason=>reason.code==='BUDGET_BEFORE_FIRST_STRATEGY');
-    if ((view.phase === 'COMPLETE' && view.result?.actions?.length || coveredBudgetStop) && view.budget === 'FAST' && configured(context()) && !autoRefined && view.result.convergence?.thresholdMet !== true) {
+    const needsRefinement = view.result?.adaptation
+      ? view.result.adaptation.refinementRecommended === true
+      : view.result?.convergence?.thresholdMet !== true;
+    if ((view.phase === 'COMPLETE' && view.result?.actions?.length || coveredBudgetStop) && view.budget === 'FAST' && configured(context()) && !autoRefined && (coveredBudgetStop || needsRefinement)) {
       autoRefined = true;
       // Refinement has its own background job. Ordinary calculations and voice
       // have already completed their immediate work before evaluate is called.

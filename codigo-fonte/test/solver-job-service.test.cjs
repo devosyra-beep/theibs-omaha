@@ -246,3 +246,39 @@ test('save callbacks queued behind disk I/O cannot mutate or cache a cancelled g
     assert.equal(saved.checkpoint.iterations, 1);
   } finally { unblock(); fs.mkdir = mkdir; await service.close(); }
 });
+
+test('FAST, STANDARD and DEEP share actual time and all global/action iterations for the same decision', async t => {
+  const directory=await temporaryDirectory(t),workerFile=path.join(directory,'cumulative-budget.cjs');
+  await fs.writeFile(workerFile, `
+    const {parentPort}=require('node:worker_threads');
+    parentPort.on('message',({checkpoint,budget})=>{
+      const workIterations=(checkpoint?.workIterations||0)+budget.iterations;
+      parentPort.postMessage({type:'done',workerMs:budget.timeMs,
+        result:{status:'APPROXIMATE',actions:[{id:'CHECK',frequency:1,evBB:2}],receivedBudget:budget},
+        checkpoint:{iterations:1,workIterations,fixture:true}});
+    });
+  `);
+  const service=createSolverService({workerFile});
+  try{
+    const input=inputFixture(),options={revisionKey:'same-decision',handId:input.multiway.handId};
+    const fast=await service.start('owner',input,{...options,budget:'FAST'});
+    const initial=await until(()=>service.get('owner',fast.jobId),item=>item.phase==='COMPLETE');
+    assert.deepEqual(initial.result.receivedBudget,{timeMs:500,iterations:50});
+    const standard=await service.start('owner',input,{...options,budget:'STANDARD'});
+    const refined=await until(()=>service.get('owner',standard.jobId),item=>item.phase==='COMPLETE');
+    assert.deepEqual(refined.result.receivedBudget,{timeMs:2500,iterations:950});
+    assert.equal(refined.timing.decisionComputeMs,3000);assert.equal(refined.timing.decisionWorkIterations,1000);
+    const repeated=await service.start('owner',input,{...options,budget:'STANDARD'});
+    assert.equal(repeated.phase,'COMPLETE');assert.match(repeated.reason,/Cumulative/);
+    const deep=await service.start('owner',input,{...options,budget:'DEEP'});
+    const completed=await until(()=>service.get('owner',deep.jobId),item=>item.phase==='COMPLETE');
+    assert.deepEqual(completed.result.receivedBudget,{timeMs:27000,iterations:19000});
+    assert.equal(completed.timing.decisionComputeMs,30000);
+    assert.equal(completed.timing.decisionWorkIterations,20000);
+
+    const newDecision=await service.start('owner',input,{budget:'STANDARD',revisionKey:'another-decision',handId:'another-hand'});
+    const reused=await until(()=>service.get('owner',newDecision.jobId),item=>item.phase==='COMPLETE');
+    assert.equal(reused.cache.hit,true);
+    assert.deepEqual(reused.result.receivedBudget,{timeMs:3000,iterations:1000},'reusing exact cached mathematics from another decision consumes no new compute');
+  }finally{await service.close();}
+});

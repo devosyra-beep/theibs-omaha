@@ -49,6 +49,8 @@
     EQUILIBRIUM_ACTION_VALUE_UNCERTAINTY_UNAVAILABLE:'Action EV error bounds unavailable.',
     DEFENSIBLE_UNCERTAINTY_UNAVAILABLE:'Defensible error bounds unavailable.',
     INVALID_OR_MISSING_ACTION_BOUNDS:'An action has no valid error interval.',
+    INVALID_ACTION_BOUND_CONTEXT:'Action bounds use incompatible contexts.',
+    ACTION_BOUNDS_PENDING:'Action bounds are still being resolved.',
     BEST_SECOND_INTERVALS_OVERLAP:'The top two uncertainty intervals overlap.',
     OTHER_ALTERNATIVE_INTERVAL_OVERLAPS:'Another action’s uncertainty interval overlaps.',
     INCOMPATIBLE_ORIGINS:'Sources, quality or decision contexts differ.',
@@ -56,7 +58,8 @@
     INSUFFICIENT_COMPARABLE_ACTIONS:'At least two comparable actions are required.',
     MISSING_ACTION_VALUES:'Some alternatives have no modeled EV.',
     TIED_POINT_ESTIMATES:'The top two point estimates are tied.',
-    SEPARATED_UNDER_FIXED_POLICY:'95% bounds separate within the fixed model.'
+    SEPARATED_UNDER_FIXED_POLICY:'95% bounds separate within the fixed model.',
+    SEPARATED_ACTION_COMMITMENT_BOUNDS:'Bounds separate from every compared action.'
   })[precision?.reasonCode] || precision?.reason || 'Defensible error bounds unavailable.';
   function describeDecisionEV(state, analysis, readiness = {}) {
     const current = state?.players?.find(item => item.id === state.actor);
@@ -129,19 +132,38 @@
     const solved = window.TheibsMultiwaySolverUI?.decisionSnapshot?.();
     if (!solved || solved.revisionKey !== view.state?.revisionKey || solved.handId !== view.state?.handId) return false;
     const rows = solved.actions, precision = solved.decisionPrecision;
-    const bestRow = rows.find(row=>row.id===precision?.bestActionId), best = bestRow?.evBB;
+    const commitment = precision?.target === 'PRIVATE_INFORMATION_SET_COMMITMENT_VALUE';
+    const cert = solved.actionPrecision;
+    const sameBounds = commitment && precision.contextKey === cert?.baseContextKey
+      && precision.reasonCode !== 'INVALID_ACTION_BOUND_CONTEXT';
+    const boundFor = row => sameBounds ? cert.actions?.find(item=>item.id===row.id && item.certified === true) : null;
+    const valueFor = row => commitment ? boundFor(row)?.estimateBB : row.evBB;
+    const bestRow = rows.find(row=>row.id===precision?.bestActionId), best = bestRow && valueFor(bestRow);
+    const precise = value => !finite(value) ? '—' : value !== 0 && (Math.abs(value)<.001 || Math.abs(value)>=1e6)
+      ? value.toExponential(2).replace(/e\+?/,'e').replace(/-/g,'−')
+      : value.toLocaleString('en-US',{maximumSignificantDigits:6});
     const gap = finite(precision?.deltaEVBB) ? precision.deltaEVBB : null;
     const conclusive = precision?.status === 'CONCLUSIVE' && precision.leaderConclusive === true;
     const running = ['QUEUED','BUILDING','REFINING'].includes(solved.phase);
     const nc = solved.convergence?.exact && finite(solved.convergence.nashConv) ? solved.convergence.nashConv : null;
     const meta = solved.abstraction || {}, legal = view.state.legal;
-    const delta = value => !finite(value) ? '—' : value < 1e-9 ? '0.0' : `−${money(value)}`;
+    const delta = value => !finite(value) ? '—' : value === 0 ? '0' : `−${precise(value)}`;
     const fees = meta.feeModel?.type === 'NONE' ? meta.feeModel.basis === 'BEFORE_FEES' ? ' · Before fees' : ' · No fees assumed' : ' · Declared fees';
-    const rowHtml = rows.map(row=>`<tr><th scope="row">${esc(ACTIONS[row.action]?.label || row.action)}${finite(row.size)?` <small>to ${esc(money(row.size))}</small>`:''}</th><td>${(100*row.frequency).toLocaleString('en-US',{maximumFractionDigits:1})}%</td><td>${bb(row.evBB)}</td><td>${delta(finite(best)?best-row.evBB:null)}</td></tr>`).join('');
+    const rowHtml = rows.map(row=>{
+      const bound = boundFor(row), value = valueFor(row);
+      const secondary = commitment ? bound ? `<span>${precise(bound.lowerBB)}</span><span>to ${precise(bound.upperBB)}</span>` : 'Pending'
+        : `${(100*row.frequency).toLocaleString('en-US',{maximumFractionDigits:1})}%`;
+      return `<tr><th scope="row">${esc(ACTIONS[row.action]?.label || row.action)}${finite(row.size)?` <small>to ${esc(money(row.size))}</small>`:''}</th><td><span>${precise(value)}</span></td><td>${secondary}</td><td><span>${delta(finite(best)&&finite(value)?best-value:null)}</span></td></tr>`;
+    }).join('');
     const quality = nc === null ? 'Deviation quality unavailable' : `NashConv ${nc.toLocaleString('en-US',{maximumFractionDigits:5})} bb · target ≤ ${money(solved.convergence.thresholdBB)} bb`;
-    const leader = bestRow ? `${conclusive?'Best modeled action':'Current EV leader'}: ${ACTIONS[bestRow.action]?.label || bestRow.action}${finite(bestRow.size)?' to '+money(bestRow.size):''}` : 'No comparable EV leader';
+    const leader = bestRow ? `${conclusive?'Best action':'Current EV leader'}: ${ACTIONS[bestRow.action]?.label || bestRow.action}${finite(bestRow.size)?' to '+money(bestRow.size):''}` : 'No comparable EV leader';
     const reason = precisionReason(precision);
-    host.innerHTML = `<div class="mw-ev-heading"><strong>Decision EV</strong><span class="mw-ev-badge">${esc(solved.status)}${running?' · refining':''}</span></div><p class="mw-ev-context">River subgame · Pot ${money(view.state.pot)} · Call ${money(legal?.toCall)}${fees}</p><table class="mw-ev-table mw-ev-strategy"><thead><tr><th scope="col">Action</th><th scope="col">Mix</th><th scope="col">EV · bb</th><th scope="col">Δ · bb</th></tr></thead><tbody>${rowHtml}</tbody></table><div class="mw-ev-conclusion">${esc(leader)}<span>ΔEV · top two: ${gap===null?'unavailable':money(gap)+' bb'}</span><span>${conclusive?'CONCLUSIVE':'INCONCLUSIVE'} · ${esc(reason)}</span></div><details class="mw-ev-details"${priorDetails?' open':''}><summary>Methods & limits</summary><p>CFR+ · ${esc(solved.solverVersion)} · ${esc(solved.status)}. ${esc(quality)}. ${money(solved.iterations)} iterations.</p><p>EV and frequencies share this declared river study. Δ compares its root actions under the returned continuation strategy; it is not a global best-action claim. Frequencies apply to your exact five-card combination.</p><p>${meta.fullLegalSizingCoverage?'All legal sizes covered within this subgame.':'Restricted sizes or aggression depth: omitted actions remain outside this study.'} This is not a solution of full-hand PLO5. ${meta.originalSeats>2?'Multiplayer CFR+ has no general Nash-convergence guarantee.':'Convergence qualification applies only to the supported two-player constant-sum subgame.'} NashConv measures unilateral deviation within the supplied game; it is not a sampling confidence interval or an action EV error bound.</p><p>Source: ${esc(solved.source)} · ${esc(meta.rulesVersion)}. Equity remains a separate showdown estimate. No heuristic EV rows are used in this table.</p>${solverControls()}<ul>${(solved.limitations||[]).map(item=>`<li>${esc(item)}</li>`).join('')}</ul></details>`;
+    const profile = commitment ? `<details class="mw-solver-profile"><summary>Current hand · original strategy</summary><table class="mw-ev-table"><thead><tr><th>Action</th><th>EV · bb</th><th>Mix</th></tr></thead><tbody>${rows.map(row=>`<tr><th>${esc(ACTIONS[row.action]?.label || row.action)}${finite(row.size)?' '+money(row.size):''}</th><td>${precise(row.evBB)}</td><td>${precise(100*row.frequency)}%</td></tr>`).join('')}</tbody></table><p>These EVs and frequencies describe your hand against the original average profile. They are separate from the range commitment values above.</p></details>` : '';
+    const actionDetails = commitment ? `<details><summary>Action bounds & computation</summary><p>The action is fixed only at your private information set. Both players may re-optimize elsewhere; all original ranges and hidden information are preserved. Values average over the entire supplied range, not only your current hand. No statistical confidence interval is inferred from NashConv.</p><p>Displayed values are rounded. Comparisons use the full-precision bounds.</p><ul>${rows.map(row=>{const b=boundFor(row);return `<li><strong>${esc(row.id)}</strong>: ${b?`estimate ${precise(b.estimateBB)} bb; lower ${precise(b.lowerBB)}, upper ${precise(b.upperBB)} bb; ${money(b.iterations)} iterations; ${precise(b.elapsedMs)} ms. Source: ${esc(b.origin)}. Version: ${esc(b.solverVersion)}.`:'Certified bounds pending.'}</li>`;}).join('')}</ul><p>Every comparison uses the same base state, ranges, fees, utility and complete declared tree. A candidate stops receiving focused refinement only after its upper bound is strictly below a rival’s lower bound with the numerical guard.</p></details>` : '';
+    const costs = solved.metrics?.costs;
+    const diagnostics = solved.rootDiagnostics;
+    const measurement = `<p>Exploitability: ${precise(solved.convergence?.exploitability)} bb. Root one-step regret: ${precise(diagnostics?.oneStepRegret)} bb. ${diagnostics?.stability?.comparable ? `Checkpoint changes: EV ${precise(diagnostics.stability.maxActionEVChange)} bb; frequency ${precise(diagnostics.stability.maxFrequencyChange)}.` : 'Checkpoint stability is not yet available.'}</p>${costs?`<p>Compute: global ${precise(costs.globalSolveMs)} ms; action bounds ${precise(costs.actionSolveMs)} ms; total ${precise(costs.totalComputeMs)} ms.</p>`:''}${solved.adaptation?`<p>Refinement: ${esc(String(solved.adaptation.stopReason || solved.adaptation.phase || '').replaceAll('_',' ').toLowerCase())}. Numerical quality is independent of the resource ceiling.</p>`:''}`;
+    host.innerHTML = `<div class="mw-ev-heading"><strong>${commitment?'Range commitment EV':'Decision EV'}</strong><span class="mw-ev-badge">${esc(solved.status)}${running?' · refining':''}</span></div><p class="mw-ev-context">River subgame · Pot ${money(view.state.pot)} · Call ${money(legal?.toCall)}${fees}</p><table class="mw-ev-table mw-ev-strategy${commitment?' mw-ev-bounds':''}"><thead><tr><th scope="col">Action</th><th scope="col">EV · bb</th><th scope="col">${commitment?'Bounds · bb':'Mix'}</th><th scope="col">Δ · bb</th></tr></thead><tbody>${rowHtml}</tbody></table><div class="mw-ev-conclusion">${esc(leader)}<span>ΔEV · top two: ${gap===null?'unavailable':precise(gap)+' bb'}</span><span>${conclusive?'CONCLUSIVE':'INCONCLUSIVE'} · ${esc(reason)}</span></div><details class="mw-ev-details"${priorDetails?' open':''}><summary>Methods & limits</summary><p>CFR+ · ${esc(solved.solverVersion)} · ${esc(solved.status)}. ${esc(quality)}. ${money(solved.iterations)} iterations.</p>${commitment?'':"<p>EV and frequencies describe your hand against the returned continuation profile. Frequencies apply to your exact five-card combination.</p>"}${profile}${actionDetails}${measurement}<p>${meta.fullLegalSizingCoverage?'All legal sizes covered within this subgame.':'Restricted sizes or aggression depth: omitted actions remain outside this study.'} This is not a solution of full-hand PLO5. ${meta.originalSeats>2?'Multiplayer CFR+ has no general Nash-convergence guarantee.':'Convergence qualification applies only to the supported two-player constant-sum subgame.'} NashConv measures unilateral deviation within the supplied game; it is not an action EV error bound.</p><p>Source: ${esc(solved.source)} · ${esc(meta.rulesVersion)}. Equity remains a separate showdown estimate.</p>${solverControls()}<ul>${(solved.limitations||[]).map(item=>`<li>${esc(item)}</li>`).join('')}</ul></details>`;
     return true;
   }
   function refreshDecisionEV() {

@@ -8,7 +8,7 @@ Object.assign(process.env, { THEIBS_AUTH_REQUIRED: 'false', THEIBS_MULTIWAY_LLM_
   THEIBS_DATA_PATH: path.join(temp, 'events.jsonl'), THEIBS_WORKSPACE_PATH: path.join(temp, 'workspace.json'),
   THEIBS_SOLVER_CACHE_PATH: path.join(temp, 'solver-cache'), THEIBS_LLM_CONFIG_PATH: path.join(temp, 'llm.json') });
 const { server } = require('../server'), mw = require('../src/multiway-session'), { CardKeyboardState, fromCanonical } = require('../public/card-model');
-const out = path.resolve(__dirname, '../../validacao/solver-integrated-browser'); fs.mkdirSync(out, { recursive: true });
+const out = path.resolve(__dirname, '../../validacao/hu-precision-browser'); fs.mkdirSync(out, { recursive: true });
 const report = { classification: 'HARNESS_REAL_BROWSER_API_SOLVER_SYNTHETIC_SPEECH', checks: [], errors: [], screenshots: [],
   responses: [], requests: [], interactionTimings: [], generatedAt: new Date().toISOString(), microphone: 'NOT_EXECUTED' };
 const board = ['2s', '3h', '4d', '8c', '9s'];
@@ -119,20 +119,22 @@ async function solverResult(predicate = null) {
   const hu = await solverResult(); assert.equal(hu.result.status, 'SOLVED'); assert.equal(hu.result.qualification.gto, false);
   assert.equal(hu.result.source, 'REFERENCE_SUBGAME_STRATEGY'); assert.ok(hu.result.convergence.nashConv <= .01);
   assert.ok(Math.abs(hu.result.actions.reduce((sum, item) => sum + item.frequency, 0) - 1) < 1e-10);
-  assert.equal(hu.result.decisionPrecision.status, 'INCONCLUSIVE');
-  assert.equal(hu.result.decisionPrecision.reasonCode, 'EQUILIBRIUM_ACTION_VALUE_UNCERTAINTY_UNAVAILABLE');
-  assert.equal(hu.result.decisionPrecision.leaderConclusive, false);
+  assert.equal(hu.result.decisionPrecision.status, 'CONCLUSIVE');
+  assert.equal(hu.result.decisionPrecision.reasonCode, 'SEPARATED_ACTION_COMMITMENT_BOUNDS');
+  assert.equal(hu.result.decisionPrecision.leaderConclusive, true);
+  assert.equal(hu.result.decisionPrecision.target, 'PRIVATE_INFORMATION_SET_COMMITMENT_VALUE');
+  assert.ok(hu.result.actionPrecision.actions.every(row=>row.certified && row.lowerBB<=row.estimateBB && row.upperBB>=row.estimateBB));
   assert.ok(Math.abs(hu.result.decisionPrecision.deltaEVBB - 3) < 1e-12);
-  const huText = await page.locator('#mw-decision-ev').innerText(); assert.match(huText, /Frequency|Mix/i); assert.match(huText, /Solved/i);
+  const huText = await page.locator('#mw-decision-ev').innerText(); assert.match(huText, /Range commitment EV/i); assert.match(huText, /Solved/i);
   assert.doesNotMatch(huText.split('Methods')[0], /Heuristic/i);
-  assert.match(huText, /Current EV leader: Call/); assert.match(huText, /ΔEV · top two: 3 bb/); assert.match(huText, /INCONCLUSIVE/);
-  assert.doesNotMatch(huText.split('Methods')[0], /Best modeled action/);
+  assert.match(huText, /Best action: Call/); assert.match(huText, /ΔEV · top two: 3 bb/); assert.match(huText, /CONCLUSIVE/);
+  assert.doesNotMatch(huText.split('Methods')[0], /INCONCLUSIVE/);
   await shot('solved-hu-methods-desktop'); await collapseMethods();
   assert.match(await page.locator('#equity-origin').innerText(), /separate from river study/i);
   await shot('solved-hu-desktop'); await shot('solved-hu-mobile', 393);
   report.checks.push('Real PLO5 all-in river worker replaces heuristic rows with a qualified SOLVED subgame strategy, measured NashConv and actual frequencies. GTO/full-hand claims stay disabled.');
-  report.checks.push('Even a SOLVED subgame with a 3 bb point gap shows Current EV leader and INCONCLUSIVE because NashConv is not an action EV error bound. The measured ΔEV remains visible.');
-  report.headsUp = { status: hu.result.status, actions: hu.result.actions, convergence: hu.result.convergence, precision: hu.result.decisionPrecision, timing: hu.timing };
+  report.checks.push('HU action-conditioned saddle bounds separate Call from every alternative and allow Best action; range commitment values are explicitly separate from original-profile hand EV and NashConv.');
+  report.headsUp = { status: hu.result.status, actions: hu.result.actions, convergence: hu.result.convergence, precision: hu.result.decisionPrecision, actionPrecision:hu.result.actionPrecision, adaptation:hu.result.adaptation, timing: hu.timing };
 
   const originalJobId = hu.jobId, beforeCalls = report.requests.length;
   await page.evaluate(() => TheibsMultiwaySolverUI.evaluate(theibsApp.getAnalysisInput(), { budget: 'FAST' }));
@@ -159,6 +161,18 @@ async function solverResult(predicate = null) {
   report.decisionHistory = { handId: recorded[0].handId, revisionKey: recorded[0].revisionKey, feedback: recorded[0].feedback,
     solverStatus: recorded[0].solver.status, actions: recorded[0].solver.actions };
   report.checks.push('The real Hero Call stores exactly the solver snapshot shown before the action, its original ledger/revision and solver-only feedback source. No legacy loss or future-state result is substituted.');
+
+  const tiedHU = fixture(2);
+  tiedHU.combinations = [[hero],[['Ac','Ad','Qs','Jh','Th']]];
+  await loadHand(tiedHU); await declareStudy(tiedHU,1);
+  const tied = await solverResult();
+  assert.equal(tied.result.decisionPrecision.target,'PRIVATE_INFORMATION_SET_COMMITMENT_VALUE');
+  assert.equal(tied.result.decisionPrecision.status,'INCONCLUSIVE');
+  assert.ok(tied.result.actionPrecision.actions.every(row=>row.certified));
+  assert.match(await page.locator('#mw-decision-ev .mw-ev-conclusion').innerText(),/Current EV leader:[\s\S]*ΔEV · top two:[\s\S]*INCONCLUSIVE/);
+  await collapseMethods();await shot('tied-hu-desktop');await shot('tied-hu-mobile',393);
+  report.tiedHU={status:tied.result.status,precision:tied.result.decisionPrecision,actionPrecision:tied.result.actionPrecision,adaptation:tied.result.adaptation,timing:tied.timing};
+  report.checks.push('A tied HU river has certified but overlapping action bounds: it remains INCONCLUSIVE with Current EV leader, regardless of the global subgame status.');
 
   const three = fixture(3); await loadHand(three); await declareStudy(three, 1);
   const multiway = await solverResult(); assert.equal(multiway.result.status, 'APPROXIMATE'); assert.equal(multiway.result.qualification.gto, false);

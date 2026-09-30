@@ -1,0 +1,3 @@
+# QA reference only. Not installed or imported by the THEIBS application.
+numpy==2.5.3
+scipy==1.18.1

@@ -90,11 +90,13 @@ function compile(game, options = {}, control = () => {}) {
     return index;
   }
   visit(game.root, 0, Array.from({ length: game.playerCount }, () => []));
-  return { nodes, informationSets, playerCount: game.playerCount, hash: hash.digest('hex'), metrics: { nodeCount: nodes.length, informationSetCount: informationSets.length, terminalCount, edges, maxDepth, estimatedWorkingBytes, constantSum: isConstantSum ? constantSum : null, perfectRecall: true } };
+  return { nodes, informationSets, playerCount: game.playerCount, hash: hash.digest('hex'), metrics: { nodeCount: nodes.length, informationSetCount: informationSets.length,
+    strategicDecisionCount: informationSets.filter(info => info.actions.length > 1).length,
+    terminalCount, edges, maxDepth, estimatedWorkingBytes, constantSum: isConstantSum ? constantSum : null, perfectRecall: true } };
 }
 
-function validateGame(game, options) {
-  const compiled = compile(game, options);
+function validateGame(game, options, control) {
+  const compiled = compile(game, options, control);
   return { gameHash: compiled.hash, ...compiled.metrics };
 }
 
@@ -238,6 +240,155 @@ function evaluateInformationSet(game, strategy, informationSet, options = {}) {
   return actionValues(game, strategy, matching[0].player, informationSet, options);
 }
 
+// Interval arithmetic encloses the real operations on the supplied binary64
+// inputs. Strategy/chance rows are interpreted as normalized nonnegative
+// weights, so a rounding residual in their sum cannot create probability mass.
+const intervalBits = new DataView(new ArrayBuffer(8));
+function nextFloat(value, up) {
+  if (Number.isNaN(value) || value === (up ? Infinity : -Infinity)) return value;
+  if (value === 0) return up ? Number.MIN_VALUE : -Number.MIN_VALUE;
+  intervalBits.setFloat64(0, value);
+  let bits = intervalBits.getBigUint64(0);
+  bits += (value > 0) === up ? 1n : -1n;
+  intervalBits.setBigUint64(0, bits);
+  return intervalBits.getFloat64(0);
+}
+const down = value => nextFloat(value, false), up = value => nextFloat(value, true);
+function intervalAdd(a, b) {
+  if (a[0] === 0 && a[1] === 0) return b.slice();
+  if (b[0] === 0 && b[1] === 0) return a.slice();
+  return [down(a[0] + b[0]), up(a[1] + b[1])];
+}
+function intervalMultiply(a, b) {
+  if (a[0] === 0 && a[1] === 0 || b[0] === 0 && b[1] === 0) return [0, 0];
+  const products = [a[0] * b[0], a[0] * b[1], a[1] * b[0], a[1] * b[1]];
+  return [down(Math.min(...products)), up(Math.max(...products))];
+}
+function intervalProbabilities(row) {
+  if (row.filter(value => value > 0).length === 1) return row.map(value => value > 0 ? [1, 1] : [0, 0]);
+  const sum = row.reduce((total, value) => intervalAdd(total, [value, value]), [0, 0]);
+  return row.map(value => value === 0 ? [0, 0] : [Math.max(0, down(value / sum[1])), Math.min(1, up(value / sum[0]))]);
+}
+
+function intervalBestResponse(compiled, policy, player, control, terminalUtility = node => [node.payoffs[player], node.payoffs[player]]) {
+  const rows = policy.map(intervalProbabilities);
+  const reach = new Array(compiled.nodes.length);
+  function visit(index, probability) {
+    control();
+    reach[index] = probability;
+    const node = compiled.nodes[index];
+    if (node.type === 'terminal') return;
+    const row = node.type === 'chance' ? intervalProbabilities(node.probabilities) : rows[node.info];
+    for (let a = 0; a < node.children.length; a++) visit(node.children[a],
+      node.type === 'decision' && node.player === player ? probability : intervalMultiply(probability, row[a]));
+  }
+  visit(0, [1, 1]);
+  // Aggregate counterfactual terminal contributions between consecutive OWN
+  // information sets. Perfect recall gives each successor a unique previous
+  // own (information set, action), so its aggregate is included exactly once.
+  // Maximizing each history separately would disclose the opponent's cards.
+  function segment(starts) {
+    let terminals = [0, 0];
+    const successors = new Set();
+    function walk(index) {
+      control();
+      const node = compiled.nodes[index];
+      if (node.type === 'terminal') terminals = intervalAdd(terminals, intervalMultiply(reach[index], terminalUtility(node)));
+      else if (node.type === 'decision' && node.player === player) successors.add(node.info);
+      else for (const child of node.children) walk(child);
+    }
+    for (const start of starts) walk(start);
+    return { terminals, successors };
+  }
+  const values = new Map();
+  function total(part) {
+    let value = part.terminals;
+    for (const successor of part.successors) value = intervalAdd(value, values.get(successor));
+    return value;
+  }
+  const infos = compiled.informationSets.filter(info => info.player === player).sort((a, b) => b.ownDepth - a.ownDepth);
+  for (const info of infos) {
+    control();
+    const actionBounds = info.actions.map((_, a) => total(segment(info.nodes.map(index => compiled.nodes[index].children[a]))));
+    values.set(info.index, [Math.max(...actionBounds.map(value => value[0])), Math.max(...actionBounds.map(value => value[1]))]);
+  }
+  return total(segment([0]));
+}
+
+function saddleBounds(game, strategy, player, options = {}) {
+  const started = performance.now();
+  const timeBudgetMs = options.timeBudgetMs ?? Infinity;
+  if (!(timeBudgetMs === Infinity || finite(timeBudgetMs) && timeBudgetMs >= 0)) throw new Error('timeBudgetMs must be nonnegative.');
+  let visits = 0, termination = null;
+  function control(force = false) {
+    if (!force && ++visits % 128 !== 0) return;
+    if (options.shouldCancel?.()) { termination = 'CANCELLED'; throw STOP; }
+    if (performance.now() - started >= timeBudgetMs) { termination = 'TIME_BUDGET'; throw STOP; }
+  }
+  try {
+    control(true);
+    const compiled = compile(game, options, control);
+    if (compiled.playerCount !== 2 || compiled.metrics.constantSum === null || game.meta?.constantSum === false) throw new Error('Saddle certificates require a two-player constant-sum game.');
+    if (player !== 0 && player !== 1) throw new Error('Saddle certificate player is invalid.');
+    const policy = readStrategy(compiled, strategy);
+    let minimumSum = Infinity, maximumSum = -Infinity;
+    for (const node of compiled.nodes) if (node.type === 'terminal') {
+      control();
+      const sum = intervalAdd([node.payoffs[0], node.payoffs[0]], [node.payoffs[1], node.payoffs[1]]);
+      minimumSum = Math.min(minimumSum, sum[0]); maximumSum = Math.max(maximumSum, sum[1]);
+    }
+    // In a declared constant-sum chip game decimal-to-binary conversion can
+    // leave tiny payoff-sum residuals, especially after cancellation. Preserve
+    // every Hero payoff exactly and define the minimizing player's utility as
+    // K - uHero. This gives a rigorous zero-sum equivalent for that objective;
+    // no tolerance is used as an action-value error bar. Nonconstant-sum input
+    // remains rejected above, including a contrary adapter declaration.
+    const offset = compiled.metrics.constantSum;
+    const heroBR = intervalBestResponse(compiled, policy, player, control);
+    const opponentBR = intervalBestResponse(compiled, policy, 1 - player, control,
+      node => intervalAdd([offset, offset], [-node.payoffs[player], -node.payoffs[player]]));
+    const lower = down(offset - opponentBR[1]), upper = heroBR[1];
+    if (![lower, upper, ...heroBR, ...opponentBR].every(finite) || lower > upper) throw new Error('Saddle interval could not be certified.');
+    return { certified: true, lower, upper, bounds: [lower, upper], width: up(upper - lower),
+      player, gameHash: compiled.hash, target: 'SUPPLIED_GAME_EX_ANTE_MAXMIN_VALUE',
+      origin: 'OUTWARD_ROUNDED_INFORMATION_SET_BEST_RESPONSE_SADDLE_BOUNDS',
+      rounding: 'IEEE754_BINARY64_NEXTAFTER_EACH_OPERATION',
+      probabilitySemantics: 'NORMALIZED_SUPPLIED_BINARY64_WEIGHTS',
+      constantSumBounds: [offset, offset], originalConstantSumBounds: [minimumSum, maximumSum],
+      opponentBestResponseUtility: 'CONSTANT_MINUS_HERO_PAYOFF',
+      payoffNormalizationMaxResidual: up(Math.max(Math.abs(minimumSum - offset), Math.abs(maximumSum - offset))),
+      bestResponseBounds: { hero: heroBR, opponent: opponentBR },
+      perfectRecall: true, playerCount: 2, elapsedMs: performance.now() - started, traversalVisits: visits };
+  } catch (error) {
+    if (error !== STOP) throw error;
+    return { certified: false, lower: null, upper: null, bounds: null, termination, elapsedMs: performance.now() - started, traversalVisits: visits };
+  }
+}
+
+function rootDiagnostics(game, strategy, player, informationSet, options = {}) {
+  const compiled = compile(game, options), policy = readStrategy(compiled, strategy);
+  const info = compiled.informationSets.find(candidate => candidate.player === player && candidate.key === informationSet);
+  if (!info || info.ownDepth !== 0) throw new Error('Root diagnostics require a first own information set.');
+  const reach = counterfactualReach(compiled, policy, player);
+  const mass = info.nodes.reduce((sum, index) => sum + reach[index], 0);
+  const expected = expectedValues(compiled, policy).cache;
+  const actions = info.actions.map((id, a) => ({ id, frequency: policy[info.index][a], ev: mass > 0 ? info.nodes.reduce((sum, index) => sum + reach[index] * expected[compiled.nodes[index].children[a]][player], 0) / mass : null }));
+  const value = mass > 0 ? actions.reduce((sum, action) => sum + action.frequency * action.ev, 0) : null;
+  const oneStepRegret = mass > 0 ? Math.max(0, Math.max(...actions.map(action => action.ev)) - value) : null;
+  const previous = options.previous;
+  const compatible = mass > 0 && previous?.gameHash === compiled.hash && previous?.informationSet === informationSet && previous?.player === player
+    && Array.isArray(previous.actions) && previous.actions.length === actions.length
+    && actions.every(action => previous.actions.some(old => old.id === action.id && finite(old.ev) && finite(old.frequency)));
+  const stability = compatible ? {
+    comparable: true, maxActionEVChange: Math.max(...actions.map(action => Math.abs(action.ev - previous.actions.find(old => old.id === action.id).ev))),
+    maxFrequencyChange: Math.max(...actions.map(action => Math.abs(action.frequency - previous.actions.find(old => old.id === action.id).frequency)))
+  } : { comparable: false, maxActionEVChange: null, maxFrequencyChange: null };
+  return { gameHash: compiled.hash, player, informationSet, actions, counterfactualReach: mass, profileValue: value,
+    oneStepRegret, counterfactualOneStepRegret: oneStepRegret === null ? null : mass * oneStepRegret,
+    scope: 'CURRENT_PROFILE_FIRST_INFORMATION_SET_ONE_STEP_DEVIATION', stability,
+    certifiesEquilibriumActionValues: false, certifiesConvergence: false };
+}
+
 function solve(game, options = {}) {
   const started = performance.now();
   const requested = options.iterations === undefined ? 1000 : options.iterations;
@@ -342,4 +493,4 @@ function solve(game, options = {}) {
   };
 }
 
-module.exports = { VERSION, DEFAULT_LIMITS, validateGame, solve, evaluate, bestResponse, actionValues, evaluateInformationSet };
+module.exports = { VERSION, DEFAULT_LIMITS, validateGame, solve, evaluate, bestResponse, actionValues, evaluateInformationSet, saddleBounds, rootDiagnostics };

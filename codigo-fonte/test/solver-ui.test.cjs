@@ -42,6 +42,16 @@ test('FAST automatically refines only once and duplicate evaluation does not res
   assert.deepEqual(starts.map(item=>item.budget),['FAST','STANDARD']);assert.equal(api.getState().phase,'COMPLETE');assert.equal(api.decisionSnapshot().status,'APPROXIMATE');api.invalidate();
 });
 
+test('action-bound refinement can continue after global convergence, or stop when certified separated',async()=>{
+  for(const recommended of [true,false]){
+    const api=createUI(),current=context(),budgets=[];
+    api.init({getContext:()=>current,request:async(url,options)=>{if(!url.endsWith('/start'))return {};const body=JSON.parse(options.body);budgets.push(body.budget);
+      return response(body.budget,{result:{...result('SOLVED'),convergence:{thresholdMet:true},adaptation:{refinementRecommended:recommended}}});}});
+    api.restore(study());await api.evaluate(payload(current));
+    assert.deepEqual(budgets,recommended?['FAST','STANDARD']:['FAST']);api.invalidate();
+  }
+});
+
 test('in-flight duplicate FAST requests share the current request and retain no stale callbacks',async()=>{
   const api=createUI(),current=context();let count=0,resolveStart;
   api.init({getContext:()=>current,request:async(url)=>{if(url.endsWith('/cancel'))return {};count++;return new Promise(resolve=>resolveStart=resolve);}});
