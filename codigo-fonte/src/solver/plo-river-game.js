@@ -14,7 +14,7 @@ const RULES_VERSION = 'OBSERVED_HAND_CENT_LEDGER_0148';
 const LIMITS = Object.freeze({ maxNodes: 12000, maxWorlds: 144, maxMemoryBytes: 96 * 1024 * 1024, maxBuildMs: 2400 });
 // Range admission is separate from tree capacity: all compatible worlds must
 // still fit the unchanged node, memory and construction guards below.
-const HU_SUPPORT = Object.freeze({ maxCombosPerSeat: 24, maxSizingLevels: 12, maxWorlds: 576, maxMemoryBytes: 48 * 1024 * 1024 });
+const HU_SUPPORT = Object.freeze({ maxCombosPerSeat: 32, maxSizingLevels: 12, maxWorlds: 1024, maxMemoryBytes: 48 * 1024 * 1024 });
 const THREE_SEAT_SUPPORT = Object.freeze({ maxCombosPerSeat: 3, maxSizingLevels: 8, maxWorlds: 27, maxMemoryBytes: 96 * 1024 * 1024 });
 const hash = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
 const round = value => Math.round(value * 100) / 100;

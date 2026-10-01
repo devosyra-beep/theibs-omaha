@@ -1,17 +1,17 @@
 {
   "classification": "QA_ONLY_NESTED_EXPLICIT_RANGE_SENSITIVITY",
-  "generatedAt": "2026-10-01T13:07:30.155Z",
+  "generatedAt": "2026-10-01T21:12:24.017Z",
   "node": "v24.19.0",
   "sourceHashes": {
-    "plo-river-game.js": "80bd514deb6f7c223712313d90347355d8b64981584d49445c807049f56c384e",
-    "extensive-solver.js": "5622613b33cb9265b936ff35673b159363f770524d81f69ad6cffa9c23b76cac",
-    "action-conditioned.js": "e79a3c4bab00b6d9eaa66fd1d42ab6cf7f0795f96dce6a1b6a50b06b66f55b01",
+    "plo-river-game.js": "b1749bf23d2c29bbc707e7955f1e193834b1cd3b8a9109eb5100d3b4b9663532",
+    "extensive-solver.js": "6833ea3bbd568e33e65f9f5337fa7762d0a9d015582b8a6fb1be4709fddfc8f1",
+    "action-conditioned.js": "1189c0fedebe5b394efda5fdfea945e9a4bcf6e8119c134855798547b7422213",
     "job-worker.js": "1a91246c36ae3ca2326ee6c850a257b96bc2a734b161c88eaf345fe6862c6ebf",
     "versions.js": "16a57fda32f5e069dfaced026af9d59e8f1ddda7a983fac8f54ee146d0a7be64"
   },
   "productionHUAdmission": {
-    "combos": 24,
-    "worlds": 576
+    "combos": 32,
+    "worlds": 1024
   },
   "experimentHUAdmission": {
     "combos": 48,
@@ -64,11 +64,11 @@
             ],
             "players": [
               {
-                "playerId": "9b58ff80-e415-45ed-9da5-462a8cc9d42a",
+                "playerId": "8b7ab057-9253-4cc6-b52f-930f0a692ad2",
                 "name": "You"
               },
               {
-                "playerId": "26bc9b9e-6cce-4861-a8de-1ecf6e5d662f",
+                "playerId": "715f19de-74e5-4287-a414-a38a7e5f71a7",
                 "name": "A1"
               }
             ]
@@ -78,13 +78,13 @@
               "type": "ACT",
               "actor": 0,
               "action": "CALL",
-              "eventId": "76e95139-11b8-4b41-a912-a9125f6333c6"
+              "eventId": "c77d4a4d-b1b3-43c9-be46-27982b2f5ea2"
             },
             {
               "type": "ACT",
               "actor": 1,
               "action": "CHECK",
-              "eventId": "9b033af9-3e31-4d9b-a758-f09100c82cbd"
+              "eventId": "3acddfad-4199-41b6-a1f1-8fcfe6924119"
             },
             {
               "type": "BOARD",
@@ -93,19 +93,19 @@
                 "3h",
                 "4d"
               ],
-              "eventId": "f50a7798-3226-4622-9cb6-123ad79bbb7c"
+              "eventId": "82681ca0-c8c2-4b64-b766-e6c058c5d018"
             },
             {
               "type": "ACT",
               "actor": 1,
               "action": "CHECK",
-              "eventId": "c50c9e07-9895-4a7b-8d28-6eb36c84213a"
+              "eventId": "46d6e760-b511-4060-98be-128dd9e147cf"
             },
             {
               "type": "ACT",
               "actor": 0,
               "action": "CHECK",
-              "eventId": "dc841fed-79a7-4cb3-869f-811175f47ff1"
+              "eventId": "5316802f-145f-4a24-bfa8-0cc633d2e950"
             },
             {
               "type": "BOARD",
@@ -115,19 +115,19 @@
                 "4d",
                 "8c"
               ],
-              "eventId": "7a6ad5de-b100-4669-82b7-fb657b6a9d49"
+              "eventId": "81691d14-d87e-4a01-a672-b0b84e2af168"
             },
             {
               "type": "ACT",
               "actor": 1,
               "action": "CHECK",
-              "eventId": "b6e240cd-4345-4c3b-83cd-58823cf99717"
+              "eventId": "ac10a3be-2b4c-42b0-9d09-10a7bceb0c0b"
             },
             {
               "type": "ACT",
               "actor": 0,
               "action": "CHECK",
-              "eventId": "0d9d9da0-92dc-42d0-aa41-63e9b5a4463d"
+              "eventId": "b71d95aa-26d4-434a-a075-011945f869cf"
             },
             {
               "type": "BOARD",
@@ -138,16 +138,16 @@
                 "8c",
                 "9s"
               ],
-              "eventId": "10598a71-7db8-4fcf-86bf-4ea7e91ed131"
+              "eventId": "d39709bb-dbed-4ca0-a42c-0e9b25e67808"
             },
             {
               "type": "ACT",
               "actor": 1,
               "action": "CHECK",
-              "eventId": "1dd37573-9aca-4b9a-9fd9-5b977fd746fc"
+              "eventId": "fbafda64-f559-427b-93ea-ebf3633c1e0e"
             }
           ],
-          "handId": "f55439c3-5fdb-473b-93aa-e063d8aa4ffd",
+          "handId": "360de8c9-8ca7-4ac9-ba34-f6f144047b61",
           "editEpoch": 0
         },
         "ranges": [
@@ -665,7 +665,7 @@
           "maxBuildMs": 750
         }
       },
-      "inputSHA256": "4c76ea2e31fe6134b6d5caa67ecc9b83462b67a63ff565c4ea190c357fb98534",
+      "inputSHA256": "2f0651d606e3f96f2ae24926a255e72ff2418cc88d9531379861b076116e4104",
       "contextKey": "71abccb8f56f69d1ecc3bc488ef55d7456da2cdf4b48ccad693a8a44264cab41",
       "productWorlds": 576,
       "compatibleWorlds": 576,
@@ -674,7 +674,7 @@
       "requiredReservationBytes": 42475520,
       "status": "READY",
       "reasons": [],
-      "buildMs": 42.35719999999999,
+      "buildMs": 171.81640000000002,
       "completeTreeBuilt": true,
       "currentHandEVAvailable": true,
       "execution": {
@@ -682,13 +682,304 @@
           {
             "temperature": "COLD_RUNTIME",
             "cacheHit": false,
-            "firstValueMs": 179.77429999999998,
-            "elapsedMs": 664.9808,
-            "heapBeforeBytes": 9480896,
-            "heapAfterBytes": 15865312,
+            "firstValueMs": 337.87879999999996,
+            "elapsedMs": 1087.5761,
+            "heapBeforeBytes": 8861064,
+            "heapAfterBytes": 16779672,
             "progress": [
               {
-                "atMs": 179.7833,
+                "atMs": 337.88390000000004,
+                "status": "APPROXIMATE",
+                "reasons": [],
+                "gameHash": "e74ec937b0e2619b7be00d477ad489942c67454482fbacdf3454d4a71f4ce572",
+                "iterations": 17,
+                "workIterations": 17,
+                "originalProfile": {
+                  "scope": "CURRENT_HAND_COMBINATION_RETURNED_PROFILE",
+                  "actions": [
+                    {
+                      "id": "FOLD",
+                      "action": "FOLD",
+                      "size": null,
+                      "frequency": 0.0016339869281045754,
+                      "evBB": 0
+                    },
+                    {
+                      "id": "CHECK",
+                      "action": "CHECK",
+                      "size": null,
+                      "frequency": 0.9052293374964491,
+                      "evBB": 1.1866666666666665
+                    },
+                    {
+                      "id": "BET:1.00",
+                      "action": "BET",
+                      "size": 1,
+                      "frequency": 0.07998974202710123,
+                      "evBB": 1.0898613556292844
+                    },
+                    {
+                      "id": "BET:2.00",
+                      "action": "BET",
+                      "size": 2,
+                      "frequency": 0.013146933548345188,
+                      "evBB": 1.0522048524027912
+                    }
+                  ],
+                  "pointLeaderActionIds": [
+                    "CHECK"
+                  ]
+                },
+                "commitment": {
+                  "scope": "FULL_PRIOR_COMMITMENT",
+                  "actualHandEVEquivalence": false,
+                  "actions": [
+                    {
+                      "id": "FOLD",
+                      "certified": false,
+                      "estimateBB": null,
+                      "lowerBB": null,
+                      "upperBB": null
+                    },
+                    {
+                      "id": "CHECK",
+                      "certified": false,
+                      "estimateBB": null,
+                      "lowerBB": null,
+                      "upperBB": null
+                    },
+                    {
+                      "id": "BET:1.00",
+                      "certified": false,
+                      "estimateBB": null,
+                      "lowerBB": null,
+                      "upperBB": null
+                    },
+                    {
+                      "id": "BET:2.00",
+                      "certified": false,
+                      "estimateBB": null,
+                      "lowerBB": null,
+                      "upperBB": null
+                    }
+                  ],
+                  "precision": {
+                    "version": "THEIBS_DECISION_PRECISION_V2",
+                    "status": "INCONCLUSIVE",
+                    "reasonCode": "EQUILIBRIUM_ACTION_VALUE_UNCERTAINTY_UNAVAILABLE",
+                    "reason": "No defensible bound is available for equilibrium action-value error. NashConv and exact evaluation of the current profile do not supply that bound.",
+                    "source": "REFERENCE_SUBGAME_STRATEGY",
+                    "originVersion": "THEIBS_FULL_TREE_CFR_PLUS_V1",
+                    "resultStatus": "APPROXIMATE",
+                    "contextKey": "71abccb8f56f69d1ecc3bc488ef55d7456da2cdf4b48ccad693a8a44264cab41",
+                    "target": "EQUILIBRIUM_ACTION_EV",
+                    "unit": "BB",
+                    "leaderConclusive": false,
+                    "globalBestSupported": false,
+                    "bestActionId": "CHECK",
+                    "secondActionId": "BET:1.00",
+                    "bestEVBB": 1.1866666666666665,
+                    "secondEVBB": 1.0898613556292844,
+                    "deltaEVBB": 0.0968053110373821,
+                    "differenceBoundsBB": null,
+                    "bestBoundsBB": null,
+                    "secondBoundsBB": null,
+                    "strongestAlternativeUpperBB": null,
+                    "bestSecondSeparated": false,
+                    "confidenceLevel": null,
+                    "uncertaintyMethod": null,
+                    "uncertaintyScope": null,
+                    "modelUncertaintyIncluded": false,
+                    "separationToleranceBB": 0
+                  },
+                  "outcome": {
+                    "version": "THEIBS_DECISION_OUTCOME_V1",
+                    "status": "ESTIMATING",
+                    "reasonCode": "BOUNDS_PENDING",
+                    "reason": "Compatible outward bounds are still being calculated for the declared commitments.",
+                    "scope": "FULL_PRIOR_COMMITMENT",
+                    "target": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+                    "coverage": "ALL_DECLARED_ALTERNATIVES_ONLY",
+                    "actualHandEVEquivalence": false,
+                    "policy": {
+                      "version": "THEIBS_COMPARISON_POLICY_V1",
+                      "nearEquivalenceBB": 0.01,
+                      "unit": "BB",
+                      "scope": "FULL_PRIOR_COMMITMENT"
+                    },
+                    "policyKey": "bbe7e98a415ae1c70a69aa7d5a8189fd561d1e69a7780692c2624dc855b1f34b",
+                    "actionIds": [
+                      "FOLD",
+                      "CHECK",
+                      "BET:1.00",
+                      "BET:2.00"
+                    ],
+                    "globalConverged": false,
+                    "strictLeaderActionId": null,
+                    "nearGroupActionIds": [],
+                    "robustWorstDifferenceBB": null,
+                    "diagnostics": {
+                      "category": "MULTIPLE_ACTIONS_COMPETITIVE",
+                      "categories": [
+                        "MULTIPLE_ACTIONS_COMPETITIVE",
+                        "POSSIBLE_NEAR_EQUIVALENCE",
+                        "BASE_SOLVER_BOTTLENECK"
+                      ],
+                      "stopReason": null,
+                      "iterationBudgetExhausted": false,
+                      "reasonCode": "BOUNDS_PENDING",
+                      "globalConverged": false,
+                      "counts": {
+                        "declared": 4,
+                        "certified": 0,
+                        "missing": 4,
+                        "competitive": 4,
+                        "possibleNearEquivalent": 4,
+                        "attempted": 0,
+                        "refinementBatches": 0
+                      },
+                      "leaderActionId": null,
+                      "secondActionId": null,
+                      "separationGapBB": null,
+                      "pointLeaderActionId": null,
+                      "pointSecondActionId": null,
+                      "pointDeltaBB": null,
+                      "pointEstimateScope": "FULL_PRIOR_COMMITMENT",
+                      "originalProfilePointLeaderActionId": "CHECK",
+                      "originalProfilePointSecondActionId": "BET:1.00",
+                      "originalProfilePointDeltaBB": 0.0968053110373821,
+                      "originalProfilePointScope": "CURRENT_HAND_COMBINATION_RETURNED_PROFILE",
+                      "competitiveActionIds": [
+                        "FOLD",
+                        "CHECK",
+                        "BET:1.00",
+                        "BET:2.00"
+                      ],
+                      "possibleNearGroupActionIds": [
+                        "FOLD",
+                        "CHECK",
+                        "BET:1.00",
+                        "BET:2.00"
+                      ],
+                      "possibleNearEquivalence": true,
+                      "rows": [
+                        {
+                          "id": "FOLD",
+                          "certified": false,
+                          "estimateBB": null,
+                          "lowerBB": null,
+                          "upperBB": null,
+                          "widthBB": null,
+                          "attempts": 0
+                        },
+                        {
+                          "id": "CHECK",
+                          "certified": false,
+                          "estimateBB": null,
+                          "lowerBB": null,
+                          "upperBB": null,
+                          "widthBB": null,
+                          "attempts": 0
+                        },
+                        {
+                          "id": "BET:1.00",
+                          "certified": false,
+                          "estimateBB": null,
+                          "lowerBB": null,
+                          "upperBB": null,
+                          "widthBB": null,
+                          "attempts": 0
+                        },
+                        {
+                          "id": "BET:2.00",
+                          "certified": false,
+                          "estimateBB": null,
+                          "lowerBB": null,
+                          "upperBB": null,
+                          "widthBB": null,
+                          "attempts": 0
+                        }
+                      ],
+                      "costs": {
+                        "scope": "CUMULATIVE_COMPATIBLE_EXECUTIONS",
+                        "computeOnly": true,
+                        "totalMs": 323.08050000000003,
+                        "firstValueMs": 323.08050000000003,
+                        "baseMs": 321.48739999999987,
+                        "boundsMs": 0,
+                        "actionRefinementMs": 0,
+                        "buildMs": 152.35519999999997,
+                        "globalSolveMs": 161.99940000000004,
+                        "globalEvaluationMs": 7.132799999999861,
+                        "unattributedMs": 1.5931000000001632,
+                        "available": [
+                          "buildMs",
+                          "globalSolveMs",
+                          "globalEvaluationMs",
+                          "actionSolveMs",
+                          "actionCertificateMs",
+                          "totalComputeMs"
+                        ],
+                        "missing": [],
+                        "bottleneckBasis": "MEASURED_BASE_VS_ACTION_REFINEMENT_PHASE_COSTS"
+                      }
+                    }
+                  }
+                },
+                "convergence": {
+                  "metric": "EXACT_NASH_CONV",
+                  "exact": false,
+                  "nashConv": null,
+                  "maxUnilateralGain": null,
+                  "unilateralGains": null,
+                  "bestResponseValues": null,
+                  "exploitability": null,
+                  "scope": "SUPPLIED_FINITE_GAME",
+                  "reason": "EVALUATION_BUDGET_OR_CANCELLATION",
+                  "unit": "BB",
+                  "thresholdBB": 0.01,
+                  "thresholdMet": false
+                },
+                "stability": {
+                  "comparable": false,
+                  "maxActionEVChange": null,
+                  "maxFrequencyChange": null,
+                  "maxActionEVChangeBB": null
+                },
+                "stopReason": null,
+                "refinementRecommended": true,
+                "costs": {
+                  "buildMs": 152.35519999999997,
+                  "globalSolveMs": 161.99940000000004,
+                  "globalEvaluationMs": 7.132799999999861,
+                  "actionSolveMs": 0,
+                  "actionCertificateMs": 0,
+                  "totalComputeMs": 323.08050000000003
+                },
+                "estimatedWorkingBytes": 1575040,
+                "compilation": {
+                  "scope": "CURRENT_EXECUTION_ONLY",
+                  "base": {
+                    "compileCount": 1,
+                    "reuseCount": 1,
+                    "freezeMs": 49.694999999999936,
+                    "compileMs": 47.45859999999993,
+                    "retainedBytes": 1575040,
+                    "maxRetainedBytes": 8388608
+                  },
+                  "conditioned": {
+                    "compileCount": 0,
+                    "reuseCount": 0,
+                    "freezeMs": 0,
+                    "compileMs": 0,
+                    "peakRetainedBytes": 0
+                  },
+                  "peakRetainedBytes": 1575040,
+                  "maxRetainedBytes": 8388608
+                }
+              },
+              {
+                "atMs": 418.3315,
                 "status": "APPROXIMATE",
                 "reasons": [],
                 "gameHash": "e74ec937b0e2619b7be00d477ad489942c67454482fbacdf3454d4a71f4ce572",
@@ -902,15 +1193,15 @@
                       "costs": {
                         "scope": "CUMULATIVE_COMPATIBLE_EXECUTIONS",
                         "computeOnly": true,
-                        "totalMs": 169.906,
-                        "firstValueMs": 169.906,
-                        "baseMs": 169.23089999999996,
+                        "totalMs": 411.4000000000001,
+                        "firstValueMs": 323.08050000000003,
+                        "baseMs": 398.3061999999999,
                         "boundsMs": 0,
                         "actionRefinementMs": 0,
-                        "buildMs": 47.55520000000001,
-                        "globalSolveMs": 116.63499999999999,
-                        "globalEvaluationMs": 5.040699999999958,
-                        "unattributedMs": 0.6751000000000431,
+                        "buildMs": 152.35519999999997,
+                        "globalSolveMs": 235.5376,
+                        "globalEvaluationMs": 10.41339999999991,
+                        "unattributedMs": 13.093800000000215,
                         "available": [
                           "buildMs",
                           "globalSolveMs",
@@ -946,29 +1237,29 @@
                   "thresholdMet": true
                 },
                 "stability": {
-                  "comparable": false,
-                  "maxActionEVChange": null,
-                  "maxFrequencyChange": null,
-                  "maxActionEVChangeBB": null
+                  "comparable": true,
+                  "maxActionEVChange": 0.06061929818265521,
+                  "maxFrequencyChange": 0.07054556800044509,
+                  "maxActionEVChangeBB": 0.06061929818265521
                 },
                 "stopReason": null,
                 "refinementRecommended": true,
                 "costs": {
-                  "buildMs": 47.55520000000001,
-                  "globalSolveMs": 116.63499999999999,
-                  "globalEvaluationMs": 5.040699999999958,
+                  "buildMs": 152.35519999999997,
+                  "globalSolveMs": 235.5376,
+                  "globalEvaluationMs": 10.41339999999991,
                   "actionSolveMs": 0,
                   "actionCertificateMs": 0,
-                  "totalComputeMs": 169.906
+                  "totalComputeMs": 411.4000000000001
                 },
                 "estimatedWorkingBytes": 1575040,
                 "compilation": {
                   "scope": "CURRENT_EXECUTION_ONLY",
                   "base": {
                     "compileCount": 1,
-                    "reuseCount": 1,
-                    "freezeMs": 17.113099999999974,
-                    "compileMs": 17.03299999999996,
+                    "reuseCount": 3,
+                    "freezeMs": 49.694999999999936,
+                    "compileMs": 47.45859999999993,
                     "retainedBytes": 1575040,
                     "maxRetainedBytes": 8388608
                   },
@@ -984,7 +1275,7 @@
                 }
               },
               {
-                "atMs": 306.4034,
+                "atMs": 603.9072000000001,
                 "status": "APPROXIMATE",
                 "reasons": [],
                 "gameHash": "e74ec937b0e2619b7be00d477ad489942c67454482fbacdf3454d4a71f4ce572",
@@ -1198,15 +1489,15 @@
                       "costs": {
                         "scope": "CUMULATIVE_COMPATIBLE_EXECUTIONS",
                         "computeOnly": true,
-                        "totalMs": 303.72909999999996,
-                        "firstValueMs": 169.906,
-                        "baseMs": 169.23089999999996,
-                        "boundsMs": 22.539600000000064,
-                        "actionRefinementMs": 123.3775,
-                        "buildMs": 47.55520000000001,
-                        "globalSolveMs": 116.63499999999999,
-                        "globalEvaluationMs": 5.040699999999958,
-                        "unattributedMs": 11.1207,
+                        "totalMs": 596.4619,
+                        "firstValueMs": 323.08050000000003,
+                        "baseMs": 398.3061999999999,
+                        "boundsMs": 46.54019999999991,
+                        "actionRefinementMs": 180.83569999999986,
+                        "buildMs": 152.35519999999997,
+                        "globalSolveMs": 235.5376,
+                        "globalEvaluationMs": 10.41339999999991,
+                        "unattributedMs": 17.320000000000277,
                         "available": [
                           "buildMs",
                           "globalSolveMs",
@@ -1242,37 +1533,37 @@
                   "thresholdMet": true
                 },
                 "stability": {
-                  "comparable": false,
-                  "maxActionEVChange": null,
-                  "maxFrequencyChange": null,
-                  "maxActionEVChangeBB": null
+                  "comparable": true,
+                  "maxActionEVChange": 0.06061929818265521,
+                  "maxFrequencyChange": 0.07054556800044509,
+                  "maxActionEVChangeBB": 0.06061929818265521
                 },
                 "stopReason": null,
                 "refinementRecommended": true,
                 "costs": {
-                  "buildMs": 47.55520000000001,
-                  "globalSolveMs": 116.63499999999999,
-                  "globalEvaluationMs": 5.040699999999958,
-                  "actionSolveMs": 123.3775,
-                  "actionCertificateMs": 22.539600000000064,
-                  "totalComputeMs": 303.72909999999996
+                  "buildMs": 152.35519999999997,
+                  "globalSolveMs": 235.5376,
+                  "globalEvaluationMs": 10.41339999999991,
+                  "actionSolveMs": 180.83569999999986,
+                  "actionCertificateMs": 46.54019999999991,
+                  "totalComputeMs": 596.4619
                 },
                 "estimatedWorkingBytes": 1575040,
                 "compilation": {
                   "scope": "CURRENT_EXECUTION_ONLY",
                   "base": {
                     "compileCount": 1,
-                    "reuseCount": 2,
-                    "freezeMs": 17.113099999999974,
-                    "compileMs": 17.03299999999996,
+                    "reuseCount": 4,
+                    "freezeMs": 49.694999999999936,
+                    "compileMs": 47.45859999999993,
                     "retainedBytes": 1575040,
                     "maxRetainedBytes": 8388608
                   },
                   "conditioned": {
                     "compileCount": 1,
                     "reuseCount": 1,
-                    "freezeMs": 18.905100000000004,
-                    "compileMs": 13.172599999999989,
+                    "freezeMs": 1.5812000000000808,
+                    "compileMs": 35.42370000000005,
                     "peakRetainedBytes": 3100070
                   },
                   "peakRetainedBytes": 3100070,
@@ -1280,7 +1571,7 @@
                 }
               },
               {
-                "atMs": 424.57329999999996,
+                "atMs": 755.913,
                 "status": "APPROXIMATE",
                 "reasons": [],
                 "gameHash": "e74ec937b0e2619b7be00d477ad489942c67454482fbacdf3454d4a71f4ce572",
@@ -1414,8 +1705,7 @@
                       "category": "MULTIPLE_ACTIONS_COMPETITIVE",
                       "categories": [
                         "MULTIPLE_ACTIONS_COMPETITIVE",
-                        "POSSIBLE_NEAR_EQUIVALENCE",
-                        "CERTIFICATION_BOTTLENECK"
+                        "POSSIBLE_NEAR_EQUIVALENCE"
                       ],
                       "stopReason": null,
                       "iterationBudgetExhausted": false,
@@ -1495,15 +1785,15 @@
                       "costs": {
                         "scope": "CUMULATIVE_COMPATIBLE_EXECUTIONS",
                         "computeOnly": true,
-                        "totalMs": 421.6279,
-                        "firstValueMs": 169.906,
-                        "baseMs": 169.23089999999996,
-                        "boundsMs": 31.734800000000064,
-                        "actionRefinementMs": 239.33929999999992,
-                        "buildMs": 47.55520000000001,
-                        "globalSolveMs": 116.63499999999999,
-                        "globalEvaluationMs": 5.040699999999958,
-                        "unattributedMs": 13.057700000000125,
+                        "totalMs": 748.5726999999999,
+                        "firstValueMs": 323.08050000000003,
+                        "baseMs": 398.3061999999999,
+                        "boundsMs": 70.41409999999973,
+                        "actionRefinementMs": 329.0586999999998,
+                        "buildMs": 152.35519999999997,
+                        "globalSolveMs": 235.5376,
+                        "globalEvaluationMs": 10.41339999999991,
+                        "unattributedMs": 21.207800000000248,
                         "available": [
                           "buildMs",
                           "globalSolveMs",
@@ -1539,37 +1829,37 @@
                   "thresholdMet": true
                 },
                 "stability": {
-                  "comparable": false,
-                  "maxActionEVChange": null,
-                  "maxFrequencyChange": null,
-                  "maxActionEVChangeBB": null
+                  "comparable": true,
+                  "maxActionEVChange": 0.06061929818265521,
+                  "maxFrequencyChange": 0.07054556800044509,
+                  "maxActionEVChangeBB": 0.06061929818265521
                 },
                 "stopReason": null,
                 "refinementRecommended": true,
                 "costs": {
-                  "buildMs": 47.55520000000001,
-                  "globalSolveMs": 116.63499999999999,
-                  "globalEvaluationMs": 5.040699999999958,
-                  "actionSolveMs": 239.33929999999992,
-                  "actionCertificateMs": 31.734800000000064,
-                  "totalComputeMs": 421.6279
+                  "buildMs": 152.35519999999997,
+                  "globalSolveMs": 235.5376,
+                  "globalEvaluationMs": 10.41339999999991,
+                  "actionSolveMs": 329.0586999999998,
+                  "actionCertificateMs": 70.41409999999973,
+                  "totalComputeMs": 748.5726999999999
                 },
                 "estimatedWorkingBytes": 1575040,
                 "compilation": {
                   "scope": "CURRENT_EXECUTION_ONLY",
                   "base": {
                     "compileCount": 1,
-                    "reuseCount": 3,
-                    "freezeMs": 17.113099999999974,
-                    "compileMs": 17.03299999999996,
+                    "reuseCount": 5,
+                    "freezeMs": 49.694999999999936,
+                    "compileMs": 47.45859999999993,
                     "retainedBytes": 1575040,
                     "maxRetainedBytes": 8388608
                   },
                   "conditioned": {
                     "compileCount": 2,
                     "reuseCount": 2,
-                    "freezeMs": 39.52180000000004,
-                    "compileMs": 28.318899999999985,
+                    "freezeMs": 2.953999999999951,
+                    "compileMs": 75.5748000000001,
                     "peakRetainedBytes": 3100072
                   },
                   "peakRetainedBytes": 3100072,
@@ -1577,7 +1867,7 @@
                 }
               },
               {
-                "atMs": 526.4454000000001,
+                "atMs": 891.3113000000001,
                 "status": "APPROXIMATE",
                 "reasons": [],
                 "gameHash": "e74ec937b0e2619b7be00d477ad489942c67454482fbacdf3454d4a71f4ce572",
@@ -1792,15 +2082,15 @@
                       "costs": {
                         "scope": "CUMULATIVE_COMPATIBLE_EXECUTIONS",
                         "computeOnly": true,
-                        "totalMs": 523.1578,
-                        "firstValueMs": 169.906,
-                        "baseMs": 169.23089999999996,
-                        "boundsMs": 38.271400000000085,
-                        "actionRefinementMs": 338.3751999999999,
-                        "buildMs": 47.55520000000001,
-                        "globalSolveMs": 116.63499999999999,
-                        "globalEvaluationMs": 5.040699999999958,
-                        "unattributedMs": 15.551700000000096,
+                        "totalMs": 883.9181000000001,
+                        "firstValueMs": 323.08050000000003,
+                        "baseMs": 398.3061999999999,
+                        "boundsMs": 88.73979999999983,
+                        "actionRefinementMs": 460.14279999999985,
+                        "buildMs": 152.35519999999997,
+                        "globalSolveMs": 235.5376,
+                        "globalEvaluationMs": 10.41339999999991,
+                        "unattributedMs": 25.469100000000367,
                         "available": [
                           "buildMs",
                           "globalSolveMs",
@@ -1836,37 +2126,37 @@
                   "thresholdMet": true
                 },
                 "stability": {
-                  "comparable": false,
-                  "maxActionEVChange": null,
-                  "maxFrequencyChange": null,
-                  "maxActionEVChangeBB": null
+                  "comparable": true,
+                  "maxActionEVChange": 0.06061929818265521,
+                  "maxFrequencyChange": 0.07054556800044509,
+                  "maxActionEVChangeBB": 0.06061929818265521
                 },
                 "stopReason": null,
                 "refinementRecommended": true,
                 "costs": {
-                  "buildMs": 47.55520000000001,
-                  "globalSolveMs": 116.63499999999999,
-                  "globalEvaluationMs": 5.040699999999958,
-                  "actionSolveMs": 338.3751999999999,
-                  "actionCertificateMs": 38.271400000000085,
-                  "totalComputeMs": 523.1578
+                  "buildMs": 152.35519999999997,
+                  "globalSolveMs": 235.5376,
+                  "globalEvaluationMs": 10.41339999999991,
+                  "actionSolveMs": 460.14279999999985,
+                  "actionCertificateMs": 88.73979999999983,
+                  "totalComputeMs": 883.9181000000001
                 },
                 "estimatedWorkingBytes": 1575040,
                 "compilation": {
                   "scope": "CURRENT_EXECUTION_ONLY",
                   "base": {
                     "compileCount": 1,
-                    "reuseCount": 4,
-                    "freezeMs": 17.113099999999974,
-                    "compileMs": 17.03299999999996,
+                    "reuseCount": 6,
+                    "freezeMs": 49.694999999999936,
+                    "compileMs": 47.45859999999993,
                     "retainedBytes": 1575040,
                     "maxRetainedBytes": 8388608
                   },
                   "conditioned": {
                     "compileCount": 3,
                     "reuseCount": 3,
-                    "freezeMs": 52.99110000000002,
-                    "compileMs": 50.29790000000003,
+                    "freezeMs": 4.010699999999815,
+                    "compileMs": 107.38570000000004,
                     "peakRetainedBytes": 3114286
                   },
                   "peakRetainedBytes": 3114286,
@@ -1874,12 +2164,12 @@
                 }
               },
               {
-                "atMs": 664.6606999999999,
+                "atMs": 1087.3117,
                 "status": "APPROXIMATE",
                 "reasons": [],
                 "gameHash": "e74ec937b0e2619b7be00d477ad489942c67454482fbacdf3454d4a71f4ce572",
                 "iterations": 40,
-                "workIterations": 240,
+                "workIterations": 229,
                 "originalProfile": {
                   "scope": "CURRENT_HAND_COMBINATION_RETURNED_PROFILE",
                   "actions": [
@@ -1944,9 +2234,9 @@
                     {
                       "id": "BET:2.00",
                       "certified": true,
-                      "estimateBB": 1.2947662031947076,
-                      "lowerBB": 1.2917396456329435,
-                      "upperBB": 1.2977927607564717
+                      "estimateBB": 1.2934963298321396,
+                      "lowerBB": 1.289064164335964,
+                      "upperBB": 1.2979284953283154
                     }
                   ],
                   "precision": {
@@ -2017,7 +2307,7 @@
                       "BET:1.00",
                       "BET:2.00"
                     ],
-                    "robustWorstDifferenceBB": 0.008809612446390338,
+                    "robustWorstDifferenceBB": 0.009602502330758657,
                     "diagnostics": {
                       "category": "MULTIPLE_ACTIONS_COMPETITIVE",
                       "categories": [
@@ -2092,25 +2382,25 @@
                         {
                           "id": "BET:2.00",
                           "certified": true,
-                          "estimateBB": 1.2947662031947076,
-                          "lowerBB": 1.2917396456329435,
-                          "upperBB": 1.2977927607564717,
-                          "widthBB": 0.00605311512352813,
+                          "estimateBB": 1.2934963298321396,
+                          "lowerBB": 1.289064164335964,
+                          "upperBB": 1.2979284953283154,
+                          "widthBB": 0.00886433099235151,
                           "attempts": 1
                         }
                       ],
                       "costs": {
                         "scope": "CUMULATIVE_COMPATIBLE_EXECUTIONS",
                         "computeOnly": true,
-                        "totalMs": 661.6629,
-                        "firstValueMs": 169.906,
-                        "baseMs": 169.23089999999996,
-                        "boundsMs": 49.15790000000004,
-                        "actionRefinementMs": 474.12579999999997,
-                        "buildMs": 47.55520000000001,
-                        "globalSolveMs": 116.63499999999999,
-                        "globalEvaluationMs": 5.040699999999958,
-                        "unattributedMs": 18.306200000000104,
+                        "totalMs": 1072.3376,
+                        "firstValueMs": 323.08050000000003,
+                        "baseMs": 398.3061999999999,
+                        "boundsMs": 104.73309999999992,
+                        "actionRefinementMs": 644.3485999999998,
+                        "buildMs": 152.35519999999997,
+                        "globalSolveMs": 235.5376,
+                        "globalEvaluationMs": 10.41339999999991,
+                        "unattributedMs": 29.682800000000384,
                         "available": [
                           "buildMs",
                           "globalSolveMs",
@@ -2146,37 +2436,37 @@
                   "thresholdMet": true
                 },
                 "stability": {
-                  "comparable": false,
-                  "maxActionEVChange": null,
-                  "maxFrequencyChange": null,
-                  "maxActionEVChangeBB": null
+                  "comparable": true,
+                  "maxActionEVChange": 0.06061929818265521,
+                  "maxFrequencyChange": 0.07054556800044509,
+                  "maxActionEVChangeBB": 0.06061929818265521
                 },
                 "stopReason": null,
                 "refinementRecommended": true,
                 "costs": {
-                  "buildMs": 47.55520000000001,
-                  "globalSolveMs": 116.63499999999999,
-                  "globalEvaluationMs": 5.040699999999958,
-                  "actionSolveMs": 474.12579999999997,
-                  "actionCertificateMs": 49.15790000000004,
-                  "totalComputeMs": 661.6629
+                  "buildMs": 152.35519999999997,
+                  "globalSolveMs": 235.5376,
+                  "globalEvaluationMs": 10.41339999999991,
+                  "actionSolveMs": 644.3485999999998,
+                  "actionCertificateMs": 104.73309999999992,
+                  "totalComputeMs": 1072.3376
                 },
                 "estimatedWorkingBytes": 1575040,
                 "compilation": {
                   "scope": "CURRENT_EXECUTION_ONLY",
                   "base": {
                     "compileCount": 1,
-                    "reuseCount": 5,
-                    "freezeMs": 17.113099999999974,
-                    "compileMs": 17.03299999999996,
+                    "reuseCount": 7,
+                    "freezeMs": 49.694999999999936,
+                    "compileMs": 47.45859999999993,
                     "retainedBytes": 1575040,
                     "maxRetainedBytes": 8388608
                   },
                   "conditioned": {
                     "compileCount": 4,
                     "reuseCount": 4,
-                    "freezeMs": 67.35100000000006,
-                    "compileMs": 72.09379999999999,
+                    "freezeMs": 4.836799999999812,
+                    "compileMs": 173.28280000000018,
                     "peakRetainedBytes": 3114286
                   },
                   "peakRetainedBytes": 3114286,
@@ -2189,7 +2479,7 @@
               "reasons": [],
               "gameHash": "e74ec937b0e2619b7be00d477ad489942c67454482fbacdf3454d4a71f4ce572",
               "iterations": 40,
-              "workIterations": 240,
+              "workIterations": 229,
               "originalProfile": {
                 "scope": "CURRENT_HAND_COMBINATION_RETURNED_PROFILE",
                 "actions": [
@@ -2254,9 +2544,9 @@
                   {
                     "id": "BET:2.00",
                     "certified": true,
-                    "estimateBB": 1.2947662031947076,
-                    "lowerBB": 1.2917396456329435,
-                    "upperBB": 1.2977927607564717
+                    "estimateBB": 1.2934963298321396,
+                    "lowerBB": 1.289064164335964,
+                    "upperBB": 1.2979284953283154
                   }
                 ],
                 "precision": {
@@ -2327,7 +2617,7 @@
                     "BET:1.00",
                     "BET:2.00"
                   ],
-                  "robustWorstDifferenceBB": 0.008809612446390338,
+                  "robustWorstDifferenceBB": 0.009602502330758657,
                   "diagnostics": {
                     "category": "MULTIPLE_ACTIONS_COMPETITIVE",
                     "categories": [
@@ -2402,25 +2692,25 @@
                       {
                         "id": "BET:2.00",
                         "certified": true,
-                        "estimateBB": 1.2947662031947076,
-                        "lowerBB": 1.2917396456329435,
-                        "upperBB": 1.2977927607564717,
-                        "widthBB": 0.00605311512352813,
+                        "estimateBB": 1.2934963298321396,
+                        "lowerBB": 1.289064164335964,
+                        "upperBB": 1.2979284953283154,
+                        "widthBB": 0.00886433099235151,
                         "attempts": 1
                       }
                     ],
                     "costs": {
                       "scope": "CUMULATIVE_COMPATIBLE_EXECUTIONS",
                       "computeOnly": true,
-                      "totalMs": 663.9528,
-                      "firstValueMs": 169.906,
-                      "baseMs": 169.23089999999996,
-                      "boundsMs": 49.15790000000004,
-                      "actionRefinementMs": 474.12579999999997,
-                      "buildMs": 47.55520000000001,
-                      "globalSolveMs": 116.63499999999999,
-                      "globalEvaluationMs": 5.040699999999958,
-                      "unattributedMs": 20.596100000000092,
+                      "totalMs": 1083.9464,
+                      "firstValueMs": 323.08050000000003,
+                      "baseMs": 398.3061999999999,
+                      "boundsMs": 104.73309999999992,
+                      "actionRefinementMs": 644.3485999999998,
+                      "buildMs": 152.35519999999997,
+                      "globalSolveMs": 235.5376,
+                      "globalEvaluationMs": 10.41339999999991,
+                      "unattributedMs": 41.29160000000036,
                       "available": [
                         "buildMs",
                         "globalSolveMs",
@@ -2456,37 +2746,37 @@
                 "thresholdMet": true
               },
               "stability": {
-                "comparable": false,
-                "maxActionEVChange": null,
-                "maxFrequencyChange": null,
-                "maxActionEVChangeBB": null
+                "comparable": true,
+                "maxActionEVChange": 0.06061929818265521,
+                "maxFrequencyChange": 0.07054556800044509,
+                "maxActionEVChangeBB": 0.06061929818265521
               },
               "stopReason": "GLOBAL_CONVERGENCE_AND_CERTIFIED_NEAR_EQUIVALENCE",
               "refinementRecommended": false,
               "costs": {
-                "buildMs": 47.55520000000001,
-                "globalSolveMs": 116.63499999999999,
-                "globalEvaluationMs": 5.040699999999958,
-                "actionSolveMs": 474.12579999999997,
-                "actionCertificateMs": 49.15790000000004,
-                "totalComputeMs": 663.9528
+                "buildMs": 152.35519999999997,
+                "globalSolveMs": 235.5376,
+                "globalEvaluationMs": 10.41339999999991,
+                "actionSolveMs": 644.3485999999998,
+                "actionCertificateMs": 104.73309999999992,
+                "totalComputeMs": 1083.9464
               },
               "estimatedWorkingBytes": 1575040,
               "compilation": {
                 "scope": "CURRENT_EXECUTION_ONLY",
                 "base": {
                   "compileCount": 1,
-                  "reuseCount": 5,
-                  "freezeMs": 17.113099999999974,
-                  "compileMs": 17.03299999999996,
+                  "reuseCount": 7,
+                  "freezeMs": 49.694999999999936,
+                  "compileMs": 47.45859999999993,
                   "retainedBytes": 1575040,
                   "maxRetainedBytes": 8388608
                 },
                 "conditioned": {
                   "compileCount": 4,
                   "reuseCount": 4,
-                  "freezeMs": 67.35100000000006,
-                  "compileMs": 72.09379999999999,
+                  "freezeMs": 4.836799999999812,
+                  "compileMs": 173.28280000000018,
                   "peakRetainedBytes": 3114286
                 },
                 "peakRetainedBytes": 3114286,
@@ -2497,13 +2787,304 @@
           {
             "temperature": "WARM_RUNTIME_FRESH_JOB",
             "cacheHit": false,
-            "firstValueMs": 120.29880000000003,
-            "elapsedMs": 420.59590000000003,
-            "heapBeforeBytes": 15868528,
-            "heapAfterBytes": 34400704,
+            "firstValueMs": 298.5711000000001,
+            "elapsedMs": 983.4423000000002,
+            "heapBeforeBytes": 16783072,
+            "heapAfterBytes": 23823840,
             "progress": [
               {
-                "atMs": 120.30190000000005,
+                "atMs": 298.5762,
+                "status": "APPROXIMATE",
+                "reasons": [],
+                "gameHash": "e74ec937b0e2619b7be00d477ad489942c67454482fbacdf3454d4a71f4ce572",
+                "iterations": 30,
+                "workIterations": 30,
+                "originalProfile": {
+                  "scope": "CURRENT_HAND_COMBINATION_RETURNED_PROFILE",
+                  "actions": [
+                    {
+                      "id": "FOLD",
+                      "action": "FOLD",
+                      "size": null,
+                      "frequency": 0.0005376344086021504,
+                      "evBB": 0
+                    },
+                    {
+                      "id": "CHECK",
+                      "action": "CHECK",
+                      "size": null,
+                      "frequency": 0.9572804785106521,
+                      "evBB": 1.1866666666666665
+                    },
+                    {
+                      "id": "BET:1.00",
+                      "action": "BET",
+                      "size": 1,
+                      "frequency": 0.0378561218487095,
+                      "evBB": 1.1422586776752848
+                    },
+                    {
+                      "id": "BET:2.00",
+                      "action": "BET",
+                      "size": 2,
+                      "frequency": 0.004325765232036157,
+                      "evBB": 1.099547002684387
+                    }
+                  ],
+                  "pointLeaderActionIds": [
+                    "CHECK"
+                  ]
+                },
+                "commitment": {
+                  "scope": "FULL_PRIOR_COMMITMENT",
+                  "actualHandEVEquivalence": false,
+                  "actions": [
+                    {
+                      "id": "FOLD",
+                      "certified": false,
+                      "estimateBB": null,
+                      "lowerBB": null,
+                      "upperBB": null
+                    },
+                    {
+                      "id": "CHECK",
+                      "certified": false,
+                      "estimateBB": null,
+                      "lowerBB": null,
+                      "upperBB": null
+                    },
+                    {
+                      "id": "BET:1.00",
+                      "certified": false,
+                      "estimateBB": null,
+                      "lowerBB": null,
+                      "upperBB": null
+                    },
+                    {
+                      "id": "BET:2.00",
+                      "certified": false,
+                      "estimateBB": null,
+                      "lowerBB": null,
+                      "upperBB": null
+                    }
+                  ],
+                  "precision": {
+                    "version": "THEIBS_DECISION_PRECISION_V2",
+                    "status": "INCONCLUSIVE",
+                    "reasonCode": "EQUILIBRIUM_ACTION_VALUE_UNCERTAINTY_UNAVAILABLE",
+                    "reason": "No defensible bound is available for equilibrium action-value error. NashConv and exact evaluation of the current profile do not supply that bound.",
+                    "source": "REFERENCE_SUBGAME_STRATEGY",
+                    "originVersion": "THEIBS_FULL_TREE_CFR_PLUS_V1",
+                    "resultStatus": "APPROXIMATE",
+                    "contextKey": "71abccb8f56f69d1ecc3bc488ef55d7456da2cdf4b48ccad693a8a44264cab41",
+                    "target": "EQUILIBRIUM_ACTION_EV",
+                    "unit": "BB",
+                    "leaderConclusive": false,
+                    "globalBestSupported": false,
+                    "bestActionId": "CHECK",
+                    "secondActionId": "BET:1.00",
+                    "bestEVBB": 1.1866666666666665,
+                    "secondEVBB": 1.1422586776752848,
+                    "deltaEVBB": 0.044407988991381764,
+                    "differenceBoundsBB": null,
+                    "bestBoundsBB": null,
+                    "secondBoundsBB": null,
+                    "strongestAlternativeUpperBB": null,
+                    "bestSecondSeparated": false,
+                    "confidenceLevel": null,
+                    "uncertaintyMethod": null,
+                    "uncertaintyScope": null,
+                    "modelUncertaintyIncluded": false,
+                    "separationToleranceBB": 0
+                  },
+                  "outcome": {
+                    "version": "THEIBS_DECISION_OUTCOME_V1",
+                    "status": "ESTIMATING",
+                    "reasonCode": "BOUNDS_PENDING",
+                    "reason": "Compatible outward bounds are still being calculated for the declared commitments.",
+                    "scope": "FULL_PRIOR_COMMITMENT",
+                    "target": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+                    "coverage": "ALL_DECLARED_ALTERNATIVES_ONLY",
+                    "actualHandEVEquivalence": false,
+                    "policy": {
+                      "version": "THEIBS_COMPARISON_POLICY_V1",
+                      "nearEquivalenceBB": 0.01,
+                      "unit": "BB",
+                      "scope": "FULL_PRIOR_COMMITMENT"
+                    },
+                    "policyKey": "bbe7e98a415ae1c70a69aa7d5a8189fd561d1e69a7780692c2624dc855b1f34b",
+                    "actionIds": [
+                      "FOLD",
+                      "CHECK",
+                      "BET:1.00",
+                      "BET:2.00"
+                    ],
+                    "globalConverged": false,
+                    "strictLeaderActionId": null,
+                    "nearGroupActionIds": [],
+                    "robustWorstDifferenceBB": null,
+                    "diagnostics": {
+                      "category": "MULTIPLE_ACTIONS_COMPETITIVE",
+                      "categories": [
+                        "MULTIPLE_ACTIONS_COMPETITIVE",
+                        "POSSIBLE_NEAR_EQUIVALENCE",
+                        "BASE_SOLVER_BOTTLENECK"
+                      ],
+                      "stopReason": null,
+                      "iterationBudgetExhausted": false,
+                      "reasonCode": "BOUNDS_PENDING",
+                      "globalConverged": false,
+                      "counts": {
+                        "declared": 4,
+                        "certified": 0,
+                        "missing": 4,
+                        "competitive": 4,
+                        "possibleNearEquivalent": 4,
+                        "attempted": 0,
+                        "refinementBatches": 0
+                      },
+                      "leaderActionId": null,
+                      "secondActionId": null,
+                      "separationGapBB": null,
+                      "pointLeaderActionId": null,
+                      "pointSecondActionId": null,
+                      "pointDeltaBB": null,
+                      "pointEstimateScope": "FULL_PRIOR_COMMITMENT",
+                      "originalProfilePointLeaderActionId": "CHECK",
+                      "originalProfilePointSecondActionId": "BET:1.00",
+                      "originalProfilePointDeltaBB": 0.044407988991381764,
+                      "originalProfilePointScope": "CURRENT_HAND_COMBINATION_RETURNED_PROFILE",
+                      "competitiveActionIds": [
+                        "FOLD",
+                        "CHECK",
+                        "BET:1.00",
+                        "BET:2.00"
+                      ],
+                      "possibleNearGroupActionIds": [
+                        "FOLD",
+                        "CHECK",
+                        "BET:1.00",
+                        "BET:2.00"
+                      ],
+                      "possibleNearEquivalence": true,
+                      "rows": [
+                        {
+                          "id": "FOLD",
+                          "certified": false,
+                          "estimateBB": null,
+                          "lowerBB": null,
+                          "upperBB": null,
+                          "widthBB": null,
+                          "attempts": 0
+                        },
+                        {
+                          "id": "CHECK",
+                          "certified": false,
+                          "estimateBB": null,
+                          "lowerBB": null,
+                          "upperBB": null,
+                          "widthBB": null,
+                          "attempts": 0
+                        },
+                        {
+                          "id": "BET:1.00",
+                          "certified": false,
+                          "estimateBB": null,
+                          "lowerBB": null,
+                          "upperBB": null,
+                          "widthBB": null,
+                          "attempts": 0
+                        },
+                        {
+                          "id": "BET:2.00",
+                          "certified": false,
+                          "estimateBB": null,
+                          "lowerBB": null,
+                          "upperBB": null,
+                          "widthBB": null,
+                          "attempts": 0
+                        }
+                      ],
+                      "costs": {
+                        "scope": "CUMULATIVE_COMPATIBLE_EXECUTIONS",
+                        "computeOnly": true,
+                        "totalMs": 296.4888000000001,
+                        "firstValueMs": 296.4888000000001,
+                        "baseMs": 296.05700000000024,
+                        "boundsMs": 0,
+                        "actionRefinementMs": 0,
+                        "buildMs": 133.29539999999997,
+                        "globalSolveMs": 160.64710000000014,
+                        "globalEvaluationMs": 2.1145000000001346,
+                        "unattributedMs": 0.4317999999998392,
+                        "available": [
+                          "buildMs",
+                          "globalSolveMs",
+                          "globalEvaluationMs",
+                          "actionSolveMs",
+                          "actionCertificateMs",
+                          "totalComputeMs"
+                        ],
+                        "missing": [],
+                        "bottleneckBasis": "MEASURED_BASE_VS_ACTION_REFINEMENT_PHASE_COSTS"
+                      }
+                    }
+                  }
+                },
+                "convergence": {
+                  "metric": "EXACT_NASH_CONV",
+                  "exact": false,
+                  "nashConv": null,
+                  "maxUnilateralGain": null,
+                  "unilateralGains": null,
+                  "bestResponseValues": null,
+                  "exploitability": null,
+                  "scope": "SUPPLIED_FINITE_GAME",
+                  "reason": "EVALUATION_BUDGET_OR_CANCELLATION",
+                  "unit": "BB",
+                  "thresholdBB": 0.01,
+                  "thresholdMet": false
+                },
+                "stability": {
+                  "comparable": false,
+                  "maxActionEVChange": null,
+                  "maxFrequencyChange": null,
+                  "maxActionEVChangeBB": null
+                },
+                "stopReason": null,
+                "refinementRecommended": true,
+                "costs": {
+                  "buildMs": 133.29539999999997,
+                  "globalSolveMs": 160.64710000000014,
+                  "globalEvaluationMs": 2.1145000000001346,
+                  "actionSolveMs": 0,
+                  "actionCertificateMs": 0,
+                  "totalComputeMs": 296.4888000000001
+                },
+                "estimatedWorkingBytes": 1575040,
+                "compilation": {
+                  "scope": "CURRENT_EXECUTION_ONLY",
+                  "base": {
+                    "compileCount": 1,
+                    "reuseCount": 1,
+                    "freezeMs": 51.33359999999993,
+                    "compileMs": 30.422299999999723,
+                    "retainedBytes": 1575040,
+                    "maxRetainedBytes": 8388608
+                  },
+                  "conditioned": {
+                    "compileCount": 0,
+                    "reuseCount": 0,
+                    "freezeMs": 0,
+                    "compileMs": 0,
+                    "peakRetainedBytes": 0
+                  },
+                  "peakRetainedBytes": 1575040,
+                  "maxRetainedBytes": 8388608
+                }
+              },
+              {
+                "atMs": 328.9838,
                 "status": "APPROXIMATE",
                 "reasons": [],
                 "gameHash": "e74ec937b0e2619b7be00d477ad489942c67454482fbacdf3454d4a71f4ce572",
@@ -2717,15 +3298,15 @@
                       "costs": {
                         "scope": "CUMULATIVE_COMPATIBLE_EXECUTIONS",
                         "computeOnly": true,
-                        "totalMs": 119.22489999999993,
-                        "firstValueMs": 119.22489999999993,
-                        "baseMs": 119.04539999999997,
+                        "totalMs": 326.5131000000001,
+                        "firstValueMs": 296.4888000000001,
+                        "baseMs": 323.79840000000013,
                         "boundsMs": 0,
                         "actionRefinementMs": 0,
-                        "buildMs": 39.00019999999995,
-                        "globalSolveMs": 79.25400000000002,
-                        "globalEvaluationMs": 0.7912000000000035,
-                        "unattributedMs": 0.1794999999999618,
+                        "buildMs": 133.29539999999997,
+                        "globalSolveMs": 186.0871000000002,
+                        "globalEvaluationMs": 4.415899999999965,
+                        "unattributedMs": 2.7146999999999935,
                         "available": [
                           "buildMs",
                           "globalSolveMs",
@@ -2761,29 +3342,29 @@
                   "thresholdMet": true
                 },
                 "stability": {
-                  "comparable": false,
-                  "maxActionEVChange": null,
-                  "maxFrequencyChange": null,
-                  "maxActionEVChangeBB": null
+                  "comparable": true,
+                  "maxActionEVChange": 0.010050769592498732,
+                  "maxFrequencyChange": 0.01849442698624204,
+                  "maxActionEVChangeBB": 0.010050769592498732
                 },
                 "stopReason": null,
                 "refinementRecommended": true,
                 "costs": {
-                  "buildMs": 39.00019999999995,
-                  "globalSolveMs": 79.25400000000002,
-                  "globalEvaluationMs": 0.7912000000000035,
+                  "buildMs": 133.29539999999997,
+                  "globalSolveMs": 186.0871000000002,
+                  "globalEvaluationMs": 4.415899999999965,
                   "actionSolveMs": 0,
                   "actionCertificateMs": 0,
-                  "totalComputeMs": 119.22489999999993
+                  "totalComputeMs": 326.5131000000001
                 },
                 "estimatedWorkingBytes": 1575040,
                 "compilation": {
                   "scope": "CURRENT_EXECUTION_ONLY",
                   "base": {
                     "compileCount": 1,
-                    "reuseCount": 1,
-                    "freezeMs": 16.322799999999916,
-                    "compileMs": 8.26809999999989,
+                    "reuseCount": 3,
+                    "freezeMs": 51.33359999999993,
+                    "compileMs": 30.422299999999723,
                     "retainedBytes": 1575040,
                     "maxRetainedBytes": 8388608
                   },
@@ -2799,7 +3380,7 @@
                 }
               },
               {
-                "atMs": 204.43510000000015,
+                "atMs": 505.1100000000001,
                 "status": "APPROXIMATE",
                 "reasons": [],
                 "gameHash": "e74ec937b0e2619b7be00d477ad489942c67454482fbacdf3454d4a71f4ce572",
@@ -3013,15 +3594,15 @@
                       "costs": {
                         "scope": "CUMULATIVE_COMPATIBLE_EXECUTIONS",
                         "computeOnly": true,
-                        "totalMs": 203.7491,
-                        "firstValueMs": 119.22489999999993,
-                        "baseMs": 119.04539999999997,
-                        "boundsMs": 4.068899999999985,
-                        "actionRefinementMs": 83.35780000000011,
-                        "buildMs": 39.00019999999995,
-                        "globalSolveMs": 79.25400000000002,
-                        "globalEvaluationMs": 0.7912000000000035,
-                        "unattributedMs": 1.345899999999915,
+                        "totalMs": 500.88070000000016,
+                        "firstValueMs": 296.4888000000001,
+                        "baseMs": 323.79840000000013,
+                        "boundsMs": 28.24420000000009,
+                        "actionRefinementMs": 171.66330000000016,
+                        "buildMs": 133.29539999999997,
+                        "globalSolveMs": 186.0871000000002,
+                        "globalEvaluationMs": 4.415899999999965,
+                        "unattributedMs": 5.418999999999869,
                         "available": [
                           "buildMs",
                           "globalSolveMs",
@@ -3057,37 +3638,37 @@
                   "thresholdMet": true
                 },
                 "stability": {
-                  "comparable": false,
-                  "maxActionEVChange": null,
-                  "maxFrequencyChange": null,
-                  "maxActionEVChangeBB": null
+                  "comparable": true,
+                  "maxActionEVChange": 0.010050769592498732,
+                  "maxFrequencyChange": 0.01849442698624204,
+                  "maxActionEVChangeBB": 0.010050769592498732
                 },
                 "stopReason": null,
                 "refinementRecommended": true,
                 "costs": {
-                  "buildMs": 39.00019999999995,
-                  "globalSolveMs": 79.25400000000002,
-                  "globalEvaluationMs": 0.7912000000000035,
-                  "actionSolveMs": 83.35780000000011,
-                  "actionCertificateMs": 4.068899999999985,
-                  "totalComputeMs": 203.7491
+                  "buildMs": 133.29539999999997,
+                  "globalSolveMs": 186.0871000000002,
+                  "globalEvaluationMs": 4.415899999999965,
+                  "actionSolveMs": 171.66330000000016,
+                  "actionCertificateMs": 28.24420000000009,
+                  "totalComputeMs": 500.88070000000016
                 },
                 "estimatedWorkingBytes": 1575040,
                 "compilation": {
                   "scope": "CURRENT_EXECUTION_ONLY",
                   "base": {
                     "compileCount": 1,
-                    "reuseCount": 2,
-                    "freezeMs": 16.322799999999916,
-                    "compileMs": 8.26809999999989,
+                    "reuseCount": 4,
+                    "freezeMs": 51.33359999999993,
+                    "compileMs": 30.422299999999723,
                     "retainedBytes": 1575040,
                     "maxRetainedBytes": 8388608
                   },
                   "conditioned": {
                     "compileCount": 1,
                     "reuseCount": 1,
-                    "freezeMs": 14.563999999999965,
-                    "compileMs": 17.828700000000026,
+                    "freezeMs": 1.0230000000001382,
+                    "compileMs": 34.35960000000023,
                     "peakRetainedBytes": 3100070
                   },
                   "peakRetainedBytes": 3100070,
@@ -3095,12 +3676,12 @@
                 }
               },
               {
-                "atMs": 274.7808,
+                "atMs": 694.5826000000002,
                 "status": "APPROXIMATE",
                 "reasons": [],
                 "gameHash": "e74ec937b0e2619b7be00d477ad489942c67454482fbacdf3454d4a71f4ce572",
                 "iterations": 40,
-                "workIterations": 140,
+                "workIterations": 130,
                 "originalProfile": {
                   "scope": "CURRENT_HAND_COMBINATION_RETURNED_PROFILE",
                   "actions": [
@@ -3151,8 +3732,8 @@
                     {
                       "id": "CHECK",
                       "certified": true,
-                      "estimateBB": 1.2962396382213053,
-                      "lowerBB": 1.293812609775888,
+                      "estimateBB": 1.2948929334132204,
+                      "lowerBB": 1.291119200159718,
                       "upperBB": 1.2986666666667226
                     },
                     {
@@ -3185,9 +3766,9 @@
                     "globalBestSupported": false,
                     "bestActionId": "CHECK",
                     "secondActionId": "FOLD",
-                    "bestEVBB": 1.2962396382213053,
+                    "bestEVBB": 1.2948929334132204,
                     "secondEVBB": 1.2922840826657493,
-                    "deltaEVBB": 0.003955555555555934,
+                    "deltaEVBB": 0.002608850747471081,
                     "differenceBoundsBB": null,
                     "bestBoundsBB": null,
                     "secondBoundsBB": null,
@@ -3247,10 +3828,10 @@
                       },
                       "leaderActionId": "CHECK",
                       "secondActionId": "FOLD",
-                      "separationGapBB": -0.0008985013352786897,
+                      "separationGapBB": -0.003591910951448618,
                       "pointLeaderActionId": "CHECK",
                       "pointSecondActionId": "FOLD",
-                      "pointDeltaBB": 0.003955555555555934,
+                      "pointDeltaBB": 0.002608850747471081,
                       "pointEstimateScope": "FULL_PRIOR_COMMITMENT",
                       "originalProfilePointLeaderActionId": "CHECK",
                       "originalProfilePointSecondActionId": "BET:1.00",
@@ -3282,10 +3863,10 @@
                         {
                           "id": "CHECK",
                           "certified": true,
-                          "estimateBB": 1.2962396382213053,
-                          "lowerBB": 1.293812609775888,
+                          "estimateBB": 1.2948929334132204,
+                          "lowerBB": 1.291119200159718,
                           "upperBB": 1.2986666666667226,
-                          "widthBB": 0.004854056890834624,
+                          "widthBB": 0.007547466507004552,
                           "attempts": 1
                         },
                         {
@@ -3310,15 +3891,15 @@
                       "costs": {
                         "scope": "CUMULATIVE_COMPATIBLE_EXECUTIONS",
                         "computeOnly": true,
-                        "totalMs": 273.88559999999984,
-                        "firstValueMs": 119.22489999999993,
-                        "baseMs": 119.04539999999997,
-                        "boundsMs": 7.643300000000181,
-                        "actionRefinementMs": 152.65660000000014,
-                        "buildMs": 39.00019999999995,
-                        "globalSolveMs": 79.25400000000002,
-                        "globalEvaluationMs": 0.7912000000000035,
-                        "unattributedMs": 2.1835999999997284,
+                        "totalMs": 688.8159,
+                        "firstValueMs": 296.4888000000001,
+                        "baseMs": 323.79840000000013,
+                        "boundsMs": 41.9988000000003,
+                        "actionRefinementMs": 352.84100000000035,
+                        "buildMs": 133.29539999999997,
+                        "globalSolveMs": 186.0871000000002,
+                        "globalEvaluationMs": 4.415899999999965,
+                        "unattributedMs": 12.176499999999578,
                         "available": [
                           "buildMs",
                           "globalSolveMs",
@@ -3354,37 +3935,37 @@
                   "thresholdMet": true
                 },
                 "stability": {
-                  "comparable": false,
-                  "maxActionEVChange": null,
-                  "maxFrequencyChange": null,
-                  "maxActionEVChangeBB": null
+                  "comparable": true,
+                  "maxActionEVChange": 0.010050769592498732,
+                  "maxFrequencyChange": 0.01849442698624204,
+                  "maxActionEVChangeBB": 0.010050769592498732
                 },
                 "stopReason": null,
                 "refinementRecommended": true,
                 "costs": {
-                  "buildMs": 39.00019999999995,
-                  "globalSolveMs": 79.25400000000002,
-                  "globalEvaluationMs": 0.7912000000000035,
-                  "actionSolveMs": 152.65660000000014,
-                  "actionCertificateMs": 7.643300000000181,
-                  "totalComputeMs": 273.88559999999984
+                  "buildMs": 133.29539999999997,
+                  "globalSolveMs": 186.0871000000002,
+                  "globalEvaluationMs": 4.415899999999965,
+                  "actionSolveMs": 352.84100000000035,
+                  "actionCertificateMs": 41.9988000000003,
+                  "totalComputeMs": 688.8159
                 },
                 "estimatedWorkingBytes": 1575040,
                 "compilation": {
                   "scope": "CURRENT_EXECUTION_ONLY",
                   "base": {
                     "compileCount": 1,
-                    "reuseCount": 3,
-                    "freezeMs": 16.322799999999916,
-                    "compileMs": 8.26809999999989,
+                    "reuseCount": 5,
+                    "freezeMs": 51.33359999999993,
+                    "compileMs": 30.422299999999723,
                     "retainedBytes": 1575040,
                     "maxRetainedBytes": 8388608
                   },
                   "conditioned": {
                     "compileCount": 2,
                     "reuseCount": 2,
-                    "freezeMs": 26.593300000000113,
-                    "compileMs": 32.88619999999992,
+                    "freezeMs": 1.7463000000002467,
+                    "compileMs": 95.34790000000021,
                     "peakRetainedBytes": 3100072
                   },
                   "peakRetainedBytes": 3100072,
@@ -3392,12 +3973,12 @@
                 }
               },
               {
-                "atMs": 347.01150000000007,
+                "atMs": 818.6025,
                 "status": "APPROXIMATE",
                 "reasons": [],
                 "gameHash": "e74ec937b0e2619b7be00d477ad489942c67454482fbacdf3454d4a71f4ce572",
                 "iterations": 40,
-                "workIterations": 190,
+                "workIterations": 180,
                 "originalProfile": {
                   "scope": "CURRENT_HAND_COMBINATION_RETURNED_PROFILE",
                   "actions": [
@@ -3448,8 +4029,8 @@
                     {
                       "id": "CHECK",
                       "certified": true,
-                      "estimateBB": 1.2962396382213053,
-                      "lowerBB": 1.293812609775888,
+                      "estimateBB": 1.2948929334132204,
+                      "lowerBB": 1.291119200159718,
                       "upperBB": 1.2986666666667226
                     },
                     {
@@ -3480,11 +4061,11 @@
                     "unit": "BB",
                     "leaderConclusive": false,
                     "globalBestSupported": false,
-                    "bestActionId": "CHECK",
-                    "secondActionId": "BET:1.00",
-                    "bestEVBB": 1.2962396382213053,
-                    "secondEVBB": 1.295589719645891,
-                    "deltaEVBB": 0.0006499185754142989,
+                    "bestActionId": "BET:1.00",
+                    "secondActionId": "CHECK",
+                    "bestEVBB": 1.295589719645891,
+                    "secondEVBB": 1.2948929334132204,
+                    "deltaEVBB": 0.0006967862326705543,
                     "differenceBoundsBB": null,
                     "bestBoundsBB": null,
                     "secondBoundsBB": null,
@@ -3542,12 +4123,12 @@
                         "attempted": 3,
                         "refinementBatches": 3
                       },
-                      "leaderActionId": "CHECK",
-                      "secondActionId": "BET:1.00",
-                      "separationGapBB": -0.00459983047279966,
-                      "pointLeaderActionId": "CHECK",
-                      "pointSecondActionId": "BET:1.00",
-                      "pointDeltaBB": 0.0006499185754142989,
+                      "leaderActionId": "BET:1.00",
+                      "secondActionId": "CHECK",
+                      "separationGapBB": -0.005899667623628035,
+                      "pointLeaderActionId": "BET:1.00",
+                      "pointSecondActionId": "CHECK",
+                      "pointDeltaBB": 0.0006967862326705543,
                       "pointEstimateScope": "FULL_PRIOR_COMMITMENT",
                       "originalProfilePointLeaderActionId": "CHECK",
                       "originalProfilePointSecondActionId": "BET:1.00",
@@ -3579,10 +4160,10 @@
                         {
                           "id": "CHECK",
                           "certified": true,
-                          "estimateBB": 1.2962396382213053,
-                          "lowerBB": 1.293812609775888,
+                          "estimateBB": 1.2948929334132204,
+                          "lowerBB": 1.291119200159718,
                           "upperBB": 1.2986666666667226,
-                          "widthBB": 0.004854056890834624,
+                          "widthBB": 0.007547466507004552,
                           "attempts": 1
                         },
                         {
@@ -3607,15 +4188,15 @@
                       "costs": {
                         "scope": "CUMULATIVE_COMPATIBLE_EXECUTIONS",
                         "computeOnly": true,
-                        "totalMs": 346.03049999999985,
-                        "firstValueMs": 119.22489999999993,
-                        "baseMs": 119.04539999999997,
-                        "boundsMs": 11.324800000000096,
-                        "actionRefinementMs": 223.75650000000007,
-                        "buildMs": 39.00019999999995,
-                        "globalSolveMs": 79.25400000000002,
-                        "globalEvaluationMs": 0.7912000000000035,
-                        "unattributedMs": 3.228599999999801,
+                        "totalMs": 816.8029000000001,
+                        "firstValueMs": 296.4888000000001,
+                        "baseMs": 323.79840000000013,
+                        "boundsMs": 49.80340000000069,
+                        "actionRefinementMs": 474.61280000000033,
+                        "buildMs": 133.29539999999997,
+                        "globalSolveMs": 186.0871000000002,
+                        "globalEvaluationMs": 4.415899999999965,
+                        "unattributedMs": 18.391699999999673,
                         "available": [
                           "buildMs",
                           "globalSolveMs",
@@ -3651,37 +4232,37 @@
                   "thresholdMet": true
                 },
                 "stability": {
-                  "comparable": false,
-                  "maxActionEVChange": null,
-                  "maxFrequencyChange": null,
-                  "maxActionEVChangeBB": null
+                  "comparable": true,
+                  "maxActionEVChange": 0.010050769592498732,
+                  "maxFrequencyChange": 0.01849442698624204,
+                  "maxActionEVChangeBB": 0.010050769592498732
                 },
                 "stopReason": null,
                 "refinementRecommended": true,
                 "costs": {
-                  "buildMs": 39.00019999999995,
-                  "globalSolveMs": 79.25400000000002,
-                  "globalEvaluationMs": 0.7912000000000035,
-                  "actionSolveMs": 223.75650000000007,
-                  "actionCertificateMs": 11.324800000000096,
-                  "totalComputeMs": 346.03049999999985
+                  "buildMs": 133.29539999999997,
+                  "globalSolveMs": 186.0871000000002,
+                  "globalEvaluationMs": 4.415899999999965,
+                  "actionSolveMs": 474.61280000000033,
+                  "actionCertificateMs": 49.80340000000069,
+                  "totalComputeMs": 816.8029000000001
                 },
                 "estimatedWorkingBytes": 1575040,
                 "compilation": {
                   "scope": "CURRENT_EXECUTION_ONLY",
                   "base": {
                     "compileCount": 1,
-                    "reuseCount": 4,
-                    "freezeMs": 16.322799999999916,
-                    "compileMs": 8.26809999999989,
+                    "reuseCount": 6,
+                    "freezeMs": 51.33359999999993,
+                    "compileMs": 30.422299999999723,
                     "retainedBytes": 1575040,
                     "maxRetainedBytes": 8388608
                   },
                   "conditioned": {
                     "compileCount": 3,
                     "reuseCount": 3,
-                    "freezeMs": 38.06160000000011,
-                    "compileMs": 48.55340000000001,
+                    "freezeMs": 2.7401000000004387,
+                    "compileMs": 127.54320000000052,
                     "peakRetainedBytes": 3114286
                   },
                   "peakRetainedBytes": 3114286,
@@ -3689,12 +4270,12 @@
                 }
               },
               {
-                "atMs": 419.9236000000001,
+                "atMs": 980.8942000000002,
                 "status": "APPROXIMATE",
                 "reasons": [],
                 "gameHash": "e74ec937b0e2619b7be00d477ad489942c67454482fbacdf3454d4a71f4ce572",
                 "iterations": 40,
-                "workIterations": 240,
+                "workIterations": 230,
                 "originalProfile": {
                   "scope": "CURRENT_HAND_COMBINATION_RETURNED_PROFILE",
                   "actions": [
@@ -3745,8 +4326,8 @@
                     {
                       "id": "CHECK",
                       "certified": true,
-                      "estimateBB": 1.2962396382213053,
-                      "lowerBB": 1.293812609775888,
+                      "estimateBB": 1.2948929334132204,
+                      "lowerBB": 1.291119200159718,
                       "upperBB": 1.2986666666667226
                     },
                     {
@@ -3777,24 +4358,24 @@
                     "unit": "BB",
                     "leaderConclusive": false,
                     "globalBestSupported": false,
-                    "bestActionId": "CHECK",
-                    "secondActionId": "BET:1.00",
-                    "bestEVBB": 1.2962396382213053,
-                    "secondEVBB": 1.295589719645891,
-                    "deltaEVBB": 0.0006499185754142989,
+                    "bestActionId": "BET:1.00",
+                    "secondActionId": "CHECK",
+                    "bestEVBB": 1.295589719645891,
+                    "secondEVBB": 1.2948929334132204,
+                    "deltaEVBB": 0.0006967862326705543,
                     "differenceBoundsBB": [
-                      -0.004599830472799661,
-                      0.005899667623628036
+                      -0.005899667623628036,
+                      0.007293240088969589
                     ],
                     "bestBoundsBB": [
-                      1.293812609775888,
-                      1.2986666666667226
-                    ],
-                    "secondBoundsBB": [
                       1.2927669990430946,
                       1.2984124402486876
                     ],
-                    "strongestAlternativeUpperBB": 1.2984124402486876,
+                    "secondBoundsBB": [
+                      1.291119200159718,
+                      1.2986666666667226
+                    ],
+                    "strongestAlternativeUpperBB": 1.2986666666667226,
                     "bestSecondSeparated": false,
                     "confidenceLevel": null,
                     "uncertaintyMethod": "OUTWARD_ROUNDED_INFORMATION_SET_BEST_RESPONSE_SADDLE_BOUNDS",
@@ -3852,12 +4433,12 @@
                         "attempted": 4,
                         "refinementBatches": 4
                       },
-                      "leaderActionId": "CHECK",
-                      "secondActionId": "BET:1.00",
-                      "separationGapBB": -0.00459983047279966,
-                      "pointLeaderActionId": "CHECK",
-                      "pointSecondActionId": "BET:1.00",
-                      "pointDeltaBB": 0.0006499185754142989,
+                      "leaderActionId": "BET:1.00",
+                      "secondActionId": "CHECK",
+                      "separationGapBB": -0.005899667623628035,
+                      "pointLeaderActionId": "BET:1.00",
+                      "pointSecondActionId": "CHECK",
+                      "pointDeltaBB": 0.0006967862326705543,
                       "pointEstimateScope": "FULL_PRIOR_COMMITMENT",
                       "originalProfilePointLeaderActionId": "CHECK",
                       "originalProfilePointSecondActionId": "BET:1.00",
@@ -3889,10 +4470,10 @@
                         {
                           "id": "CHECK",
                           "certified": true,
-                          "estimateBB": 1.2962396382213053,
-                          "lowerBB": 1.293812609775888,
+                          "estimateBB": 1.2948929334132204,
+                          "lowerBB": 1.291119200159718,
                           "upperBB": 1.2986666666667226,
-                          "widthBB": 0.004854056890834624,
+                          "widthBB": 0.007547466507004552,
                           "attempts": 1
                         },
                         {
@@ -3917,15 +4498,15 @@
                       "costs": {
                         "scope": "CUMULATIVE_COMPATIBLE_EXECUTIONS",
                         "computeOnly": true,
-                        "totalMs": 418.8859,
-                        "firstValueMs": 119.22489999999993,
-                        "baseMs": 119.04539999999997,
-                        "boundsMs": 14.986900000000105,
-                        "actionRefinementMs": 295.44790000000023,
-                        "buildMs": 39.00019999999995,
-                        "globalSolveMs": 79.25400000000002,
-                        "globalEvaluationMs": 0.7912000000000035,
-                        "unattributedMs": 4.3925999999997885,
+                        "totalMs": 977.9483,
+                        "firstValueMs": 296.4888000000001,
+                        "baseMs": 323.79840000000013,
+                        "boundsMs": 74.56560000000036,
+                        "actionRefinementMs": 633.6931000000004,
+                        "buildMs": 133.29539999999997,
+                        "globalSolveMs": 186.0871000000002,
+                        "globalEvaluationMs": 4.415899999999965,
+                        "unattributedMs": 20.456799999999475,
                         "available": [
                           "buildMs",
                           "globalSolveMs",
@@ -3961,37 +4542,37 @@
                   "thresholdMet": true
                 },
                 "stability": {
-                  "comparable": false,
-                  "maxActionEVChange": null,
-                  "maxFrequencyChange": null,
-                  "maxActionEVChangeBB": null
+                  "comparable": true,
+                  "maxActionEVChange": 0.010050769592498732,
+                  "maxFrequencyChange": 0.01849442698624204,
+                  "maxActionEVChangeBB": 0.010050769592498732
                 },
                 "stopReason": null,
                 "refinementRecommended": true,
                 "costs": {
-                  "buildMs": 39.00019999999995,
-                  "globalSolveMs": 79.25400000000002,
-                  "globalEvaluationMs": 0.7912000000000035,
-                  "actionSolveMs": 295.44790000000023,
-                  "actionCertificateMs": 14.986900000000105,
-                  "totalComputeMs": 418.8859
+                  "buildMs": 133.29539999999997,
+                  "globalSolveMs": 186.0871000000002,
+                  "globalEvaluationMs": 4.415899999999965,
+                  "actionSolveMs": 633.6931000000004,
+                  "actionCertificateMs": 74.56560000000036,
+                  "totalComputeMs": 977.9483
                 },
                 "estimatedWorkingBytes": 1575040,
                 "compilation": {
                   "scope": "CURRENT_EXECUTION_ONLY",
                   "base": {
                     "compileCount": 1,
-                    "reuseCount": 5,
-                    "freezeMs": 16.322799999999916,
-                    "compileMs": 8.26809999999989,
+                    "reuseCount": 7,
+                    "freezeMs": 51.33359999999993,
+                    "compileMs": 30.422299999999723,
                     "retainedBytes": 1575040,
                     "maxRetainedBytes": 8388608
                   },
                   "conditioned": {
                     "compileCount": 4,
                     "reuseCount": 4,
-                    "freezeMs": 49.67819999999995,
-                    "compileMs": 64.15390000000002,
+                    "freezeMs": 3.4171000000005733,
+                    "compileMs": 153.86950000000024,
                     "peakRetainedBytes": 3114286
                   },
                   "peakRetainedBytes": 3114286,
@@ -4004,7 +4585,7 @@
               "reasons": [],
               "gameHash": "e74ec937b0e2619b7be00d477ad489942c67454482fbacdf3454d4a71f4ce572",
               "iterations": 40,
-              "workIterations": 240,
+              "workIterations": 230,
               "originalProfile": {
                 "scope": "CURRENT_HAND_COMBINATION_RETURNED_PROFILE",
                 "actions": [
@@ -4055,8 +4636,8 @@
                   {
                     "id": "CHECK",
                     "certified": true,
-                    "estimateBB": 1.2962396382213053,
-                    "lowerBB": 1.293812609775888,
+                    "estimateBB": 1.2948929334132204,
+                    "lowerBB": 1.291119200159718,
                     "upperBB": 1.2986666666667226
                   },
                   {
@@ -4087,24 +4668,24 @@
                   "unit": "BB",
                   "leaderConclusive": false,
                   "globalBestSupported": false,
-                  "bestActionId": "CHECK",
-                  "secondActionId": "BET:1.00",
-                  "bestEVBB": 1.2962396382213053,
-                  "secondEVBB": 1.295589719645891,
-                  "deltaEVBB": 0.0006499185754142989,
+                  "bestActionId": "BET:1.00",
+                  "secondActionId": "CHECK",
+                  "bestEVBB": 1.295589719645891,
+                  "secondEVBB": 1.2948929334132204,
+                  "deltaEVBB": 0.0006967862326705543,
                   "differenceBoundsBB": [
-                    -0.004599830472799661,
-                    0.005899667623628036
+                    -0.005899667623628036,
+                    0.007293240088969589
                   ],
                   "bestBoundsBB": [
-                    1.293812609775888,
-                    1.2986666666667226
-                  ],
-                  "secondBoundsBB": [
                     1.2927669990430946,
                     1.2984124402486876
                   ],
-                  "strongestAlternativeUpperBB": 1.2984124402486876,
+                  "secondBoundsBB": [
+                    1.291119200159718,
+                    1.2986666666667226
+                  ],
+                  "strongestAlternativeUpperBB": 1.2986666666667226,
                   "bestSecondSeparated": false,
                   "confidenceLevel": null,
                   "uncertaintyMethod": "OUTWARD_ROUNDED_INFORMATION_SET_BEST_RESPONSE_SADDLE_BOUNDS",
@@ -4162,12 +4743,12 @@
                       "attempted": 4,
                       "refinementBatches": 4
                     },
-                    "leaderActionId": "CHECK",
-                    "secondActionId": "BET:1.00",
-                    "separationGapBB": -0.00459983047279966,
-                    "pointLeaderActionId": "CHECK",
-                    "pointSecondActionId": "BET:1.00",
-                    "pointDeltaBB": 0.0006499185754142989,
+                    "leaderActionId": "BET:1.00",
+                    "secondActionId": "CHECK",
+                    "separationGapBB": -0.005899667623628035,
+                    "pointLeaderActionId": "BET:1.00",
+                    "pointSecondActionId": "CHECK",
+                    "pointDeltaBB": 0.0006967862326705543,
                     "pointEstimateScope": "FULL_PRIOR_COMMITMENT",
                     "originalProfilePointLeaderActionId": "CHECK",
                     "originalProfilePointSecondActionId": "BET:1.00",
@@ -4199,10 +4780,10 @@
                       {
                         "id": "CHECK",
                         "certified": true,
-                        "estimateBB": 1.2962396382213053,
-                        "lowerBB": 1.293812609775888,
+                        "estimateBB": 1.2948929334132204,
+                        "lowerBB": 1.291119200159718,
                         "upperBB": 1.2986666666667226,
-                        "widthBB": 0.004854056890834624,
+                        "widthBB": 0.007547466507004552,
                         "attempts": 1
                       },
                       {
@@ -4227,15 +4808,15 @@
                     "costs": {
                       "scope": "CUMULATIVE_COMPATIBLE_EXECUTIONS",
                       "computeOnly": true,
-                      "totalMs": 419.99649999999997,
-                      "firstValueMs": 119.22489999999993,
-                      "baseMs": 119.04539999999997,
-                      "boundsMs": 14.986900000000105,
-                      "actionRefinementMs": 295.44790000000023,
-                      "buildMs": 39.00019999999995,
-                      "globalSolveMs": 79.25400000000002,
-                      "globalEvaluationMs": 0.7912000000000035,
-                      "unattributedMs": 5.503199999999765,
+                      "totalMs": 981.0540000000001,
+                      "firstValueMs": 296.4888000000001,
+                      "baseMs": 323.79840000000013,
+                      "boundsMs": 74.56560000000036,
+                      "actionRefinementMs": 633.6931000000004,
+                      "buildMs": 133.29539999999997,
+                      "globalSolveMs": 186.0871000000002,
+                      "globalEvaluationMs": 4.415899999999965,
+                      "unattributedMs": 23.562499999999545,
                       "available": [
                         "buildMs",
                         "globalSolveMs",
@@ -4271,37 +4852,37 @@
                 "thresholdMet": true
               },
               "stability": {
-                "comparable": false,
-                "maxActionEVChange": null,
-                "maxFrequencyChange": null,
-                "maxActionEVChangeBB": null
+                "comparable": true,
+                "maxActionEVChange": 0.010050769592498732,
+                "maxFrequencyChange": 0.01849442698624204,
+                "maxActionEVChangeBB": 0.010050769592498732
               },
               "stopReason": "GLOBAL_CONVERGENCE_AND_CERTIFIED_NEAR_EQUIVALENCE",
               "refinementRecommended": false,
               "costs": {
-                "buildMs": 39.00019999999995,
-                "globalSolveMs": 79.25400000000002,
-                "globalEvaluationMs": 0.7912000000000035,
-                "actionSolveMs": 295.44790000000023,
-                "actionCertificateMs": 14.986900000000105,
-                "totalComputeMs": 419.99649999999997
+                "buildMs": 133.29539999999997,
+                "globalSolveMs": 186.0871000000002,
+                "globalEvaluationMs": 4.415899999999965,
+                "actionSolveMs": 633.6931000000004,
+                "actionCertificateMs": 74.56560000000036,
+                "totalComputeMs": 981.0540000000001
               },
               "estimatedWorkingBytes": 1575040,
               "compilation": {
                 "scope": "CURRENT_EXECUTION_ONLY",
                 "base": {
                   "compileCount": 1,
-                  "reuseCount": 5,
-                  "freezeMs": 16.322799999999916,
-                  "compileMs": 8.26809999999989,
+                  "reuseCount": 7,
+                  "freezeMs": 51.33359999999993,
+                  "compileMs": 30.422299999999723,
                   "retainedBytes": 1575040,
                   "maxRetainedBytes": 8388608
                 },
                 "conditioned": {
                   "compileCount": 4,
                   "reuseCount": 4,
-                  "freezeMs": 49.67819999999995,
-                  "compileMs": 64.15390000000002,
+                  "freezeMs": 3.4171000000005733,
+                  "compileMs": 153.86950000000024,
                   "peakRetainedBytes": 3114286
                 },
                 "peakRetainedBytes": 3114286,
@@ -4313,7 +4894,7 @@
         "fixed": [
           {
             "perTreeWorkIterations": 16,
-            "elapsedMs": 231.92099999999982,
+            "elapsedMs": 490.63319999999976,
             "originalProfile": {
               "scope": "CURRENT_HAND_COMBINATION_RETURNED_PROFILE",
               "values": [
@@ -4408,7 +4989,7 @@
           },
           {
             "perTreeWorkIterations": 32,
-            "elapsedMs": 208.28460000000018,
+            "elapsedMs": 515.2853,
             "originalProfile": {
               "scope": "CURRENT_HAND_COMBINATION_RETURNED_PROFILE",
               "values": [
@@ -4503,7 +5084,7 @@
           },
           {
             "perTreeWorkIterations": 64,
-            "elapsedMs": 249.7482,
+            "elapsedMs": 636.9487999999997,
             "originalProfile": {
               "scope": "CURRENT_HAND_COMBINATION_RETURNED_PROFILE",
               "values": [
@@ -4597,12 +5178,12 @@
             "checkpointConclusion": "CORE_FIXED_WORK_DIAGNOSTICS_NOT_A_JOB_QUALIFICATION"
           }
         ],
-        "wallMs": 1885.9207000000001,
+        "wallMs": 4287.5242,
         "processRSS": {
-          "beforeBytes": 64094208,
-          "sampledPeakBytes": 118472704
+          "beforeBytes": 63004672,
+          "sampledPeakBytes": 121274368
         },
-        "coldWarmMathEqual": true
+        "coldWarmMathEqual": false
       }
     },
     {
@@ -4628,11 +5209,11 @@
             ],
             "players": [
               {
-                "playerId": "5fc1c364-db8d-4ced-9c4a-44dce4442cef",
+                "playerId": "71edc804-a0c2-43ea-ac37-3c35deafbc7f",
                 "name": "You"
               },
               {
-                "playerId": "e4ad6dbc-ff72-4f51-885d-5b4d121c6261",
+                "playerId": "ca9e8434-dabc-482d-a858-914538896957",
                 "name": "A1"
               }
             ]
@@ -4642,13 +5223,13 @@
               "type": "ACT",
               "actor": 0,
               "action": "CALL",
-              "eventId": "3c08e05e-d51a-4504-9fb8-f1baecb906b7"
+              "eventId": "f77414dc-30e2-4746-b585-c90162d8d867"
             },
             {
               "type": "ACT",
               "actor": 1,
               "action": "CHECK",
-              "eventId": "072d74bb-aa67-49ef-9ca7-c3db1d9cf490"
+              "eventId": "88fa594d-16fa-481c-a10d-a536bc69af35"
             },
             {
               "type": "BOARD",
@@ -4657,19 +5238,19 @@
                 "3h",
                 "4d"
               ],
-              "eventId": "6e2332b7-5e3f-4f0d-90be-a206ea614ea3"
+              "eventId": "6e5f95bf-a3d8-4937-bae2-5dbfbc2988a0"
             },
             {
               "type": "ACT",
               "actor": 1,
               "action": "CHECK",
-              "eventId": "74ce6e24-a80b-4124-8847-f14ceca2f0f7"
+              "eventId": "34be903c-0f87-441c-8e56-4a3b0656e71b"
             },
             {
               "type": "ACT",
               "actor": 0,
               "action": "CHECK",
-              "eventId": "80613b2a-9eec-4ac8-b0ab-2d98fc33d24d"
+              "eventId": "57c29393-22fd-4c97-bea3-b45f69df757e"
             },
             {
               "type": "BOARD",
@@ -4679,19 +5260,19 @@
                 "4d",
                 "8c"
               ],
-              "eventId": "74d803f2-1379-404d-942d-7ce17095946e"
+              "eventId": "26fe08df-5935-4431-99ba-c00b2506069f"
             },
             {
               "type": "ACT",
               "actor": 1,
               "action": "CHECK",
-              "eventId": "c60869ef-f0f0-45cf-b9ed-6ed1105e6497"
+              "eventId": "4c0f16d6-d99e-42be-b7e2-bf381d8e96a4"
             },
             {
               "type": "ACT",
               "actor": 0,
               "action": "CHECK",
-              "eventId": "a1735fbc-674b-4ce9-a688-1252b1dd308b"
+              "eventId": "f9a7d854-7363-4310-a47f-e9a890ef8cb3"
             },
             {
               "type": "BOARD",
@@ -4702,16 +5283,16 @@
                 "8c",
                 "9s"
               ],
-              "eventId": "c817a686-3427-4cf1-81d7-24963fe79234"
+              "eventId": "5efa2e2d-88f2-42e8-9b7f-f4299c9d405d"
             },
             {
               "type": "ACT",
               "actor": 1,
               "action": "CHECK",
-              "eventId": "401a7b5f-6553-492b-94f5-7ed718b27b7c"
+              "eventId": "17cf0739-6d31-40f6-9c0c-a94edee33c36"
             }
           ],
-          "handId": "e9dbc05c-ee34-45bb-86cf-409c9b22d291",
+          "handId": "4aa3b581-9cbd-4de3-a2e2-5d2cd94a199e",
           "editEpoch": 0
         },
         "ranges": [
@@ -5389,7 +5970,7 @@
           "maxBuildMs": 750
         }
       },
-      "inputSHA256": "099391e03dd36d3406bfbf246959a8bef230d062c669aae0210c411195c6fbbb",
+      "inputSHA256": "ef1974a63d03d0fab61e6fcdecb024fd77a2083406b95e3091a627be0d215548",
       "contextKey": "3d2fe47df8962328534ca17e8fb82c98882583b481b31a8bfb3617fffc6b4ceb",
       "productWorlds": 1024,
       "compatibleWorlds": 1024,
@@ -5403,7 +5984,7 @@
           "message": "The tree reservation exceeds the memory budget; no partial tree was allocated."
         }
       ],
-      "buildMs": 2.537900000000036,
+      "buildMs": 7.86659999999938,
       "completeTreeBuilt": false,
       "currentHandEVAvailable": false,
       "execution": null
@@ -5431,11 +6012,11 @@
             ],
             "players": [
               {
-                "playerId": "ca7c6bc2-6506-4e7f-ac65-397bdd9face6",
+                "playerId": "fcdc280d-e5af-4f09-a46d-1027a4b9df4d",
                 "name": "You"
               },
               {
-                "playerId": "9b6ae188-a7ae-42a1-bad2-897078fb5cb1",
+                "playerId": "8b5560e1-ad3f-4511-b6ea-7e91de9d5f2b",
                 "name": "A1"
               }
             ]
@@ -5445,13 +6026,13 @@
               "type": "ACT",
               "actor": 0,
               "action": "CALL",
-              "eventId": "08b766f2-3344-4bc6-b32c-020da082f05a"
+              "eventId": "8e326a2b-2c78-4f03-9e03-68a8d7c71657"
             },
             {
               "type": "ACT",
               "actor": 1,
               "action": "CHECK",
-              "eventId": "76338a77-0087-4f4f-a2fd-72ec9346babf"
+              "eventId": "0dcf85ea-a061-45b5-b032-ea0537a12a80"
             },
             {
               "type": "BOARD",
@@ -5460,19 +6041,19 @@
                 "3h",
                 "4d"
               ],
-              "eventId": "db37279a-7a62-40ff-9255-f95b82ddd608"
+              "eventId": "f04c73e1-90a1-45df-9668-5da4a5b8fc3c"
             },
             {
               "type": "ACT",
               "actor": 1,
               "action": "CHECK",
-              "eventId": "d45103a1-ce68-4945-a641-93b65b639d6b"
+              "eventId": "909d08ad-3eff-4932-b091-dfe14005b9be"
             },
             {
               "type": "ACT",
               "actor": 0,
               "action": "CHECK",
-              "eventId": "bac85a03-9231-41dc-8c86-54d994ee89d8"
+              "eventId": "747f1368-5453-48c3-a623-ca74f82e2528"
             },
             {
               "type": "BOARD",
@@ -5482,19 +6063,19 @@
                 "4d",
                 "8c"
               ],
-              "eventId": "4cc9c938-2e56-4e81-b473-0c0d0b254828"
+              "eventId": "ed8c86f6-ca93-4aab-85dc-a656a9ee164c"
             },
             {
               "type": "ACT",
               "actor": 1,
               "action": "CHECK",
-              "eventId": "6067b065-09d3-4eb6-b06e-21ac9ecd69e0"
+              "eventId": "1f4ecaed-a259-4e5b-a22d-e642ad202def"
             },
             {
               "type": "ACT",
               "actor": 0,
               "action": "CHECK",
-              "eventId": "7e07ffd6-af19-4f6f-8a7d-1e63c94b5cfa"
+              "eventId": "65f59516-3f32-4171-952d-ca3be70e016b"
             },
             {
               "type": "BOARD",
@@ -5505,16 +6086,16 @@
                 "8c",
                 "9s"
               ],
-              "eventId": "83ab27f6-de65-4a51-92b7-7d99d0cbb5ca"
+              "eventId": "ada39c07-a6d7-409c-bf0b-a0615ba0a5a4"
             },
             {
               "type": "ACT",
               "actor": 1,
               "action": "CHECK",
-              "eventId": "bf2fd4be-b852-4013-84b6-e75fa668e2f9"
+              "eventId": "d9c0035e-21c8-40a8-9906-f43645aa6001"
             }
           ],
-          "handId": "83a55b76-3462-450c-9092-6d8f5d977652",
+          "handId": "d9bc1186-b141-4c02-a530-c8baabd1f086",
           "editEpoch": 0
         },
         "ranges": [
@@ -6512,7 +7093,7 @@
           "maxBuildMs": 750
         }
       },
-      "inputSHA256": "230a8c16dbfeba76ab8e91904fe7fb9b2788fe4996a4c961c72be685893000c2",
+      "inputSHA256": "faf4682dd84af8ab7fb4e04bf9a18e7c3c0938bb904b56c1e5675836e4f2f2ee",
       "contextKey": "e58cef4354a9faf6b7bd897b12f2a547a2acf35d9438320aaee3b4bc038d2907",
       "productWorlds": 2304,
       "compatibleWorlds": 2304,
@@ -6526,7 +7107,7 @@
           "message": "The tree reservation exceeds the memory budget; no partial tree was allocated."
         }
       ],
-      "buildMs": 4.5151999999998225,
+      "buildMs": 12.197900000000118,
       "completeTreeBuilt": false,
       "currentHandEVAvailable": false,
       "execution": null
@@ -6554,11 +7135,11 @@
             ],
             "players": [
               {
-                "playerId": "2e2628e3-2913-416b-a59b-ee916013b302",
+                "playerId": "c0bb6d99-d517-46df-b93b-38e2ff324282",
                 "name": "You"
               },
               {
-                "playerId": "a0cd1f50-1bad-44d4-8e32-d0613c02c507",
+                "playerId": "2f976cad-d17b-4443-aa17-8fb48cb31739",
                 "name": "A1"
               }
             ]
@@ -6568,13 +7149,13 @@
               "type": "ACT",
               "actor": 0,
               "action": "CALL",
-              "eventId": "7b6e82fb-4419-4850-9b49-8849d18bddb5"
+              "eventId": "88a54412-ff6d-4d77-b8da-b9c576707067"
             },
             {
               "type": "ACT",
               "actor": 1,
               "action": "CHECK",
-              "eventId": "fc428bdc-4c4c-45cd-9c4f-5cc7fdba1c2f"
+              "eventId": "784233c5-9fee-451b-8a67-f7618a133451"
             },
             {
               "type": "BOARD",
@@ -6583,19 +7164,19 @@
                 "3h",
                 "4d"
               ],
-              "eventId": "958a5c31-d06a-4450-9e7f-a46d16fb5c0b"
+              "eventId": "5002a409-5c1d-4214-b23d-0900e5323416"
             },
             {
               "type": "ACT",
               "actor": 1,
               "action": "CHECK",
-              "eventId": "63db6402-fa98-4388-a474-b3decbd52f1e"
+              "eventId": "70ae4901-3e21-4edb-b30c-493e7e54cc4d"
             },
             {
               "type": "ACT",
               "actor": 0,
               "action": "CHECK",
-              "eventId": "abe623ff-2064-4a0f-bb9c-a23792f18822"
+              "eventId": "74e985e7-68e4-4427-937a-b00467de4544"
             },
             {
               "type": "BOARD",
@@ -6605,19 +7186,19 @@
                 "4d",
                 "8c"
               ],
-              "eventId": "7c4feea2-6df8-4194-a89c-3473b59eb056"
+              "eventId": "95f653be-1af0-44ba-9dd3-b3dcf4edd56c"
             },
             {
               "type": "ACT",
               "actor": 1,
               "action": "CHECK",
-              "eventId": "cbca161b-c2d5-4264-9f6a-0e71efdb515c"
+              "eventId": "f076d10a-1f72-41d2-9ffb-d24cff61e665"
             },
             {
               "type": "ACT",
               "actor": 0,
               "action": "CHECK",
-              "eventId": "ab9c7d21-2ce8-4e3f-a6db-cd9a5c66aa7f"
+              "eventId": "72a9a24e-983c-44ba-8be5-4f7079290a3f"
             },
             {
               "type": "BOARD",
@@ -6628,16 +7209,16 @@
                 "8c",
                 "9s"
               ],
-              "eventId": "49f1b770-9b9c-43e6-9e5f-2235ec77bbcf"
+              "eventId": "64feb513-482b-4683-9541-711319bd863d"
             },
             {
               "type": "ACT",
               "actor": 1,
               "action": "CHECK",
-              "eventId": "f65cd09f-0855-4628-8daf-87497bbefb0e"
+              "eventId": "f200d59b-8e7e-4854-aa5b-dd687dab682f"
             }
           ],
-          "handId": "e730a1f1-7b2c-499c-8971-eff14b8fb74e",
+          "handId": "33a23cc9-61a5-437a-85b2-c1f14973a4b3",
           "editEpoch": 0
         },
         "ranges": [
@@ -7155,7 +7736,7 @@
           "maxBuildMs": 750
         }
       },
-      "inputSHA256": "5f88e591befca593b51ec11758b2dc876a599ed3e1bc9e56c4bbe550616c1564",
+      "inputSHA256": "7049e103f5b6e696e66e5e40725d8ebca64fed98dcb6d842433d0690680037d1",
       "contextKey": "2c42f65f7ab7b8c01ffab978fdf88aece970f6a981eac3466349527a26e31fe4",
       "productWorlds": 576,
       "compatibleWorlds": 576,
@@ -7164,7 +7745,7 @@
       "requiredReservationBytes": 14163968,
       "status": "READY",
       "reasons": [],
-      "buildMs": 31.2833999999998,
+      "buildMs": 98.3177999999998,
       "completeTreeBuilt": true,
       "currentHandEVAvailable": true,
       "execution": {
@@ -7172,13 +7753,13 @@
           {
             "temperature": "COLD_RUNTIME",
             "cacheHit": false,
-            "firstValueMs": 84.95839999999998,
-            "elapsedMs": 188.8036000000002,
-            "heapBeforeBytes": 8818344,
-            "heapAfterBytes": 15845192,
+            "firstValueMs": 342.77050000000054,
+            "elapsedMs": 550.7349000000004,
+            "heapBeforeBytes": 8813624,
+            "heapAfterBytes": 13222368,
             "progress": [
               {
-                "atMs": 84.96170000000029,
+                "atMs": 342.7979000000005,
                 "status": "APPROXIMATE",
                 "reasons": [],
                 "gameHash": "967b9993a8c0004daf36af96e229c9536d9720b6acee69653a7f23e2e60d9702",
@@ -7340,15 +7921,15 @@
                       "costs": {
                         "scope": "CUMULATIVE_COMPATIBLE_EXECUTIONS",
                         "computeOnly": true,
-                        "totalMs": 78.39940000000024,
-                        "firstValueMs": 78.39940000000024,
-                        "baseMs": 77.65719999999965,
+                        "totalMs": 318.21830000000045,
+                        "firstValueMs": 318.21830000000045,
+                        "baseMs": 315.51570000000083,
                         "boundsMs": 0,
                         "actionRefinementMs": 0,
-                        "buildMs": 39.46770000000015,
-                        "globalSolveMs": 34.760299999999916,
-                        "globalEvaluationMs": 3.4291999999995824,
-                        "unattributedMs": 0.7422000000005937,
+                        "buildMs": 167.63470000000052,
+                        "globalSolveMs": 140.1242000000002,
+                        "globalEvaluationMs": 7.756800000000112,
+                        "unattributedMs": 2.70259999999962,
                         "available": [
                           "buildMs",
                           "globalSolveMs",
@@ -7392,12 +7973,12 @@
                 "stopReason": null,
                 "refinementRecommended": true,
                 "costs": {
-                  "buildMs": 39.46770000000015,
-                  "globalSolveMs": 34.760299999999916,
-                  "globalEvaluationMs": 3.4291999999995824,
+                  "buildMs": 167.63470000000052,
+                  "globalSolveMs": 140.1242000000002,
+                  "globalEvaluationMs": 7.756800000000112,
                   "actionSolveMs": 0,
                   "actionCertificateMs": 0,
-                  "totalComputeMs": 78.39940000000024
+                  "totalComputeMs": 318.21830000000045
                 },
                 "estimatedWorkingBytes": 523360,
                 "compilation": {
@@ -7405,8 +7986,8 @@
                   "base": {
                     "compileCount": 1,
                     "reuseCount": 1,
-                    "freezeMs": 8.509199999999964,
-                    "compileMs": 7.653899999999794,
+                    "freezeMs": 32.809799999999996,
+                    "compileMs": 38.51540000000023,
                     "retainedBytes": 523360,
                     "maxRetainedBytes": 8388608
                   },
@@ -7422,7 +8003,7 @@
                 }
               },
               {
-                "atMs": 143.4076,
+                "atMs": 464.1286,
                 "status": "APPROXIMATE",
                 "reasons": [],
                 "gameHash": "967b9993a8c0004daf36af96e229c9536d9720b6acee69653a7f23e2e60d9702",
@@ -7584,15 +8165,15 @@
                       "costs": {
                         "scope": "CUMULATIVE_COMPATIBLE_EXECUTIONS",
                         "computeOnly": true,
-                        "totalMs": 141.16510000000017,
-                        "firstValueMs": 78.39940000000024,
-                        "baseMs": 77.65719999999965,
-                        "boundsMs": 9.71770000000015,
-                        "actionRefinementMs": 56.266000000000076,
-                        "buildMs": 39.46770000000015,
-                        "globalSolveMs": 34.760299999999916,
-                        "globalEvaluationMs": 3.4291999999995824,
-                        "unattributedMs": 7.241900000000442,
+                        "totalMs": 456.71150000000034,
+                        "firstValueMs": 318.21830000000045,
+                        "baseMs": 315.51570000000083,
+                        "boundsMs": 23.26590000000033,
+                        "actionRefinementMs": 114.64450000000033,
+                        "buildMs": 167.63470000000052,
+                        "globalSolveMs": 140.1242000000002,
+                        "globalEvaluationMs": 7.756800000000112,
+                        "unattributedMs": 26.551299999999173,
                         "available": [
                           "buildMs",
                           "globalSolveMs",
@@ -7636,12 +8217,12 @@
                 "stopReason": null,
                 "refinementRecommended": true,
                 "costs": {
-                  "buildMs": 39.46770000000015,
-                  "globalSolveMs": 34.760299999999916,
-                  "globalEvaluationMs": 3.4291999999995824,
-                  "actionSolveMs": 56.266000000000076,
-                  "actionCertificateMs": 9.71770000000015,
-                  "totalComputeMs": 141.16510000000017
+                  "buildMs": 167.63470000000052,
+                  "globalSolveMs": 140.1242000000002,
+                  "globalEvaluationMs": 7.756800000000112,
+                  "actionSolveMs": 114.64450000000033,
+                  "actionCertificateMs": 23.26590000000033,
+                  "totalComputeMs": 456.71150000000034
                 },
                 "estimatedWorkingBytes": 523360,
                 "compilation": {
@@ -7649,16 +8230,16 @@
                   "base": {
                     "compileCount": 1,
                     "reuseCount": 2,
-                    "freezeMs": 8.509199999999964,
-                    "compileMs": 7.653899999999794,
+                    "freezeMs": 32.809799999999996,
+                    "compileMs": 38.51540000000023,
                     "retainedBytes": 523360,
                     "maxRetainedBytes": 8388608
                   },
                   "conditioned": {
                     "compileCount": 1,
                     "reuseCount": 1,
-                    "freezeMs": 11.449599999999919,
-                    "compileMs": 5.21309999999994,
+                    "freezeMs": 2.2455999999992855,
+                    "compileMs": 31.36830000000009,
                     "peakRetainedBytes": 1039526
                   },
                   "peakRetainedBytes": 1039526,
@@ -7666,7 +8247,7 @@
                 }
               },
               {
-                "atMs": 188.67709999999988,
+                "atMs": 551.6435000000001,
                 "status": "APPROXIMATE",
                 "reasons": [],
                 "gameHash": "967b9993a8c0004daf36af96e229c9536d9720b6acee69653a7f23e2e60d9702",
@@ -7838,15 +8419,15 @@
                       "costs": {
                         "scope": "CUMULATIVE_COMPATIBLE_EXECUTIONS",
                         "computeOnly": true,
-                        "totalMs": 185.90920000000006,
-                        "firstValueMs": 78.39940000000024,
-                        "baseMs": 77.65719999999965,
-                        "boundsMs": 15.826300000000174,
-                        "actionRefinementMs": 99.29300000000012,
-                        "buildMs": 39.46770000000015,
-                        "globalSolveMs": 34.760299999999916,
-                        "globalEvaluationMs": 3.4291999999995824,
-                        "unattributedMs": 8.959000000000287,
+                        "totalMs": 542.6325000000006,
+                        "firstValueMs": 318.21830000000045,
+                        "baseMs": 315.51570000000083,
+                        "boundsMs": 41.44000000000051,
+                        "actionRefinementMs": 196.32190000000082,
+                        "buildMs": 167.63470000000052,
+                        "globalSolveMs": 140.1242000000002,
+                        "globalEvaluationMs": 7.756800000000112,
+                        "unattributedMs": 30.79489999999896,
                         "available": [
                           "buildMs",
                           "globalSolveMs",
@@ -7890,12 +8471,12 @@
                 "stopReason": null,
                 "refinementRecommended": true,
                 "costs": {
-                  "buildMs": 39.46770000000015,
-                  "globalSolveMs": 34.760299999999916,
-                  "globalEvaluationMs": 3.4291999999995824,
-                  "actionSolveMs": 99.29300000000012,
-                  "actionCertificateMs": 15.826300000000174,
-                  "totalComputeMs": 185.90920000000006
+                  "buildMs": 167.63470000000052,
+                  "globalSolveMs": 140.1242000000002,
+                  "globalEvaluationMs": 7.756800000000112,
+                  "actionSolveMs": 196.32190000000082,
+                  "actionCertificateMs": 41.44000000000051,
+                  "totalComputeMs": 542.6325000000006
                 },
                 "estimatedWorkingBytes": 523360,
                 "compilation": {
@@ -7903,16 +8484,16 @@
                   "base": {
                     "compileCount": 1,
                     "reuseCount": 3,
-                    "freezeMs": 8.509199999999964,
-                    "compileMs": 7.653899999999794,
+                    "freezeMs": 32.809799999999996,
+                    "compileMs": 38.51540000000023,
                     "retainedBytes": 523360,
                     "maxRetainedBytes": 8388608
                   },
                   "conditioned": {
                     "compileCount": 2,
                     "reuseCount": 2,
-                    "freezeMs": 16.478499999999713,
-                    "compileMs": 10.108900000000176,
+                    "freezeMs": 3.258199999999306,
+                    "compileMs": 50.379399999999805,
                     "peakRetainedBytes": 1039528
                   },
                   "peakRetainedBytes": 1039528,
@@ -8092,15 +8673,15 @@
                     "costs": {
                       "scope": "CUMULATIVE_COMPATIBLE_EXECUTIONS",
                       "computeOnly": true,
-                      "totalMs": 187.97029999999995,
-                      "firstValueMs": 78.39940000000024,
-                      "baseMs": 77.65719999999965,
-                      "boundsMs": 15.826300000000174,
-                      "actionRefinementMs": 99.29300000000012,
-                      "buildMs": 39.46770000000015,
-                      "globalSolveMs": 34.760299999999916,
-                      "globalEvaluationMs": 3.4291999999995824,
-                      "unattributedMs": 11.020100000000184,
+                      "totalMs": 548.0172000000002,
+                      "firstValueMs": 318.21830000000045,
+                      "baseMs": 315.51570000000083,
+                      "boundsMs": 41.44000000000051,
+                      "actionRefinementMs": 196.32190000000082,
+                      "buildMs": 167.63470000000052,
+                      "globalSolveMs": 140.1242000000002,
+                      "globalEvaluationMs": 7.756800000000112,
+                      "unattributedMs": 36.17959999999857,
                       "available": [
                         "buildMs",
                         "globalSolveMs",
@@ -8144,12 +8725,12 @@
               "stopReason": "GLOBAL_CONVERGENCE_AND_CERTIFIED_NEAR_EQUIVALENCE",
               "refinementRecommended": false,
               "costs": {
-                "buildMs": 39.46770000000015,
-                "globalSolveMs": 34.760299999999916,
-                "globalEvaluationMs": 3.4291999999995824,
-                "actionSolveMs": 99.29300000000012,
-                "actionCertificateMs": 15.826300000000174,
-                "totalComputeMs": 187.97029999999995
+                "buildMs": 167.63470000000052,
+                "globalSolveMs": 140.1242000000002,
+                "globalEvaluationMs": 7.756800000000112,
+                "actionSolveMs": 196.32190000000082,
+                "actionCertificateMs": 41.44000000000051,
+                "totalComputeMs": 548.0172000000002
               },
               "estimatedWorkingBytes": 523360,
               "compilation": {
@@ -8157,16 +8738,16 @@
                 "base": {
                   "compileCount": 1,
                   "reuseCount": 3,
-                  "freezeMs": 8.509199999999964,
-                  "compileMs": 7.653899999999794,
+                  "freezeMs": 32.809799999999996,
+                  "compileMs": 38.51540000000023,
                   "retainedBytes": 523360,
                   "maxRetainedBytes": 8388608
                 },
                 "conditioned": {
                   "compileCount": 2,
                   "reuseCount": 2,
-                  "freezeMs": 16.478499999999713,
-                  "compileMs": 10.108900000000176,
+                  "freezeMs": 3.258199999999306,
+                  "compileMs": 50.379399999999805,
                   "peakRetainedBytes": 1039528
                 },
                 "peakRetainedBytes": 1039528,
@@ -8177,13 +8758,13 @@
           {
             "temperature": "WARM_RUNTIME_FRESH_JOB",
             "cacheHit": false,
-            "firstValueMs": 73.72710000000006,
-            "elapsedMs": 147.95550000000003,
-            "heapBeforeBytes": 15847880,
-            "heapAfterBytes": 17341728,
+            "firstValueMs": 197.4355999999998,
+            "elapsedMs": 335.4445999999998,
+            "heapBeforeBytes": 13225056,
+            "heapAfterBytes": 16212368,
             "progress": [
               {
-                "atMs": 73.73150000000032,
+                "atMs": 197.4456,
                 "status": "APPROXIMATE",
                 "reasons": [],
                 "gameHash": "967b9993a8c0004daf36af96e229c9536d9720b6acee69653a7f23e2e60d9702",
@@ -8345,15 +8926,15 @@
                       "costs": {
                         "scope": "CUMULATIVE_COMPATIBLE_EXECUTIONS",
                         "computeOnly": true,
-                        "totalMs": 72.48579999999993,
-                        "firstValueMs": 72.48579999999993,
-                        "baseMs": 72.23530000000028,
+                        "totalMs": 194.27230000000054,
+                        "firstValueMs": 194.27230000000054,
+                        "baseMs": 193.79290000000037,
                         "boundsMs": 0,
                         "actionRefinementMs": 0,
-                        "buildMs": 42.50630000000001,
-                        "globalSolveMs": 28.506200000000263,
-                        "globalEvaluationMs": 1.2228000000000065,
-                        "unattributedMs": 0.2504999999996471,
+                        "buildMs": 115.10300000000007,
+                        "globalSolveMs": 77.79129999999986,
+                        "globalEvaluationMs": 0.8986000000004424,
+                        "unattributedMs": 0.4794000000001688,
                         "available": [
                           "buildMs",
                           "globalSolveMs",
@@ -8397,12 +8978,12 @@
                 "stopReason": null,
                 "refinementRecommended": true,
                 "costs": {
-                  "buildMs": 42.50630000000001,
-                  "globalSolveMs": 28.506200000000263,
-                  "globalEvaluationMs": 1.2228000000000065,
+                  "buildMs": 115.10300000000007,
+                  "globalSolveMs": 77.79129999999986,
+                  "globalEvaluationMs": 0.8986000000004424,
                   "actionSolveMs": 0,
                   "actionCertificateMs": 0,
-                  "totalComputeMs": 72.48579999999993
+                  "totalComputeMs": 194.27230000000054
                 },
                 "estimatedWorkingBytes": 523360,
                 "compilation": {
@@ -8410,8 +8991,8 @@
                   "base": {
                     "compileCount": 1,
                     "reuseCount": 1,
-                    "freezeMs": 8.55600000000004,
-                    "compileMs": 5.846000000000004,
+                    "freezeMs": 22.284599999999955,
+                    "compileMs": 26.497299999999996,
                     "retainedBytes": 523360,
                     "maxRetainedBytes": 8388608
                   },
@@ -8427,7 +9008,7 @@
                 }
               },
               {
-                "atMs": 110.42410000000018,
+                "atMs": 275.0108,
                 "status": "APPROXIMATE",
                 "reasons": [],
                 "gameHash": "967b9993a8c0004daf36af96e229c9536d9720b6acee69653a7f23e2e60d9702",
@@ -8589,15 +9170,15 @@
                       "costs": {
                         "scope": "CUMULATIVE_COMPATIBLE_EXECUTIONS",
                         "computeOnly": true,
-                        "totalMs": 109.61979999999994,
-                        "firstValueMs": 72.48579999999993,
-                        "baseMs": 72.23530000000028,
-                        "boundsMs": 2.315599999999904,
-                        "actionRefinementMs": 35.45679999999993,
-                        "buildMs": 42.50630000000001,
-                        "globalSolveMs": 28.506200000000263,
-                        "globalEvaluationMs": 1.2228000000000065,
-                        "unattributedMs": 1.9276999999997315,
+                        "totalMs": 272.78580000000056,
+                        "firstValueMs": 194.27230000000054,
+                        "baseMs": 193.79290000000037,
+                        "boundsMs": 11.59229999999934,
+                        "actionRefinementMs": 74.9970000000003,
+                        "buildMs": 115.10300000000007,
+                        "globalSolveMs": 77.79129999999986,
+                        "globalEvaluationMs": 0.8986000000004424,
+                        "unattributedMs": 3.9958999999998923,
                         "available": [
                           "buildMs",
                           "globalSolveMs",
@@ -8641,12 +9222,12 @@
                 "stopReason": null,
                 "refinementRecommended": true,
                 "costs": {
-                  "buildMs": 42.50630000000001,
-                  "globalSolveMs": 28.506200000000263,
-                  "globalEvaluationMs": 1.2228000000000065,
-                  "actionSolveMs": 35.45679999999993,
-                  "actionCertificateMs": 2.315599999999904,
-                  "totalComputeMs": 109.61979999999994
+                  "buildMs": 115.10300000000007,
+                  "globalSolveMs": 77.79129999999986,
+                  "globalEvaluationMs": 0.8986000000004424,
+                  "actionSolveMs": 74.9970000000003,
+                  "actionCertificateMs": 11.59229999999934,
+                  "totalComputeMs": 272.78580000000056
                 },
                 "estimatedWorkingBytes": 523360,
                 "compilation": {
@@ -8654,16 +9235,16 @@
                   "base": {
                     "compileCount": 1,
                     "reuseCount": 2,
-                    "freezeMs": 8.55600000000004,
-                    "compileMs": 5.846000000000004,
+                    "freezeMs": 22.284599999999955,
+                    "compileMs": 26.497299999999996,
                     "retainedBytes": 523360,
                     "maxRetainedBytes": 8388608
                   },
                   "conditioned": {
                     "compileCount": 1,
                     "reuseCount": 1,
-                    "freezeMs": 5.244100000000344,
-                    "compileMs": 9.19399999999996,
+                    "freezeMs": 0.8472999999994499,
+                    "compileMs": 25.412900000000263,
                     "peakRetainedBytes": 1039526
                   },
                   "peakRetainedBytes": 1039526,
@@ -8671,7 +9252,7 @@
                 }
               },
               {
-                "atMs": 147.15300000000025,
+                "atMs": 333.39980000000014,
                 "status": "APPROXIMATE",
                 "reasons": [],
                 "gameHash": "967b9993a8c0004daf36af96e229c9536d9720b6acee69653a7f23e2e60d9702",
@@ -8843,15 +9424,15 @@
                       "costs": {
                         "scope": "CUMULATIVE_COMPATIBLE_EXECUTIONS",
                         "computeOnly": true,
-                        "totalMs": 145.9353000000001,
-                        "firstValueMs": 72.48579999999993,
-                        "baseMs": 72.23530000000028,
-                        "boundsMs": 6.971300000000156,
-                        "actionRefinementMs": 70.80490000000009,
-                        "buildMs": 42.50630000000001,
-                        "globalSolveMs": 28.506200000000263,
-                        "globalEvaluationMs": 1.2228000000000065,
-                        "unattributedMs": 2.8950999999997293,
+                        "totalMs": 330.08840000000055,
+                        "firstValueMs": 194.27230000000054,
+                        "baseMs": 193.79290000000037,
+                        "boundsMs": 20.444099999998798,
+                        "actionRefinementMs": 129.83240000000023,
+                        "buildMs": 115.10300000000007,
+                        "globalSolveMs": 77.79129999999986,
+                        "globalEvaluationMs": 0.8986000000004424,
+                        "unattributedMs": 6.46309999999994,
                         "available": [
                           "buildMs",
                           "globalSolveMs",
@@ -8895,12 +9476,12 @@
                 "stopReason": null,
                 "refinementRecommended": true,
                 "costs": {
-                  "buildMs": 42.50630000000001,
-                  "globalSolveMs": 28.506200000000263,
-                  "globalEvaluationMs": 1.2228000000000065,
-                  "actionSolveMs": 70.80490000000009,
-                  "actionCertificateMs": 6.971300000000156,
-                  "totalComputeMs": 145.9353000000001
+                  "buildMs": 115.10300000000007,
+                  "globalSolveMs": 77.79129999999986,
+                  "globalEvaluationMs": 0.8986000000004424,
+                  "actionSolveMs": 129.83240000000023,
+                  "actionCertificateMs": 20.444099999998798,
+                  "totalComputeMs": 330.08840000000055
                 },
                 "estimatedWorkingBytes": 523360,
                 "compilation": {
@@ -8908,16 +9489,16 @@
                   "base": {
                     "compileCount": 1,
                     "reuseCount": 3,
-                    "freezeMs": 8.55600000000004,
-                    "compileMs": 5.846000000000004,
+                    "freezeMs": 22.284599999999955,
+                    "compileMs": 26.497299999999996,
                     "retainedBytes": 523360,
                     "maxRetainedBytes": 8388608
                   },
                   "conditioned": {
                     "compileCount": 2,
                     "reuseCount": 2,
-                    "freezeMs": 10.465500000000247,
-                    "compileMs": 14.085499999999683,
+                    "freezeMs": 1.6898999999993976,
+                    "compileMs": 44.46070000000054,
                     "peakRetainedBytes": 1039528
                   },
                   "peakRetainedBytes": 1039528,
@@ -9097,15 +9678,15 @@
                     "costs": {
                       "scope": "CUMULATIVE_COMPATIBLE_EXECUTIONS",
                       "computeOnly": true,
-                      "totalMs": 147.24080000000004,
-                      "firstValueMs": 72.48579999999993,
-                      "baseMs": 72.23530000000028,
-                      "boundsMs": 6.971300000000156,
-                      "actionRefinementMs": 70.80490000000009,
-                      "buildMs": 42.50630000000001,
-                      "globalSolveMs": 28.506200000000263,
-                      "globalEvaluationMs": 1.2228000000000065,
-                      "unattributedMs": 4.2005999999996675,
+                      "totalMs": 333.52689999999984,
+                      "firstValueMs": 194.27230000000054,
+                      "baseMs": 193.79290000000037,
+                      "boundsMs": 20.444099999998798,
+                      "actionRefinementMs": 129.83240000000023,
+                      "buildMs": 115.10300000000007,
+                      "globalSolveMs": 77.79129999999986,
+                      "globalEvaluationMs": 0.8986000000004424,
+                      "unattributedMs": 9.901599999999235,
                       "available": [
                         "buildMs",
                         "globalSolveMs",
@@ -9149,12 +9730,12 @@
               "stopReason": "GLOBAL_CONVERGENCE_AND_CERTIFIED_NEAR_EQUIVALENCE",
               "refinementRecommended": false,
               "costs": {
-                "buildMs": 42.50630000000001,
-                "globalSolveMs": 28.506200000000263,
-                "globalEvaluationMs": 1.2228000000000065,
-                "actionSolveMs": 70.80490000000009,
-                "actionCertificateMs": 6.971300000000156,
-                "totalComputeMs": 147.24080000000004
+                "buildMs": 115.10300000000007,
+                "globalSolveMs": 77.79129999999986,
+                "globalEvaluationMs": 0.8986000000004424,
+                "actionSolveMs": 129.83240000000023,
+                "actionCertificateMs": 20.444099999998798,
+                "totalComputeMs": 333.52689999999984
               },
               "estimatedWorkingBytes": 523360,
               "compilation": {
@@ -9162,16 +9743,16 @@
                 "base": {
                   "compileCount": 1,
                   "reuseCount": 3,
-                  "freezeMs": 8.55600000000004,
-                  "compileMs": 5.846000000000004,
+                  "freezeMs": 22.284599999999955,
+                  "compileMs": 26.497299999999996,
                   "retainedBytes": 523360,
                   "maxRetainedBytes": 8388608
                 },
                 "conditioned": {
                   "compileCount": 2,
                   "reuseCount": 2,
-                  "freezeMs": 10.465500000000247,
-                  "compileMs": 14.085499999999683,
+                  "freezeMs": 1.6898999999993976,
+                  "compileMs": 44.46070000000054,
                   "peakRetainedBytes": 1039528
                 },
                 "peakRetainedBytes": 1039528,
@@ -9183,7 +9764,7 @@
         "fixed": [
           {
             "perTreeWorkIterations": 16,
-            "elapsedMs": 59.01240000000007,
+            "elapsedMs": 142.2577000000001,
             "originalProfile": {
               "scope": "CURRENT_HAND_COMBINATION_RETURNED_PROFILE",
               "values": [
@@ -9252,7 +9833,7 @@
           },
           {
             "perTreeWorkIterations": 32,
-            "elapsedMs": 45.48859999999968,
+            "elapsedMs": 85.41499999999996,
             "originalProfile": {
               "scope": "CURRENT_HAND_COMBINATION_RETURNED_PROFILE",
               "values": [
@@ -9321,7 +9902,7 @@
           },
           {
             "perTreeWorkIterations": 64,
-            "elapsedMs": 83.9701,
+            "elapsedMs": 116.73120000000017,
             "originalProfile": {
               "scope": "CURRENT_HAND_COMBINATION_RETURNED_PROFILE",
               "values": [
@@ -9389,10 +9970,10 @@
             "checkpointConclusion": "CORE_FIXED_WORK_DIAGNOSTICS_NOT_A_JOB_QUALIFICATION"
           }
         ],
-        "wallMs": 635.6549999999997,
+        "wallMs": 1579.0581999999995,
         "processRSS": {
-          "beforeBytes": 110833664,
-          "sampledPeakBytes": 124510208
+          "beforeBytes": 108593152,
+          "sampledPeakBytes": 119529472
         },
         "coldWarmMathEqual": true
       }
@@ -9420,11 +10001,11 @@
             ],
             "players": [
               {
-                "playerId": "22ca6e67-413b-4810-ab50-2484a2df5472",
+                "playerId": "38d3d318-c4f7-42d6-be85-144bb0f0d09c",
                 "name": "You"
               },
               {
-                "playerId": "8dfb36a4-7860-40be-935f-f25537608026",
+                "playerId": "b510abd0-dbb0-436b-ad85-e96ac4c98e76",
                 "name": "A1"
               }
             ]
@@ -9434,13 +10015,13 @@
               "type": "ACT",
               "actor": 0,
               "action": "CALL",
-              "eventId": "9853e0d4-a640-4e9d-99f0-1a0bba3c5c3d"
+              "eventId": "0211a908-2e7f-4ace-82ca-24fb9f203197"
             },
             {
               "type": "ACT",
               "actor": 1,
               "action": "CHECK",
-              "eventId": "189d592a-eaa7-4156-a633-9cd8693eeba7"
+              "eventId": "f94bc542-14d1-4151-8944-0c248e96e2b0"
             },
             {
               "type": "BOARD",
@@ -9449,19 +10030,19 @@
                 "3h",
                 "4d"
               ],
-              "eventId": "14369170-5ff1-4aa3-b54a-6c4b773584bc"
+              "eventId": "8f1b601a-4266-46da-a834-230843c5f699"
             },
             {
               "type": "ACT",
               "actor": 1,
               "action": "CHECK",
-              "eventId": "dbdf5d37-bcd2-4590-941b-e2fa10cacd29"
+              "eventId": "19e36e15-325b-4df7-8cbf-02189fdaa6c4"
             },
             {
               "type": "ACT",
               "actor": 0,
               "action": "CHECK",
-              "eventId": "87f5f704-bdb1-4565-ac48-8c7ddec9c979"
+              "eventId": "7857423e-e94c-4f7b-a53d-2a21b58c501c"
             },
             {
               "type": "BOARD",
@@ -9471,19 +10052,19 @@
                 "4d",
                 "8c"
               ],
-              "eventId": "bdbbbc47-b8f0-4c97-949d-d67fb428b4b5"
+              "eventId": "4677a249-b6f6-45e3-90aa-55d735ee26c3"
             },
             {
               "type": "ACT",
               "actor": 1,
               "action": "CHECK",
-              "eventId": "71f24975-12d6-4b4b-8414-f596281563c4"
+              "eventId": "8a34cb0d-3baf-4830-a1a7-16e6f7ca6c03"
             },
             {
               "type": "ACT",
               "actor": 0,
               "action": "CHECK",
-              "eventId": "1e3c6efe-18f7-41a3-bb70-82d1c0aa1fde"
+              "eventId": "bc847d90-1ced-4dd3-92c7-9c7507b2ea47"
             },
             {
               "type": "BOARD",
@@ -9494,16 +10075,16 @@
                 "8c",
                 "9s"
               ],
-              "eventId": "b188fb43-4bd2-420f-b02d-d4d29a2e0ad4"
+              "eventId": "e6480b12-201f-4a2c-a3cb-17df0eacd885"
             },
             {
               "type": "ACT",
               "actor": 1,
               "action": "CHECK",
-              "eventId": "accadf90-7fa7-44a7-888f-e1174263d321"
+              "eventId": "a0199691-9441-4c1c-8e8a-62a29ea993ee"
             }
           ],
-          "handId": "f7788c93-f27f-40cb-b38e-81435f44e64c",
+          "handId": "177d9d2c-e487-4413-af2e-6fec5fbf5d71",
           "editEpoch": 0
         },
         "ranges": [
@@ -10181,7 +10762,7 @@
           "maxBuildMs": 750
         }
       },
-      "inputSHA256": "436789022b780821b8b021773f1170cc73d1d1e96ea512a0e96a1393ada6aa17",
+      "inputSHA256": "2794349e96d7f9fedccbcc3f4fb4e310b42681bd216626309e9f6c763933a8b6",
       "contextKey": "dd55c43a6519adad62255db38efbf742a86e016ea3fa01c5ef5b3a7c33c21186",
       "productWorlds": 1024,
       "compatibleWorlds": 1024,
@@ -10190,7 +10771,7 @@
       "requiredReservationBytes": 25174016,
       "status": "READY",
       "reasons": [],
-      "buildMs": 49.36389999999983,
+      "buildMs": 99.8139000000001,
       "completeTreeBuilt": true,
       "currentHandEVAvailable": true,
       "execution": {
@@ -10198,13 +10779,13 @@
           {
             "temperature": "COLD_RUNTIME",
             "cacheHit": false,
-            "firstValueMs": 123.76459999999997,
-            "elapsedMs": 278.91719999999987,
-            "heapBeforeBytes": 8829280,
-            "heapAfterBytes": 16106120,
+            "firstValueMs": 355.8069000000005,
+            "elapsedMs": 646.7491999999993,
+            "heapBeforeBytes": 8850776,
+            "heapAfterBytes": 14992792,
             "progress": [
               {
-                "atMs": 123.76819999999998,
+                "atMs": 355.82630000000063,
                 "status": "APPROXIMATE",
                 "reasons": [],
                 "gameHash": "8c6db68d63bef891f3879fdc505015cedba7529ff4365f6af701588e33b7e8b5",
@@ -10366,15 +10947,15 @@
                       "costs": {
                         "scope": "CUMULATIVE_COMPATIBLE_EXECUTIONS",
                         "computeOnly": true,
-                        "totalMs": 117.60579999999982,
-                        "firstValueMs": 117.60579999999982,
-                        "baseMs": 116.82800000000043,
+                        "totalMs": 332.15599999999995,
+                        "firstValueMs": 332.15599999999995,
+                        "baseMs": 330.1763000000001,
                         "boundsMs": 0,
                         "actionRefinementMs": 0,
-                        "buildMs": 66.41820000000007,
-                        "globalSolveMs": 48.08879999999999,
-                        "globalEvaluationMs": 2.3210000000003674,
-                        "unattributedMs": 0.7777999999993881,
+                        "buildMs": 189.49129999999968,
+                        "globalSolveMs": 131.32819999999992,
+                        "globalEvaluationMs": 9.356800000000476,
+                        "unattributedMs": 1.9796999999998661,
                         "available": [
                           "buildMs",
                           "globalSolveMs",
@@ -10418,12 +10999,12 @@
                 "stopReason": null,
                 "refinementRecommended": true,
                 "costs": {
-                  "buildMs": 66.41820000000007,
-                  "globalSolveMs": 48.08879999999999,
-                  "globalEvaluationMs": 2.3210000000003674,
+                  "buildMs": 189.49129999999968,
+                  "globalSolveMs": 131.32819999999992,
+                  "globalEvaluationMs": 9.356800000000476,
                   "actionSolveMs": 0,
                   "actionCertificateMs": 0,
-                  "totalComputeMs": 117.60579999999982
+                  "totalComputeMs": 332.15599999999995
                 },
                 "estimatedWorkingBytes": 925056,
                 "compilation": {
@@ -10431,8 +11012,8 @@
                   "base": {
                     "compileCount": 1,
                     "reuseCount": 1,
-                    "freezeMs": 13.136600000000271,
-                    "compileMs": 14.320600000000013,
+                    "freezeMs": 35.39940000000024,
+                    "compileMs": 37.601700000000164,
                     "retainedBytes": 925056,
                     "maxRetainedBytes": 8388608
                   },
@@ -10448,7 +11029,7 @@
                 }
               },
               {
-                "atMs": 227.48119999999972,
+                "atMs": 514.1235000000006,
                 "status": "APPROXIMATE",
                 "reasons": [],
                 "gameHash": "8c6db68d63bef891f3879fdc505015cedba7529ff4365f6af701588e33b7e8b5",
@@ -10610,15 +11191,15 @@
                       "costs": {
                         "scope": "CUMULATIVE_COMPATIBLE_EXECUTIONS",
                         "computeOnly": true,
-                        "totalMs": 224.6268,
-                        "firstValueMs": 117.60579999999982,
-                        "baseMs": 116.82800000000043,
-                        "boundsMs": 15.672300000000178,
-                        "actionRefinementMs": 100.79370000000017,
-                        "buildMs": 66.41820000000007,
-                        "globalSolveMs": 48.08879999999999,
-                        "globalEvaluationMs": 2.3210000000003674,
-                        "unattributedMs": 7.005099999999402,
+                        "totalMs": 506.2585999999992,
+                        "firstValueMs": 332.15599999999995,
+                        "baseMs": 330.1763000000001,
+                        "boundsMs": 39.733799999999974,
+                        "actionRefinementMs": 151.13420000000042,
+                        "buildMs": 189.49129999999968,
+                        "globalSolveMs": 131.32819999999992,
+                        "globalEvaluationMs": 9.356800000000476,
+                        "unattributedMs": 24.948099999998703,
                         "available": [
                           "buildMs",
                           "globalSolveMs",
@@ -10662,12 +11243,12 @@
                 "stopReason": null,
                 "refinementRecommended": true,
                 "costs": {
-                  "buildMs": 66.41820000000007,
-                  "globalSolveMs": 48.08879999999999,
-                  "globalEvaluationMs": 2.3210000000003674,
-                  "actionSolveMs": 100.79370000000017,
-                  "actionCertificateMs": 15.672300000000178,
-                  "totalComputeMs": 224.6268
+                  "buildMs": 189.49129999999968,
+                  "globalSolveMs": 131.32819999999992,
+                  "globalEvaluationMs": 9.356800000000476,
+                  "actionSolveMs": 151.13420000000042,
+                  "actionCertificateMs": 39.733799999999974,
+                  "totalComputeMs": 506.2585999999992
                 },
                 "estimatedWorkingBytes": 925056,
                 "compilation": {
@@ -10675,16 +11256,16 @@
                   "base": {
                     "compileCount": 1,
                     "reuseCount": 2,
-                    "freezeMs": 13.136600000000271,
-                    "compileMs": 14.320600000000013,
+                    "freezeMs": 35.39940000000024,
+                    "compileMs": 37.601700000000164,
                     "retainedBytes": 925056,
                     "maxRetainedBytes": 8388608
                   },
                   "conditioned": {
                     "compileCount": 1,
                     "reuseCount": 1,
-                    "freezeMs": 14.227100000000064,
-                    "compileMs": 15.218800000000101,
+                    "freezeMs": 3.4106000000001586,
+                    "compileMs": 34.75450000000001,
                     "peakRetainedBytes": 1840550
                   },
                   "peakRetainedBytes": 1840550,
@@ -10692,7 +11273,7 @@
                 }
               },
               {
-                "atMs": 279.1407999999997,
+                "atMs": 647.5290000000005,
                 "status": "APPROXIMATE",
                 "reasons": [],
                 "gameHash": "8c6db68d63bef891f3879fdc505015cedba7529ff4365f6af701588e33b7e8b5",
@@ -10864,15 +11445,15 @@
                       "costs": {
                         "scope": "CUMULATIVE_COMPATIBLE_EXECUTIONS",
                         "computeOnly": true,
-                        "totalMs": 276.9861000000001,
-                        "firstValueMs": 117.60579999999982,
-                        "baseMs": 116.82800000000043,
-                        "boundsMs": 20.949400000000423,
-                        "actionRefinementMs": 150.88030000000026,
-                        "buildMs": 66.41820000000007,
-                        "globalSolveMs": 48.08879999999999,
-                        "globalEvaluationMs": 2.3210000000003674,
-                        "unattributedMs": 9.277799999999388,
+                        "totalMs": 640.3396999999995,
+                        "firstValueMs": 332.15599999999995,
+                        "baseMs": 330.1763000000001,
+                        "boundsMs": 56.209499999999935,
+                        "actionRefinementMs": 279.6155000000008,
+                        "buildMs": 189.49129999999968,
+                        "globalSolveMs": 131.32819999999992,
+                        "globalEvaluationMs": 9.356800000000476,
+                        "unattributedMs": 30.547899999998663,
                         "available": [
                           "buildMs",
                           "globalSolveMs",
@@ -10916,12 +11497,12 @@
                 "stopReason": null,
                 "refinementRecommended": true,
                 "costs": {
-                  "buildMs": 66.41820000000007,
-                  "globalSolveMs": 48.08879999999999,
-                  "globalEvaluationMs": 2.3210000000003674,
-                  "actionSolveMs": 150.88030000000026,
-                  "actionCertificateMs": 20.949400000000423,
-                  "totalComputeMs": 276.9861000000001
+                  "buildMs": 189.49129999999968,
+                  "globalSolveMs": 131.32819999999992,
+                  "globalEvaluationMs": 9.356800000000476,
+                  "actionSolveMs": 279.6155000000008,
+                  "actionCertificateMs": 56.209499999999935,
+                  "totalComputeMs": 640.3396999999995
                 },
                 "estimatedWorkingBytes": 925056,
                 "compilation": {
@@ -10929,16 +11510,16 @@
                   "base": {
                     "compileCount": 1,
                     "reuseCount": 3,
-                    "freezeMs": 13.136600000000271,
-                    "compileMs": 14.320600000000013,
+                    "freezeMs": 35.39940000000024,
+                    "compileMs": 37.601700000000164,
                     "retainedBytes": 925056,
                     "maxRetainedBytes": 8388608
                   },
                   "conditioned": {
                     "compileCount": 2,
                     "reuseCount": 2,
-                    "freezeMs": 26.56230000000005,
-                    "compileMs": 22.509700000000066,
+                    "freezeMs": 5.755799999999908,
+                    "compileMs": 74.21709999999985,
                     "peakRetainedBytes": 1840552
                   },
                   "peakRetainedBytes": 1840552,
@@ -11118,15 +11699,15 @@
                     "costs": {
                       "scope": "CUMULATIVE_COMPATIBLE_EXECUTIONS",
                       "computeOnly": true,
-                      "totalMs": 278.3804,
-                      "firstValueMs": 117.60579999999982,
-                      "baseMs": 116.82800000000043,
-                      "boundsMs": 20.949400000000423,
-                      "actionRefinementMs": 150.88030000000026,
-                      "buildMs": 66.41820000000007,
-                      "globalSolveMs": 48.08879999999999,
-                      "globalEvaluationMs": 2.3210000000003674,
-                      "unattributedMs": 10.672099999999318,
+                      "totalMs": 644.7360999999992,
+                      "firstValueMs": 332.15599999999995,
+                      "baseMs": 330.1763000000001,
+                      "boundsMs": 56.209499999999935,
+                      "actionRefinementMs": 279.6155000000008,
+                      "buildMs": 189.49129999999968,
+                      "globalSolveMs": 131.32819999999992,
+                      "globalEvaluationMs": 9.356800000000476,
+                      "unattributedMs": 34.94429999999829,
                       "available": [
                         "buildMs",
                         "globalSolveMs",
@@ -11170,12 +11751,12 @@
               "stopReason": "GLOBAL_CONVERGENCE_AND_CERTIFIED_NEAR_EQUIVALENCE",
               "refinementRecommended": false,
               "costs": {
-                "buildMs": 66.41820000000007,
-                "globalSolveMs": 48.08879999999999,
-                "globalEvaluationMs": 2.3210000000003674,
-                "actionSolveMs": 150.88030000000026,
-                "actionCertificateMs": 20.949400000000423,
-                "totalComputeMs": 278.3804
+                "buildMs": 189.49129999999968,
+                "globalSolveMs": 131.32819999999992,
+                "globalEvaluationMs": 9.356800000000476,
+                "actionSolveMs": 279.6155000000008,
+                "actionCertificateMs": 56.209499999999935,
+                "totalComputeMs": 644.7360999999992
               },
               "estimatedWorkingBytes": 925056,
               "compilation": {
@@ -11183,16 +11764,16 @@
                 "base": {
                   "compileCount": 1,
                   "reuseCount": 3,
-                  "freezeMs": 13.136600000000271,
-                  "compileMs": 14.320600000000013,
+                  "freezeMs": 35.39940000000024,
+                  "compileMs": 37.601700000000164,
                   "retainedBytes": 925056,
                   "maxRetainedBytes": 8388608
                 },
                 "conditioned": {
                   "compileCount": 2,
                   "reuseCount": 2,
-                  "freezeMs": 26.56230000000005,
-                  "compileMs": 22.509700000000066,
+                  "freezeMs": 5.755799999999908,
+                  "compileMs": 74.21709999999985,
                   "peakRetainedBytes": 1840552
                 },
                 "peakRetainedBytes": 1840552,
@@ -11203,13 +11784,13 @@
           {
             "temperature": "WARM_RUNTIME_FRESH_JOB",
             "cacheHit": false,
-            "firstValueMs": 68.7768000000001,
-            "elapsedMs": 165.11139999999978,
-            "heapBeforeBytes": 16108808,
-            "heapAfterBytes": 20876456,
+            "firstValueMs": 259.8780999999999,
+            "elapsedMs": 486.8116,
+            "heapBeforeBytes": 14995480,
+            "heapAfterBytes": 17090272,
             "progress": [
               {
-                "atMs": 68.77919999999995,
+                "atMs": 259.8917000000001,
                 "status": "APPROXIMATE",
                 "reasons": [],
                 "gameHash": "8c6db68d63bef891f3879fdc505015cedba7529ff4365f6af701588e33b7e8b5",
@@ -11371,15 +11952,15 @@
                       "costs": {
                         "scope": "CUMULATIVE_COMPATIBLE_EXECUTIONS",
                         "computeOnly": true,
-                        "totalMs": 68.10120000000006,
-                        "firstValueMs": 68.10120000000006,
-                        "baseMs": 67.93750000000045,
+                        "totalMs": 256.9552999999996,
+                        "firstValueMs": 256.9552999999996,
+                        "baseMs": 256.4521999999997,
                         "boundsMs": 0,
                         "actionRefinementMs": 0,
-                        "buildMs": 42.776400000000194,
-                        "globalSolveMs": 24.658900000000358,
-                        "globalEvaluationMs": 0.5021999999999025,
-                        "unattributedMs": 0.16369999999960783,
+                        "buildMs": 145.74029999999948,
+                        "globalSolveMs": 108.86920000000009,
+                        "globalEvaluationMs": 1.8427000000001499,
+                        "unattributedMs": 0.503099999999904,
                         "available": [
                           "buildMs",
                           "globalSolveMs",
@@ -11423,12 +12004,12 @@
                 "stopReason": null,
                 "refinementRecommended": true,
                 "costs": {
-                  "buildMs": 42.776400000000194,
-                  "globalSolveMs": 24.658900000000358,
-                  "globalEvaluationMs": 0.5021999999999025,
+                  "buildMs": 145.74029999999948,
+                  "globalSolveMs": 108.86920000000009,
+                  "globalEvaluationMs": 1.8427000000001499,
                   "actionSolveMs": 0,
                   "actionCertificateMs": 0,
-                  "totalComputeMs": 68.10120000000006
+                  "totalComputeMs": 256.9552999999996
                 },
                 "estimatedWorkingBytes": 925056,
                 "compilation": {
@@ -11436,8 +12017,8 @@
                   "base": {
                     "compileCount": 1,
                     "reuseCount": 1,
-                    "freezeMs": 8.589699999999993,
-                    "compileMs": 7.479600000000119,
+                    "freezeMs": 38.43719999999939,
+                    "compileMs": 44.47909999999956,
                     "retainedBytes": 925056,
                     "maxRetainedBytes": 8388608
                   },
@@ -11453,7 +12034,7 @@
                 }
               },
               {
-                "atMs": 120.02469999999994,
+                "atMs": 394.0673000000006,
                 "status": "APPROXIMATE",
                 "reasons": [],
                 "gameHash": "8c6db68d63bef891f3879fdc505015cedba7529ff4365f6af701588e33b7e8b5",
@@ -11615,15 +12196,15 @@
                       "costs": {
                         "scope": "CUMULATIVE_COMPATIBLE_EXECUTIONS",
                         "computeOnly": true,
-                        "totalMs": 119.21500000000015,
-                        "firstValueMs": 68.10120000000006,
-                        "baseMs": 67.93750000000045,
-                        "boundsMs": 3.1440999999999804,
-                        "actionRefinementMs": 50.33789999999999,
-                        "buildMs": 42.776400000000194,
-                        "globalSolveMs": 24.658900000000358,
-                        "globalEvaluationMs": 0.5021999999999025,
-                        "unattributedMs": 0.9395999999997002,
+                        "totalMs": 391.4890999999998,
+                        "firstValueMs": 256.9552999999996,
+                        "baseMs": 256.4521999999997,
+                        "boundsMs": 15.336499999999432,
+                        "actionRefinementMs": 131.24119999999948,
+                        "buildMs": 145.74029999999948,
+                        "globalSolveMs": 108.86920000000009,
+                        "globalEvaluationMs": 1.8427000000001499,
+                        "unattributedMs": 3.795700000000579,
                         "available": [
                           "buildMs",
                           "globalSolveMs",
@@ -11667,12 +12248,12 @@
                 "stopReason": null,
                 "refinementRecommended": true,
                 "costs": {
-                  "buildMs": 42.776400000000194,
-                  "globalSolveMs": 24.658900000000358,
-                  "globalEvaluationMs": 0.5021999999999025,
-                  "actionSolveMs": 50.33789999999999,
-                  "actionCertificateMs": 3.1440999999999804,
-                  "totalComputeMs": 119.21500000000015
+                  "buildMs": 145.74029999999948,
+                  "globalSolveMs": 108.86920000000009,
+                  "globalEvaluationMs": 1.8427000000001499,
+                  "actionSolveMs": 131.24119999999948,
+                  "actionCertificateMs": 15.336499999999432,
+                  "totalComputeMs": 391.4890999999998
                 },
                 "estimatedWorkingBytes": 925056,
                 "compilation": {
@@ -11680,16 +12261,16 @@
                   "base": {
                     "compileCount": 1,
                     "reuseCount": 2,
-                    "freezeMs": 8.589699999999993,
-                    "compileMs": 7.479600000000119,
+                    "freezeMs": 38.43719999999939,
+                    "compileMs": 44.47909999999956,
                     "retainedBytes": 925056,
                     "maxRetainedBytes": 8388608
                   },
                   "conditioned": {
                     "compileCount": 1,
                     "reuseCount": 1,
-                    "freezeMs": 14.99599999999964,
-                    "compileMs": 8.952899999999772,
+                    "freezeMs": 2.053299999999581,
+                    "compileMs": 40.800999999999476,
                     "peakRetainedBytes": 1840550
                   },
                   "peakRetainedBytes": 1840550,
@@ -11697,7 +12278,7 @@
                 }
               },
               {
-                "atMs": 164.35410000000002,
+                "atMs": 484.2617,
                 "status": "APPROXIMATE",
                 "reasons": [],
                 "gameHash": "8c6db68d63bef891f3879fdc505015cedba7529ff4365f6af701588e33b7e8b5",
@@ -11869,15 +12450,15 @@
                       "costs": {
                         "scope": "CUMULATIVE_COMPATIBLE_EXECUTIONS",
                         "computeOnly": true,
-                        "totalMs": 162.97249999999985,
-                        "firstValueMs": 68.10120000000006,
-                        "baseMs": 67.93750000000045,
-                        "boundsMs": 6.268799999999828,
-                        "actionRefinementMs": 93.16080000000011,
-                        "buildMs": 42.776400000000194,
-                        "globalSolveMs": 24.658900000000358,
-                        "globalEvaluationMs": 0.5021999999999025,
-                        "unattributedMs": 1.8741999999992913,
+                        "totalMs": 480.3751999999995,
+                        "firstValueMs": 256.9552999999996,
+                        "baseMs": 256.4521999999997,
+                        "boundsMs": 26.194199999999,
+                        "actionRefinementMs": 217.1224999999995,
+                        "buildMs": 145.74029999999948,
+                        "globalSolveMs": 108.86920000000009,
+                        "globalEvaluationMs": 1.8427000000001499,
+                        "unattributedMs": 6.800500000000284,
                         "available": [
                           "buildMs",
                           "globalSolveMs",
@@ -11921,12 +12502,12 @@
                 "stopReason": null,
                 "refinementRecommended": true,
                 "costs": {
-                  "buildMs": 42.776400000000194,
-                  "globalSolveMs": 24.658900000000358,
-                  "globalEvaluationMs": 0.5021999999999025,
-                  "actionSolveMs": 93.16080000000011,
-                  "actionCertificateMs": 6.268799999999828,
-                  "totalComputeMs": 162.97249999999985
+                  "buildMs": 145.74029999999948,
+                  "globalSolveMs": 108.86920000000009,
+                  "globalEvaluationMs": 1.8427000000001499,
+                  "actionSolveMs": 217.1224999999995,
+                  "actionCertificateMs": 26.194199999999,
+                  "totalComputeMs": 480.3751999999995
                 },
                 "estimatedWorkingBytes": 925056,
                 "compilation": {
@@ -11934,16 +12515,16 @@
                   "base": {
                     "compileCount": 1,
                     "reuseCount": 3,
-                    "freezeMs": 8.589699999999993,
-                    "compileMs": 7.479600000000119,
+                    "freezeMs": 38.43719999999939,
+                    "compileMs": 44.47909999999956,
                     "retainedBytes": 925056,
                     "maxRetainedBytes": 8388608
                   },
                   "conditioned": {
                     "compileCount": 2,
                     "reuseCount": 2,
-                    "freezeMs": 22.527199999999993,
-                    "compileMs": 19.607300000000123,
+                    "freezeMs": 3.2213999999994485,
+                    "compileMs": 68.34509999999955,
                     "peakRetainedBytes": 1840552
                   },
                   "peakRetainedBytes": 1840552,
@@ -12123,15 +12704,15 @@
                     "costs": {
                       "scope": "CUMULATIVE_COMPATIBLE_EXECUTIONS",
                       "computeOnly": true,
-                      "totalMs": 164.43550000000005,
-                      "firstValueMs": 68.10120000000006,
-                      "baseMs": 67.93750000000045,
-                      "boundsMs": 6.268799999999828,
-                      "actionRefinementMs": 93.16080000000011,
-                      "buildMs": 42.776400000000194,
-                      "globalSolveMs": 24.658900000000358,
-                      "globalEvaluationMs": 0.5021999999999025,
-                      "unattributedMs": 3.337199999999484,
+                      "totalMs": 484.4434000000001,
+                      "firstValueMs": 256.9552999999996,
+                      "baseMs": 256.4521999999997,
+                      "boundsMs": 26.194199999999,
+                      "actionRefinementMs": 217.1224999999995,
+                      "buildMs": 145.74029999999948,
+                      "globalSolveMs": 108.86920000000009,
+                      "globalEvaluationMs": 1.8427000000001499,
+                      "unattributedMs": 10.8687000000009,
                       "available": [
                         "buildMs",
                         "globalSolveMs",
@@ -12175,12 +12756,12 @@
               "stopReason": "GLOBAL_CONVERGENCE_AND_CERTIFIED_NEAR_EQUIVALENCE",
               "refinementRecommended": false,
               "costs": {
-                "buildMs": 42.776400000000194,
-                "globalSolveMs": 24.658900000000358,
-                "globalEvaluationMs": 0.5021999999999025,
-                "actionSolveMs": 93.16080000000011,
-                "actionCertificateMs": 6.268799999999828,
-                "totalComputeMs": 164.43550000000005
+                "buildMs": 145.74029999999948,
+                "globalSolveMs": 108.86920000000009,
+                "globalEvaluationMs": 1.8427000000001499,
+                "actionSolveMs": 217.1224999999995,
+                "actionCertificateMs": 26.194199999999,
+                "totalComputeMs": 484.4434000000001
               },
               "estimatedWorkingBytes": 925056,
               "compilation": {
@@ -12188,16 +12769,16 @@
                 "base": {
                   "compileCount": 1,
                   "reuseCount": 3,
-                  "freezeMs": 8.589699999999993,
-                  "compileMs": 7.479600000000119,
+                  "freezeMs": 38.43719999999939,
+                  "compileMs": 44.47909999999956,
                   "retainedBytes": 925056,
                   "maxRetainedBytes": 8388608
                 },
                 "conditioned": {
                   "compileCount": 2,
                   "reuseCount": 2,
-                  "freezeMs": 22.527199999999993,
-                  "compileMs": 19.607300000000123,
+                  "freezeMs": 3.2213999999994485,
+                  "compileMs": 68.34509999999955,
                   "peakRetainedBytes": 1840552
                 },
                 "peakRetainedBytes": 1840552,
@@ -12209,7 +12790,7 @@
         "fixed": [
           {
             "perTreeWorkIterations": 16,
-            "elapsedMs": 117.29109999999991,
+            "elapsedMs": 235.7505000000001,
             "originalProfile": {
               "scope": "CURRENT_HAND_COMBINATION_RETURNED_PROFILE",
               "values": [
@@ -12278,7 +12859,7 @@
           },
           {
             "perTreeWorkIterations": 32,
-            "elapsedMs": 73.2796000000003,
+            "elapsedMs": 276.27869999999893,
             "originalProfile": {
               "scope": "CURRENT_HAND_COMBINATION_RETURNED_PROFILE",
               "values": [
@@ -12347,7 +12928,7 @@
           },
           {
             "perTreeWorkIterations": 64,
-            "elapsedMs": 82.04819999999972,
+            "elapsedMs": 239.04060000000027,
             "originalProfile": {
               "scope": "CURRENT_HAND_COMBINATION_RETURNED_PROFILE",
               "values": [
@@ -12415,10 +12996,10 @@
             "checkpointConclusion": "CORE_FIXED_WORK_DIAGNOSTICS_NOT_A_JOB_QUALIFICATION"
           }
         ],
-        "wallMs": 837.7718999999997,
+        "wallMs": 2233.6071999999995,
         "processRSS": {
-          "beforeBytes": 110276608,
-          "sampledPeakBytes": 124178432
+          "beforeBytes": 109821952,
+          "sampledPeakBytes": 120983552
         },
         "coldWarmMathEqual": true
       }
@@ -12446,11 +13027,11 @@
             ],
             "players": [
               {
-                "playerId": "528e5e80-96d8-493c-9ac3-2f7b102a4f6f",
+                "playerId": "1e337b73-7d03-4047-bc1e-ec709a844fcb",
                 "name": "You"
               },
               {
-                "playerId": "b37230ee-ff7f-422e-b45c-ea3050c9f955",
+                "playerId": "52395717-bba8-449c-9f9d-557337737711",
                 "name": "A1"
               }
             ]
@@ -12460,13 +13041,13 @@
               "type": "ACT",
               "actor": 0,
               "action": "CALL",
-              "eventId": "5aa8cff9-44c3-49ed-807d-955a5cee71ba"
+              "eventId": "921c7ca5-fd03-4d39-937f-948220ac7329"
             },
             {
               "type": "ACT",
               "actor": 1,
               "action": "CHECK",
-              "eventId": "726dfe55-feed-472a-a1ea-49cbaecd5f41"
+              "eventId": "8fb9e30c-18fa-4fbd-88b7-db3d20b91196"
             },
             {
               "type": "BOARD",
@@ -12475,19 +13056,19 @@
                 "3h",
                 "4d"
               ],
-              "eventId": "2a2d030d-8393-4b0e-9de2-43542d2b0e98"
+              "eventId": "022d885d-47af-4baf-a897-550b28e6eea2"
             },
             {
               "type": "ACT",
               "actor": 1,
               "action": "CHECK",
-              "eventId": "6450837e-d1fe-4eb8-9f3d-e02eeebd59bc"
+              "eventId": "0fab47cc-e2c8-43d4-85cf-69b51deb6f9b"
             },
             {
               "type": "ACT",
               "actor": 0,
               "action": "CHECK",
-              "eventId": "525bdfa9-a3a8-42e6-bf98-529c3432b346"
+              "eventId": "5cfb514f-c5c3-43e2-9cb9-af999c2f6c51"
             },
             {
               "type": "BOARD",
@@ -12497,19 +13078,19 @@
                 "4d",
                 "8c"
               ],
-              "eventId": "974a732b-89d0-4ddb-8679-9dcd71376e7a"
+              "eventId": "45a29fc6-3d3f-4705-bfc6-014152a7d398"
             },
             {
               "type": "ACT",
               "actor": 1,
               "action": "CHECK",
-              "eventId": "dde200e2-6560-4d75-bfa6-447c4bd1c6d4"
+              "eventId": "dfc17838-b812-46ea-a4fc-cacad87239d6"
             },
             {
               "type": "ACT",
               "actor": 0,
               "action": "CHECK",
-              "eventId": "b5f002d5-ddb0-4e0c-98ac-6ac931026ccb"
+              "eventId": "68da571f-3c9d-4188-8fb7-f0c679e1cb06"
             },
             {
               "type": "BOARD",
@@ -12520,16 +13101,16 @@
                 "8c",
                 "9s"
               ],
-              "eventId": "4ee0188d-0ad0-4270-a18d-78a53f6bc60d"
+              "eventId": "33716f00-c295-41bc-aa27-0fdda121b555"
             },
             {
               "type": "ACT",
               "actor": 1,
               "action": "CHECK",
-              "eventId": "ba7202bb-35f1-4ecf-ba67-279138af3fed"
+              "eventId": "68d888ab-194e-41ce-bb00-fb2a39443e05"
             }
           ],
-          "handId": "a2ff1e5e-803a-483d-bc59-ccd462ddf153",
+          "handId": "d2718393-9e30-44d6-8f3c-9ef1cbac2124",
           "editEpoch": 0
         },
         "ranges": [
@@ -13527,7 +14108,7 @@
           "maxBuildMs": 750
         }
       },
-      "inputSHA256": "d36b0127e74d7237c12bdda0628c03e2a4ea78299774985c855bfe478d1bc6c3",
+      "inputSHA256": "ad80321ae431cbdcfa2b8fb279eebc2b787ea794a9af2f92e81335025a2dfcfa",
       "contextKey": "2a5834c2255431a0b9eb4e4312d6eb49454d895afec9bc8cc316fce65acf7936",
       "productWorlds": 2304,
       "compatibleWorlds": 2304,
@@ -13541,14 +14122,13 @@
           "message": "The tree reservation exceeds the memory budget; no partial tree was allocated."
         }
       ],
-      "buildMs": 6.593600000000151,
+      "buildMs": 16.12029999999868,
       "completeTreeBuilt": false,
       "currentHandEVAvailable": false,
       "execution": null
     }
   ],
-  "totalMeasuredComputeMs": 3017.4081999999994,
-  "sourceStable": true,
+  "totalMeasuredComputeMs": 6829.099699999999,
   "sensitivity": [
     {
       "template": "NO_ADDITIONAL_AGGRESSION",
@@ -13589,5 +14169,6 @@
     }
   ],
   "threeWayEVStabilityEstablished": false,
-  "threeWayComparisonLimitation": "48x48 has no complete tree within unchanged guards, so its EV, strategy and commitment bounds are unknown. The24/32 minimal-tree comparison is separate from the larger two-size tree."
+  "threeWayComparisonLimitation": "48x48 has no complete tree within unchanged guards, so its EV, strategy and commitment bounds are unknown. The24/32 minimal-tree comparison is separate from the larger two-size tree.",
+  "sourceStable": true
 }

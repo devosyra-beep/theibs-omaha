@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "classification": "MODEL_INDEPENDENT_LP_AND_EXACT_RATIONAL_POLICY_QA",
-  "generatedAt": "2026-10-01T20:24:40.047Z",
-  "python": "C:/Users/paulo.otavio_involve/AppData/Local/Temp/theibs-lp-reference-venv/Scripts/python.exe",
+  "generatedAt": "2026-10-01T21:03:33.591Z",
+  "python": "C:\\Users\\paulo.otavio_involve\\AppData\\Local\\Temp\\theibs-lp-reference-venv\\Scripts\\python.exe",
   "methodology": "Small valid observed PLO5 HU river ledgers. Independent Omaha ranker and cent payouts; separate SciPy sequence-form primal/dual LP; exhaustive pure-policy best responses evaluated as exact rational arithmetic on normalized supplied binary64 inputs. Production outer bounds and LP point containment use zero added tolerance. LP residual guards apply only to the numerical reference. Current-hand profile EV, ex ante private-information-set commitment values and global convergence remain separate.",
   "exactOracleLimits": {
     "maxNodes": 1600,
@@ -54,11 +54,11 @@
             ],
             "players": [
               {
-                "playerId": "72bfd795-358f-4a6e-b9d6-4c98c380d8ed",
+                "playerId": "3f34adb9-c6ad-4ef9-b451-3d80c8257f82",
                 "name": "You"
               },
               {
-                "playerId": "794137b6-d17a-4abf-8a6a-016ff7f52d49",
+                "playerId": "b984851a-7373-41bb-8c49-39f7576bff28",
                 "name": "A1"
               }
             ]
@@ -198,7 +198,7 @@
         "profileCallEVBB": 30,
         "commitmentCallBB": 30
       },
-      "expectedRevisionKey": "b727fe5d640ebb3280356521d1fdb0233b963013b4a00c5059eb88a96249efde",
+      "expectedRevisionKey": "13844e274159b6337fed26c9e18af788c6f6bbf6ee58b0e24481db72cf6756ee",
       "gameKey": "026cb90a78fdc5392ac14a38793273c690da81e4adb109d0ba84d5e4226e0d39",
       "gameHash": "3fefcba1874e17a37de51949a41200bdea1e63d7e97d38e8b5f9b290d7d22253",
       "heroInformationSet": "0|6c,7d,8h,As,Ts|",
@@ -218,7 +218,7 @@
         "settlementReplays": 1,
         "settlementCacheHits": 2,
         "worlds": 2,
-        "buildMs": 34.22199999999998
+        "buildMs": 54.56809999999996
       },
       "independentTerminalAudit": {
         "worlds": 2,
@@ -245,7 +245,7 @@
         "status": "APPROXIMATE",
         "decisionStatus": "CONCLUSIVE",
         "stopReason": "GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION",
-        "workerMs": 34.44849999999997,
+        "workerMs": 60.46589999999992,
         "compilationReuse": false
       },
       "fixedBudget": {
@@ -276,14 +276,14 @@
           }
         ],
         "costs": {
-          "buildMs": 6.907400000000052,
-          "globalSolveMs": 2.2930000000000064,
-          "globalEvaluationMs": 0.19860000000005584,
-          "actionSolveMs": 3.0265000000000555,
-          "actionCertificateMs": 0.4758999999999105,
-          "totalComputeMs": 16.623299999999972
+          "buildMs": 8.292100000000119,
+          "globalSolveMs": 3.499900000000025,
+          "globalEvaluationMs": 0.3204999999998108,
+          "actionSolveMs": 4.001300000000128,
+          "actionCertificateMs": 0.7097000000001117,
+          "totalComputeMs": 24.225000000000136
         },
-        "workerMs": 17.41610000000003,
+        "workerMs": 25.480999999999995,
         "baseContextKey": "8db291d6f6c89962f89091d91f1a72da0b57832073cabfd710b518149b45322a",
         "trustedCompilationReuse": true
       },
@@ -526,15 +526,15 @@
           ],
           "payoffNonzeros": 2,
           "estimatedSparseBytes": 120,
-          "compileMs": 2.0334000000730157,
-          "totalMs": 41.613300010794774,
+          "compileMs": 8.651199983432889,
+          "totalMs": 105.20630000974052,
           "lpIterations": [
             0,
             0
           ],
-          "pythonTracedPeakBytes": 69416,
+          "pythonTracedPeakBytes": 69734,
           "peakProcessMemory": {
-            "bytes": 77230080,
+            "bytes": 77553664,
             "method": "WINDOWS_PEAK_WORKING_SET_PROCESS_LIFETIME"
           },
           "memoryNote": "Python tracemalloc excludes native HiGHS/BLAS allocations; sparse-byte estimate is not process RSS."
@@ -568,7 +568,7 @@
           "separationGuardBB": 1.0658141036401509e-13
         }
       ],
-      "elapsedMs": 5615.749900000001
+      "elapsedMs": 10473.3754
     },
     {
       "id": "marginal_positive_call",
@@ -596,11 +596,11 @@
             ],
             "players": [
               {
-                "playerId": "18efbe55-75db-4afc-bdae-938f808ad9ed",
+                "playerId": "70926359-2540-42e3-9a5c-c8cd3f7c00e7",
                 "name": "You"
               },
               {
-                "playerId": "5fd4b1d4-e68a-41cd-b1f4-4b29e60a2f00",
+                "playerId": "01c17917-3e43-416d-93da-41d9fca5d028",
                 "name": "A1"
               }
             ]
@@ -739,7 +739,7 @@
       "expectation": {
         "profileCallEVBB": 2
       },
-      "expectedRevisionKey": "43c7dab646228a4fa76a99320631fb44178ed650c4d0ff7821c1fb40498c0e24",
+      "expectedRevisionKey": "f59a4fd3a6562ac59f5399c1011394e8a98c0db18eb5c5533c92a7fd264eff4b",
       "gameKey": "3b6f679564c3436639b4047f5de2e30a5a0313fcb01448ab8c61c4ff6651395e",
       "gameHash": "543f8661e626af60f40f2c123968f906cc40f2ee8b50eef6a036093cb4eff8be",
       "heroInformationSet": "0|Ah,As,Kd,Qc,Tc|",
@@ -759,7 +759,7 @@
         "settlementReplays": 2,
         "settlementCacheHits": 1,
         "worlds": 2,
-        "buildMs": 10.85320000000047
+        "buildMs": 9.640600000000632
       },
       "independentTerminalAudit": {
         "worlds": 2,
@@ -786,7 +786,7 @@
         "status": "APPROXIMATE",
         "decisionStatus": "CONCLUSIVE",
         "stopReason": "GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION",
-        "workerMs": 11.623999999999796,
+        "workerMs": 12.442900000000009,
         "compilationReuse": false
       },
       "fixedBudget": {
@@ -817,14 +817,14 @@
           }
         ],
         "costs": {
-          "buildMs": 5.49579999999969,
-          "globalSolveMs": 0.6705000000001746,
-          "globalEvaluationMs": 0.08759999999983847,
-          "actionSolveMs": 1.7030000000013388,
-          "actionCertificateMs": 0.2349999999987631,
-          "totalComputeMs": 9.879699999999502
+          "buildMs": 5.029099999999744,
+          "globalSolveMs": 0.7160000000003492,
+          "globalEvaluationMs": 0.08539999999993597,
+          "actionSolveMs": 2.033400000000256,
+          "actionCertificateMs": 0.23389999999926658,
+          "totalComputeMs": 9.596999999999753
         },
-        "workerMs": 10.28189999999995,
+        "workerMs": 10.028999999998632,
         "baseContextKey": "8b278b655e4267ee0b5bab30099b62072da8f518bacda7a88f1db3293b98a2e1",
         "trustedCompilationReuse": true
       },
@@ -1067,15 +1067,15 @@
           ],
           "payoffNonzeros": 2,
           "estimatedSparseBytes": 120,
-          "compileMs": 4.640200000721961,
-          "totalMs": 58.59619998955168,
+          "compileMs": 2.8255999786779284,
+          "totalMs": 54.01729998993687,
           "lpIterations": [
             0,
             0
           ],
-          "pythonTracedPeakBytes": 69474,
+          "pythonTracedPeakBytes": 69449,
           "peakProcessMemory": {
-            "bytes": 77246464,
+            "bytes": 77361152,
             "method": "WINDOWS_PEAK_WORKING_SET_PROCESS_LIFETIME"
           },
           "memoryNote": "Python tracemalloc excludes native HiGHS/BLAS allocations; sparse-byte estimate is not process RSS."
@@ -1109,7 +1109,7 @@
           "separationGuardBB": 7.105427357601044e-15
         }
       ],
-      "elapsedMs": 6390.834199999999
+      "elapsedMs": 6863.4732
     },
     {
       "id": "marginal_true_action_tie",
@@ -1137,11 +1137,11 @@
             ],
             "players": [
               {
-                "playerId": "b4abeba4-77f8-4114-b831-78ea710273c1",
+                "playerId": "0ef41d95-8f0a-479c-bac9-3c72d884a1f2",
                 "name": "You"
               },
               {
-                "playerId": "01a15780-05c5-4a42-8af6-9d2f5b2447b3",
+                "playerId": "cae48aa6-0e26-4421-9044-0e3923acf702",
                 "name": "A1"
               }
             ]
@@ -1281,7 +1281,7 @@
         "profileCallEVBB": 0,
         "trueActionTie": true
       },
-      "expectedRevisionKey": "767136a1894cef7a2f3bb6b0692174b3fd9090768d7c0221803f5021f4a3d158",
+      "expectedRevisionKey": "230b3a1beb8bd828e475b1b93332edea87a2374b5e3bdf63118e86b4889a7be5",
       "gameKey": "651ab55a7005981a9e06251fdbc758f35b9b191ba91e957aa7397edcac7aaf7c",
       "gameHash": "a8c04b3c70cf8c1bb67d210c866b1d61add652e8cea6ae6178707627afefefb7",
       "heroInformationSet": "0|Ah,As,Kd,Qc,Tc|",
@@ -1301,7 +1301,7 @@
         "settlementReplays": 2,
         "settlementCacheHits": 1,
         "worlds": 2,
-        "buildMs": 9.97189999999864
+        "buildMs": 8.715000000000146
       },
       "independentTerminalAudit": {
         "worlds": 2,
@@ -1328,7 +1328,7 @@
         "status": "APPROXIMATE",
         "decisionStatus": "INCONCLUSIVE",
         "stopReason": "GLOBAL_CONVERGENCE_AND_CERTIFIED_NEAR_EQUIVALENCE",
-        "workerMs": 19.220799999999144,
+        "workerMs": 14.557499999998981,
         "compilationReuse": false
       },
       "fixedBudget": {
@@ -1359,14 +1359,14 @@
           }
         ],
         "costs": {
-          "buildMs": 10.341700000000856,
-          "globalSolveMs": 0.7170999999998457,
-          "globalEvaluationMs": 0.10989999999947031,
-          "actionSolveMs": 1.7279000000016822,
-          "actionCertificateMs": 0.22779999999875145,
-          "totalComputeMs": 15.801800000001094
+          "buildMs": 7.888699999999517,
+          "globalSolveMs": 0.5406999999977415,
+          "globalEvaluationMs": 0.07449999999880674,
+          "actionSolveMs": 1.6847000000016124,
+          "actionCertificateMs": 0.23110000000087894,
+          "totalComputeMs": 12.460399999999936
         },
-        "workerMs": 16.670600000001286,
+        "workerMs": 13.064900000001217,
         "baseContextKey": "5c261c2d51b2bf3fafacb8403fd36bc38cbbb0ed02050484190e307c20ff920e",
         "trustedCompilationReuse": true
       },
@@ -1609,15 +1609,15 @@
           ],
           "payoffNonzeros": 2,
           "estimatedSparseBytes": 120,
-          "compileMs": 3.207899979315698,
-          "totalMs": 57.790899998508394,
+          "compileMs": 2.6548999885562807,
+          "totalMs": 47.35320000327192,
           "lpIterations": [
             0,
             0
           ],
-          "pythonTracedPeakBytes": 69299,
+          "pythonTracedPeakBytes": 69545,
           "peakProcessMemory": {
-            "bytes": 77066240,
+            "bytes": 77361152,
             "method": "WINDOWS_PEAK_WORKING_SET_PROCESS_LIFETIME"
           },
           "memoryNote": "Python tracemalloc excludes native HiGHS/BLAS allocations; sparse-byte estimate is not process RSS."
@@ -1651,7 +1651,7 @@
           "separationGuardBB": 3.552713678800501e-15
         }
       ],
-      "elapsedMs": 6930.781700000001
+      "elapsedMs": 6097.195800000001
     },
     {
       "id": "marginal_negative_call",
@@ -1679,11 +1679,11 @@
             ],
             "players": [
               {
-                "playerId": "96920c88-4031-4d96-9b53-7a8106c16448",
+                "playerId": "d1b4ec23-7d73-4167-a420-59c117d01f5f",
                 "name": "You"
               },
               {
-                "playerId": "a0bd27f9-4555-49d4-a8c4-cb58d8b7b1b8",
+                "playerId": "f2ee7d06-ef00-430d-9d2d-4051fff528c7",
                 "name": "A1"
               }
             ]
@@ -1822,7 +1822,7 @@
       "expectation": {
         "profileCallEVBB": -2
       },
-      "expectedRevisionKey": "28445f11fbbe5339eea8c650d8d789a717c286dbf687bf3837c6fdc25335ee54",
+      "expectedRevisionKey": "99624f692976f7ce34b2313b1c76a1c001af3f220df9d14232b231b0c523c084",
       "gameKey": "ce83834e2e579fd12c72272c56453a4cef49628a7192a929e6c0b8b76e094c10",
       "gameHash": "7fdad61150831b73aa7f40e14c2175af17fd1b1f580108e74a163826d90cc0bb",
       "heroInformationSet": "0|Ah,As,Kd,Qc,Tc|",
@@ -1842,7 +1842,7 @@
         "settlementReplays": 2,
         "settlementCacheHits": 1,
         "worlds": 2,
-        "buildMs": 9.75760000000082
+        "buildMs": 7.325700000001234
       },
       "independentTerminalAudit": {
         "worlds": 2,
@@ -1869,7 +1869,7 @@
         "status": "APPROXIMATE",
         "decisionStatus": "CONCLUSIVE",
         "stopReason": "GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION",
-        "workerMs": 18.05869999999777,
+        "workerMs": 11.36250000000291,
         "compilationReuse": false
       },
       "fixedBudget": {
@@ -1900,14 +1900,14 @@
           }
         ],
         "costs": {
-          "buildMs": 12.94419999999809,
-          "globalSolveMs": 1.0302999999985332,
-          "globalEvaluationMs": 0.1532999999981257,
-          "actionSolveMs": 2.8497999999999593,
-          "actionCertificateMs": 0.39750000000276486,
-          "totalComputeMs": 22.465799999998126
+          "buildMs": 6.458099999999831,
+          "globalSolveMs": 0.7548999999999069,
+          "globalEvaluationMs": 0.09569999999803258,
+          "actionSolveMs": 1.947599999995873,
+          "actionCertificateMs": 0.198500000002241,
+          "totalComputeMs": 11.31329999999798
         },
-        "workerMs": 24.23790000000008,
+        "workerMs": 11.810299999997369,
         "baseContextKey": "d2ab01cade9fe2ade992d31d197a5728b393c77996c2da3b6b1f1cacf869bf54",
         "trustedCompilationReuse": true
       },
@@ -2150,15 +2150,15 @@
           ],
           "payoffNonzeros": 2,
           "estimatedSparseBytes": 120,
-          "compileMs": 3.09360001119785,
-          "totalMs": 61.21119999443181,
+          "compileMs": 2.612199983559549,
+          "totalMs": 45.7520000054501,
           "lpIterations": [
             0,
             0
           ],
-          "pythonTracedPeakBytes": 69521,
+          "pythonTracedPeakBytes": 69576,
           "peakProcessMemory": {
-            "bytes": 77492224,
+            "bytes": 77295616,
             "method": "WINDOWS_PEAK_WORKING_SET_PROCESS_LIFETIME"
           },
           "memoryNote": "Python tracemalloc excludes native HiGHS/BLAS allocations; sparse-byte estimate is not process RSS."
@@ -2192,7 +2192,7 @@
           "separationGuardBB": 7.105427357601155e-15
         }
       ],
-      "elapsedMs": 7079.1168
+      "elapsedMs": 5626.055799999998
     },
     {
       "id": "fixed_rake_changes_preferred_action",
@@ -2220,11 +2220,11 @@
             ],
             "players": [
               {
-                "playerId": "34c50588-f242-4aa0-859c-93b6c393c179",
+                "playerId": "1b0c747f-b81d-4f05-bd7d-0b6bafdb1bf7",
                 "name": "You"
               },
               {
-                "playerId": "af7c6c89-e8dd-4f97-b2e7-d3e595ab9c31",
+                "playerId": "af1e51d2-7b0e-4710-a237-7004f0a329e7",
                 "name": "A1"
               }
             ]
@@ -2363,7 +2363,7 @@
       "expectation": {
         "profileCallEVBB": -0.4
       },
-      "expectedRevisionKey": "405ad4abae913858bc3a789391588e0637c7139a1f6ed07f5dfb6fb59b7204d9",
+      "expectedRevisionKey": "a383a4a6ec1afe7e3892abfe3adcb934abe88e598c3da55066f109a2510b6a07",
       "gameKey": "5c52a434355fa02cbc1955e777467c47a56c95833622d142350522db2e28e76e",
       "gameHash": "28108ddb265b8e0c6669cb177dd48b31d940b3564ffe065ea823907d50dc672c",
       "heroInformationSet": "0|Ah,As,Kd,Qc,Tc|",
@@ -2383,7 +2383,7 @@
         "settlementReplays": 2,
         "settlementCacheHits": 1,
         "worlds": 2,
-        "buildMs": 10.197199999998702
+        "buildMs": 6.687900000000809
       },
       "independentTerminalAudit": {
         "worlds": 2,
@@ -2410,7 +2410,7 @@
         "status": "APPROXIMATE",
         "decisionStatus": "CONCLUSIVE",
         "stopReason": "GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION",
-        "workerMs": 19.363299999997253,
+        "workerMs": 13.842499999998836,
         "compilationReuse": false
       },
       "fixedBudget": {
@@ -2441,14 +2441,14 @@
           }
         ],
         "costs": {
-          "buildMs": 7.477900000001682,
-          "globalSolveMs": 0.8296000000009371,
-          "globalEvaluationMs": 0.06129999999757274,
-          "actionSolveMs": 2.431400000001304,
-          "actionCertificateMs": 0.31829999999899883,
-          "totalComputeMs": 14.023700000001554
+          "buildMs": 7.544399999998859,
+          "globalSolveMs": 0.4691000000020722,
+          "globalEvaluationMs": 0.053599999999278225,
+          "actionSolveMs": 1.8686999999990803,
+          "actionCertificateMs": 0.3598999999994703,
+          "totalComputeMs": 12.344600000000355
         },
-        "workerMs": 15.906100000000151,
+        "workerMs": 13.59519999999975,
         "baseContextKey": "1697925a1f0527bc5f1cf5e50246f8aa71238e211b8381319b4dfe1b4058a847",
         "trustedCompilationReuse": true
       },
@@ -2691,15 +2691,15 @@
           ],
           "payoffNonzeros": 2,
           "estimatedSparseBytes": 120,
-          "compileMs": 3.371700004208833,
-          "totalMs": 63.337999978102744,
+          "compileMs": 5.907400016440079,
+          "totalMs": 64.7303000150714,
           "lpIterations": [
             0,
             0
           ],
-          "pythonTracedPeakBytes": 69481,
+          "pythonTracedPeakBytes": 69695,
           "peakProcessMemory": {
-            "bytes": 77529088,
+            "bytes": 77103104,
             "method": "WINDOWS_PEAK_WORKING_SET_PROCESS_LIFETIME"
           },
           "memoryNote": "Python tracemalloc excludes native HiGHS/BLAS allocations; sparse-byte estimate is not process RSS."
@@ -2733,7 +2733,7 @@
           "separationGuardBB": 3.552713678800501e-15
         }
       ],
-      "elapsedMs": 7282.767399999997
+      "elapsedMs": 7085.576799999999
     },
     {
       "id": "decimal_fixed_rake",
@@ -2761,11 +2761,11 @@
             ],
             "players": [
               {
-                "playerId": "557cc9c5-9d50-4dcb-9983-e00b52553edb",
+                "playerId": "deb2d1a5-9f9c-4fdc-8b00-f1a3ef4b961e",
                 "name": "You"
               },
               {
-                "playerId": "1b6dbe03-49a6-49b2-8ffe-0720ec32b237",
+                "playerId": "500ad9db-08de-4b0e-907c-2c1211a76ccd",
                 "name": "A1"
               }
             ]
@@ -2904,7 +2904,7 @@
       "expectation": {
         "profileCallEVBB": 1.91
       },
-      "expectedRevisionKey": "d52e42611e3ae6d2bccf2409e1116a966937838fbc313f4e82b0e2d0691ccb30",
+      "expectedRevisionKey": "de23789cfe56a27594d79179cbda5404c9e74af13b6c6c6c367119923bc8a25e",
       "gameKey": "123c48a566f3ba3f762806abdd3dbffdf3e469b64faacd7d8643fdf74c7410cb",
       "gameHash": "a322ac1aa787102ac02b73d996b2dc5959b6b07c3d73e6af4e652f544a727b0d",
       "heroInformationSet": "0|Ah,As,Kd,Qc,Tc|",
@@ -2924,7 +2924,7 @@
         "settlementReplays": 2,
         "settlementCacheHits": 1,
         "worlds": 2,
-        "buildMs": 8.368399999999383
+        "buildMs": 9.894899999999325
       },
       "independentTerminalAudit": {
         "worlds": 2,
@@ -2951,7 +2951,7 @@
         "status": "APPROXIMATE",
         "decisionStatus": "CONCLUSIVE",
         "stopReason": "GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION",
-        "workerMs": 21.652799999996205,
+        "workerMs": 20.770200000006298,
         "compilationReuse": false
       },
       "fixedBudget": {
@@ -2982,14 +2982,14 @@
           }
         ],
         "costs": {
-          "buildMs": 11.113199999999779,
-          "globalSolveMs": 0.8732000000018161,
-          "globalEvaluationMs": 0.059300000000803266,
-          "actionSolveMs": 2.275099999998929,
-          "actionCertificateMs": 0.28409999999712454,
-          "totalComputeMs": 16.790499999995518
+          "buildMs": 10.942399999999907,
+          "globalSolveMs": 1.0115999999979977,
+          "globalEvaluationMs": 0.060299999997369014,
+          "actionSolveMs": 2.423900000001595,
+          "actionCertificateMs": 0.2948000000033062,
+          "totalComputeMs": 17.119999999995343
         },
-        "workerMs": 18.506000000001222,
+        "workerMs": 18.95679999999993,
         "baseContextKey": "0c745baa9bd39c5231eb7187b803ba79cb5ea6d554cbc7b933a190984d2013a1",
         "trustedCompilationReuse": true
       },
@@ -3232,15 +3232,15 @@
           ],
           "payoffNonzeros": 2,
           "estimatedSparseBytes": 120,
-          "compileMs": 4.106200009118766,
-          "totalMs": 58.36049999925308,
+          "compileMs": 7.1140999789349735,
+          "totalMs": 82.55079999798909,
           "lpIterations": [
             0,
             0
           ],
-          "pythonTracedPeakBytes": 69692,
+          "pythonTracedPeakBytes": 69813,
           "peakProcessMemory": {
-            "bytes": 77135872,
+            "bytes": 77209600,
             "method": "WINDOWS_PEAK_WORKING_SET_PROCESS_LIFETIME"
           },
           "memoryNote": "Python tracemalloc excludes native HiGHS/BLAS allocations; sparse-byte estimate is not process RSS."
@@ -3274,7 +3274,7 @@
           "separationGuardBB": 6.785683126508993e-15
         }
       ],
-      "elapsedMs": 7252.063199999997
+      "elapsedMs": 7172.670300000005
     },
     {
       "id": "equal_straights_split_pot",
@@ -3301,11 +3301,11 @@
             ],
             "players": [
               {
-                "playerId": "64f74750-34a9-4d12-866b-3903a91b9e71",
+                "playerId": "57222c6e-307a-45bf-986a-429dc4783bde",
                 "name": "You"
               },
               {
-                "playerId": "a829f329-57bb-46ce-b33b-cc21b46a8cad",
+                "playerId": "dc8eecc1-69b1-4b26-a7ae-8bb81e93f310",
                 "name": "A1"
               }
             ]
@@ -3435,7 +3435,7 @@
         "profileCallEVBB": 10,
         "tiedShowdown": true
       },
-      "expectedRevisionKey": "7e714343629c20241235fc42a171a11598fa2ded3d179a8f01152ae429137ddb",
+      "expectedRevisionKey": "714d20b698de8d4c3d0269912d0d312cdfe128ac238c1783cabeec26c276bf85",
       "gameKey": "29fcd88c9bdec7ca2ceb37932fa9b01bd12735a90205c9d902be573a6e4b6fa2",
       "gameHash": "3fdab51319280983cbb12aa15b005c848468f83f6dbcd72cd20297d19f7e0bfa",
       "heroInformationSet": "0|5s,6s,As,Kh,Tc|",
@@ -3455,7 +3455,7 @@
         "settlementReplays": 1,
         "settlementCacheHits": 0,
         "worlds": 1,
-        "buildMs": 9.571700000000419
+        "buildMs": 6.270400000001246
       },
       "independentTerminalAudit": {
         "worlds": 1,
@@ -3482,7 +3482,7 @@
         "status": "APPROXIMATE",
         "decisionStatus": "CONCLUSIVE",
         "stopReason": "GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION",
-        "workerMs": 15.986500000006345,
+        "workerMs": 15.055399999997462,
         "compilationReuse": false
       },
       "fixedBudget": {
@@ -3513,14 +3513,14 @@
           }
         ],
         "costs": {
-          "buildMs": 7.386899999997695,
-          "globalSolveMs": 1.085800000000745,
-          "globalEvaluationMs": 0.06339999999909196,
-          "actionSolveMs": 1.923399999999674,
-          "actionCertificateMs": 0.19690000000264263,
-          "totalComputeMs": 14.159299999999348
+          "buildMs": 6.657900000005611,
+          "globalSolveMs": 0.8679000000047381,
+          "globalEvaluationMs": 0.05099999999947613,
+          "actionSolveMs": 1.4840999999942142,
+          "actionCertificateMs": 0.1518999999971129,
+          "totalComputeMs": 11.54960000000574
         },
-        "workerMs": 15.457199999997101,
+        "workerMs": 12.203200000003562,
         "baseContextKey": "a3f7e67981fcdffb614238bec38eff92af6186f6d079f9adf650dfeb077836c1",
         "trustedCompilationReuse": true
       },
@@ -3763,15 +3763,15 @@
           ],
           "payoffNonzeros": 2,
           "estimatedSparseBytes": 120,
-          "compileMs": 3.422799985855818,
-          "totalMs": 69.28629998583347,
+          "compileMs": 2.896199992392212,
+          "totalMs": 60.87359998491593,
           "lpIterations": [
             0,
             0
           ],
-          "pythonTracedPeakBytes": 66845,
+          "pythonTracedPeakBytes": 66806,
           "peakProcessMemory": {
-            "bytes": 77377536,
+            "bytes": 77242368,
             "method": "WINDOWS_PEAK_WORKING_SET_PROCESS_LIFETIME"
           },
           "memoryNote": "Python tracemalloc excludes native HiGHS/BLAS allocations; sparse-byte estimate is not process RSS."
@@ -3805,7 +3805,7 @@
           "separationGuardBB": 3.552713678800502e-14
         }
       ],
-      "elapsedMs": 7587.891300000003
+      "elapsedMs": 6724.635199999997
     },
     {
       "id": "joint_blockers_nonuniform_prior",
@@ -3834,11 +3834,11 @@
             ],
             "players": [
               {
-                "playerId": "ee503180-8086-4329-a5c9-b0d5ff90528d",
+                "playerId": "fce6e526-e3b9-4856-92a5-e91a458beb6b",
                 "name": "You"
               },
               {
-                "playerId": "f6a6e36e-0abb-484a-b52e-6df23ca54a19",
+                "playerId": "8bad1202-1dd2-4629-91a9-c92027aae417",
                 "name": "A1"
               }
             ]
@@ -3988,7 +3988,7 @@
         "distinctProfileAndCommitment": true,
         "expectedWorlds": 3
       },
-      "expectedRevisionKey": "d3e72f3ea433d8a0b41ae50f575ebbd2b5d7f55b97a4c9df2f9110a0b0330e23",
+      "expectedRevisionKey": "3855e6bd91681292c1eff2ea57a1c2480add53d0c416b79e1b55764860e610f7",
       "gameKey": "045cfd255915435ff0e1a444ddb54ee7dcb2e1f04990bf30122ce9701c279679",
       "gameHash": "36f3f18609eb479df189a2d58067e2c29e01cefc8e28aed8a7895919981eda08",
       "heroInformationSet": "0|Ah,As,Kd,Qc,Tc|",
@@ -4008,7 +4008,7 @@
         "settlementReplays": 2,
         "settlementCacheHits": 3,
         "worlds": 3,
-        "buildMs": 13.08169999999518
+        "buildMs": 10.46929999999702
       },
       "independentTerminalAudit": {
         "worlds": 3,
@@ -4035,7 +4035,7 @@
         "status": "APPROXIMATE",
         "decisionStatus": "CONCLUSIVE",
         "stopReason": "GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION",
-        "workerMs": 27.60990000000311,
+        "workerMs": 17.482199999998556,
         "compilationReuse": false
       },
       "fixedBudget": {
@@ -4066,14 +4066,14 @@
           }
         ],
         "costs": {
-          "buildMs": 26.995300000002317,
-          "globalSolveMs": 3.526400000002468,
-          "globalEvaluationMs": 0.2077999999964959,
-          "actionSolveMs": 5.673800000004121,
-          "actionCertificateMs": 0.37079999999696156,
-          "totalComputeMs": 40.81459999999788
+          "buildMs": 9.36069999999745,
+          "globalSolveMs": 1.5677000000068801,
+          "globalEvaluationMs": 0.08260000000154832,
+          "actionSolveMs": 2.5838999999978114,
+          "actionCertificateMs": 0.3286000000007334,
+          "totalComputeMs": 16.72679999999673
         },
-        "workerMs": 42.15200000000186,
+        "workerMs": 17.292799999995623,
         "baseContextKey": "2abd4f76cd4501216adaa37487c8ca1baf5b494d894f77457d1a8fbf0d5ede78",
         "trustedCompilationReuse": true
       },
@@ -4316,15 +4316,15 @@
           ],
           "payoffNonzeros": 4,
           "estimatedSparseBytes": 192,
-          "compileMs": 3.1567999976687133,
-          "totalMs": 56.13669997546822,
+          "compileMs": 3.240999998524785,
+          "totalMs": 48.123399988980964,
           "lpIterations": [
             0,
             0
           ],
-          "pythonTracedPeakBytes": 73211,
+          "pythonTracedPeakBytes": 73184,
           "peakProcessMemory": {
-            "bytes": 77148160,
+            "bytes": 77520896,
             "method": "WINDOWS_PEAK_WORKING_SET_PROCESS_LIFETIME"
           },
           "memoryNote": "Python tracemalloc excludes native HiGHS/BLAS allocations; sparse-byte estimate is not process RSS."
@@ -4358,7 +4358,7 @@
           "separationGuardBB": 6.51330841113426e-14
         }
       ],
-      "elapsedMs": 7204.7039
+      "elapsedMs": 6186.698500000006
     },
     {
       "id": "board_blocked_mass_excluded",
@@ -4386,11 +4386,11 @@
             ],
             "players": [
               {
-                "playerId": "c7793e52-26fe-4457-9e84-0b7796ab258d",
+                "playerId": "94f74dc5-7af5-43e0-9a9f-1c402f463198",
                 "name": "You"
               },
               {
-                "playerId": "63b14cf3-5c75-4bfa-b162-cb6a2bb44f30",
+                "playerId": "24d6b054-3c2f-47bf-b022-2356ec269740",
                 "name": "A1"
               }
             ]
@@ -4540,7 +4540,7 @@
         "profileCallEVBB": 2,
         "expectedWorlds": 2
       },
-      "expectedRevisionKey": "415dee46497919aedb1f879ba7ccd3db0468fbb1499924c390fe0fa3a5650abe",
+      "expectedRevisionKey": "19d4cffeb6666983d7aa43f3ca4f293f9b1eb2223ea10f7263dba916b678003d",
       "gameKey": "6cab7f95ee36f8703b30e75430e9ed60718523777b0c9759dfff9e3026b8cf56",
       "gameHash": "585deb75decd602a785ed2a18795e09805f7e7e4291da19d34c23ffc702511e2",
       "heroInformationSet": "0|Ah,As,Kd,Qc,Tc|",
@@ -4560,7 +4560,7 @@
         "settlementReplays": 2,
         "settlementCacheHits": 1,
         "worlds": 2,
-        "buildMs": 14.15280000000348
+        "buildMs": 9.135800000003655
       },
       "independentTerminalAudit": {
         "worlds": 2,
@@ -4587,7 +4587,7 @@
         "status": "APPROXIMATE",
         "decisionStatus": "CONCLUSIVE",
         "stopReason": "GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION",
-        "workerMs": 20.768300000003364,
+        "workerMs": 10.313099999999395,
         "compilationReuse": false
       },
       "fixedBudget": {
@@ -4618,14 +4618,14 @@
           }
         ],
         "costs": {
-          "buildMs": 12.1021999999939,
-          "globalSolveMs": 1.0453999999954249,
-          "globalEvaluationMs": 0.07440000000497093,
-          "actionSolveMs": 2.3075000000026193,
-          "actionCertificateMs": 0.3084000000017113,
-          "totalComputeMs": 18.43399999999383
+          "buildMs": 5.659599999999045,
+          "globalSolveMs": 0.8003000000026077,
+          "globalEvaluationMs": 0.041199999999662396,
+          "actionSolveMs": 1.2920999999987544,
+          "actionCertificateMs": 0.17040000000270084,
+          "totalComputeMs": 9.455300000001444
         },
-        "workerMs": 19.843399999997928,
+        "workerMs": 9.876499999998487,
         "baseContextKey": "db86247232dd88662106c8533dfe31a6234eaf4f654381723d7aa1b99b252d8a",
         "trustedCompilationReuse": true
       },
@@ -4868,15 +4868,15 @@
           ],
           "payoffNonzeros": 2,
           "estimatedSparseBytes": 120,
-          "compileMs": 3.274899994721636,
-          "totalMs": 51.609700021799654,
+          "compileMs": 2.6111000042874366,
+          "totalMs": 43.891900015296414,
           "lpIterations": [
             0,
             0
           ],
-          "pythonTracedPeakBytes": 70098,
+          "pythonTracedPeakBytes": 69688,
           "peakProcessMemory": {
-            "bytes": 77250560,
+            "bytes": 77553664,
             "method": "WINDOWS_PEAK_WORKING_SET_PROCESS_LIFETIME"
           },
           "memoryNote": "Python tracemalloc excludes native HiGHS/BLAS allocations; sparse-byte estimate is not process RSS."
@@ -4910,7 +4910,7 @@
           "separationGuardBB": 7.105427357601044e-15
         }
       ],
-      "elapsedMs": 7543.645499999999
+      "elapsedMs": 6859.559800000003
     },
     {
       "id": "current_bet_changes_price_and_pot",
@@ -4938,11 +4938,11 @@
             ],
             "players": [
               {
-                "playerId": "bc31978d-6c10-487b-99da-1e7514a0d373",
+                "playerId": "984212d3-6120-4a28-8799-997a0db666fc",
                 "name": "You"
               },
               {
-                "playerId": "3278b9d1-9673-41af-bc95-c8252d3ad0b7",
+                "playerId": "a3fb736e-5cb4-49c3-8b69-e8728eed75b8",
                 "name": "A1"
               }
             ]
@@ -5081,7 +5081,7 @@
       "expectation": {
         "profileCallEVBB": 1.6
       },
-      "expectedRevisionKey": "c2c10a586af90ae47f781b5acc6b39628d65b0a17d26308942efe68cc5e4bcb1",
+      "expectedRevisionKey": "40689d4b9bcc0e9802e753f3c152d0f00ee56cef922dbc184783a93f18ceb326",
       "gameKey": "efffc4187b26164b7f22f79251080ef07b691331f249a9bd2ff8dd8260115860",
       "gameHash": "fb7ccfe3196f1336af869d51a513c4afd090f914689731c857b963b2808bf23e",
       "heroInformationSet": "0|Ah,As,Kd,Qc,Tc|",
@@ -5101,7 +5101,7 @@
         "settlementReplays": 2,
         "settlementCacheHits": 1,
         "worlds": 2,
-        "buildMs": 7.8585000000020955
+        "buildMs": 10.192300000002433
       },
       "independentTerminalAudit": {
         "worlds": 2,
@@ -5128,7 +5128,7 @@
         "status": "APPROXIMATE",
         "decisionStatus": "CONCLUSIVE",
         "stopReason": "GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION",
-        "workerMs": 14.105100000000675,
+        "workerMs": 11.273399999998219,
         "compilationReuse": false
       },
       "fixedBudget": {
@@ -5159,14 +5159,14 @@
           }
         ],
         "costs": {
-          "buildMs": 9.380599999996775,
-          "globalSolveMs": 0.6807000000044354,
-          "globalEvaluationMs": 0.05410000000119908,
-          "actionSolveMs": 2.8986000000004424,
-          "actionCertificateMs": 0.26819999999861466,
-          "totalComputeMs": 15.905299999998533
+          "buildMs": 6.096700000001874,
+          "globalSolveMs": 0.5213000000003376,
+          "globalEvaluationMs": 0.04409999999916181,
+          "actionSolveMs": 2.284399999996822,
+          "actionCertificateMs": 0.29130000000441214,
+          "totalComputeMs": 11.049100000003818
         },
-        "workerMs": 16.90679999999702,
+        "workerMs": 11.580699999998615,
         "baseContextKey": "82e23910bfa50c51520cdf6bc8ebdad171ae567ca65974bc9ae9de00492db567",
         "trustedCompilationReuse": true
       },
@@ -5409,15 +5409,15 @@
           ],
           "payoffNonzeros": 2,
           "estimatedSparseBytes": 120,
-          "compileMs": 3.6803999973926693,
-          "totalMs": 64.65389998629689,
+          "compileMs": 2.6066999998874962,
+          "totalMs": 45.26310000801459,
           "lpIterations": [
             0,
             0
           ],
-          "pythonTracedPeakBytes": 69326,
+          "pythonTracedPeakBytes": 69645,
           "peakProcessMemory": {
-            "bytes": 77443072,
+            "bytes": 77393920,
             "method": "WINDOWS_PEAK_WORKING_SET_PROCESS_LIFETIME"
           },
           "memoryNote": "Python tracemalloc excludes native HiGHS/BLAS allocations; sparse-byte estimate is not process RSS."
@@ -5451,7 +5451,7 @@
           "separationGuardBB": 5.684341886080842e-15
         }
       ],
-      "elapsedMs": 8229.705199999997
+      "elapsedMs": 8809.14360000001
     },
     {
       "id": "past_commitment_changes_pot",
@@ -5479,11 +5479,11 @@
             ],
             "players": [
               {
-                "playerId": "6d86f4c4-a8e6-4f3a-958b-18849bc7030a",
+                "playerId": "a49b2b93-b01d-4a37-a109-8cba77e58b62",
                 "name": "You"
               },
               {
-                "playerId": "81057f4b-a193-4c0d-a0c1-ee10ec4bf031",
+                "playerId": "9c6166bb-60fe-4b1f-a72d-f669da57f95d",
                 "name": "A1"
               }
             ]
@@ -5622,7 +5622,7 @@
       "expectation": {
         "profileCallEVBB": 2.6
       },
-      "expectedRevisionKey": "abd7b801a4c8b4a713dd09eb1c90ea8d51df01a638e65e04b9c2306ff2700c27",
+      "expectedRevisionKey": "9694a91e1c687dcca15bb6925e4fbc0c3a03c94b5dae30ae672dff216d7ffa71",
       "gameKey": "14fbee5d897fa7c6cba8916f63b681a227bc2a908af4052cc542702f09b0a352",
       "gameHash": "e810f5bf2c4d676eb5710ef44b7ad1e1fdd26ca4604baf5387f1a4cf68a5c5a9",
       "heroInformationSet": "0|Ah,As,Kd,Qc,Tc|",
@@ -5642,7 +5642,7 @@
         "settlementReplays": 2,
         "settlementCacheHits": 1,
         "worlds": 2,
-        "buildMs": 9.799100000003818
+        "buildMs": 7.868499999996857
       },
       "independentTerminalAudit": {
         "worlds": 2,
@@ -5669,7 +5669,7 @@
         "status": "APPROXIMATE",
         "decisionStatus": "CONCLUSIVE",
         "stopReason": "GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION",
-        "workerMs": 17.42840000000433,
+        "workerMs": 9.73070000000007,
         "compilationReuse": false
       },
       "fixedBudget": {
@@ -5700,14 +5700,14 @@
           }
         ],
         "costs": {
-          "buildMs": 9.928499999994528,
-          "globalSolveMs": 0.6103000000002794,
-          "globalEvaluationMs": 0.08960000000661239,
-          "actionSolveMs": 1.5908999999955995,
-          "actionCertificateMs": 0.24109999999927823,
-          "totalComputeMs": 15.37159999999858
+          "buildMs": 6.289499999998952,
+          "globalSolveMs": 0.4665999999997439,
+          "globalEvaluationMs": 0.0385999999998603,
+          "actionSolveMs": 1.0798000000067987,
+          "actionCertificateMs": 0.1576000000059139,
+          "totalComputeMs": 9.57029999999213
         },
-        "workerMs": 15.990799999999581,
+        "workerMs": 9.976799999989453,
         "baseContextKey": "36fa7df7bc6395ea021ae734f97f0303770d1817bef82a98c9564d10a828d91d",
         "trustedCompilationReuse": true
       },
@@ -5950,15 +5950,15 @@
           ],
           "payoffNonzeros": 2,
           "estimatedSparseBytes": 120,
-          "compileMs": 2.6815999881364405,
-          "totalMs": 44.50859999633394,
+          "compileMs": 4.223700001602992,
+          "totalMs": 74.97720001265407,
           "lpIterations": [
             0,
             0
           ],
-          "pythonTracedPeakBytes": 69587,
+          "pythonTracedPeakBytes": 69548,
           "peakProcessMemory": {
-            "bytes": 77221888,
+            "bytes": 77549568,
             "method": "WINDOWS_PEAK_WORKING_SET_PROCESS_LIFETIME"
           },
           "memoryNote": "Python tracemalloc excludes native HiGHS/BLAS allocations; sparse-byte estimate is not process RSS."
@@ -5992,7 +5992,7 @@
           "separationGuardBB": 9.237055564881344e-15
         }
       ],
-      "elapsedMs": 7904.445500000002
+      "elapsedMs": 10052.484100000001
     },
     {
       "id": "unequal_short_stacks_facing_bet",
@@ -6020,11 +6020,11 @@
             ],
             "players": [
               {
-                "playerId": "955164dd-35a9-4c8c-8fc5-160a97a141e2",
+                "playerId": "d100bb12-9aac-41cd-8175-e0ebd47c414f",
                 "name": "You"
               },
               {
-                "playerId": "a097350f-a09d-4006-be07-b56b48b84f0b",
+                "playerId": "68913609-c91f-4ca2-98c2-571d1fe4e05a",
                 "name": "A1"
               }
             ],
@@ -6167,7 +6167,7 @@
       "expectation": {
         "profileCallEVBB": 2
       },
-      "expectedRevisionKey": "09eb7a8a50c0abbb71d27a04a69686143c9f12418764b95f8606e9ab6312a162",
+      "expectedRevisionKey": "1e819f8cd8d905544a954d5c0d4a345efe4f9cc8066fe76ee80d27004ce4c8d5",
       "gameKey": "c09ea867d0b56574884f124ba68390cbf5ed19bc3264f6b145474ed2b5ce636a",
       "gameHash": "d74f287f56446a6062e374e6b559e3c622f68aff2ac9dcb5cb702a2a8f80e216",
       "heroInformationSet": "0|Ah,As,Kd,Qc,Tc|",
@@ -6187,7 +6187,7 @@
         "settlementReplays": 2,
         "settlementCacheHits": 1,
         "worlds": 2,
-        "buildMs": 14.437300000005052
+        "buildMs": 30.792799999995623
       },
       "independentTerminalAudit": {
         "worlds": 2,
@@ -6214,7 +6214,7 @@
         "status": "SOLVED",
         "decisionStatus": "CONCLUSIVE",
         "stopReason": "GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION",
-        "workerMs": 23.9831000000122,
+        "workerMs": 38.006400000012945,
         "compilationReuse": false
       },
       "fixedBudget": {
@@ -6245,14 +6245,14 @@
           }
         ],
         "costs": {
-          "buildMs": 14.423099999999977,
-          "globalSolveMs": 1.2510000000038417,
-          "globalEvaluationMs": 0.08079999999608845,
-          "actionSolveMs": 2.6916000000055647,
-          "actionCertificateMs": 0.46730000000388827,
-          "totalComputeMs": 22.601799999989453
+          "buildMs": 20.493499999996857,
+          "globalSolveMs": 1.2084999999933643,
+          "globalEvaluationMs": 0.13439999999536667,
+          "actionSolveMs": 6.365200000000186,
+          "actionCertificateMs": 2.142699999996694,
+          "totalComputeMs": 35.3179999999993
         },
-        "workerMs": 23.78770000000077,
+        "workerMs": 37.23440000000119,
         "baseContextKey": "43d7b048c0c91165c6368f8b4ec04be0afead1a9229a9b1e55c119910348106a",
         "trustedCompilationReuse": true
       },
@@ -6495,15 +6495,15 @@
           ],
           "payoffNonzeros": 2,
           "estimatedSparseBytes": 120,
-          "compileMs": 3.482400003122166,
-          "totalMs": 63.71379998745397,
+          "compileMs": 6.538000016007572,
+          "totalMs": 100.60090001206845,
           "lpIterations": [
             0,
             0
           ],
-          "pythonTracedPeakBytes": 69362,
+          "pythonTracedPeakBytes": 69107,
           "peakProcessMemory": {
-            "bytes": 77447168,
+            "bytes": 77729792,
             "method": "WINDOWS_PEAK_WORKING_SET_PROCESS_LIFETIME"
           },
           "memoryNote": "Python tracemalloc excludes native HiGHS/BLAS allocations; sparse-byte estimate is not process RSS."
@@ -6537,7 +6537,7 @@
           "separationGuardBB": 7.105427357601044e-15
         }
       ],
-      "elapsedMs": 8403.146399999998
+      "elapsedMs": 11384.9758
     },
     {
       "id": "mixed_nonuniform_two_private_types",
@@ -6565,11 +6565,11 @@
             ],
             "players": [
               {
-                "playerId": "a28662f6-f0bb-4e4e-b839-ff1c3c777435",
+                "playerId": "61e702e8-7eca-460a-a6e2-edc3cc136930",
                 "name": "You"
               },
               {
-                "playerId": "a8787af2-41d7-41aa-87bb-b335e5ea825c",
+                "playerId": "6b5c4b46-8c74-4a61-8784-71e345a08229",
                 "name": "A1"
               }
             ]
@@ -6579,13 +6579,13 @@
               "type": "ACT",
               "actor": 0,
               "action": "CALL",
-              "eventId": "4a64dbe7-8640-4906-8c7f-f5265289179a"
+              "eventId": "c183a5cd-04db-42b5-ae9c-892fa50115f3"
             },
             {
               "type": "ACT",
               "actor": 1,
               "action": "CHECK",
-              "eventId": "7f88db58-eb28-4c11-adf7-5de04b7623a9"
+              "eventId": "a9e0e769-4bb5-47e7-ba62-b3c930f77d4a"
             },
             {
               "type": "BOARD",
@@ -6594,19 +6594,19 @@
                 "3h",
                 "4d"
               ],
-              "eventId": "ba450da1-6e6b-4ad4-8b38-3e0a7b488421"
+              "eventId": "34adfe13-edfe-42e6-9f55-de30a6f21b32"
             },
             {
               "type": "ACT",
               "actor": 1,
               "action": "CHECK",
-              "eventId": "9741430b-12a5-483a-89de-38ec8e92c09d"
+              "eventId": "1319f120-5291-401a-afdc-13e6d26d7f88"
             },
             {
               "type": "ACT",
               "actor": 0,
               "action": "CHECK",
-              "eventId": "ffc82af5-823c-4a2d-b6d9-079973c76414"
+              "eventId": "59f18540-b89b-4886-ae63-b20da0820a95"
             },
             {
               "type": "BOARD",
@@ -6616,19 +6616,19 @@
                 "4d",
                 "8c"
               ],
-              "eventId": "52f8d445-516f-468a-8804-f84fc3cadf40"
+              "eventId": "fe60ea62-a69a-40bb-8005-95aa36dc03aa"
             },
             {
               "type": "ACT",
               "actor": 1,
               "action": "CHECK",
-              "eventId": "2a787cbc-fc08-47c4-8f67-458e1400462a"
+              "eventId": "eabaa2cb-91e1-4213-9c06-e413a755e99b"
             },
             {
               "type": "ACT",
               "actor": 0,
               "action": "CHECK",
-              "eventId": "df8f7aca-8654-44f1-bb94-737be4f99624"
+              "eventId": "19b0c4ed-be5a-4822-a317-fadc32dee920"
             },
             {
               "type": "BOARD",
@@ -6639,13 +6639,13 @@
                 "8c",
                 "9s"
               ],
-              "eventId": "cdddf62b-fb3f-495c-a6d6-ff62f9858110"
+              "eventId": "ada983f5-26be-4d80-aacb-12179dd34205"
             },
             {
               "type": "ACT",
               "actor": 1,
               "action": "CHECK",
-              "eventId": "ad2e94a2-83ba-4f33-b236-2b136a7466f1"
+              "eventId": "a56d046b-3000-44f1-a8f9-ed899f9b122e"
             }
           ],
           "handId": "00000000-0000-4000-8000-000000000013",
@@ -6723,7 +6723,7 @@
       "expectation": {
         "strategic": true
       },
-      "expectedRevisionKey": "0a35eabb62572a31ff1f49d039c73412a252a83d4830444c1b62b9027ff8ec4a",
+      "expectedRevisionKey": "2f3be93010a12a1b6e97dbaae4709f313eca33ffb1d8b74d2f720980d65e8c5a",
       "gameKey": "dc428ecd3e825b9517522a1a8a994da087bd18f621be90d9c55ac38b70035445",
       "gameHash": "50951f76f9dec0fee060a2291e3727c8dc0c73b53b08944e4ca0bf0e6d4b63e3",
       "heroInformationSet": "0|Ah,As,Jc,Qd,Tc|",
@@ -6743,7 +6743,7 @@
         "settlementReplays": 9,
         "settlementCacheHits": 12,
         "worlds": 4,
-        "buildMs": 18.96809999999823
+        "buildMs": 14.16009999999369
       },
       "independentTerminalAudit": {
         "worlds": 4,
@@ -6770,7 +6770,7 @@
         "status": "APPROXIMATE",
         "decisionStatus": "CONCLUSIVE",
         "stopReason": "GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION",
-        "workerMs": 56.41259999999602,
+        "workerMs": 32.57139999998617,
         "compilationReuse": false
       },
       "fixedBudget": {
@@ -6815,14 +6815,14 @@
           }
         ],
         "costs": {
-          "buildMs": 20.507900000011432,
-          "globalSolveMs": 4.64879999999539,
-          "globalEvaluationMs": 0.1915000000008149,
-          "actionSolveMs": 15.18680000002496,
-          "actionCertificateMs": 1.9404000000067754,
-          "totalComputeMs": 52.600700000009965
+          "buildMs": 15.371799999993527,
+          "globalSolveMs": 3.260099999999511,
+          "globalEvaluationMs": 0.13899999999557622,
+          "actionSolveMs": 14.034100000018952,
+          "actionCertificateMs": 2.2445000000152504,
+          "totalComputeMs": 41.99859999999171
         },
-        "workerMs": 53.92150000001129,
+        "workerMs": 43.103799999997136,
         "baseContextKey": "8a14f5fced34392c72715db1a470903cd5213a817efe96488b1da6b073b8e337",
         "trustedCompilationReuse": true
       },
@@ -7271,15 +7271,15 @@
           ],
           "payoffNonzeros": 20,
           "estimatedSparseBytes": 608,
-          "compileMs": 4.719399992609397,
-          "totalMs": 52.09199999808334,
+          "compileMs": 8.947900001658127,
+          "totalMs": 105.69409999880008,
           "lpIterations": [
             10,
             0
           ],
-          "pythonTracedPeakBytes": 101505,
+          "pythonTracedPeakBytes": 101706,
           "peakProcessMemory": {
-            "bytes": 77611008,
+            "bytes": 77680640,
             "method": "WINDOWS_PEAK_WORKING_SET_PROCESS_LIFETIME"
           },
           "memoryNote": "Python tracemalloc excludes native HiGHS/BLAS allocations; sparse-byte estimate is not process RSS."
@@ -7313,7 +7313,7 @@
           "separationGuardBB": 3.552713678800501e-15
         }
       ],
-      "elapsedMs": 14613.4948
+      "elapsedMs": 13631.891200000013
     },
     {
       "id": "rare_actual_hand_full_prior_commitment",
@@ -7342,11 +7342,11 @@
             ],
             "players": [
               {
-                "playerId": "aca5ba83-f47d-401c-9574-db07d7ddc0c6",
+                "playerId": "f5e8878c-8f4d-4e44-b3b0-4516a1ff2e7d",
                 "name": "You"
               },
               {
-                "playerId": "f630ede4-883c-4cb9-8386-c26e693f99d7",
+                "playerId": "d7c6c341-48f0-44e3-8adf-5cea05905b41",
                 "name": "A1"
               }
             ]
@@ -7356,13 +7356,13 @@
               "type": "ACT",
               "actor": 0,
               "action": "CALL",
-              "eventId": "a84fa33f-f119-44bb-8e0b-c855afbd3c2a"
+              "eventId": "53a3426d-0c45-41e7-a398-4be841a385f7"
             },
             {
               "type": "ACT",
               "actor": 1,
               "action": "CHECK",
-              "eventId": "eb4e9d7f-54e1-4387-8acb-7434ce83d2b0"
+              "eventId": "12be3716-86ec-44df-9fd5-ca212bf80759"
             },
             {
               "type": "BOARD",
@@ -7371,19 +7371,19 @@
                 "3h",
                 "4d"
               ],
-              "eventId": "b45f6728-2d9c-4b41-a748-2aa7e94b876e"
+              "eventId": "424ebc9c-b7a4-4b0d-b515-eb40f21d48fd"
             },
             {
               "type": "ACT",
               "actor": 1,
               "action": "CHECK",
-              "eventId": "bf54c3af-749e-4f6c-9363-6aaae847f898"
+              "eventId": "9a19c468-a5df-4864-b677-fd1e7469cf89"
             },
             {
               "type": "ACT",
               "actor": 0,
               "action": "CHECK",
-              "eventId": "a4f2ecad-5964-4f14-befc-47ca4918d036"
+              "eventId": "48d2a494-c95b-4bb4-b8da-32799e504f25"
             },
             {
               "type": "BOARD",
@@ -7393,19 +7393,19 @@
                 "4d",
                 "8c"
               ],
-              "eventId": "c22631b2-ff3e-4b11-a34f-1cab696fb996"
+              "eventId": "3e2f3e61-a31d-4aa4-b1b5-1401a09392de"
             },
             {
               "type": "ACT",
               "actor": 1,
               "action": "CHECK",
-              "eventId": "194bf6b5-9a6c-46e0-b8d2-2a06a3aeb735"
+              "eventId": "3e8402b5-00cf-4fe9-add6-05ac844484cb"
             },
             {
               "type": "ACT",
               "actor": 0,
               "action": "CHECK",
-              "eventId": "010696f3-6622-419a-8ef6-73c1f5c362c6"
+              "eventId": "e79c4f54-1465-488e-91fc-26e4a6c07914"
             },
             {
               "type": "BOARD",
@@ -7416,13 +7416,13 @@
                 "8c",
                 "9s"
               ],
-              "eventId": "0d4d310e-ebb1-4d71-a30a-badbd6e82d13"
+              "eventId": "3321b8e6-4f54-4559-aa2f-0f90ad34ea92"
             },
             {
               "type": "ACT",
               "actor": 1,
               "action": "CHECK",
-              "eventId": "53c312c8-5db1-430d-ac39-c8e9f5b55619"
+              "eventId": "58290b4a-0b26-4391-8708-3eca2f560aec"
             }
           ],
           "handId": "00000000-0000-4000-8000-000000000014",
@@ -7500,7 +7500,7 @@
       "expectation": {
         "strategic": true
       },
-      "expectedRevisionKey": "3a9217caa9a167491300818ade0a1bfa22544869dce188c91eabc8803eb9d45b",
+      "expectedRevisionKey": "6decb94643f2d031f4203491c231613e02b126ab856255b69afa4c443b96a40c",
       "gameKey": "ef0ed985e926b4261f508b5aba7743de6e2f0b4dd4968a343caa904f30ddc4dd",
       "gameHash": "abf2ec6a115c0d03dfbbf54bfdc3b1229b22807415e884ea29519807ae77dc0e",
       "heroInformationSet": "0|Ah,As,Jc,Qd,Tc|",
@@ -7520,7 +7520,7 @@
         "settlementReplays": 9,
         "settlementCacheHits": 12,
         "worlds": 4,
-        "buildMs": 15.345000000001164
+        "buildMs": 33.5847999999969
       },
       "independentTerminalAudit": {
         "worlds": 4,
@@ -7547,7 +7547,7 @@
         "status": "APPROXIMATE",
         "decisionStatus": "INCONCLUSIVE",
         "stopReason": "GLOBAL_CONVERGENCE_AND_CERTIFIED_NEAR_EQUIVALENCE",
-        "workerMs": 27.27969999999914,
+        "workerMs": 78.64079999999376,
         "compilationReuse": false
       },
       "fixedBudget": {
@@ -7592,14 +7592,14 @@
           }
         ],
         "costs": {
-          "buildMs": 14.095900000000256,
-          "globalSolveMs": 2.627699999997276,
-          "globalEvaluationMs": 0.12710000001243316,
-          "actionSolveMs": 11.696900000009919,
-          "actionCertificateMs": 1.6238000000012107,
-          "totalComputeMs": 35.55109999999695
+          "buildMs": 27.864199999996345,
+          "globalSolveMs": 5.21830000000773,
+          "globalEvaluationMs": 0.26829999999608845,
+          "actionSolveMs": 16.154200000019046,
+          "actionCertificateMs": 2.2813999999925727,
+          "totalComputeMs": 63.849399999991874
         },
-        "workerMs": 37.005300000004354,
+        "workerMs": 65.51009999999951,
         "baseContextKey": "ec455d0c64b270dc1278f22b0ca616672c01f175770084bdaa568e9dbb310774",
         "trustedCompilationReuse": true
       },
@@ -8048,15 +8048,15 @@
           ],
           "payoffNonzeros": 20,
           "estimatedSparseBytes": 608,
-          "compileMs": 5.976199987344444,
-          "totalMs": 71.97779999114573,
+          "compileMs": 11.210299999220297,
+          "totalMs": 144.66590000665747,
           "lpIterations": [
             6,
             0
           ],
-          "pythonTracedPeakBytes": 101169,
+          "pythonTracedPeakBytes": 102038,
           "peakProcessMemory": {
-            "bytes": 77631488,
+            "bytes": 77803520,
             "method": "WINDOWS_PEAK_WORKING_SET_PROCESS_LIFETIME"
           },
           "memoryNote": "Python tracemalloc excludes native HiGHS/BLAS allocations; sparse-byte estimate is not process RSS."
@@ -8090,7 +8090,7 @@
           "separationGuardBB": 5.329996088285737e-15
         }
       ],
-      "elapsedMs": 13794.333699999988
+      "elapsedMs": 14851.186000000002
     },
     {
       "id": "short_stack_changes_legal_tree",
@@ -8119,11 +8119,11 @@
             ],
             "players": [
               {
-                "playerId": "5979b76c-2ce0-4165-a0cc-01547542a4c0",
+                "playerId": "b87d6639-af4f-423c-8f48-63d35d70dc6f",
                 "name": "You"
               },
               {
-                "playerId": "b9da8462-aedd-46ba-bdc3-9471aeac9238",
+                "playerId": "1b9ee0d5-2299-4cee-9d53-a8d39b1edead",
                 "name": "A1"
               }
             ],
@@ -8137,13 +8137,13 @@
               "type": "ACT",
               "actor": 0,
               "action": "CALL",
-              "eventId": "21775c7d-f531-480c-bff7-714be2b393cb"
+              "eventId": "bea36744-7c2b-40bd-9e88-a71ff7fc312b"
             },
             {
               "type": "ACT",
               "actor": 1,
               "action": "CHECK",
-              "eventId": "1340d17d-ae97-498e-b82e-686d4d039635"
+              "eventId": "aa74a85a-4480-4d99-ab60-c04f306f7c55"
             },
             {
               "type": "BOARD",
@@ -8152,19 +8152,19 @@
                 "3h",
                 "4d"
               ],
-              "eventId": "bd0882ac-596d-46b1-884a-910a151438da"
+              "eventId": "baba5c70-c4bc-4bb4-8a1d-80502a0296a7"
             },
             {
               "type": "ACT",
               "actor": 1,
               "action": "CHECK",
-              "eventId": "18945431-568b-4a3c-80fd-f9e113b64467"
+              "eventId": "0066ec7a-d221-4f3e-811c-ef1218c9bd93"
             },
             {
               "type": "ACT",
               "actor": 0,
               "action": "CHECK",
-              "eventId": "fd4268be-dd52-4bde-bb0b-5dcf60e51cb8"
+              "eventId": "9a04f547-48a1-4c5e-8ea8-9f79c91cdf66"
             },
             {
               "type": "BOARD",
@@ -8174,19 +8174,19 @@
                 "4d",
                 "8c"
               ],
-              "eventId": "5bbf558b-b69a-45c4-9a47-3a088874d271"
+              "eventId": "45772e13-a4f4-4eac-b90e-18308c1cb854"
             },
             {
               "type": "ACT",
               "actor": 1,
               "action": "CHECK",
-              "eventId": "8d78e0b4-6441-4214-8729-202614405efd"
+              "eventId": "02de2d3e-9038-4b10-af2d-675bd131ec9d"
             },
             {
               "type": "ACT",
               "actor": 0,
               "action": "CHECK",
-              "eventId": "4739d894-3bd5-4847-9968-c143e88549e0"
+              "eventId": "aaebbccc-a527-4619-8093-1ced7dc8fe01"
             },
             {
               "type": "BOARD",
@@ -8197,13 +8197,13 @@
                 "8c",
                 "9s"
               ],
-              "eventId": "db5682d1-bf9a-41bb-89aa-e3bc8d3d2374"
+              "eventId": "f553e71f-be5e-4a6c-b5b5-bf0a91838118"
             },
             {
               "type": "ACT",
               "actor": 1,
               "action": "CHECK",
-              "eventId": "eb5abf51-2faf-4868-825a-22672cd3bcfe"
+              "eventId": "025b7aaa-ea5f-48ca-add8-16cf88af69d9"
             }
           ],
           "handId": "00000000-0000-4000-8000-000000000015",
@@ -8281,7 +8281,7 @@
       "expectation": {
         "strategic": true
       },
-      "expectedRevisionKey": "aec7ccc06df51f06438fe10ad826296c66b7310c696a1846a8ca135dee23061b",
+      "expectedRevisionKey": "adb1c1d80edcc5c37b1bb23674d10d51cf52f8f8cbf3738abd126c8aa95da8db",
       "gameKey": "a794c5e1189e22724ed624413c4a6a82ef2319ebca19f101a74f72723f8e9e83",
       "gameHash": "4a3f179322723e239febed7d4af566c2cf4003c3e3bb49e20d2dab940b8cdf62",
       "heroInformationSet": "0|Ah,As,Jc,Qd,Tc|",
@@ -8301,7 +8301,7 @@
         "settlementReplays": 6,
         "settlementCacheHits": 8,
         "worlds": 4,
-        "buildMs": 20.45549999999639
+        "buildMs": 26.18639999999141
       },
       "independentTerminalAudit": {
         "worlds": 4,
@@ -8328,7 +8328,7 @@
         "status": "APPROXIMATE",
         "decisionStatus": "CONCLUSIVE",
         "stopReason": "GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION",
-        "workerMs": 41.80929999999353,
+        "workerMs": 34.19670000000042,
         "compilationReuse": false
       },
       "fixedBudget": {
@@ -8366,14 +8366,14 @@
           }
         ],
         "costs": {
-          "buildMs": 17.245699999999488,
-          "globalSolveMs": 1.8325000000040745,
-          "globalEvaluationMs": 0.17220000000088476,
-          "actionSolveMs": 6.539300000004005,
-          "actionCertificateMs": 0.7765000000072177,
-          "totalComputeMs": 31.514400000000023
+          "buildMs": 17.86699999999837,
+          "globalSolveMs": 2.6894000000029337,
+          "globalEvaluationMs": 0.4688999999925727,
+          "actionSolveMs": 7.311499999996158,
+          "actionCertificateMs": 0.9263000000064494,
+          "totalComputeMs": 36.706400000010035
         },
-        "workerMs": 32.81710000000021,
+        "workerMs": 38.458700000002864,
         "baseContextKey": "8c8a31b32be5cd501db109f68ede4fd03b652cbe5d93a8c9c613c7e2c180c1aa",
         "trustedCompilationReuse": true
       },
@@ -8719,15 +8719,15 @@
           ],
           "payoffNonzeros": 12,
           "estimatedSparseBytes": 400,
-          "compileMs": 5.377499997848645,
-          "totalMs": 75.73650000267662,
+          "compileMs": 4.74860001122579,
+          "totalMs": 64.2721000185702,
           "lpIterations": [
             4,
             0
           ],
-          "pythonTracedPeakBytes": 88511,
+          "pythonTracedPeakBytes": 88603,
           "peakProcessMemory": {
-            "bytes": 77447168,
+            "bytes": 77623296,
             "method": "WINDOWS_PEAK_WORKING_SET_PROCESS_LIFETIME"
           },
           "memoryNote": "Python tracemalloc excludes native HiGHS/BLAS allocations; sparse-byte estimate is not process RSS."
@@ -8761,7 +8761,7 @@
           "separationGuardBB": 4.441319107356258e-15
         }
       ],
-      "elapsedMs": 12137.816200000001
+      "elapsedMs": 9093.300099999993
     },
     {
       "id": "percentage_fee_not_constant_sum_qualified",
@@ -8789,11 +8789,11 @@
             ],
             "players": [
               {
-                "playerId": "e8f9b8ec-b65a-4833-8e54-b86defe9da57",
+                "playerId": "fcb420a8-4f9f-413e-b6c8-4a3d5c745fc8",
                 "name": "You"
               },
               {
-                "playerId": "4784bce4-7d74-4cd0-8ad5-2587b7474ec1",
+                "playerId": "cc4a479c-ba7e-43f7-a74b-0d6f32047d37",
                 "name": "A1"
               }
             ]
@@ -8937,7 +8937,7 @@
       "expectation": {
         "unsupportedCertificates": true
       },
-      "expectedRevisionKey": "bf5c331de86980c9c1254e9620df6994833c7c5591082048af41bf789bc36a99",
+      "expectedRevisionKey": "8c89cb8ef84b053757b4283ecd3d8fc07a8bdf309d7b007744918d2e24d3e14e",
       "gameKey": "e8b96c7e27f96693ca044cd834f551d5e5bbfd2b48cfc185d05cece7f90a7a0f",
       "gameHash": "20f308730208e06eef47e5c717d452107dd5c552c6c014216ee26f24340dcd30",
       "heroInformationSet": "0|Ah,As,Kd,Qc,Tc|",
@@ -8957,7 +8957,7 @@
         "settlementReplays": 2,
         "settlementCacheHits": 1,
         "worlds": 2,
-        "buildMs": 14.805200000002515
+        "buildMs": 8.788799999980256
       },
       "independentTerminalAudit": {
         "worlds": 2,
@@ -8984,7 +8984,7 @@
         "status": "APPROXIMATE",
         "decisionStatus": "INCONCLUSIVE",
         "stopReason": "GLOBAL_CONVERGENCE_ACTION_CERTIFICATES_NOT_COVERED",
-        "workerMs": 14.223599999997532,
+        "workerMs": 8.727899999998044,
         "compilationReuse": false
       },
       "fixedBudget": {
@@ -9015,20 +9015,20 @@
           }
         ],
         "costs": {
-          "buildMs": 12.891499999997905,
-          "globalSolveMs": 1.0148999999946682,
-          "globalEvaluationMs": 0.08390000001236331,
+          "buildMs": 7.627599999977974,
+          "globalSolveMs": 0.776400000002468,
+          "globalEvaluationMs": 0.061799999995855615,
           "actionSolveMs": 0,
           "actionCertificateMs": 0,
-          "totalComputeMs": 15.017299999992247
+          "totalComputeMs": 9.282500000001164
         },
-        "workerMs": 15.549700000003213,
+        "workerMs": 9.588099999993574,
         "baseContextKey": "67f8314e14d2768c709d68df9cb3f062ad077608ae8757150a376046923085d4",
         "trustedCompilationReuse": true
       },
       "actions": [],
       "referenceStatus": "NOT_APPLICABLE_UNQUALIFIED_FEE_CLASS",
-      "elapsedMs": 53.24989999999525
+      "elapsedMs": 33.297099999996135
     },
     {
       "id": "big_blind_hero_reversed_utility_orientation",
@@ -9057,11 +9057,11 @@
             ],
             "players": [
               {
-                "playerId": "41ea8118-2f96-4ed2-ac77-2ab344b3be8c",
+                "playerId": "4d9cea3b-ef8c-48f8-892d-8da7647f3fd3",
                 "name": "You"
               },
               {
-                "playerId": "5e8527a4-aa57-4bbb-a069-7eb16837ca77",
+                "playerId": "d2e18d0f-9192-4914-8b9b-4b2d861c0e80",
                 "name": "A1"
               }
             ]
@@ -9205,7 +9205,7 @@
       "expectation": {
         "profileCallEVBB": 2
       },
-      "expectedRevisionKey": "76c889969cc1fb958ace8d089c7110b72eb56cfb36ad24b8ceb9407f1d17f0e6",
+      "expectedRevisionKey": "f4c66a50d48f858421673ccdb7c6fd7174750b9c477159a1d7cfa9bb34837f89",
       "gameKey": "59564fa5ead6c0c22d3a63da23307311a943677573882791530587af34cf71ef",
       "gameHash": "c0433f06af27b4520de1207d124ce75a8fd7353d419193aff2e0dd00dfcac8a4",
       "heroInformationSet": "1|Ah,As,Kd,Qc,Tc|",
@@ -9225,7 +9225,7 @@
         "settlementReplays": 2,
         "settlementCacheHits": 1,
         "worlds": 2,
-        "buildMs": 10.642500000001746
+        "buildMs": 6.814800000021933
       },
       "independentTerminalAudit": {
         "worlds": 2,
@@ -9252,7 +9252,7 @@
         "status": "APPROXIMATE",
         "decisionStatus": "CONCLUSIVE",
         "stopReason": "GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION",
-        "workerMs": 21.991299999994226,
+        "workerMs": 11.402700000006007,
         "compilationReuse": false
       },
       "fixedBudget": {
@@ -9283,14 +9283,14 @@
           }
         ],
         "costs": {
-          "buildMs": 16.136899999997695,
-          "globalSolveMs": 1.0706999999965774,
-          "globalEvaluationMs": 0.09159999999974389,
-          "actionSolveMs": 5.822399999990012,
-          "actionCertificateMs": 0.4392000000079861,
-          "totalComputeMs": 28.10710000000836
+          "buildMs": 7.049299999984214,
+          "globalSolveMs": 0.4989999999816064,
+          "globalEvaluationMs": 0.042600000015227124,
+          "actionSolveMs": 1.3236000000033528,
+          "actionCertificateMs": 0.15670000002137385,
+          "totalComputeMs": 11.667199999996228
         },
-        "workerMs": 29.234400000001187,
+        "workerMs": 12.207099999999627,
         "baseContextKey": "04bdd262d04d86c0a7cf5af187785d1b2687fbd1ce0d6c5c9d7bc4b91db416e8",
         "trustedCompilationReuse": true
       },
@@ -9533,15 +9533,15 @@
           ],
           "payoffNonzeros": 2,
           "estimatedSparseBytes": 112,
-          "compileMs": 4.4772999826818705,
-          "totalMs": 84.29649999015965,
+          "compileMs": 5.3783000039402395,
+          "totalMs": 84.80139999301173,
           "lpIterations": [
             0,
             0
           ],
-          "pythonTracedPeakBytes": 69716,
+          "pythonTracedPeakBytes": 69522,
           "peakProcessMemory": {
-            "bytes": 77365248,
+            "bytes": 77246464,
             "method": "WINDOWS_PEAK_WORKING_SET_PROCESS_LIFETIME"
           },
           "memoryNote": "Python tracemalloc excludes native HiGHS/BLAS allocations; sparse-byte estimate is not process RSS."
@@ -9575,7 +9575,7 @@
           "separationGuardBB": 7.105427357601044e-15
         }
       ],
-      "elapsedMs": 8337.440600000002
+      "elapsedMs": 7660.579800000007
     }
   ],
   "referenceDigests": {

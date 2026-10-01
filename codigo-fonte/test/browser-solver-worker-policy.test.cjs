@@ -1,6 +1,7 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict'),vm=require('node:vm'),fs=require('node:fs'),path=require('node:path');
 const comparison=require('../src/solver/decision-outcome');
+const codec=require('../public/browser-solver-checkpoint-codec');
 const source=fs.readFileSync(path.join(__dirname,'../scripts/browser-solver/worker-entry.js'),'utf8'),fingerprint='a'.repeat(64);
 function fixture(){
   const sent=[],calls=[];let receive;
@@ -9,9 +10,9 @@ function fixture(){
     'src/multiway-session.js':{envelope:multiway=>({multiway,state:{revisionKey:'revision'}})},
     'src/solver/decision-outcome.js':comparison,'src/solver/plo-river-game.js':{HU_SUPPORT:require('../src/solver/plo-river-game').HU_SUPPORT},'src/solver/extensive-solver.js':{},'src/solver/action-conditioned.js':{},
   };
-  vm.runInNewContext(source,{requireBrowserModule:name=>modules[name],browserSolverManifest:{schemaVersion:1,buildFingerprint:fingerprint},
+  vm.runInNewContext(source,{requireBrowserModule:name=>modules[name],TheibsBrowserSolverCheckpointCodec:codec,browserSolverManifest:{schemaVersion:1,buildFingerprint:fingerprint},
     browserNodeAdapters:{'node:crypto':{}},structuredClone,performance:{now:()=>0},addEventListener:(_name,handler)=>{receive=handler;},postMessage:message=>sent.push(message)});
-  return {sent,calls,solve:input=>receive({data:{type:'solve',jobId:'job',generation:1,expectedBuildFingerprint:fingerprint,expectedRevisionKey:'revision',
+  return {sent,calls,solve:input=>receive({data:{type:'solve',jobId:'job',generation:1,expectedBuildFingerprint:fingerprint,expectedRevisionKey:'revision',checkpointTransportVersion:codec.VERSION,
     budget:{timeMs:3000,iterations:1000},input:{multiway:{handId:'hand',config:{playerCount:2}},ranges:[],sizing:{},rake:{},...input}}})};
 }
 test('browser worker forwards only the normalized comparison policy and keeps compilation capability trusted',()=>{

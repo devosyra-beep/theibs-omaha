@@ -94,12 +94,12 @@ test('supersession wakes obsolete waits and never substitutes the new hand resul
 
 test('expanded world ceiling is exclusive to two original seats and does not raise other resource caps',async t=>{
   const {service,input,options}=await fixture(t),release=service.prioritize();t.after(release);
-  const hu=await service.start('owner',input,options);assert.equal(hu.limits.maxWorlds,144);
+  const hu=await service.start('owner',input,options);assert.equal(hu.limits.maxWorlds,require('../src/solver/plo-river-game').HU_SUPPORT.maxWorlds);
   assert.equal(hu.limits.maxBuildMs,750);assert.equal(hu.limits.maxMemoryBytes,48*1024*1024);
   hu.limits.maxNodes=1;
   const reread=service.get('owner',hu.jobId);assert.equal(reread.limits.maxNodes,12000);
   reread.limits.maxWorlds=1;
-  assert.equal(service.get('owner',hu.jobId).limits.maxWorlds,144);
+  assert.equal(service.get('owner',hu.jobId).limits.maxWorlds,require('../src/solver/plo-river-game').HU_SUPPORT.maxWorlds);
   const three=structuredClone(input);three.multiway.config.playerCount=3;
   const unchanged=await service.start('owner',three,{...options,revisionKey:'three'});
   assert.equal(unchanged.limits.maxWorlds,27);assert.equal(unchanged.limits.maxNodes,12000);

@@ -3,6 +3,7 @@ const browserJob = requireBrowserModule('src/solver/job-worker.js');
 const browserSession = requireBrowserModule('src/multiway-session.js');
 const browserRiver = requireBrowserModule('src/solver/plo-river-game.js');
 const browserOutcome = requireBrowserModule('src/solver/decision-outcome.js');
+const browserCheckpointCodec = globalThis.TheibsBrowserSolverCheckpointCodec;
 const browserLimits = Object.freeze({maxNodes:12000,maxWorlds:browserRiver.HU_SUPPORT.maxWorlds,maxMemoryBytes:48*1024*1024,maxBuildMs:750});
 // Trusted runtime capability, never a message/input/checkpoint preference.
 // Same mathematical solver; compilation reuse is enabled only in the browser.
@@ -16,7 +17,13 @@ globalThis.TheibsBrowserSolver = Object.freeze({
 });
 if (typeof globalThis.addEventListener === 'function' && typeof globalThis.postMessage === 'function') {
   let used = false;
-  const send = (message,context={}) => globalThis.postMessage({...message,...context,buildFingerprint:browserSolverManifest.buildFingerprint});
+  const send = (message,context={}) => {
+    const checkpoint=message.checkpoint == null ? null : browserCheckpointCodec.pack(message.checkpoint);
+    // The numerical transport owns newly allocated buffers. Transferring them
+    // cannot detach the solver's matrices or any later publication checkpoint.
+    globalThis.postMessage({...message,...(message.checkpoint!==undefined?{checkpoint}:{}),...context,
+      buildFingerprint:browserSolverManifest.buildFingerprint},checkpoint ? browserCheckpointCodec.transfers(checkpoint) : []);
+  };
   globalThis.addEventListener('message',event=>{
     const message = event.data || {}, started = performance.now();
     const context = {jobId:message.jobId,generation:message.generation};
@@ -25,6 +32,7 @@ if (typeof globalThis.addEventListener === 'function' && typeof globalThis.postM
       used = true;
       if (message.type !== 'solve') throw Error('Choose a solver calculation.');
       if (message.expectedBuildFingerprint !== browserSolverManifest.buildFingerprint) throw Error('The browser solver build changed. Refresh the app.');
+      if (!browserCheckpointCodec || message.checkpointTransportVersion !== browserCheckpointCodec.VERSION) throw Error('The browser solver checkpoint transport changed. Refresh the app.');
       if (typeof message.jobId !== 'string' || !message.jobId || !Number.isSafeInteger(message.generation) || message.generation < 0) throw Error('Invalid solver job identity.');
       const budget = message.budget;
       if (!budget || !Number.isFinite(budget.timeMs) || budget.timeMs <= 0 || budget.timeMs > 5000 ||
@@ -38,9 +46,12 @@ if (typeof globalThis.addEventListener === 'function' && typeof globalThis.postM
       // Termination is owned by the host. A Web Worker cannot handle a queued
       // cancel message while this unchanged synchronous solver is computing.
       // The host keeps the last complete result/checkpoint pair before stopping.
-      const output = executeBrowserJob({input,budget,checkpoint:message.checkpoint,shouldCancel:()=>false,onProgress:value=>send(value,context)});
+      const checkpoint=browserCheckpointCodec.unpack(message.checkpoint,{adaptiveVersion:browserSolverManifest.versions?.adaptive,
+        solverVersion:browserSolverManifest.versions?.solver,certificateVersion:browserSolverManifest.versions?.certificate,
+        policyKey:browserOutcome.policyKey(input.comparisonPolicy)});
+      const output = executeBrowserJob({input,budget,checkpoint,shouldCancel:()=>false,onProgress:value=>send(value,context)});
       send({type:'done',...output},context);
     } catch (error) { send({type:'error',error:error.message,workerMs:performance.now()-started},context); }
   });
-  send({type:'ready',schemaVersion:browserSolverManifest.schemaVersion});
+  send({type:'ready',schemaVersion:browserSolverManifest.schemaVersion,checkpointTransportVersion:browserCheckpointCodec?.VERSION});
 }

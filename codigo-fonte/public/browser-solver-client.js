@@ -1,8 +1,9 @@
 (function (root, factory) {
-  const api = factory(root);
+  const codec = typeof module === 'object' && module.exports ? require('./browser-solver-checkpoint-codec') : root.TheibsBrowserSolverCheckpointCodec;
+  const api = factory(root,codec);
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.TheibsBrowserSolverClient = api;
-})(typeof window === 'undefined' ? globalThis : window, function (root) {
+})(typeof window === 'undefined' ? globalThis : window, function (root,defaultCodec) {
   'use strict';
   const SCHEMA_VERSION = 1, VERSION = 'THEIBS_BROWSER_SOLVER_CLIENT_V1';
   const POLICY_VERSION = 'THEIBS_COMPARISON_POLICY_V1';
@@ -11,7 +12,7 @@
   const END_PHASES = new Set(['COMPLETE','FAILED','UNSUPPORTED','CANCELLED']);
   const REUSABLE_STOPS = new Set(['GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION','GLOBAL_CONVERGENCE_AND_CERTIFIED_NEAR_EQUIVALENCE','FIXED_CONTINUATIONS_FULLY_EVALUATED','GLOBAL_CONVERGENCE_ACTION_CERTIFICATES_NOT_COVERED']);
   const clone = value => value == null ? value : typeof root.structuredClone === 'function' ? root.structuredClone(value) : JSON.parse(JSON.stringify(value));
-  const workIterations = checkpoint => Number.isSafeInteger(checkpoint?.workIterations) ? checkpoint.workIterations : Number.isSafeInteger(checkpoint?.iterations) ? checkpoint.iterations : 0;
+  const workIterations = packet => {const checkpoint=packet?.checkpoint;return Number.isSafeInteger(checkpoint?.workIterations) ? checkpoint.workIterations : Number.isSafeInteger(checkpoint?.iterations) ? checkpoint.iterations : 0;};
   function normalizeComparisonPolicy(value) {
     if(value!==undefined && (!value || typeof value!=='object' || Array.isArray(value) || Object.getPrototypeOf(value)!==Object.prototype && Object.getPrototypeOf(value)!==null)) throw Error('Use a valid comparison policy.');
     const nearEquivalenceBB=value?.nearEquivalenceBB===undefined?.01:value.nearEquivalenceBB;
@@ -41,11 +42,12 @@
       Math.abs(rows.reduce((sum,row)=>sum+row.frequency,0)-1)<=1e-8;
   }
   function create(options = {}) {
+    const codec=options.checkpointCodec || defaultCodec;
     const WorkerClass=options.Worker || root.Worker, makeWorker=options.createWorker || (url=>new WorkerClass(url));
     const crypto=options.crypto || root.crypto, Encoder=options.TextEncoder || root.TextEncoder;
     const fetchManifest=options.fetch || root.fetch?.bind(root), now=options.now || (()=>root.performance?.now?.() ?? Date.now());
     const delay=options.setTimeout || root.setTimeout.bind(root), clearDelay=options.clearTimeout || root.clearTimeout.bind(root);
-    const supported=Boolean((options.createWorker || typeof WorkerClass==='function') && crypto?.subtle?.digest && Encoder && (options.manifest || fetchManifest));
+    const supported=Boolean(codec?.VERSION && (options.createWorker || typeof WorkerClass==='function') && crypto?.subtle?.digest && Encoder && (options.manifest || fetchManifest));
     const jobs=new Map(), generations=new Map(), cache=new Map(), decisions=new Map();
     const maxEntries=16,maxBytes=32*1024*1024,maxEntryBytes=4*1024*1024,maxJobs=24;
     const profiles=Object.fromEntries(Object.entries(BUDGETS).map(([name,value])=>[name,{...value,...options.budgetProfiles?.[name]}]));
@@ -70,7 +72,7 @@
     }
     function ownerId(owner) { if (typeof owner!=='string' || !owner.length || owner.length>240) throw Error('A current isolated solver owner is required.');return owner; }
     function stats() {return {...metrics,memoryBytes:bytes,entries:cache.size,maxBytes,
-      retainedCheckpointJobs:[...jobs.values()].filter(job=>job.checkpoint!=null).length,
+      retainedCheckpointJobs:[...jobs.values()].filter(job=>job.checkpoint!=null).length,checkpointTransportVersion:codec?.VERSION || null,
       active:[...jobs.values()].filter(job=>!END_PHASES.has(job.phase)).length};}
     function view(job) {
       const readOnly=job.cacheHit && job.workerRuns===0 && END_PHASES.has(job.phase);
@@ -86,7 +88,7 @@
           workerMs:job.workerMs,decisionComputeMs:job.decision.consumedMs,decisionWorkIterations:job.decision.workIterations,
           currentRunCosts:clone(job.currentRunCosts),jobCosts:clone(job.jobCosts),cumulativeCosts:costSnapshot(job.result?.metrics?.costs)},
         runtimeBudget:{initialMs:profiles[job.budget].timeMs,ceilingMs:job.ceilingMs,continuations:job.continuations,automatic:job.automatic},
-        limits:{maxNodes:12000,maxWorlds:576,maxMemoryBytes:48*1024*1024,maxBuildMs:750}};
+        limits:{maxNodes:12000,maxWorlds:1024,maxMemoryBytes:48*1024*1024,maxBuildMs:750}};
     }
     function changed(job) {job.updateVersion++;for(const wake of [...job.waiters])wake();options.onChange?.(view(job));}
     function setPhase(job,phase) {
@@ -95,7 +97,7 @@
         if(job.completionMs==null)job.completionMs=Math.max(0,Math.round(now()-job.started));
         // Resume reads the bounded cache, never a terminal job's private state.
         // Keep its public result while releasing the duplicate numerical arrays.
-        job.checkpoint=null;
+        job.checkpoint=null;job.checkpointBytes=0;
       }
       changed(job);
     }
@@ -118,9 +120,11 @@
     }
     function remember(job) {
       if(!job.checkpoint || !hasStrategy(job.result))return;
-      const value={owner:job.owner,key:job.key,result:clone(job.result),checkpoint:clone(job.checkpoint),
+      // Incoming worker messages are already detached snapshots. These private
+      // references never escape view(); replacement, not mutation, owns updates.
+      const value={owner:job.owner,key:job.key,result:job.result,checkpoint:job.checkpoint,
         originalTiming:{firstValueMs:job.firstValueMs ?? null,snapshotMs:Math.max(0,Math.round(now()-job.started)),workerMs:job.workerMs}},
-        size=encoder.encode(JSON.stringify(value)).byteLength;
+        size=job.checkpointBytes+encoder.encode(JSON.stringify({owner:value.owner,key:value.key,result:value.result,originalTiming:value.originalTiming})).byteLength;
       if(size>maxEntryBytes)return;
       const id=job.ownerHash+'.'+job.key;if(cache.has(id)){bytes-=cache.get(id).size;cache.delete(id);}
       cache.set(id,{...value,size});bytes+=size;metrics.writes++;
@@ -132,10 +136,10 @@
       const usable=hasStrategy(message.result);
       if(!usable && hasStrategy(job.result))return;
       if(usable && !message.checkpoint && job.checkpoint && hasStrategy(job.result))return;
-      job.result=clone(message.result);
-      if(!usable){job.checkpoint=null;return;}
-      if(message.checkpoint){const next=workIterations(message.checkpoint);job.decision.workIterations+=Math.max(0,next-job.lastWorkIterations);job.lastWorkIterations=next;job.checkpoint=clone(message.checkpoint);}
-      else job.checkpoint=null;
+      job.result=message.result;
+      if(!usable){job.checkpoint=null;job.checkpointBytes=0;return;}
+      if(message.checkpoint){const next=workIterations(message.checkpoint);job.decision.workIterations+=Math.max(0,next-job.lastWorkIterations);job.lastWorkIterations=next;job.checkpoint=message.checkpoint;job.checkpointBytes=codec.byteLength(message.checkpoint);}
+      else {job.checkpoint=null;job.checkpointBytes=0;}
       job.firstValueMs ??= Math.max(0,Math.round(now()-job.started));remember(job);
     }
     function cancelJob(job,reason='Cancelled by the user.') {
@@ -191,21 +195,26 @@
         const message=event.data;
         if(!current(job,worker)){metrics.staleMessages++;return;}
         if(message?.type==='ready'){
-          if(message.schemaVersion!==SCHEMA_VERSION || message.buildFingerprint!==job.buildFingerprint){fail(job,'Browser solver build changed. Reload this page.');return;}
+          if(message.schemaVersion!==SCHEMA_VERSION || message.buildFingerprint!==job.buildFingerprint || message.checkpointTransportVersion!==codec.VERSION){fail(job,'Browser solver build changed. Reload this page.');return;}
           clearDelay(job.watchdog);job.workerReadyMs ??= Math.max(0,Math.round(now()-job.started));job.runStarted=now();
           job.watchdog=delay(()=>{
             if(!current(job,worker))return;account(job,now()-job.runStarted);stopWorker(job);
             if(needsContinuation(job,true)){continueJob(job);}
             else {job.reason='Browser compute time limit reached; latest completed estimate retained.';if(hasStrategy(job.result)){finishPendingOutcome(job,'TIME_BUDGET_EXHAUSTED');metrics.completed++;setPhase(job,'COMPLETE');}else setPhase(job,'UNSUPPORTED');}
           },remaining.timeMs+1000);
-          worker.postMessage({type:'solve',jobId:job.id,generation:job.generation,input:clone(job.input),budget:remaining,checkpoint:clone(job.checkpoint),
-            expectedRevisionKey:job.revisionKey,expectedBuildFingerprint:job.buildFingerprint});
+          try {
+            const resume=codec.copyForTransfer(job.checkpoint);
+            worker.postMessage({type:'solve',jobId:job.id,generation:job.generation,input:job.input,budget:remaining,checkpoint:resume.packet,
+              expectedRevisionKey:job.revisionKey,expectedBuildFingerprint:job.buildFingerprint,checkpointTransportVersion:codec.VERSION},resume.transfer);
+          } catch (error) { fail(job,error.message); }
           return;
         }
         if(message?.jobId!==job.id || message.generation!==job.generation || message.buildFingerprint!==job.buildFingerprint){metrics.staleMessages++;return;}
         if(message.type==='error'){job.firstResponseMs ??= Math.max(0,Math.round(now()-job.started));account(job,message.workerMs);fail(job,message.error,message.code);return;}
         if(message.handId!==job.handId || message.revisionKey!==job.revisionKey){fail(job,'Browser solver response does not match this decision.');return;}
         if(message.type!=='progress' && message.type!=='done')return;
+        if(message.checkpoint!=null){try{codec.validate(message.checkpoint,{adaptiveVersion:job.versions.adaptive,solverVersion:job.versions.solver,
+          certificateVersion:job.versions.certificate,policyKey:job.policyKey});}catch{account(job,message.workerMs);fail(job,'Browser solver checkpoint transport changed. Reload this page.');return;}}
         if(message.result?.decisionOutcome && message.result.decisionOutcome.policyKey!==job.policyKey || message.result?.comparisonPolicyKey && message.result.comparisonPolicyKey!==job.policyKey){account(job,message.workerMs);fail(job,'Browser solver comparison policy changed. Recalculate this study.');return;}
         job.firstResponseMs ??= Math.max(0,Math.round(now()-job.started));accountCosts(job,message.result);
         save(job,message);
@@ -237,8 +246,8 @@
       while(decisions.size>maxJobs*2){const old=[...decisions.keys()].find(id=>![...jobs.values()].some(job=>job.decisionKey===id && !END_PHASES.has(job.phase)));if(!old)break;decisions.delete(old);}
       const reusable=automatic && hasStrategy(found?.result) && found.result.adaptation?.phase==='STOPPED' && found.result.adaptation.refinementRecommended===false && REUSABLE_STOPS.has(found.result.adaptation.stopReason);
       const job={id:crypto.randomUUID?.() || `browser-${Date.now()}-${++sequence}`,owner,ownerHash,key,policyKey,exactInput,input:detached,generation,handId,revisionKey,budget,automatic:automatic===true,
-        decisionKey,decision,started,ackMs:Math.max(0,Math.round(now()-started)),buildFingerprint:build.buildFingerprint,ceilingMs:profiles[budget].timeMs,continuations:0,
-        result:clone(found?.result || null),checkpoint:clone(found?.checkpoint || null),lastWorkIterations:workIterations(found?.checkpoint),cacheHit:Boolean(found),
+        decisionKey,decision,started,ackMs:Math.max(0,Math.round(now()-started)),buildFingerprint:build.buildFingerprint,versions:build.versions,ceilingMs:profiles[budget].timeMs,continuations:0,
+        result:found?.result || null,checkpoint:found?.checkpoint || null,checkpointBytes:found ? codec.byteLength(found.checkpoint) : 0,lastWorkIterations:workIterations(found?.checkpoint),cacheHit:Boolean(found),
         cachedTiming:clone(found?.originalTiming || null),workerMs:0,workerRuns:0,runReportedMs:0,currentRunCosts:null,jobCosts:null,runAccountedCosts:{},
         phase:found && (budget==='FAST' || reusable)?'COMPLETE':'QUEUED',updateVersion:0,waiters:new Set(),worker:null,watchdog:null};
       if(found)job.firstValueMs=job.ackMs;jobs.set(job.id,job);metrics.started++;changed(job);

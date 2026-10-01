@@ -13,8 +13,15 @@ const normal={multiway:fix(table.multiway),multiwayEvaluation:{assumeNoRake:true
 const context=vm.createContext({TextEncoder,TextDecoder,structuredClone,crypto:crypto.webcrypto,performance:{now:()=>0}});
 vm.runInContext(fs.readFileSync(path.join(root,'public/browser-multiway-worker.js'),'utf8'),context);
 const expected=context.TheibsBrowserMultiway.execute(normal,{phase:'FINAL'});
-const solver=[12,24].map(combos=>{const input=capacityRiverInput({combos,sizings:2});input.multiway=fix(input.multiway);return {combos,input,revisionKey:session.envelope(input.multiway).state.revisionKey};});
+const solver=[
+  {id:'HU12_TWO_SIZES',combos:12,maxAggressions:1},
+  {id:'HU24_TWO_SIZES',combos:24,maxAggressions:1},
+  {id:'HU24_NO_ADDITIONAL_AGGRESSION',combos:24,maxAggressions:0},
+  {id:'HU32_NO_ADDITIONAL_AGGRESSION',combos:32,maxAggressions:0},
+  {id:'HU32_TWO_SIZES_REFUSED',combos:32,maxAggressions:1,expectedRefusal:'MEMORY_BUDGET'},
+  {id:'HU48_RANGE_REFUSED',combos:48,maxAggressions:0,expectedRefusal:'RANGE_BUDGET'},
+].map(fixture=>{const input=capacityRiverInput({combos:fixture.combos,sizings:2,maxAggressions:fixture.maxAggressions});input.multiway=fix(input.multiway);return {...fixture,input,revisionKey:session.envelope(input.multiway).state.revisionKey};});
 const output={schemaVersion:1,sourceFingerprint:manifest.buildFingerprint,normal,expected:{samples:128,model:expected.strategyMetadata.status,fingerprint:expected.multiwayEvaluation.fingerprint,
   equity:expected.equity.equity,candidates:expected.ev.candidates.map(({optionId,evBB})=>({optionId,evBB})),revisionKey:expected.observedState.revisionKey},solver};
 fs.writeFileSync(path.join(root,'public/browser-multiway-fixtures.json'),JSON.stringify(output,null,2)+'\n');
-console.log(JSON.stringify({status:'BUILT',samples:128,riverCap:24}));
+console.log(JSON.stringify({status:'BUILT',samples:128,riverCap:require('../../src/solver/plo-river-game').HU_SUPPORT.maxCombosPerSeat}));

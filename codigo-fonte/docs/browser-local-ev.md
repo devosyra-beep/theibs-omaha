@@ -1,5 +1,7 @@
 # Browser contextual EV and bounded river HU capacity
 
+Historical delivery record. Current conditional river HU admission and browser checkpoint transport are documented in [the subsequent 32-combination delivery](river-hu-32-transport.md). The original measurements below are preserved.
+
 ## Release scope
 
 Baseline: `b62b0f1`, branch `hosting/cloudflare-oracle-migration`, application/engine version `0.14.10`.

@@ -102,7 +102,9 @@
   },
   "solver": [
     {
+      "id": "HU12_TWO_SIZES",
       "combos": 12,
+      "maxAggressions": 1,
       "input": {
         "multiway": {
           "schemaVersion": 1,
@@ -471,7 +473,9 @@
       "revisionKey": "23e2498165b9e4c7dbba215f03289e30bc882445fde3ebdd03c26eb66fbf1d0a"
     },
     {
+      "id": "HU24_TWO_SIZES",
       "combos": 24,
+      "maxAggressions": 1,
       "input": {
         "multiway": {
           "schemaVersion": 1,
@@ -1071,6 +1075,3252 @@
             2
           ],
           "maxAggressions": 1
+        },
+        "rake": {
+          "type": "NONE",
+          "basis": "BEFORE_FEES"
+        }
+      },
+      "revisionKey": "23e2498165b9e4c7dbba215f03289e30bc882445fde3ebdd03c26eb66fbf1d0a"
+    },
+    {
+      "id": "HU24_NO_ADDITIONAL_AGGRESSION",
+      "combos": 24,
+      "maxAggressions": 0,
+      "input": {
+        "multiway": {
+          "schemaVersion": 1,
+          "enabled": true,
+          "config": {
+            "variant": "PLO5_HIGH",
+            "playerCount": 2,
+            "heroPosition": "SB",
+            "startingStack": 20,
+            "smallBlind": 0.5,
+            "bigBlind": 1,
+            "heroCards": [
+              "As",
+              "Ah",
+              "Qd",
+              "Jc",
+              "Tc"
+            ],
+            "players": [
+              {
+                "playerId": "qa-seat-0",
+                "name": "QA 0"
+              },
+              {
+                "playerId": "qa-seat-1",
+                "name": "QA 1"
+              }
+            ]
+          },
+          "events": [
+            {
+              "type": "ACT",
+              "actor": 0,
+              "action": "CALL"
+            },
+            {
+              "type": "ACT",
+              "actor": 1,
+              "action": "CHECK"
+            },
+            {
+              "type": "BOARD",
+              "cards": [
+                "2s",
+                "3h",
+                "4d"
+              ]
+            },
+            {
+              "type": "ACT",
+              "actor": 1,
+              "action": "CHECK"
+            },
+            {
+              "type": "ACT",
+              "actor": 0,
+              "action": "CHECK"
+            },
+            {
+              "type": "BOARD",
+              "cards": [
+                "2s",
+                "3h",
+                "4d",
+                "8c"
+              ]
+            },
+            {
+              "type": "ACT",
+              "actor": 1,
+              "action": "CHECK"
+            },
+            {
+              "type": "ACT",
+              "actor": 0,
+              "action": "CHECK"
+            },
+            {
+              "type": "BOARD",
+              "cards": [
+                "2s",
+                "3h",
+                "4d",
+                "8c",
+                "9s"
+              ]
+            },
+            {
+              "type": "ACT",
+              "actor": 1,
+              "action": "CHECK"
+            }
+          ],
+          "handId": "11111111-1111-4111-8111-111111111111",
+          "editEpoch": 0
+        },
+        "ranges": [
+          {
+            "seatId": 0,
+            "complete": true,
+            "source": "EXPLICIT_RIVER_GROWTH_QA",
+            "combos": [
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Jc",
+                  "Tc"
+                ],
+                "weight": 1
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Jc",
+                  "2c"
+                ],
+                "weight": 2
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Jc",
+                  "2d"
+                ],
+                "weight": 3
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Jc",
+                  "2h"
+                ],
+                "weight": 4
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Jc",
+                  "3c"
+                ],
+                "weight": 5
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Jc",
+                  "3d"
+                ],
+                "weight": 6
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Jc",
+                  "3s"
+                ],
+                "weight": 7
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Jc",
+                  "4c"
+                ],
+                "weight": 8
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Jc",
+                  "4h"
+                ],
+                "weight": 9
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Jc",
+                  "4s"
+                ],
+                "weight": 10
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Jc",
+                  "5c"
+                ],
+                "weight": 11
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Jc",
+                  "5d"
+                ],
+                "weight": 12
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Tc",
+                  "2c"
+                ],
+                "weight": 13
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Tc",
+                  "2d"
+                ],
+                "weight": 14
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Tc",
+                  "2h"
+                ],
+                "weight": 15
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Tc",
+                  "3c"
+                ],
+                "weight": 16
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Tc",
+                  "3d"
+                ],
+                "weight": 17
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Tc",
+                  "3s"
+                ],
+                "weight": 18
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Tc",
+                  "4c"
+                ],
+                "weight": 19
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Tc",
+                  "4h"
+                ],
+                "weight": 20
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Tc",
+                  "4s"
+                ],
+                "weight": 21
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Tc",
+                  "5c"
+                ],
+                "weight": 22
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Tc",
+                  "5d"
+                ],
+                "weight": 23
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "2c",
+                  "2d"
+                ],
+                "weight": 24
+              }
+            ]
+          },
+          {
+            "seatId": 1,
+            "complete": true,
+            "source": "EXPLICIT_RIVER_GROWTH_QA",
+            "combos": [
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "7c",
+                  "8h"
+                ],
+                "weight": 1
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "7c",
+                  "5h"
+                ],
+                "weight": 2
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "7c",
+                  "5s"
+                ],
+                "weight": 3
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "7c",
+                  "6c"
+                ],
+                "weight": 4
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "7c",
+                  "6h"
+                ],
+                "weight": 5
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "7c",
+                  "6s"
+                ],
+                "weight": 6
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "7c",
+                  "7d"
+                ],
+                "weight": 7
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "7c",
+                  "7h"
+                ],
+                "weight": 8
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "7c",
+                  "7s"
+                ],
+                "weight": 9
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "7c",
+                  "8d"
+                ],
+                "weight": 10
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "7c",
+                  "8s"
+                ],
+                "weight": 11
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "7c",
+                  "9c"
+                ],
+                "weight": 12
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "8h",
+                  "5h"
+                ],
+                "weight": 13
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "8h",
+                  "5s"
+                ],
+                "weight": 14
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "8h",
+                  "6c"
+                ],
+                "weight": 15
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "8h",
+                  "6h"
+                ],
+                "weight": 16
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "8h",
+                  "6s"
+                ],
+                "weight": 17
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "8h",
+                  "7d"
+                ],
+                "weight": 18
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "8h",
+                  "7h"
+                ],
+                "weight": 19
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "8h",
+                  "7s"
+                ],
+                "weight": 20
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "8h",
+                  "8d"
+                ],
+                "weight": 21
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "8h",
+                  "8s"
+                ],
+                "weight": 22
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "8h",
+                  "9c"
+                ],
+                "weight": 23
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "5h",
+                  "5s"
+                ],
+                "weight": 24
+              }
+            ]
+          }
+        ],
+        "sizing": {
+          "type": "EXPLICIT_TOTALS",
+          "levels": [
+            1,
+            2
+          ],
+          "maxAggressions": 0
+        },
+        "rake": {
+          "type": "NONE",
+          "basis": "BEFORE_FEES"
+        }
+      },
+      "revisionKey": "23e2498165b9e4c7dbba215f03289e30bc882445fde3ebdd03c26eb66fbf1d0a"
+    },
+    {
+      "id": "HU32_NO_ADDITIONAL_AGGRESSION",
+      "combos": 32,
+      "maxAggressions": 0,
+      "input": {
+        "multiway": {
+          "schemaVersion": 1,
+          "enabled": true,
+          "config": {
+            "variant": "PLO5_HIGH",
+            "playerCount": 2,
+            "heroPosition": "SB",
+            "startingStack": 20,
+            "smallBlind": 0.5,
+            "bigBlind": 1,
+            "heroCards": [
+              "As",
+              "Ah",
+              "Qd",
+              "Jc",
+              "Tc"
+            ],
+            "players": [
+              {
+                "playerId": "qa-seat-0",
+                "name": "QA 0"
+              },
+              {
+                "playerId": "qa-seat-1",
+                "name": "QA 1"
+              }
+            ]
+          },
+          "events": [
+            {
+              "type": "ACT",
+              "actor": 0,
+              "action": "CALL"
+            },
+            {
+              "type": "ACT",
+              "actor": 1,
+              "action": "CHECK"
+            },
+            {
+              "type": "BOARD",
+              "cards": [
+                "2s",
+                "3h",
+                "4d"
+              ]
+            },
+            {
+              "type": "ACT",
+              "actor": 1,
+              "action": "CHECK"
+            },
+            {
+              "type": "ACT",
+              "actor": 0,
+              "action": "CHECK"
+            },
+            {
+              "type": "BOARD",
+              "cards": [
+                "2s",
+                "3h",
+                "4d",
+                "8c"
+              ]
+            },
+            {
+              "type": "ACT",
+              "actor": 1,
+              "action": "CHECK"
+            },
+            {
+              "type": "ACT",
+              "actor": 0,
+              "action": "CHECK"
+            },
+            {
+              "type": "BOARD",
+              "cards": [
+                "2s",
+                "3h",
+                "4d",
+                "8c",
+                "9s"
+              ]
+            },
+            {
+              "type": "ACT",
+              "actor": 1,
+              "action": "CHECK"
+            }
+          ],
+          "handId": "11111111-1111-4111-8111-111111111111",
+          "editEpoch": 0
+        },
+        "ranges": [
+          {
+            "seatId": 0,
+            "complete": true,
+            "source": "EXPLICIT_RIVER_GROWTH_QA",
+            "combos": [
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Jc",
+                  "Tc"
+                ],
+                "weight": 1
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Jc",
+                  "2c"
+                ],
+                "weight": 2
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Jc",
+                  "2d"
+                ],
+                "weight": 3
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Jc",
+                  "2h"
+                ],
+                "weight": 4
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Jc",
+                  "3c"
+                ],
+                "weight": 5
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Jc",
+                  "3d"
+                ],
+                "weight": 6
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Jc",
+                  "3s"
+                ],
+                "weight": 7
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Jc",
+                  "4c"
+                ],
+                "weight": 8
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Jc",
+                  "4h"
+                ],
+                "weight": 9
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Jc",
+                  "4s"
+                ],
+                "weight": 10
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Jc",
+                  "5c"
+                ],
+                "weight": 11
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Jc",
+                  "5d"
+                ],
+                "weight": 12
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Tc",
+                  "2c"
+                ],
+                "weight": 13
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Tc",
+                  "2d"
+                ],
+                "weight": 14
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Tc",
+                  "2h"
+                ],
+                "weight": 15
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Tc",
+                  "3c"
+                ],
+                "weight": 16
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Tc",
+                  "3d"
+                ],
+                "weight": 17
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Tc",
+                  "3s"
+                ],
+                "weight": 18
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Tc",
+                  "4c"
+                ],
+                "weight": 19
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Tc",
+                  "4h"
+                ],
+                "weight": 20
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Tc",
+                  "4s"
+                ],
+                "weight": 21
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Tc",
+                  "5c"
+                ],
+                "weight": 22
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Tc",
+                  "5d"
+                ],
+                "weight": 23
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "2c",
+                  "2d"
+                ],
+                "weight": 24
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "2c",
+                  "2h"
+                ],
+                "weight": 25
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "2c",
+                  "3c"
+                ],
+                "weight": 26
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "2c",
+                  "3d"
+                ],
+                "weight": 27
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "2c",
+                  "3s"
+                ],
+                "weight": 28
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "2c",
+                  "4c"
+                ],
+                "weight": 29
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "2c",
+                  "4h"
+                ],
+                "weight": 30
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "2c",
+                  "4s"
+                ],
+                "weight": 31
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "2c",
+                  "5c"
+                ],
+                "weight": 32
+              }
+            ]
+          },
+          {
+            "seatId": 1,
+            "complete": true,
+            "source": "EXPLICIT_RIVER_GROWTH_QA",
+            "combos": [
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "7c",
+                  "8h"
+                ],
+                "weight": 1
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "7c",
+                  "5h"
+                ],
+                "weight": 2
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "7c",
+                  "5s"
+                ],
+                "weight": 3
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "7c",
+                  "6c"
+                ],
+                "weight": 4
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "7c",
+                  "6h"
+                ],
+                "weight": 5
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "7c",
+                  "6s"
+                ],
+                "weight": 6
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "7c",
+                  "7d"
+                ],
+                "weight": 7
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "7c",
+                  "7h"
+                ],
+                "weight": 8
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "7c",
+                  "7s"
+                ],
+                "weight": 9
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "7c",
+                  "8d"
+                ],
+                "weight": 10
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "7c",
+                  "8s"
+                ],
+                "weight": 11
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "7c",
+                  "9c"
+                ],
+                "weight": 12
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "8h",
+                  "5h"
+                ],
+                "weight": 13
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "8h",
+                  "5s"
+                ],
+                "weight": 14
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "8h",
+                  "6c"
+                ],
+                "weight": 15
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "8h",
+                  "6h"
+                ],
+                "weight": 16
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "8h",
+                  "6s"
+                ],
+                "weight": 17
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "8h",
+                  "7d"
+                ],
+                "weight": 18
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "8h",
+                  "7h"
+                ],
+                "weight": 19
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "8h",
+                  "7s"
+                ],
+                "weight": 20
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "8h",
+                  "8d"
+                ],
+                "weight": 21
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "8h",
+                  "8s"
+                ],
+                "weight": 22
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "8h",
+                  "9c"
+                ],
+                "weight": 23
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "5h",
+                  "5s"
+                ],
+                "weight": 24
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "5h",
+                  "6c"
+                ],
+                "weight": 25
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "5h",
+                  "6h"
+                ],
+                "weight": 26
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "5h",
+                  "6s"
+                ],
+                "weight": 27
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "5h",
+                  "7d"
+                ],
+                "weight": 28
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "5h",
+                  "7h"
+                ],
+                "weight": 29
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "5h",
+                  "7s"
+                ],
+                "weight": 30
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "5h",
+                  "8d"
+                ],
+                "weight": 31
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "5h",
+                  "8s"
+                ],
+                "weight": 32
+              }
+            ]
+          }
+        ],
+        "sizing": {
+          "type": "EXPLICIT_TOTALS",
+          "levels": [
+            1,
+            2
+          ],
+          "maxAggressions": 0
+        },
+        "rake": {
+          "type": "NONE",
+          "basis": "BEFORE_FEES"
+        }
+      },
+      "revisionKey": "23e2498165b9e4c7dbba215f03289e30bc882445fde3ebdd03c26eb66fbf1d0a"
+    },
+    {
+      "id": "HU32_TWO_SIZES_REFUSED",
+      "combos": 32,
+      "maxAggressions": 1,
+      "expectedRefusal": "MEMORY_BUDGET",
+      "input": {
+        "multiway": {
+          "schemaVersion": 1,
+          "enabled": true,
+          "config": {
+            "variant": "PLO5_HIGH",
+            "playerCount": 2,
+            "heroPosition": "SB",
+            "startingStack": 20,
+            "smallBlind": 0.5,
+            "bigBlind": 1,
+            "heroCards": [
+              "As",
+              "Ah",
+              "Qd",
+              "Jc",
+              "Tc"
+            ],
+            "players": [
+              {
+                "playerId": "qa-seat-0",
+                "name": "QA 0"
+              },
+              {
+                "playerId": "qa-seat-1",
+                "name": "QA 1"
+              }
+            ]
+          },
+          "events": [
+            {
+              "type": "ACT",
+              "actor": 0,
+              "action": "CALL"
+            },
+            {
+              "type": "ACT",
+              "actor": 1,
+              "action": "CHECK"
+            },
+            {
+              "type": "BOARD",
+              "cards": [
+                "2s",
+                "3h",
+                "4d"
+              ]
+            },
+            {
+              "type": "ACT",
+              "actor": 1,
+              "action": "CHECK"
+            },
+            {
+              "type": "ACT",
+              "actor": 0,
+              "action": "CHECK"
+            },
+            {
+              "type": "BOARD",
+              "cards": [
+                "2s",
+                "3h",
+                "4d",
+                "8c"
+              ]
+            },
+            {
+              "type": "ACT",
+              "actor": 1,
+              "action": "CHECK"
+            },
+            {
+              "type": "ACT",
+              "actor": 0,
+              "action": "CHECK"
+            },
+            {
+              "type": "BOARD",
+              "cards": [
+                "2s",
+                "3h",
+                "4d",
+                "8c",
+                "9s"
+              ]
+            },
+            {
+              "type": "ACT",
+              "actor": 1,
+              "action": "CHECK"
+            }
+          ],
+          "handId": "11111111-1111-4111-8111-111111111111",
+          "editEpoch": 0
+        },
+        "ranges": [
+          {
+            "seatId": 0,
+            "complete": true,
+            "source": "EXPLICIT_RIVER_GROWTH_QA",
+            "combos": [
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Jc",
+                  "Tc"
+                ],
+                "weight": 1
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Jc",
+                  "2c"
+                ],
+                "weight": 2
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Jc",
+                  "2d"
+                ],
+                "weight": 3
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Jc",
+                  "2h"
+                ],
+                "weight": 4
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Jc",
+                  "3c"
+                ],
+                "weight": 5
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Jc",
+                  "3d"
+                ],
+                "weight": 6
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Jc",
+                  "3s"
+                ],
+                "weight": 7
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Jc",
+                  "4c"
+                ],
+                "weight": 8
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Jc",
+                  "4h"
+                ],
+                "weight": 9
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Jc",
+                  "4s"
+                ],
+                "weight": 10
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Jc",
+                  "5c"
+                ],
+                "weight": 11
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Jc",
+                  "5d"
+                ],
+                "weight": 12
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Tc",
+                  "2c"
+                ],
+                "weight": 13
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Tc",
+                  "2d"
+                ],
+                "weight": 14
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Tc",
+                  "2h"
+                ],
+                "weight": 15
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Tc",
+                  "3c"
+                ],
+                "weight": 16
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Tc",
+                  "3d"
+                ],
+                "weight": 17
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Tc",
+                  "3s"
+                ],
+                "weight": 18
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Tc",
+                  "4c"
+                ],
+                "weight": 19
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Tc",
+                  "4h"
+                ],
+                "weight": 20
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Tc",
+                  "4s"
+                ],
+                "weight": 21
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Tc",
+                  "5c"
+                ],
+                "weight": 22
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Tc",
+                  "5d"
+                ],
+                "weight": 23
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "2c",
+                  "2d"
+                ],
+                "weight": 24
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "2c",
+                  "2h"
+                ],
+                "weight": 25
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "2c",
+                  "3c"
+                ],
+                "weight": 26
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "2c",
+                  "3d"
+                ],
+                "weight": 27
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "2c",
+                  "3s"
+                ],
+                "weight": 28
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "2c",
+                  "4c"
+                ],
+                "weight": 29
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "2c",
+                  "4h"
+                ],
+                "weight": 30
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "2c",
+                  "4s"
+                ],
+                "weight": 31
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "2c",
+                  "5c"
+                ],
+                "weight": 32
+              }
+            ]
+          },
+          {
+            "seatId": 1,
+            "complete": true,
+            "source": "EXPLICIT_RIVER_GROWTH_QA",
+            "combos": [
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "7c",
+                  "8h"
+                ],
+                "weight": 1
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "7c",
+                  "5h"
+                ],
+                "weight": 2
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "7c",
+                  "5s"
+                ],
+                "weight": 3
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "7c",
+                  "6c"
+                ],
+                "weight": 4
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "7c",
+                  "6h"
+                ],
+                "weight": 5
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "7c",
+                  "6s"
+                ],
+                "weight": 6
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "7c",
+                  "7d"
+                ],
+                "weight": 7
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "7c",
+                  "7h"
+                ],
+                "weight": 8
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "7c",
+                  "7s"
+                ],
+                "weight": 9
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "7c",
+                  "8d"
+                ],
+                "weight": 10
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "7c",
+                  "8s"
+                ],
+                "weight": 11
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "7c",
+                  "9c"
+                ],
+                "weight": 12
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "8h",
+                  "5h"
+                ],
+                "weight": 13
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "8h",
+                  "5s"
+                ],
+                "weight": 14
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "8h",
+                  "6c"
+                ],
+                "weight": 15
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "8h",
+                  "6h"
+                ],
+                "weight": 16
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "8h",
+                  "6s"
+                ],
+                "weight": 17
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "8h",
+                  "7d"
+                ],
+                "weight": 18
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "8h",
+                  "7h"
+                ],
+                "weight": 19
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "8h",
+                  "7s"
+                ],
+                "weight": 20
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "8h",
+                  "8d"
+                ],
+                "weight": 21
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "8h",
+                  "8s"
+                ],
+                "weight": 22
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "8h",
+                  "9c"
+                ],
+                "weight": 23
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "5h",
+                  "5s"
+                ],
+                "weight": 24
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "5h",
+                  "6c"
+                ],
+                "weight": 25
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "5h",
+                  "6h"
+                ],
+                "weight": 26
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "5h",
+                  "6s"
+                ],
+                "weight": 27
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "5h",
+                  "7d"
+                ],
+                "weight": 28
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "5h",
+                  "7h"
+                ],
+                "weight": 29
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "5h",
+                  "7s"
+                ],
+                "weight": 30
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "5h",
+                  "8d"
+                ],
+                "weight": 31
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "5h",
+                  "8s"
+                ],
+                "weight": 32
+              }
+            ]
+          }
+        ],
+        "sizing": {
+          "type": "EXPLICIT_TOTALS",
+          "levels": [
+            1,
+            2
+          ],
+          "maxAggressions": 1
+        },
+        "rake": {
+          "type": "NONE",
+          "basis": "BEFORE_FEES"
+        }
+      },
+      "revisionKey": "23e2498165b9e4c7dbba215f03289e30bc882445fde3ebdd03c26eb66fbf1d0a"
+    },
+    {
+      "id": "HU48_RANGE_REFUSED",
+      "combos": 48,
+      "maxAggressions": 0,
+      "expectedRefusal": "RANGE_BUDGET",
+      "input": {
+        "multiway": {
+          "schemaVersion": 1,
+          "enabled": true,
+          "config": {
+            "variant": "PLO5_HIGH",
+            "playerCount": 2,
+            "heroPosition": "SB",
+            "startingStack": 20,
+            "smallBlind": 0.5,
+            "bigBlind": 1,
+            "heroCards": [
+              "As",
+              "Ah",
+              "Qd",
+              "Jc",
+              "Tc"
+            ],
+            "players": [
+              {
+                "playerId": "qa-seat-0",
+                "name": "QA 0"
+              },
+              {
+                "playerId": "qa-seat-1",
+                "name": "QA 1"
+              }
+            ]
+          },
+          "events": [
+            {
+              "type": "ACT",
+              "actor": 0,
+              "action": "CALL"
+            },
+            {
+              "type": "ACT",
+              "actor": 1,
+              "action": "CHECK"
+            },
+            {
+              "type": "BOARD",
+              "cards": [
+                "2s",
+                "3h",
+                "4d"
+              ]
+            },
+            {
+              "type": "ACT",
+              "actor": 1,
+              "action": "CHECK"
+            },
+            {
+              "type": "ACT",
+              "actor": 0,
+              "action": "CHECK"
+            },
+            {
+              "type": "BOARD",
+              "cards": [
+                "2s",
+                "3h",
+                "4d",
+                "8c"
+              ]
+            },
+            {
+              "type": "ACT",
+              "actor": 1,
+              "action": "CHECK"
+            },
+            {
+              "type": "ACT",
+              "actor": 0,
+              "action": "CHECK"
+            },
+            {
+              "type": "BOARD",
+              "cards": [
+                "2s",
+                "3h",
+                "4d",
+                "8c",
+                "9s"
+              ]
+            },
+            {
+              "type": "ACT",
+              "actor": 1,
+              "action": "CHECK"
+            }
+          ],
+          "handId": "11111111-1111-4111-8111-111111111111",
+          "editEpoch": 0
+        },
+        "ranges": [
+          {
+            "seatId": 0,
+            "complete": true,
+            "source": "EXPLICIT_RIVER_GROWTH_QA",
+            "combos": [
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Jc",
+                  "Tc"
+                ],
+                "weight": 1
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Jc",
+                  "2c"
+                ],
+                "weight": 2
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Jc",
+                  "2d"
+                ],
+                "weight": 3
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Jc",
+                  "2h"
+                ],
+                "weight": 4
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Jc",
+                  "3c"
+                ],
+                "weight": 5
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Jc",
+                  "3d"
+                ],
+                "weight": 6
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Jc",
+                  "3s"
+                ],
+                "weight": 7
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Jc",
+                  "4c"
+                ],
+                "weight": 8
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Jc",
+                  "4h"
+                ],
+                "weight": 9
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Jc",
+                  "4s"
+                ],
+                "weight": 10
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Jc",
+                  "5c"
+                ],
+                "weight": 11
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Jc",
+                  "5d"
+                ],
+                "weight": 12
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Tc",
+                  "2c"
+                ],
+                "weight": 13
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Tc",
+                  "2d"
+                ],
+                "weight": 14
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Tc",
+                  "2h"
+                ],
+                "weight": 15
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Tc",
+                  "3c"
+                ],
+                "weight": 16
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Tc",
+                  "3d"
+                ],
+                "weight": 17
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Tc",
+                  "3s"
+                ],
+                "weight": 18
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Tc",
+                  "4c"
+                ],
+                "weight": 19
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Tc",
+                  "4h"
+                ],
+                "weight": 20
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Tc",
+                  "4s"
+                ],
+                "weight": 21
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Tc",
+                  "5c"
+                ],
+                "weight": 22
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Tc",
+                  "5d"
+                ],
+                "weight": 23
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "2c",
+                  "2d"
+                ],
+                "weight": 24
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "2c",
+                  "2h"
+                ],
+                "weight": 25
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "2c",
+                  "3c"
+                ],
+                "weight": 26
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "2c",
+                  "3d"
+                ],
+                "weight": 27
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "2c",
+                  "3s"
+                ],
+                "weight": 28
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "2c",
+                  "4c"
+                ],
+                "weight": 29
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "2c",
+                  "4h"
+                ],
+                "weight": 30
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "2c",
+                  "4s"
+                ],
+                "weight": 31
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "2c",
+                  "5c"
+                ],
+                "weight": 32
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "2c",
+                  "5d"
+                ],
+                "weight": 33
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "2d",
+                  "2h"
+                ],
+                "weight": 34
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "2d",
+                  "3c"
+                ],
+                "weight": 35
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "2d",
+                  "3d"
+                ],
+                "weight": 36
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "2d",
+                  "3s"
+                ],
+                "weight": 37
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "2d",
+                  "4c"
+                ],
+                "weight": 38
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "2d",
+                  "4h"
+                ],
+                "weight": 39
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "2d",
+                  "4s"
+                ],
+                "weight": 40
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "2d",
+                  "5c"
+                ],
+                "weight": 41
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "2d",
+                  "5d"
+                ],
+                "weight": 42
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "2h",
+                  "3c"
+                ],
+                "weight": 43
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "2h",
+                  "3d"
+                ],
+                "weight": 44
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "2h",
+                  "3s"
+                ],
+                "weight": 45
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "2h",
+                  "4c"
+                ],
+                "weight": 46
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "2h",
+                  "4h"
+                ],
+                "weight": 47
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "2h",
+                  "4s"
+                ],
+                "weight": 48
+              }
+            ]
+          },
+          {
+            "seatId": 1,
+            "complete": true,
+            "source": "EXPLICIT_RIVER_GROWTH_QA",
+            "combos": [
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "7c",
+                  "8h"
+                ],
+                "weight": 1
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "7c",
+                  "5h"
+                ],
+                "weight": 2
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "7c",
+                  "5s"
+                ],
+                "weight": 3
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "7c",
+                  "6c"
+                ],
+                "weight": 4
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "7c",
+                  "6h"
+                ],
+                "weight": 5
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "7c",
+                  "6s"
+                ],
+                "weight": 6
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "7c",
+                  "7d"
+                ],
+                "weight": 7
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "7c",
+                  "7h"
+                ],
+                "weight": 8
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "7c",
+                  "7s"
+                ],
+                "weight": 9
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "7c",
+                  "8d"
+                ],
+                "weight": 10
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "7c",
+                  "8s"
+                ],
+                "weight": 11
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "7c",
+                  "9c"
+                ],
+                "weight": 12
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "8h",
+                  "5h"
+                ],
+                "weight": 13
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "8h",
+                  "5s"
+                ],
+                "weight": 14
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "8h",
+                  "6c"
+                ],
+                "weight": 15
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "8h",
+                  "6h"
+                ],
+                "weight": 16
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "8h",
+                  "6s"
+                ],
+                "weight": 17
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "8h",
+                  "7d"
+                ],
+                "weight": 18
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "8h",
+                  "7h"
+                ],
+                "weight": 19
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "8h",
+                  "7s"
+                ],
+                "weight": 20
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "8h",
+                  "8d"
+                ],
+                "weight": 21
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "8h",
+                  "8s"
+                ],
+                "weight": 22
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "8h",
+                  "9c"
+                ],
+                "weight": 23
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "5h",
+                  "5s"
+                ],
+                "weight": 24
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "5h",
+                  "6c"
+                ],
+                "weight": 25
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "5h",
+                  "6h"
+                ],
+                "weight": 26
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "5h",
+                  "6s"
+                ],
+                "weight": 27
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "5h",
+                  "7d"
+                ],
+                "weight": 28
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "5h",
+                  "7h"
+                ],
+                "weight": 29
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "5h",
+                  "7s"
+                ],
+                "weight": 30
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "5h",
+                  "8d"
+                ],
+                "weight": 31
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "5h",
+                  "8s"
+                ],
+                "weight": 32
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "5h",
+                  "9c"
+                ],
+                "weight": 33
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "5s",
+                  "6c"
+                ],
+                "weight": 34
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "5s",
+                  "6h"
+                ],
+                "weight": 35
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "5s",
+                  "6s"
+                ],
+                "weight": 36
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "5s",
+                  "7d"
+                ],
+                "weight": 37
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "5s",
+                  "7h"
+                ],
+                "weight": 38
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "5s",
+                  "7s"
+                ],
+                "weight": 39
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "5s",
+                  "8d"
+                ],
+                "weight": 40
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "5s",
+                  "8s"
+                ],
+                "weight": 41
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "5s",
+                  "9c"
+                ],
+                "weight": 42
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "6c",
+                  "6h"
+                ],
+                "weight": 43
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "6c",
+                  "6s"
+                ],
+                "weight": 44
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "6c",
+                  "7d"
+                ],
+                "weight": 45
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "6c",
+                  "7h"
+                ],
+                "weight": 46
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "6c",
+                  "7s"
+                ],
+                "weight": 47
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "6c",
+                  "8d"
+                ],
+                "weight": 48
+              }
+            ]
+          }
+        ],
+        "sizing": {
+          "type": "EXPLICIT_TOTALS",
+          "levels": [
+            1,
+            2
+          ],
+          "maxAggressions": 0
         },
         "rake": {
           "type": "NONE",

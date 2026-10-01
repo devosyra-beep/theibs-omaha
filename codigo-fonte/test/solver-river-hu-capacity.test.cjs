@@ -37,8 +37,8 @@ function reject(input, code) {
 
 test('24x24 two-size HU admits all576 exact assignments under unchanged memory and node caps', () => {
   const input = capacityRiverInput(), before = structuredClone(input), built = ready(input);
-  assert.equal(adapter.HU_SUPPORT.maxCombosPerSeat, 24);
-  assert.equal(adapter.HU_SUPPORT.maxWorlds, 576);
+  assert.equal(adapter.HU_SUPPORT.maxCombosPerSeat, 32);
+  assert.equal(adapter.HU_SUPPORT.maxWorlds, 1024);
   assert.equal(adapter.HU_SUPPORT.maxSizingLevels, 12);
   assert.equal(adapter.HU_SUPPORT.maxMemoryBytes, 48 * 1024 * 1024);
   assert.equal(adapter.LIMITS.maxNodes, 12000);
@@ -95,7 +95,7 @@ test('24x24 ranges do not override explicit sizing, node, world or conservative 
   reject({ ...capacityRiverInput(), budget: { maxWorlds: 575 } }, 'WORLD_BUDGET');
   reject({ ...capacityRiverInput(), budget: { maxNodes: 5184 } }, 'NODE_BUDGET');
   reject({ ...capacityRiverInput(), budget: { maxMemoryBytes: 42475519 } }, 'MEMORY_BUDGET');
-  reject(capacityRiverInput({ combos: 25 }), 'RANGE_BUDGET');
+  reject(capacityRiverInput({ combos: 33 }), 'RANGE_BUDGET');
   const sizes = capacityRiverInput();
   sizes.sizing.levels = Array.from({ length: 13 }, (_, index) => 1 + index / 100);
   reject(sizes, 'INVALID_SIZING');

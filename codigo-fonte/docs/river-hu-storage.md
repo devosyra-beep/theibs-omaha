@@ -1,5 +1,7 @@
 # River HU storage and certificate construction
 
+Historical delivery record for `5ba76316`. Its 24-combination ceiling and host checkpoint-cloning limitation are superseded by [conditional 32 admission and compact transport](river-hu-32-transport.md); the measurements below remain unchanged.
+
 Baseline: `c86abe284a4d56f62a1a6fac12e3b1558521a6bf`, branch `hosting/cloudflare-oracle-migration`, application/engine `0.14.10`.
 
 ## Scope and invariants

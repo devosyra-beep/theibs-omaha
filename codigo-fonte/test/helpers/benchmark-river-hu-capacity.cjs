@@ -85,7 +85,7 @@ if (!isMainThread) {
     const prototype = process.argv.includes('--prototype');
     const candidate = prototype ? baseline.replace('maxCombosPerSeat: 12, maxSizingLevels: 12, maxWorlds: 144',
       'maxCombosPerSeat: 24, maxSizingLevels: 12, maxWorlds: 576') : fs.readFileSync(adapterPath, 'utf8');
-    assert.equal(adapterFrom(candidate).HU_SUPPORT.maxCombosPerSeat, 24);
+    assert.ok(adapterFrom(candidate).HU_SUPPORT.maxCombosPerSeat >= 24);
     const report = { classification: 'LOCAL_BOUNDED_EXACT_RIVER_HU_CAPACITY', generatedAt: new Date().toISOString(),
       baselineCommit: 'b62b0f1', candidateMode: prototype ? 'IN_MEMORY_ADMISSION_PROTOTYPE' : 'CURRENT_WORKING_SOURCE',
       node: process.version, platform: process.platform, baselineSourceSHA256: digest(baseline), candidateSourceSHA256: digest(candidate),

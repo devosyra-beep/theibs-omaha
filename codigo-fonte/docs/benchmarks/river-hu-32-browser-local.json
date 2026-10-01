@@ -1,0 +1,1964 @@
+{
+  "status": "PASS",
+  "scope": "RIVER_HU_EXACT_DECLARED_TREES_48MIB",
+  "policy": {
+    "initialTimeMs": 3000,
+    "initialWorkIterations": 1000,
+    "adaptiveTimeMs": 5000
+  },
+  "groups": [
+    {
+      "fixtureId": "HU12_TWO_SIZES",
+      "combos": 12,
+      "maxAggressions": 1,
+      "first": {
+        "n": 3,
+        "p50Ms": 265,
+        "p95Ms": 933
+      },
+      "resolution": {
+        "n": 3,
+        "p50Ms": 536,
+        "p95Ms": 2023
+      },
+      "bounds": {
+        "n": 3,
+        "p50Ms": 33.5,
+        "p95Ms": 197.89999997615814
+      }
+    },
+    {
+      "fixtureId": "HU24_TWO_SIZES",
+      "combos": 24,
+      "maxAggressions": 1,
+      "first": {
+        "n": 3,
+        "p50Ms": 322,
+        "p95Ms": 327
+      },
+      "resolution": {
+        "n": 3,
+        "p50Ms": 1073,
+        "p95Ms": 1105
+      },
+      "bounds": {
+        "n": 3,
+        "p50Ms": 67.59999996423721,
+        "p95Ms": 68.60000002384186
+      }
+    },
+    {
+      "fixtureId": "HU24_NO_ADDITIONAL_AGGRESSION",
+      "combos": 24,
+      "maxAggressions": 0,
+      "first": {
+        "n": 3,
+        "p50Ms": 217,
+        "p95Ms": 318
+      },
+      "resolution": {
+        "n": 3,
+        "p50Ms": 383,
+        "p95Ms": 472
+      },
+      "bounds": {
+        "n": 3,
+        "p50Ms": 24.19999998807907,
+        "p95Ms": 25.19999998807907
+      }
+    },
+    {
+      "fixtureId": "HU32_NO_ADDITIONAL_AGGRESSION",
+      "combos": 32,
+      "maxAggressions": 0,
+      "first": {
+        "n": 3,
+        "p50Ms": 265,
+        "p95Ms": 371
+      },
+      "resolution": {
+        "n": 3,
+        "p50Ms": 603,
+        "p95Ms": 636
+      },
+      "bounds": {
+        "n": 3,
+        "p50Ms": 28.799999982118607,
+        "p95Ms": 59.400000005960464
+      }
+    }
+  ],
+  "refusals": [
+    {
+      "fixtureId": "HU32_TWO_SIZES_REFUSED",
+      "combos": 32,
+      "maxAggressions": 1,
+      "phase": "UNSUPPORTED",
+      "status": "NOT_SOLVED",
+      "refusal": "MEMORY_BUDGET",
+      "timing": {
+        "acknowledgementMs": 12,
+        "workerReadyMs": 51,
+        "firstResponseMs": 80,
+        "firstValueMs": null,
+        "completionMs": 81,
+        "totalMs": 81,
+        "jobElapsedMs": 69,
+        "workerMs": 15.799999982118607,
+        "decisionComputeMs": 15.799999982118607,
+        "decisionWorkIterations": 0,
+        "currentRunCosts": null,
+        "jobCosts": null,
+        "cumulativeCosts": null
+      },
+      "buildFingerprint": "16314d92c62148695757a1f1e3395e789e6369f42a96aaf4e7e9114cb362be00",
+      "metrics": {
+        "started": 1,
+        "completed": 1,
+        "cancelled": 0,
+        "workerErrors": 0,
+        "hits": 0,
+        "misses": 1,
+        "writes": 0,
+        "evictions": 0,
+        "staleMessages": 0,
+        "memoryBytes": 0,
+        "entries": 0,
+        "maxBytes": 33554432,
+        "retainedCheckpointJobs": 0,
+        "checkpointTransportVersion": "THEIBS_SOLVER_CHECKPOINT_TRANSPORT_V1",
+        "active": 0
+      }
+    },
+    {
+      "fixtureId": "HU48_RANGE_REFUSED",
+      "combos": 48,
+      "maxAggressions": 0,
+      "phase": "UNSUPPORTED",
+      "status": "NOT_SOLVED",
+      "refusal": "RANGE_BUDGET",
+      "timing": {
+        "acknowledgementMs": 10,
+        "workerReadyMs": 46,
+        "firstResponseMs": 66,
+        "firstValueMs": null,
+        "completionMs": 66,
+        "totalMs": 66,
+        "jobElapsedMs": 56,
+        "workerMs": 6.4000000059604645,
+        "decisionComputeMs": 6.4000000059604645,
+        "decisionWorkIterations": 0,
+        "currentRunCosts": null,
+        "jobCosts": null,
+        "cumulativeCosts": null
+      },
+      "buildFingerprint": "16314d92c62148695757a1f1e3395e789e6369f42a96aaf4e7e9114cb362be00",
+      "metrics": {
+        "started": 1,
+        "completed": 1,
+        "cancelled": 0,
+        "workerErrors": 0,
+        "hits": 0,
+        "misses": 1,
+        "writes": 0,
+        "evictions": 0,
+        "staleMessages": 0,
+        "memoryBytes": 0,
+        "entries": 0,
+        "maxBytes": 33554432,
+        "retainedCheckpointJobs": 0,
+        "checkpointTransportVersion": "THEIBS_SOLVER_CHECKPOINT_TRANSPORT_V1",
+        "active": 0
+      }
+    }
+  ],
+  "rows": [
+    {
+      "fixtureId": "HU12_TWO_SIZES",
+      "combos": 12,
+      "maxAggressions": 1,
+      "buildFingerprint": "16314d92c62148695757a1f1e3395e789e6369f42a96aaf4e7e9114cb362be00",
+      "phase": "COMPLETE",
+      "status": "APPROXIMATE",
+      "precision": "INCONCLUSIVE",
+      "outcome": "NEAR_EQUIVALENT",
+      "worlds": 144,
+      "timing": {
+        "acknowledgementMs": 85,
+        "workerReadyMs": 420,
+        "firstResponseMs": 930,
+        "firstValueMs": 933,
+        "completionMs": 2023,
+        "totalMs": 2025,
+        "jobElapsedMs": 1938,
+        "workerMs": 1468.5,
+        "decisionComputeMs": 1468.5,
+        "decisionWorkIterations": 300,
+        "currentRunCosts": {
+          "buildMs": 168.2000000178814,
+          "globalSolveMs": 193.90000000596046,
+          "globalEvaluationMs": 9.5,
+          "actionSolveMs": 921.6000000238419,
+          "actionCertificateMs": 197.89999997615814,
+          "totalComputeMs": 1463.5
+        },
+        "jobCosts": {
+          "buildMs": 168.2000000178814,
+          "globalSolveMs": 193.90000000596046,
+          "globalEvaluationMs": 9.5,
+          "actionSolveMs": 921.6000000238419,
+          "actionCertificateMs": 197.89999997615814,
+          "totalComputeMs": 1463.5
+        },
+        "cumulativeCosts": {
+          "buildMs": 168.2000000178814,
+          "globalSolveMs": 193.90000000596046,
+          "globalEvaluationMs": 9.5,
+          "actionSolveMs": 921.6000000238419,
+          "actionCertificateMs": 197.89999997615814,
+          "totalComputeMs": 1463.5
+        }
+      },
+      "costs": {
+        "buildMs": 168.2000000178814,
+        "globalSolveMs": 193.90000000596046,
+        "globalEvaluationMs": 9.5,
+        "actionSolveMs": 921.6000000238419,
+        "actionCertificateMs": 197.89999997615814,
+        "totalComputeMs": 1463.5
+      },
+      "nashConv": 0.009646006935035756,
+      "bounds": [
+        {
+          "id": "FOLD",
+          "lowerBB": 1.8382751614641921,
+          "upperBB": 1.847797501643675,
+          "certified": true
+        },
+        {
+          "id": "CHECK",
+          "lowerBB": 1.8622725316154087,
+          "upperBB": 1.8717948717948918,
+          "certified": true
+        },
+        {
+          "id": "BET:1.00",
+          "lowerBB": 1.8685688888561391,
+          "upperBB": 1.8709744761458593,
+          "certified": true
+        },
+        {
+          "id": "BET:2.00",
+          "lowerBB": 1.8606288761255996,
+          "upperBB": 1.8701619161800356,
+          "certified": true
+        }
+      ],
+      "warm": {
+        "cache": {
+          "hit": true,
+          "source": "MEMORY",
+          "readOnly": true,
+          "originalTiming": {
+            "firstValueMs": 933,
+            "snapshotMs": 2021,
+            "workerMs": 1468.5
+          },
+          "started": 2,
+          "completed": 1,
+          "cancelled": 0,
+          "workerErrors": 0,
+          "hits": 1,
+          "misses": 1,
+          "writes": 9,
+          "evictions": 0,
+          "staleMessages": 0,
+          "memoryBytes": 48296,
+          "entries": 1,
+          "maxBytes": 33554432,
+          "retainedCheckpointJobs": 0,
+          "checkpointTransportVersion": "THEIBS_SOLVER_CHECKPOINT_TRANSPORT_V1",
+          "active": 0
+        },
+        "timing": {
+          "acknowledgementMs": 2,
+          "workerReadyMs": null,
+          "firstResponseMs": null,
+          "firstValueMs": 2,
+          "completionMs": 4,
+          "totalMs": 6,
+          "jobElapsedMs": 0,
+          "workerMs": 0,
+          "decisionComputeMs": 1468.5,
+          "decisionWorkIterations": 300,
+          "currentRunCosts": null,
+          "jobCosts": null,
+          "cumulativeCosts": {
+            "buildMs": 168.2000000178814,
+            "globalSolveMs": 193.90000000596046,
+            "globalEvaluationMs": 9.5,
+            "actionSolveMs": 921.6000000238419,
+            "actionCertificateMs": 197.89999997615814,
+            "totalComputeMs": 1463.5
+          }
+        }
+      },
+      "metrics": {
+        "started": 2,
+        "completed": 1,
+        "cancelled": 0,
+        "workerErrors": 0,
+        "hits": 1,
+        "misses": 1,
+        "writes": 9,
+        "evictions": 0,
+        "staleMessages": 0,
+        "memoryBytes": 48296,
+        "entries": 1,
+        "maxBytes": 33554432,
+        "retainedCheckpointJobs": 0,
+        "checkpointTransportVersion": "THEIBS_SOLVER_CHECKPOINT_TRANSPORT_V1",
+        "active": 0
+      }
+    },
+    {
+      "fixtureId": "HU12_TWO_SIZES",
+      "combos": 12,
+      "maxAggressions": 1,
+      "buildFingerprint": "16314d92c62148695757a1f1e3395e789e6369f42a96aaf4e7e9114cb362be00",
+      "phase": "COMPLETE",
+      "status": "APPROXIMATE",
+      "precision": "INCONCLUSIVE",
+      "outcome": "NEAR_EQUIVALENT",
+      "worlds": 144,
+      "timing": {
+        "acknowledgementMs": 17,
+        "workerReadyMs": 69,
+        "firstResponseMs": 265,
+        "firstValueMs": 265,
+        "completionMs": 536,
+        "totalMs": 537,
+        "jobElapsedMs": 519,
+        "workerMs": 444.5,
+        "decisionComputeMs": 444.5,
+        "decisionWorkIterations": 300,
+        "currentRunCosts": {
+          "buildMs": 59.79999998211861,
+          "globalSolveMs": 95,
+          "globalEvaluationMs": 4,
+          "actionSolveMs": 243.69999998807907,
+          "actionCertificateMs": 33.5,
+          "totalComputeMs": 443.59999999403954
+        },
+        "jobCosts": {
+          "buildMs": 59.79999998211861,
+          "globalSolveMs": 95,
+          "globalEvaluationMs": 4,
+          "actionSolveMs": 243.69999998807907,
+          "actionCertificateMs": 33.5,
+          "totalComputeMs": 443.59999999403954
+        },
+        "cumulativeCosts": {
+          "buildMs": 59.79999998211861,
+          "globalSolveMs": 95,
+          "globalEvaluationMs": 4,
+          "actionSolveMs": 243.69999998807907,
+          "actionCertificateMs": 33.5,
+          "totalComputeMs": 443.59999999403954
+        }
+      },
+      "costs": {
+        "buildMs": 59.79999998211861,
+        "globalSolveMs": 95,
+        "globalEvaluationMs": 4,
+        "actionSolveMs": 243.69999998807907,
+        "actionCertificateMs": 33.5,
+        "totalComputeMs": 443.59999999403954
+      },
+      "nashConv": 0.009646006935035756,
+      "bounds": [
+        {
+          "id": "FOLD",
+          "lowerBB": 1.8382751614641921,
+          "upperBB": 1.847797501643675,
+          "certified": true
+        },
+        {
+          "id": "CHECK",
+          "lowerBB": 1.8622725316154087,
+          "upperBB": 1.8717948717948918,
+          "certified": true
+        },
+        {
+          "id": "BET:1.00",
+          "lowerBB": 1.8685688888561391,
+          "upperBB": 1.8709744761458593,
+          "certified": true
+        },
+        {
+          "id": "BET:2.00",
+          "lowerBB": 1.8606288761255996,
+          "upperBB": 1.8701619161800356,
+          "certified": true
+        }
+      ],
+      "warm": {
+        "cache": {
+          "hit": true,
+          "source": "MEMORY",
+          "readOnly": true,
+          "originalTiming": {
+            "firstValueMs": 265,
+            "snapshotMs": 536,
+            "workerMs": 444.5
+          },
+          "started": 2,
+          "completed": 1,
+          "cancelled": 0,
+          "workerErrors": 0,
+          "hits": 1,
+          "misses": 1,
+          "writes": 7,
+          "evictions": 0,
+          "staleMessages": 0,
+          "memoryBytes": 47409,
+          "entries": 1,
+          "maxBytes": 33554432,
+          "retainedCheckpointJobs": 0,
+          "checkpointTransportVersion": "THEIBS_SOLVER_CHECKPOINT_TRANSPORT_V1",
+          "active": 0
+        },
+        "timing": {
+          "acknowledgementMs": 1,
+          "workerReadyMs": null,
+          "firstResponseMs": null,
+          "firstValueMs": 1,
+          "completionMs": 1,
+          "totalMs": 2,
+          "jobElapsedMs": 0,
+          "workerMs": 0,
+          "decisionComputeMs": 444.5,
+          "decisionWorkIterations": 300,
+          "currentRunCosts": null,
+          "jobCosts": null,
+          "cumulativeCosts": {
+            "buildMs": 59.79999998211861,
+            "globalSolveMs": 95,
+            "globalEvaluationMs": 4,
+            "actionSolveMs": 243.69999998807907,
+            "actionCertificateMs": 33.5,
+            "totalComputeMs": 443.59999999403954
+          }
+        }
+      },
+      "metrics": {
+        "started": 2,
+        "completed": 1,
+        "cancelled": 0,
+        "workerErrors": 0,
+        "hits": 1,
+        "misses": 1,
+        "writes": 7,
+        "evictions": 0,
+        "staleMessages": 0,
+        "memoryBytes": 47409,
+        "entries": 1,
+        "maxBytes": 33554432,
+        "retainedCheckpointJobs": 0,
+        "checkpointTransportVersion": "THEIBS_SOLVER_CHECKPOINT_TRANSPORT_V1",
+        "active": 0
+      }
+    },
+    {
+      "fixtureId": "HU12_TWO_SIZES",
+      "combos": 12,
+      "maxAggressions": 1,
+      "buildFingerprint": "16314d92c62148695757a1f1e3395e789e6369f42a96aaf4e7e9114cb362be00",
+      "phase": "COMPLETE",
+      "status": "APPROXIMATE",
+      "precision": "INCONCLUSIVE",
+      "outcome": "NEAR_EQUIVALENT",
+      "worlds": 144,
+      "timing": {
+        "acknowledgementMs": 7,
+        "workerReadyMs": 39,
+        "firstResponseMs": 208,
+        "firstValueMs": 208,
+        "completionMs": 445,
+        "totalMs": 445,
+        "jobElapsedMs": 438,
+        "workerMs": 389.69999998807907,
+        "decisionComputeMs": 389.69999998807907,
+        "decisionWorkIterations": 300,
+        "currentRunCosts": {
+          "buildMs": 56.099999994039536,
+          "globalSolveMs": 84.10000002384186,
+          "globalEvaluationMs": 2.7999999821186066,
+          "actionSolveMs": 209,
+          "actionCertificateMs": 27.799999982118607,
+          "totalComputeMs": 388.39999997615814
+        },
+        "jobCosts": {
+          "buildMs": 56.099999994039536,
+          "globalSolveMs": 84.10000002384186,
+          "globalEvaluationMs": 2.7999999821186066,
+          "actionSolveMs": 209,
+          "actionCertificateMs": 27.799999982118607,
+          "totalComputeMs": 388.39999997615814
+        },
+        "cumulativeCosts": {
+          "buildMs": 56.099999994039536,
+          "globalSolveMs": 84.10000002384186,
+          "globalEvaluationMs": 2.7999999821186066,
+          "actionSolveMs": 209,
+          "actionCertificateMs": 27.799999982118607,
+          "totalComputeMs": 388.39999997615814
+        }
+      },
+      "costs": {
+        "buildMs": 56.099999994039536,
+        "globalSolveMs": 84.10000002384186,
+        "globalEvaluationMs": 2.7999999821186066,
+        "actionSolveMs": 209,
+        "actionCertificateMs": 27.799999982118607,
+        "totalComputeMs": 388.39999997615814
+      },
+      "nashConv": 0.009646006935035756,
+      "bounds": [
+        {
+          "id": "FOLD",
+          "lowerBB": 1.8382751614641921,
+          "upperBB": 1.847797501643675,
+          "certified": true
+        },
+        {
+          "id": "CHECK",
+          "lowerBB": 1.8622725316154087,
+          "upperBB": 1.8717948717948918,
+          "certified": true
+        },
+        {
+          "id": "BET:1.00",
+          "lowerBB": 1.8685688888561391,
+          "upperBB": 1.8709744761458593,
+          "certified": true
+        },
+        {
+          "id": "BET:2.00",
+          "lowerBB": 1.8606288761255996,
+          "upperBB": 1.8701619161800356,
+          "certified": true
+        }
+      ],
+      "warm": {
+        "cache": {
+          "hit": true,
+          "source": "MEMORY",
+          "readOnly": true,
+          "originalTiming": {
+            "firstValueMs": 208,
+            "snapshotMs": 444,
+            "workerMs": 389.69999998807907
+          },
+          "started": 2,
+          "completed": 1,
+          "cancelled": 0,
+          "workerErrors": 0,
+          "hits": 1,
+          "misses": 1,
+          "writes": 7,
+          "evictions": 0,
+          "staleMessages": 0,
+          "memoryBytes": 47623,
+          "entries": 1,
+          "maxBytes": 33554432,
+          "retainedCheckpointJobs": 0,
+          "checkpointTransportVersion": "THEIBS_SOLVER_CHECKPOINT_TRANSPORT_V1",
+          "active": 0
+        },
+        "timing": {
+          "acknowledgementMs": 1,
+          "workerReadyMs": null,
+          "firstResponseMs": null,
+          "firstValueMs": 1,
+          "completionMs": 2,
+          "totalMs": 3,
+          "jobElapsedMs": 0,
+          "workerMs": 0,
+          "decisionComputeMs": 389.69999998807907,
+          "decisionWorkIterations": 300,
+          "currentRunCosts": null,
+          "jobCosts": null,
+          "cumulativeCosts": {
+            "buildMs": 56.099999994039536,
+            "globalSolveMs": 84.10000002384186,
+            "globalEvaluationMs": 2.7999999821186066,
+            "actionSolveMs": 209,
+            "actionCertificateMs": 27.799999982118607,
+            "totalComputeMs": 388.39999997615814
+          }
+        }
+      },
+      "metrics": {
+        "started": 2,
+        "completed": 1,
+        "cancelled": 0,
+        "workerErrors": 0,
+        "hits": 1,
+        "misses": 1,
+        "writes": 7,
+        "evictions": 0,
+        "staleMessages": 0,
+        "memoryBytes": 47623,
+        "entries": 1,
+        "maxBytes": 33554432,
+        "retainedCheckpointJobs": 0,
+        "checkpointTransportVersion": "THEIBS_SOLVER_CHECKPOINT_TRANSPORT_V1",
+        "active": 0
+      }
+    },
+    {
+      "fixtureId": "HU24_TWO_SIZES",
+      "combos": 24,
+      "maxAggressions": 1,
+      "buildFingerprint": "16314d92c62148695757a1f1e3395e789e6369f42a96aaf4e7e9114cb362be00",
+      "phase": "COMPLETE",
+      "status": "APPROXIMATE",
+      "precision": "INCONCLUSIVE",
+      "outcome": "NEAR_EQUIVALENT",
+      "worlds": 576,
+      "timing": {
+        "acknowledgementMs": 10,
+        "workerReadyMs": 41,
+        "firstResponseMs": 310,
+        "firstValueMs": 310,
+        "completionMs": 1073,
+        "totalMs": 1074,
+        "jobElapsedMs": 1063,
+        "workerMs": 1017,
+        "decisionComputeMs": 1017,
+        "decisionWorkIterations": 225,
+        "currentRunCosts": {
+          "buildMs": 83.09999999403954,
+          "globalSolveMs": 208.90000000596046,
+          "globalEvaluationMs": 5.300000011920929,
+          "actionSolveMs": 677.3999999761581,
+          "actionCertificateMs": 63.60000002384186,
+          "totalComputeMs": 1015.5999999940395
+        },
+        "jobCosts": {
+          "buildMs": 83.09999999403954,
+          "globalSolveMs": 208.90000000596046,
+          "globalEvaluationMs": 5.300000011920929,
+          "actionSolveMs": 677.3999999761581,
+          "actionCertificateMs": 63.60000002384186,
+          "totalComputeMs": 1015.5999999940395
+        },
+        "cumulativeCosts": {
+          "buildMs": 83.09999999403954,
+          "globalSolveMs": 208.90000000596046,
+          "globalEvaluationMs": 5.300000011920929,
+          "actionSolveMs": 677.3999999761581,
+          "actionCertificateMs": 63.60000002384186,
+          "totalComputeMs": 1015.5999999940395
+        }
+      },
+      "costs": {
+        "buildMs": 83.09999999403954,
+        "globalSolveMs": 208.90000000596046,
+        "globalEvaluationMs": 5.300000011920929,
+        "actionSolveMs": 677.3999999761581,
+        "actionCertificateMs": 63.60000002384186,
+        "totalComputeMs": 1015.5999999940395
+      },
+      "nashConv": 0.0075599390670020306,
+      "bounds": [
+        {
+          "id": "FOLD",
+          "lowerBB": 1.2898570542203323,
+          "upperBB": 1.2947111111111667,
+          "certified": true
+        },
+        {
+          "id": "CHECK",
+          "lowerBB": 1.292687031366454,
+          "upperBB": 1.2986666666667226,
+          "certified": true
+        },
+        {
+          "id": "BET:1.00",
+          "lowerBB": 1.2902455710054064,
+          "upperBB": 1.2984783975063998,
+          "certified": true
+        },
+        {
+          "id": "BET:2.00",
+          "lowerBB": 1.2917396456329435,
+          "upperBB": 1.2977927607564717,
+          "certified": true
+        }
+      ],
+      "warm": {
+        "cache": {
+          "hit": true,
+          "source": "MEMORY",
+          "readOnly": true,
+          "originalTiming": {
+            "firstValueMs": 310,
+            "snapshotMs": 1072,
+            "workerMs": 1017
+          },
+          "started": 2,
+          "completed": 1,
+          "cancelled": 0,
+          "workerErrors": 0,
+          "hits": 1,
+          "misses": 1,
+          "writes": 7,
+          "evictions": 0,
+          "staleMessages": 0,
+          "memoryBytes": 57214,
+          "entries": 1,
+          "maxBytes": 33554432,
+          "retainedCheckpointJobs": 0,
+          "checkpointTransportVersion": "THEIBS_SOLVER_CHECKPOINT_TRANSPORT_V1",
+          "active": 0
+        },
+        "timing": {
+          "acknowledgementMs": 1,
+          "workerReadyMs": null,
+          "firstResponseMs": null,
+          "firstValueMs": 1,
+          "completionMs": 2,
+          "totalMs": 2,
+          "jobElapsedMs": 0,
+          "workerMs": 0,
+          "decisionComputeMs": 1017,
+          "decisionWorkIterations": 225,
+          "currentRunCosts": null,
+          "jobCosts": null,
+          "cumulativeCosts": {
+            "buildMs": 83.09999999403954,
+            "globalSolveMs": 208.90000000596046,
+            "globalEvaluationMs": 5.300000011920929,
+            "actionSolveMs": 677.3999999761581,
+            "actionCertificateMs": 63.60000002384186,
+            "totalComputeMs": 1015.5999999940395
+          }
+        }
+      },
+      "metrics": {
+        "started": 2,
+        "completed": 1,
+        "cancelled": 0,
+        "workerErrors": 0,
+        "hits": 1,
+        "misses": 1,
+        "writes": 7,
+        "evictions": 0,
+        "staleMessages": 0,
+        "memoryBytes": 57214,
+        "entries": 1,
+        "maxBytes": 33554432,
+        "retainedCheckpointJobs": 0,
+        "checkpointTransportVersion": "THEIBS_SOLVER_CHECKPOINT_TRANSPORT_V1",
+        "active": 0
+      }
+    },
+    {
+      "fixtureId": "HU24_TWO_SIZES",
+      "combos": 24,
+      "maxAggressions": 1,
+      "buildFingerprint": "16314d92c62148695757a1f1e3395e789e6369f42a96aaf4e7e9114cb362be00",
+      "phase": "COMPLETE",
+      "status": "APPROXIMATE",
+      "precision": "INCONCLUSIVE",
+      "outcome": "NEAR_EQUIVALENT",
+      "worlds": 576,
+      "timing": {
+        "acknowledgementMs": 9,
+        "workerReadyMs": 52,
+        "firstResponseMs": 327,
+        "firstValueMs": 327,
+        "completionMs": 1028,
+        "totalMs": 1028,
+        "jobElapsedMs": 1019,
+        "workerMs": 954.5999999940395,
+        "decisionComputeMs": 954.5999999940395,
+        "decisionWorkIterations": 240,
+        "currentRunCosts": {
+          "buildMs": 82.19999998807907,
+          "globalSolveMs": 197.30000004172325,
+          "globalEvaluationMs": 6.199999988079071,
+          "actionSolveMs": 631.4999999701977,
+          "actionCertificateMs": 67.59999996423721,
+          "totalComputeMs": 953.0999999940395
+        },
+        "jobCosts": {
+          "buildMs": 82.19999998807907,
+          "globalSolveMs": 197.30000004172325,
+          "globalEvaluationMs": 6.199999988079071,
+          "actionSolveMs": 631.4999999701977,
+          "actionCertificateMs": 67.59999996423721,
+          "totalComputeMs": 953.0999999940395
+        },
+        "cumulativeCosts": {
+          "buildMs": 82.19999998807907,
+          "globalSolveMs": 197.30000004172325,
+          "globalEvaluationMs": 6.199999988079071,
+          "actionSolveMs": 631.4999999701977,
+          "actionCertificateMs": 67.59999996423721,
+          "totalComputeMs": 953.0999999940395
+        }
+      },
+      "costs": {
+        "buildMs": 82.19999998807907,
+        "globalSolveMs": 197.30000004172325,
+        "globalEvaluationMs": 6.199999988079071,
+        "actionSolveMs": 631.4999999701977,
+        "actionCertificateMs": 67.59999996423721,
+        "totalComputeMs": 953.0999999940395
+      },
+      "nashConv": 0.0075599390670020306,
+      "bounds": [
+        {
+          "id": "FOLD",
+          "lowerBB": 1.2898570542203323,
+          "upperBB": 1.2947111111111667,
+          "certified": true
+        },
+        {
+          "id": "CHECK",
+          "lowerBB": 1.293812609775888,
+          "upperBB": 1.2986666666667226,
+          "certified": true
+        },
+        {
+          "id": "BET:1.00",
+          "lowerBB": 1.2927669990430946,
+          "upperBB": 1.2984124402486876,
+          "certified": true
+        },
+        {
+          "id": "BET:2.00",
+          "lowerBB": 1.2917396456329435,
+          "upperBB": 1.2977927607564717,
+          "certified": true
+        }
+      ],
+      "warm": {
+        "cache": {
+          "hit": true,
+          "source": "MEMORY",
+          "readOnly": true,
+          "originalTiming": {
+            "firstValueMs": 327,
+            "snapshotMs": 1027,
+            "workerMs": 954.5999999940395
+          },
+          "started": 2,
+          "completed": 1,
+          "cancelled": 0,
+          "workerErrors": 0,
+          "hits": 1,
+          "misses": 1,
+          "writes": 7,
+          "evictions": 0,
+          "staleMessages": 0,
+          "memoryBytes": 57857,
+          "entries": 1,
+          "maxBytes": 33554432,
+          "retainedCheckpointJobs": 0,
+          "checkpointTransportVersion": "THEIBS_SOLVER_CHECKPOINT_TRANSPORT_V1",
+          "active": 0
+        },
+        "timing": {
+          "acknowledgementMs": 1,
+          "workerReadyMs": null,
+          "firstResponseMs": null,
+          "firstValueMs": 1,
+          "completionMs": 1,
+          "totalMs": 2,
+          "jobElapsedMs": 0,
+          "workerMs": 0,
+          "decisionComputeMs": 954.5999999940395,
+          "decisionWorkIterations": 240,
+          "currentRunCosts": null,
+          "jobCosts": null,
+          "cumulativeCosts": {
+            "buildMs": 82.19999998807907,
+            "globalSolveMs": 197.30000004172325,
+            "globalEvaluationMs": 6.199999988079071,
+            "actionSolveMs": 631.4999999701977,
+            "actionCertificateMs": 67.59999996423721,
+            "totalComputeMs": 953.0999999940395
+          }
+        }
+      },
+      "metrics": {
+        "started": 2,
+        "completed": 1,
+        "cancelled": 0,
+        "workerErrors": 0,
+        "hits": 1,
+        "misses": 1,
+        "writes": 7,
+        "evictions": 0,
+        "staleMessages": 0,
+        "memoryBytes": 57857,
+        "entries": 1,
+        "maxBytes": 33554432,
+        "retainedCheckpointJobs": 0,
+        "checkpointTransportVersion": "THEIBS_SOLVER_CHECKPOINT_TRANSPORT_V1",
+        "active": 0
+      }
+    },
+    {
+      "fixtureId": "HU24_TWO_SIZES",
+      "combos": 24,
+      "maxAggressions": 1,
+      "buildFingerprint": "16314d92c62148695757a1f1e3395e789e6369f42a96aaf4e7e9114cb362be00",
+      "phase": "COMPLETE",
+      "status": "APPROXIMATE",
+      "precision": "INCONCLUSIVE",
+      "outcome": "NEAR_EQUIVALENT",
+      "worlds": 576,
+      "timing": {
+        "acknowledgementMs": 7,
+        "workerReadyMs": 39,
+        "firstResponseMs": 322,
+        "firstValueMs": 322,
+        "completionMs": 1105,
+        "totalMs": 1106,
+        "jobElapsedMs": 1098,
+        "workerMs": 1042.4000000059605,
+        "decisionComputeMs": 1042.4000000059605,
+        "decisionWorkIterations": 240,
+        "currentRunCosts": {
+          "buildMs": 79.90000000596046,
+          "globalSolveMs": 213,
+          "globalEvaluationMs": 7.5999999940395355,
+          "actionSolveMs": 691.4000000059605,
+          "actionCertificateMs": 68.60000002384186,
+          "totalComputeMs": 1039
+        },
+        "jobCosts": {
+          "buildMs": 79.90000000596046,
+          "globalSolveMs": 213,
+          "globalEvaluationMs": 7.5999999940395355,
+          "actionSolveMs": 691.4000000059605,
+          "actionCertificateMs": 68.60000002384186,
+          "totalComputeMs": 1039
+        },
+        "cumulativeCosts": {
+          "buildMs": 79.90000000596046,
+          "globalSolveMs": 213,
+          "globalEvaluationMs": 7.5999999940395355,
+          "actionSolveMs": 691.4000000059605,
+          "actionCertificateMs": 68.60000002384186,
+          "totalComputeMs": 1039
+        }
+      },
+      "costs": {
+        "buildMs": 79.90000000596046,
+        "globalSolveMs": 213,
+        "globalEvaluationMs": 7.5999999940395355,
+        "actionSolveMs": 691.4000000059605,
+        "actionCertificateMs": 68.60000002384186,
+        "totalComputeMs": 1039
+      },
+      "nashConv": 0.0075599390670020306,
+      "bounds": [
+        {
+          "id": "FOLD",
+          "lowerBB": 1.2898570542203323,
+          "upperBB": 1.2947111111111667,
+          "certified": true
+        },
+        {
+          "id": "CHECK",
+          "lowerBB": 1.293812609775888,
+          "upperBB": 1.2986666666667226,
+          "certified": true
+        },
+        {
+          "id": "BET:1.00",
+          "lowerBB": 1.2927669990430946,
+          "upperBB": 1.2984124402486876,
+          "certified": true
+        },
+        {
+          "id": "BET:2.00",
+          "lowerBB": 1.2917396456329435,
+          "upperBB": 1.2977927607564717,
+          "certified": true
+        }
+      ],
+      "warm": {
+        "cache": {
+          "hit": true,
+          "source": "MEMORY",
+          "readOnly": true,
+          "originalTiming": {
+            "firstValueMs": 322,
+            "snapshotMs": 1104,
+            "workerMs": 1042.4000000059605
+          },
+          "started": 2,
+          "completed": 1,
+          "cancelled": 0,
+          "workerErrors": 0,
+          "hits": 1,
+          "misses": 1,
+          "writes": 7,
+          "evictions": 0,
+          "staleMessages": 0,
+          "memoryBytes": 57677,
+          "entries": 1,
+          "maxBytes": 33554432,
+          "retainedCheckpointJobs": 0,
+          "checkpointTransportVersion": "THEIBS_SOLVER_CHECKPOINT_TRANSPORT_V1",
+          "active": 0
+        },
+        "timing": {
+          "acknowledgementMs": 1,
+          "workerReadyMs": null,
+          "firstResponseMs": null,
+          "firstValueMs": 1,
+          "completionMs": 2,
+          "totalMs": 3,
+          "jobElapsedMs": 0,
+          "workerMs": 0,
+          "decisionComputeMs": 1042.4000000059605,
+          "decisionWorkIterations": 240,
+          "currentRunCosts": null,
+          "jobCosts": null,
+          "cumulativeCosts": {
+            "buildMs": 79.90000000596046,
+            "globalSolveMs": 213,
+            "globalEvaluationMs": 7.5999999940395355,
+            "actionSolveMs": 691.4000000059605,
+            "actionCertificateMs": 68.60000002384186,
+            "totalComputeMs": 1039
+          }
+        }
+      },
+      "metrics": {
+        "started": 2,
+        "completed": 1,
+        "cancelled": 0,
+        "workerErrors": 0,
+        "hits": 1,
+        "misses": 1,
+        "writes": 7,
+        "evictions": 0,
+        "staleMessages": 0,
+        "memoryBytes": 57677,
+        "entries": 1,
+        "maxBytes": 33554432,
+        "retainedCheckpointJobs": 0,
+        "checkpointTransportVersion": "THEIBS_SOLVER_CHECKPOINT_TRANSPORT_V1",
+        "active": 0
+      }
+    },
+    {
+      "fixtureId": "HU24_NO_ADDITIONAL_AGGRESSION",
+      "combos": 24,
+      "maxAggressions": 0,
+      "buildFingerprint": "16314d92c62148695757a1f1e3395e789e6369f42a96aaf4e7e9114cb362be00",
+      "phase": "COMPLETE",
+      "status": "APPROXIMATE",
+      "precision": "CONCLUSIVE",
+      "outcome": "NEAR_EQUIVALENT",
+      "worlds": 576,
+      "timing": {
+        "acknowledgementMs": 13,
+        "workerReadyMs": 69,
+        "firstResponseMs": 318,
+        "firstValueMs": 318,
+        "completionMs": 472,
+        "totalMs": 472,
+        "jobElapsedMs": 459,
+        "workerMs": 370.59999999403954,
+        "decisionComputeMs": 370.59999999403954,
+        "decisionWorkIterations": 120,
+        "currentRunCosts": {
+          "buildMs": 114.7000000178814,
+          "globalSolveMs": 89.60000002384186,
+          "globalEvaluationMs": 3.2999999821186066,
+          "actionSolveMs": 136.90000000596046,
+          "actionCertificateMs": 24.19999998807907,
+          "totalComputeMs": 368.7000000178814
+        },
+        "jobCosts": {
+          "buildMs": 114.7000000178814,
+          "globalSolveMs": 89.60000002384186,
+          "globalEvaluationMs": 3.2999999821186066,
+          "actionSolveMs": 136.90000000596046,
+          "actionCertificateMs": 24.19999998807907,
+          "totalComputeMs": 368.7000000178814
+        },
+        "cumulativeCosts": {
+          "buildMs": 114.7000000178814,
+          "globalSolveMs": 89.60000002384186,
+          "globalEvaluationMs": 3.2999999821186066,
+          "actionSolveMs": 136.90000000596046,
+          "actionCertificateMs": 24.19999998807907,
+          "totalComputeMs": 368.7000000178814
+        }
+      },
+      "costs": {
+        "buildMs": 114.7000000178814,
+        "globalSolveMs": 89.60000002384186,
+        "globalEvaluationMs": 3.2999999821186066,
+        "actionSolveMs": 136.90000000596046,
+        "actionCertificateMs": 24.19999998807907,
+        "totalComputeMs": 368.7000000178814
+      },
+      "nashConv": 0.0030920634920639234,
+      "bounds": [
+        {
+          "id": "FOLD",
+          "lowerBB": 1.2942033812635216,
+          "upperBB": 1.2947111111111667,
+          "certified": true
+        },
+        {
+          "id": "CHECK",
+          "lowerBB": 1.2981589368190773,
+          "upperBB": 1.2986666666667226,
+          "certified": true
+        }
+      ],
+      "warm": {
+        "cache": {
+          "hit": true,
+          "source": "MEMORY",
+          "readOnly": true,
+          "originalTiming": {
+            "firstValueMs": 318,
+            "snapshotMs": 471,
+            "workerMs": 370.59999999403954
+          },
+          "started": 2,
+          "completed": 1,
+          "cancelled": 0,
+          "workerErrors": 0,
+          "hits": 1,
+          "misses": 1,
+          "writes": 4,
+          "evictions": 0,
+          "staleMessages": 0,
+          "memoryBytes": 31733,
+          "entries": 1,
+          "maxBytes": 33554432,
+          "retainedCheckpointJobs": 0,
+          "checkpointTransportVersion": "THEIBS_SOLVER_CHECKPOINT_TRANSPORT_V1",
+          "active": 0
+        },
+        "timing": {
+          "acknowledgementMs": 1,
+          "workerReadyMs": null,
+          "firstResponseMs": null,
+          "firstValueMs": 1,
+          "completionMs": 1,
+          "totalMs": 2,
+          "jobElapsedMs": 0,
+          "workerMs": 0,
+          "decisionComputeMs": 370.59999999403954,
+          "decisionWorkIterations": 120,
+          "currentRunCosts": null,
+          "jobCosts": null,
+          "cumulativeCosts": {
+            "buildMs": 114.7000000178814,
+            "globalSolveMs": 89.60000002384186,
+            "globalEvaluationMs": 3.2999999821186066,
+            "actionSolveMs": 136.90000000596046,
+            "actionCertificateMs": 24.19999998807907,
+            "totalComputeMs": 368.7000000178814
+          }
+        }
+      },
+      "metrics": {
+        "started": 2,
+        "completed": 1,
+        "cancelled": 0,
+        "workerErrors": 0,
+        "hits": 1,
+        "misses": 1,
+        "writes": 4,
+        "evictions": 0,
+        "staleMessages": 0,
+        "memoryBytes": 31733,
+        "entries": 1,
+        "maxBytes": 33554432,
+        "retainedCheckpointJobs": 0,
+        "checkpointTransportVersion": "THEIBS_SOLVER_CHECKPOINT_TRANSPORT_V1",
+        "active": 0
+      }
+    },
+    {
+      "fixtureId": "HU24_NO_ADDITIONAL_AGGRESSION",
+      "combos": 24,
+      "maxAggressions": 0,
+      "buildFingerprint": "16314d92c62148695757a1f1e3395e789e6369f42a96aaf4e7e9114cb362be00",
+      "phase": "COMPLETE",
+      "status": "APPROXIMATE",
+      "precision": "CONCLUSIVE",
+      "outcome": "NEAR_EQUIVALENT",
+      "worlds": 576,
+      "timing": {
+        "acknowledgementMs": 9,
+        "workerReadyMs": 48,
+        "firstResponseMs": 217,
+        "firstValueMs": 217,
+        "completionMs": 383,
+        "totalMs": 384,
+        "jobElapsedMs": 374,
+        "workerMs": 318.90000000596046,
+        "decisionComputeMs": 318.90000000596046,
+        "decisionWorkIterations": 120,
+        "currentRunCosts": {
+          "buildMs": 58.70000001788139,
+          "globalSolveMs": 76.40000000596046,
+          "globalEvaluationMs": 3.5999999940395355,
+          "actionSolveMs": 150.30000001192093,
+          "actionCertificateMs": 25.19999998807907,
+          "totalComputeMs": 317.2000000178814
+        },
+        "jobCosts": {
+          "buildMs": 58.70000001788139,
+          "globalSolveMs": 76.40000000596046,
+          "globalEvaluationMs": 3.5999999940395355,
+          "actionSolveMs": 150.30000001192093,
+          "actionCertificateMs": 25.19999998807907,
+          "totalComputeMs": 317.2000000178814
+        },
+        "cumulativeCosts": {
+          "buildMs": 58.70000001788139,
+          "globalSolveMs": 76.40000000596046,
+          "globalEvaluationMs": 3.5999999940395355,
+          "actionSolveMs": 150.30000001192093,
+          "actionCertificateMs": 25.19999998807907,
+          "totalComputeMs": 317.2000000178814
+        }
+      },
+      "costs": {
+        "buildMs": 58.70000001788139,
+        "globalSolveMs": 76.40000000596046,
+        "globalEvaluationMs": 3.5999999940395355,
+        "actionSolveMs": 150.30000001192093,
+        "actionCertificateMs": 25.19999998807907,
+        "totalComputeMs": 317.2000000178814
+      },
+      "nashConv": 0.0030920634920639234,
+      "bounds": [
+        {
+          "id": "FOLD",
+          "lowerBB": 1.2942033812635216,
+          "upperBB": 1.2947111111111667,
+          "certified": true
+        },
+        {
+          "id": "CHECK",
+          "lowerBB": 1.2981589368190773,
+          "upperBB": 1.2986666666667226,
+          "certified": true
+        }
+      ],
+      "warm": {
+        "cache": {
+          "hit": true,
+          "source": "MEMORY",
+          "readOnly": true,
+          "originalTiming": {
+            "firstValueMs": 217,
+            "snapshotMs": 383,
+            "workerMs": 318.90000000596046
+          },
+          "started": 2,
+          "completed": 1,
+          "cancelled": 0,
+          "workerErrors": 0,
+          "hits": 1,
+          "misses": 1,
+          "writes": 4,
+          "evictions": 0,
+          "staleMessages": 0,
+          "memoryBytes": 31709,
+          "entries": 1,
+          "maxBytes": 33554432,
+          "retainedCheckpointJobs": 0,
+          "checkpointTransportVersion": "THEIBS_SOLVER_CHECKPOINT_TRANSPORT_V1",
+          "active": 0
+        },
+        "timing": {
+          "acknowledgementMs": 1,
+          "workerReadyMs": null,
+          "firstResponseMs": null,
+          "firstValueMs": 1,
+          "completionMs": 1,
+          "totalMs": 2,
+          "jobElapsedMs": 0,
+          "workerMs": 0,
+          "decisionComputeMs": 318.90000000596046,
+          "decisionWorkIterations": 120,
+          "currentRunCosts": null,
+          "jobCosts": null,
+          "cumulativeCosts": {
+            "buildMs": 58.70000001788139,
+            "globalSolveMs": 76.40000000596046,
+            "globalEvaluationMs": 3.5999999940395355,
+            "actionSolveMs": 150.30000001192093,
+            "actionCertificateMs": 25.19999998807907,
+            "totalComputeMs": 317.2000000178814
+          }
+        }
+      },
+      "metrics": {
+        "started": 2,
+        "completed": 1,
+        "cancelled": 0,
+        "workerErrors": 0,
+        "hits": 1,
+        "misses": 1,
+        "writes": 4,
+        "evictions": 0,
+        "staleMessages": 0,
+        "memoryBytes": 31709,
+        "entries": 1,
+        "maxBytes": 33554432,
+        "retainedCheckpointJobs": 0,
+        "checkpointTransportVersion": "THEIBS_SOLVER_CHECKPOINT_TRANSPORT_V1",
+        "active": 0
+      }
+    },
+    {
+      "fixtureId": "HU24_NO_ADDITIONAL_AGGRESSION",
+      "combos": 24,
+      "maxAggressions": 0,
+      "buildFingerprint": "16314d92c62148695757a1f1e3395e789e6369f42a96aaf4e7e9114cb362be00",
+      "phase": "COMPLETE",
+      "status": "APPROXIMATE",
+      "precision": "CONCLUSIVE",
+      "outcome": "NEAR_EQUIVALENT",
+      "worlds": 576,
+      "timing": {
+        "acknowledgementMs": 10,
+        "workerReadyMs": 46,
+        "firstResponseMs": 211,
+        "firstValueMs": 211,
+        "completionMs": 380,
+        "totalMs": 381,
+        "jobElapsedMs": 370,
+        "workerMs": 317.69999998807907,
+        "decisionComputeMs": 317.69999998807907,
+        "decisionWorkIterations": 120,
+        "currentRunCosts": {
+          "buildMs": 68.80000001192093,
+          "globalSolveMs": 71.80000001192093,
+          "globalEvaluationMs": 1.699999988079071,
+          "actionSolveMs": 153.09999999403954,
+          "actionCertificateMs": 24.19999998807907,
+          "totalComputeMs": 315.90000000596046
+        },
+        "jobCosts": {
+          "buildMs": 68.80000001192093,
+          "globalSolveMs": 71.80000001192093,
+          "globalEvaluationMs": 1.699999988079071,
+          "actionSolveMs": 153.09999999403954,
+          "actionCertificateMs": 24.19999998807907,
+          "totalComputeMs": 315.90000000596046
+        },
+        "cumulativeCosts": {
+          "buildMs": 68.80000001192093,
+          "globalSolveMs": 71.80000001192093,
+          "globalEvaluationMs": 1.699999988079071,
+          "actionSolveMs": 153.09999999403954,
+          "actionCertificateMs": 24.19999998807907,
+          "totalComputeMs": 315.90000000596046
+        }
+      },
+      "costs": {
+        "buildMs": 68.80000001192093,
+        "globalSolveMs": 71.80000001192093,
+        "globalEvaluationMs": 1.699999988079071,
+        "actionSolveMs": 153.09999999403954,
+        "actionCertificateMs": 24.19999998807907,
+        "totalComputeMs": 315.90000000596046
+      },
+      "nashConv": 0.0030920634920639234,
+      "bounds": [
+        {
+          "id": "FOLD",
+          "lowerBB": 1.2942033812635216,
+          "upperBB": 1.2947111111111667,
+          "certified": true
+        },
+        {
+          "id": "CHECK",
+          "lowerBB": 1.2981589368190773,
+          "upperBB": 1.2986666666667226,
+          "certified": true
+        }
+      ],
+      "warm": {
+        "cache": {
+          "hit": true,
+          "source": "MEMORY",
+          "readOnly": true,
+          "originalTiming": {
+            "firstValueMs": 211,
+            "snapshotMs": 380,
+            "workerMs": 317.69999998807907
+          },
+          "started": 2,
+          "completed": 1,
+          "cancelled": 0,
+          "workerErrors": 0,
+          "hits": 1,
+          "misses": 1,
+          "writes": 4,
+          "evictions": 0,
+          "staleMessages": 0,
+          "memoryBytes": 31709,
+          "entries": 1,
+          "maxBytes": 33554432,
+          "retainedCheckpointJobs": 0,
+          "checkpointTransportVersion": "THEIBS_SOLVER_CHECKPOINT_TRANSPORT_V1",
+          "active": 0
+        },
+        "timing": {
+          "acknowledgementMs": 1,
+          "workerReadyMs": null,
+          "firstResponseMs": null,
+          "firstValueMs": 1,
+          "completionMs": 1,
+          "totalMs": 2,
+          "jobElapsedMs": 0,
+          "workerMs": 0,
+          "decisionComputeMs": 317.69999998807907,
+          "decisionWorkIterations": 120,
+          "currentRunCosts": null,
+          "jobCosts": null,
+          "cumulativeCosts": {
+            "buildMs": 68.80000001192093,
+            "globalSolveMs": 71.80000001192093,
+            "globalEvaluationMs": 1.699999988079071,
+            "actionSolveMs": 153.09999999403954,
+            "actionCertificateMs": 24.19999998807907,
+            "totalComputeMs": 315.90000000596046
+          }
+        }
+      },
+      "metrics": {
+        "started": 2,
+        "completed": 1,
+        "cancelled": 0,
+        "workerErrors": 0,
+        "hits": 1,
+        "misses": 1,
+        "writes": 4,
+        "evictions": 0,
+        "staleMessages": 0,
+        "memoryBytes": 31709,
+        "entries": 1,
+        "maxBytes": 33554432,
+        "retainedCheckpointJobs": 0,
+        "checkpointTransportVersion": "THEIBS_SOLVER_CHECKPOINT_TRANSPORT_V1",
+        "active": 0
+      }
+    },
+    {
+      "fixtureId": "HU32_NO_ADDITIONAL_AGGRESSION",
+      "combos": 32,
+      "maxAggressions": 0,
+      "buildFingerprint": "16314d92c62148695757a1f1e3395e789e6369f42a96aaf4e7e9114cb362be00",
+      "phase": "COMPLETE",
+      "status": "APPROXIMATE",
+      "precision": "CONCLUSIVE",
+      "outcome": "NEAR_EQUIVALENT",
+      "worlds": 1024,
+      "timing": {
+        "acknowledgementMs": 10,
+        "workerReadyMs": 43,
+        "firstResponseMs": 234,
+        "firstValueMs": 234,
+        "completionMs": 419,
+        "totalMs": 420,
+        "jobElapsedMs": 409,
+        "workerMs": 360.5,
+        "decisionComputeMs": 360.5,
+        "decisionWorkIterations": 110,
+        "currentRunCosts": {
+          "buildMs": 80.2000000178814,
+          "globalSolveMs": 89.59999999403954,
+          "globalEvaluationMs": 2,
+          "actionSolveMs": 170.39999997615814,
+          "actionCertificateMs": 25.30000001192093,
+          "totalComputeMs": 358.80000001192093
+        },
+        "jobCosts": {
+          "buildMs": 80.2000000178814,
+          "globalSolveMs": 89.59999999403954,
+          "globalEvaluationMs": 2,
+          "actionSolveMs": 170.39999997615814,
+          "actionCertificateMs": 25.30000001192093,
+          "totalComputeMs": 358.80000001192093
+        },
+        "cumulativeCosts": {
+          "buildMs": 80.2000000178814,
+          "globalSolveMs": 89.59999999403954,
+          "globalEvaluationMs": 2,
+          "actionSolveMs": 170.39999997615814,
+          "actionCertificateMs": 25.30000001192093,
+          "totalComputeMs": 358.80000001192093
+        }
+      },
+      "costs": {
+        "buildMs": 80.2000000178814,
+        "globalSolveMs": 89.59999999403954,
+        "globalEvaluationMs": 2,
+        "actionSolveMs": 170.39999997615814,
+        "actionCertificateMs": 25.30000001192093,
+        "totalComputeMs": 358.80000001192093
+      },
+      "nashConv": 0.006633418377995692,
+      "bounds": [
+        {
+          "id": "FOLD",
+          "lowerBB": 0.7281134006055267,
+          "upperBB": 0.7283990472911597,
+          "certified": true
+        },
+        {
+          "id": "CHECK",
+          "lowerBB": 0.7293903748938643,
+          "upperBB": 0.7296760215794978,
+          "certified": true
+        }
+      ],
+      "warm": {
+        "cache": {
+          "hit": true,
+          "source": "MEMORY",
+          "readOnly": true,
+          "originalTiming": {
+            "firstValueMs": 234,
+            "snapshotMs": 418,
+            "workerMs": 360.5
+          },
+          "started": 2,
+          "completed": 1,
+          "cancelled": 0,
+          "workerErrors": 0,
+          "hits": 1,
+          "misses": 1,
+          "writes": 4,
+          "evictions": 0,
+          "staleMessages": 0,
+          "memoryBytes": 33812,
+          "entries": 1,
+          "maxBytes": 33554432,
+          "retainedCheckpointJobs": 0,
+          "checkpointTransportVersion": "THEIBS_SOLVER_CHECKPOINT_TRANSPORT_V1",
+          "active": 0
+        },
+        "timing": {
+          "acknowledgementMs": 1,
+          "workerReadyMs": null,
+          "firstResponseMs": null,
+          "firstValueMs": 1,
+          "completionMs": 3,
+          "totalMs": 4,
+          "jobElapsedMs": 0,
+          "workerMs": 0,
+          "decisionComputeMs": 360.5,
+          "decisionWorkIterations": 110,
+          "currentRunCosts": null,
+          "jobCosts": null,
+          "cumulativeCosts": {
+            "buildMs": 80.2000000178814,
+            "globalSolveMs": 89.59999999403954,
+            "globalEvaluationMs": 2,
+            "actionSolveMs": 170.39999997615814,
+            "actionCertificateMs": 25.30000001192093,
+            "totalComputeMs": 358.80000001192093
+          }
+        }
+      },
+      "metrics": {
+        "started": 2,
+        "completed": 1,
+        "cancelled": 0,
+        "workerErrors": 0,
+        "hits": 1,
+        "misses": 1,
+        "writes": 4,
+        "evictions": 0,
+        "staleMessages": 0,
+        "memoryBytes": 33812,
+        "entries": 1,
+        "maxBytes": 33554432,
+        "retainedCheckpointJobs": 0,
+        "checkpointTransportVersion": "THEIBS_SOLVER_CHECKPOINT_TRANSPORT_V1",
+        "active": 0
+      }
+    },
+    {
+      "fixtureId": "HU32_NO_ADDITIONAL_AGGRESSION",
+      "combos": 32,
+      "maxAggressions": 0,
+      "buildFingerprint": "16314d92c62148695757a1f1e3395e789e6369f42a96aaf4e7e9114cb362be00",
+      "phase": "COMPLETE",
+      "status": "APPROXIMATE",
+      "precision": "CONCLUSIVE",
+      "outcome": "NEAR_EQUIVALENT",
+      "worlds": 1024,
+      "timing": {
+        "acknowledgementMs": 9,
+        "workerReadyMs": 49,
+        "firstResponseMs": 264,
+        "firstValueMs": 265,
+        "completionMs": 636,
+        "totalMs": 636,
+        "jobElapsedMs": 627,
+        "workerMs": 571.4000000059605,
+        "decisionComputeMs": 571.4000000059605,
+        "decisionWorkIterations": 110,
+        "currentRunCosts": {
+          "buildMs": 96,
+          "globalSolveMs": 97.40000000596046,
+          "globalEvaluationMs": 2,
+          "actionSolveMs": 348.09999999403954,
+          "actionCertificateMs": 59.400000005960464,
+          "totalComputeMs": 568.5999999940395
+        },
+        "jobCosts": {
+          "buildMs": 96,
+          "globalSolveMs": 97.40000000596046,
+          "globalEvaluationMs": 2,
+          "actionSolveMs": 348.09999999403954,
+          "actionCertificateMs": 59.400000005960464,
+          "totalComputeMs": 568.5999999940395
+        },
+        "cumulativeCosts": {
+          "buildMs": 96,
+          "globalSolveMs": 97.40000000596046,
+          "globalEvaluationMs": 2,
+          "actionSolveMs": 348.09999999403954,
+          "actionCertificateMs": 59.400000005960464,
+          "totalComputeMs": 568.5999999940395
+        }
+      },
+      "costs": {
+        "buildMs": 96,
+        "globalSolveMs": 97.40000000596046,
+        "globalEvaluationMs": 2,
+        "actionSolveMs": 348.09999999403954,
+        "actionCertificateMs": 59.400000005960464,
+        "totalComputeMs": 568.5999999940395
+      },
+      "nashConv": 0.006633418377995692,
+      "bounds": [
+        {
+          "id": "FOLD",
+          "lowerBB": 0.7281134006055267,
+          "upperBB": 0.7283990472911597,
+          "certified": true
+        },
+        {
+          "id": "CHECK",
+          "lowerBB": 0.7293903748938643,
+          "upperBB": 0.7296760215794978,
+          "certified": true
+        }
+      ],
+      "warm": {
+        "cache": {
+          "hit": true,
+          "source": "MEMORY",
+          "readOnly": true,
+          "originalTiming": {
+            "firstValueMs": 265,
+            "snapshotMs": 635,
+            "workerMs": 571.4000000059605
+          },
+          "started": 2,
+          "completed": 1,
+          "cancelled": 0,
+          "workerErrors": 0,
+          "hits": 1,
+          "misses": 1,
+          "writes": 4,
+          "evictions": 0,
+          "staleMessages": 0,
+          "memoryBytes": 33801,
+          "entries": 1,
+          "maxBytes": 33554432,
+          "retainedCheckpointJobs": 0,
+          "checkpointTransportVersion": "THEIBS_SOLVER_CHECKPOINT_TRANSPORT_V1",
+          "active": 0
+        },
+        "timing": {
+          "acknowledgementMs": 1,
+          "workerReadyMs": null,
+          "firstResponseMs": null,
+          "firstValueMs": 1,
+          "completionMs": 2,
+          "totalMs": 2,
+          "jobElapsedMs": 0,
+          "workerMs": 0,
+          "decisionComputeMs": 571.4000000059605,
+          "decisionWorkIterations": 110,
+          "currentRunCosts": null,
+          "jobCosts": null,
+          "cumulativeCosts": {
+            "buildMs": 96,
+            "globalSolveMs": 97.40000000596046,
+            "globalEvaluationMs": 2,
+            "actionSolveMs": 348.09999999403954,
+            "actionCertificateMs": 59.400000005960464,
+            "totalComputeMs": 568.5999999940395
+          }
+        }
+      },
+      "metrics": {
+        "started": 2,
+        "completed": 1,
+        "cancelled": 0,
+        "workerErrors": 0,
+        "hits": 1,
+        "misses": 1,
+        "writes": 4,
+        "evictions": 0,
+        "staleMessages": 0,
+        "memoryBytes": 33801,
+        "entries": 1,
+        "maxBytes": 33554432,
+        "retainedCheckpointJobs": 0,
+        "checkpointTransportVersion": "THEIBS_SOLVER_CHECKPOINT_TRANSPORT_V1",
+        "active": 0
+      }
+    },
+    {
+      "fixtureId": "HU32_NO_ADDITIONAL_AGGRESSION",
+      "combos": 32,
+      "maxAggressions": 0,
+      "buildFingerprint": "16314d92c62148695757a1f1e3395e789e6369f42a96aaf4e7e9114cb362be00",
+      "phase": "COMPLETE",
+      "status": "APPROXIMATE",
+      "precision": "CONCLUSIVE",
+      "outcome": "NEAR_EQUIVALENT",
+      "worlds": 1024,
+      "timing": {
+        "acknowledgementMs": 13,
+        "workerReadyMs": 66,
+        "firstResponseMs": 371,
+        "firstValueMs": 371,
+        "completionMs": 603,
+        "totalMs": 603,
+        "jobElapsedMs": 590,
+        "workerMs": 506.19999998807907,
+        "decisionComputeMs": 506.19999998807907,
+        "decisionWorkIterations": 110,
+        "currentRunCosts": {
+          "buildMs": 146.69999998807907,
+          "globalSolveMs": 113.5,
+          "globalEvaluationMs": 4,
+          "actionSolveMs": 217.49999997019768,
+          "actionCertificateMs": 28.799999982118607,
+          "totalComputeMs": 504.7999999821186
+        },
+        "jobCosts": {
+          "buildMs": 146.69999998807907,
+          "globalSolveMs": 113.5,
+          "globalEvaluationMs": 4,
+          "actionSolveMs": 217.49999997019768,
+          "actionCertificateMs": 28.799999982118607,
+          "totalComputeMs": 504.7999999821186
+        },
+        "cumulativeCosts": {
+          "buildMs": 146.69999998807907,
+          "globalSolveMs": 113.5,
+          "globalEvaluationMs": 4,
+          "actionSolveMs": 217.49999997019768,
+          "actionCertificateMs": 28.799999982118607,
+          "totalComputeMs": 504.7999999821186
+        }
+      },
+      "costs": {
+        "buildMs": 146.69999998807907,
+        "globalSolveMs": 113.5,
+        "globalEvaluationMs": 4,
+        "actionSolveMs": 217.49999997019768,
+        "actionCertificateMs": 28.799999982118607,
+        "totalComputeMs": 504.7999999821186
+      },
+      "nashConv": 0.006633418377995692,
+      "bounds": [
+        {
+          "id": "FOLD",
+          "lowerBB": 0.7281134006055267,
+          "upperBB": 0.7283990472911597,
+          "certified": true
+        },
+        {
+          "id": "CHECK",
+          "lowerBB": 0.7293903748938643,
+          "upperBB": 0.7296760215794978,
+          "certified": true
+        }
+      ],
+      "warm": {
+        "cache": {
+          "hit": true,
+          "source": "MEMORY",
+          "readOnly": true,
+          "originalTiming": {
+            "firstValueMs": 371,
+            "snapshotMs": 602,
+            "workerMs": 506.19999998807907
+          },
+          "started": 2,
+          "completed": 1,
+          "cancelled": 0,
+          "workerErrors": 0,
+          "hits": 1,
+          "misses": 1,
+          "writes": 4,
+          "evictions": 0,
+          "staleMessages": 0,
+          "memoryBytes": 33780,
+          "entries": 1,
+          "maxBytes": 33554432,
+          "retainedCheckpointJobs": 0,
+          "checkpointTransportVersion": "THEIBS_SOLVER_CHECKPOINT_TRANSPORT_V1",
+          "active": 0
+        },
+        "timing": {
+          "acknowledgementMs": 1,
+          "workerReadyMs": null,
+          "firstResponseMs": null,
+          "firstValueMs": 1,
+          "completionMs": 2,
+          "totalMs": 2,
+          "jobElapsedMs": 0,
+          "workerMs": 0,
+          "decisionComputeMs": 506.19999998807907,
+          "decisionWorkIterations": 110,
+          "currentRunCosts": null,
+          "jobCosts": null,
+          "cumulativeCosts": {
+            "buildMs": 146.69999998807907,
+            "globalSolveMs": 113.5,
+            "globalEvaluationMs": 4,
+            "actionSolveMs": 217.49999997019768,
+            "actionCertificateMs": 28.799999982118607,
+            "totalComputeMs": 504.7999999821186
+          }
+        }
+      },
+      "metrics": {
+        "started": 2,
+        "completed": 1,
+        "cancelled": 0,
+        "workerErrors": 0,
+        "hits": 1,
+        "misses": 1,
+        "writes": 4,
+        "evictions": 0,
+        "staleMessages": 0,
+        "memoryBytes": 33780,
+        "entries": 1,
+        "maxBytes": 33554432,
+        "retainedCheckpointJobs": 0,
+        "checkpointTransportVersion": "THEIBS_SOLVER_CHECKPOINT_TRANSPORT_V1",
+        "active": 0
+      }
+    },
+    {
+      "fixtureId": "HU32_TWO_SIZES_REFUSED",
+      "combos": 32,
+      "maxAggressions": 1,
+      "phase": "UNSUPPORTED",
+      "status": "NOT_SOLVED",
+      "refusal": "MEMORY_BUDGET",
+      "timing": {
+        "acknowledgementMs": 12,
+        "workerReadyMs": 51,
+        "firstResponseMs": 80,
+        "firstValueMs": null,
+        "completionMs": 81,
+        "totalMs": 81,
+        "jobElapsedMs": 69,
+        "workerMs": 15.799999982118607,
+        "decisionComputeMs": 15.799999982118607,
+        "decisionWorkIterations": 0,
+        "currentRunCosts": null,
+        "jobCosts": null,
+        "cumulativeCosts": null
+      },
+      "buildFingerprint": "16314d92c62148695757a1f1e3395e789e6369f42a96aaf4e7e9114cb362be00",
+      "metrics": {
+        "started": 1,
+        "completed": 1,
+        "cancelled": 0,
+        "workerErrors": 0,
+        "hits": 0,
+        "misses": 1,
+        "writes": 0,
+        "evictions": 0,
+        "staleMessages": 0,
+        "memoryBytes": 0,
+        "entries": 0,
+        "maxBytes": 33554432,
+        "retainedCheckpointJobs": 0,
+        "checkpointTransportVersion": "THEIBS_SOLVER_CHECKPOINT_TRANSPORT_V1",
+        "active": 0
+      }
+    },
+    {
+      "fixtureId": "HU48_RANGE_REFUSED",
+      "combos": 48,
+      "maxAggressions": 0,
+      "phase": "UNSUPPORTED",
+      "status": "NOT_SOLVED",
+      "refusal": "RANGE_BUDGET",
+      "timing": {
+        "acknowledgementMs": 10,
+        "workerReadyMs": 46,
+        "firstResponseMs": 66,
+        "firstValueMs": null,
+        "completionMs": 66,
+        "totalMs": 66,
+        "jobElapsedMs": 56,
+        "workerMs": 6.4000000059604645,
+        "decisionComputeMs": 6.4000000059604645,
+        "decisionWorkIterations": 0,
+        "currentRunCosts": null,
+        "jobCosts": null,
+        "cumulativeCosts": null
+      },
+      "buildFingerprint": "16314d92c62148695757a1f1e3395e789e6369f42a96aaf4e7e9114cb362be00",
+      "metrics": {
+        "started": 1,
+        "completed": 1,
+        "cancelled": 0,
+        "workerErrors": 0,
+        "hits": 0,
+        "misses": 1,
+        "writes": 0,
+        "evictions": 0,
+        "staleMessages": 0,
+        "memoryBytes": 0,
+        "entries": 0,
+        "maxBytes": 33554432,
+        "retainedCheckpointJobs": 0,
+        "checkpointTransportVersion": "THEIBS_SOLVER_CHECKPOINT_TRANSPORT_V1",
+        "active": 0
+      }
+    }
+  ],
+  "inputEvents": 1
+}

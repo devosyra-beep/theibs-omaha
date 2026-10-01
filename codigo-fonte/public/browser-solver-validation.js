@@ -194,12 +194,15 @@
       worker.onmessage = event => {
         const data = event.data;
         if (data?.type === 'ready') {
-          if (data.buildFingerprint !== manifest.buildFingerprint || data.schemaVersion !== 1) { cleanup(); reject(Error('Worker build identity changed.')); return; }
-          worker.postMessage({ type: 'solve', jobId, generation, input: clone(variant.input), budget, expectedRevisionKey: variant.expectedRevisionKey, expectedBuildFingerprint: manifest.buildFingerprint }); return;
+          if (data.buildFingerprint !== manifest.buildFingerprint || data.schemaVersion !== 1 || data.checkpointTransportVersion !== TheibsBrowserSolverCheckpointCodec.VERSION) { cleanup(); reject(Error('Worker build identity changed.')); return; }
+          worker.postMessage({ type: 'solve', jobId, generation, input: clone(variant.input), budget, expectedRevisionKey: variant.expectedRevisionKey, expectedBuildFingerprint: manifest.buildFingerprint, checkpointTransportVersion: TheibsBrowserSolverCheckpointCodec.VERSION }); return;
         }
         if (data?.jobId !== jobId || data.generation !== generation || data.buildFingerprint !== manifest.buildFingerprint) { cleanup(); reject(Error('Raw Worker job identity changed.')); return; }
         if (data.type === 'error') { cleanup(); reject(Error(data.error)); return; }
-        if (data.type === 'done') { cleanup(); resolve({ ...data, observedWallMs: performance.now() - started }); }
+        if (data.type === 'done') {
+          try { const checkpoint = TheibsBrowserSolverCheckpointCodec.unpack(data.checkpoint); cleanup(); resolve({ ...data, checkpoint, observedWallMs: performance.now() - started }); }
+          catch (error) { cleanup(); reject(error); }
+        }
       };
     });
   }

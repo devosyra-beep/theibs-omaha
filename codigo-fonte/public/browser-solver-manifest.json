@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "runtimeVersion": "THEIBS_BROWSER_SOLVER_V1",
   "entry": "src/solver/job-worker.js",
-  "builderSha256": "d3d76595e5df9915e38bfd37cccbdf602ef9c015b7180d5c88eaf079bc7cdce1",
+  "builderSha256": "325630e4d40a1aa6d965ec8340030b256ad3d7bca429f2d42772edd8cd80ee25",
   "versions": {
     "adaptive": "THEIBS_HU_ADAPTIVE_V6",
     "solver": "THEIBS_FULL_TREE_CFR_PLUS_V1",
@@ -112,8 +112,8 @@
     },
     {
       "id": "src/solver/plo-river-game.js",
-      "sha256": "80bd514deb6f7c223712313d90347355d8b64981584d49445c807049f56c384e",
-      "bytes": 22585
+      "sha256": "b1749bf23d2c29bbc707e7955f1e193834b1cd3b8a9109eb5100d3b4b9663532",
+      "bytes": 22586
     },
     {
       "id": "src/solver/solution-status.js",
@@ -142,8 +142,12 @@
       "sha256": "30bfb6a3e34ec12a4f53b2d302f3067aaa87fad1194dda6c6c5f5c03595b0a93"
     },
     {
+      "id": "public/browser-solver-checkpoint-codec.js",
+      "sha256": "3f941cb47e233a7f833eb4e6fcd9ec0399cdfe5f69b037f185243ee7923e76bb"
+    },
+    {
       "id": "scripts/browser-solver/worker-entry.js",
-      "sha256": "cf669698819cedfc18308488be1a4a3975a3777207d58ecfe385b31e4a6a8da9"
+      "sha256": "738c0156119fc9e17657dad75a62770c1246525f04916fbe95b1d61c9c145604"
     }
   ],
   "nodeAdapters": [
@@ -152,7 +156,8 @@
     "node:worker_threads"
   ],
   "cancellation": "HOST_WORKER_TERMINATE_WITH_COMPLETE_CHECKPOINT_RESUME",
+  "checkpointTransport": "DETACHED_BINARY64_COPY_TRANSFER_V1",
   "memoryMetric": "UNAVAILABLE_IN_BROWSER",
   "sourceNormalization": "LF",
-  "buildFingerprint": "ced63ad9e0ee3c8f20a361f9dc5049bd55f3815e05446d159d2b91124588fc56"
+  "buildFingerprint": "16314d92c62148695757a1f1e3395e789e6369f42a96aaf4e7e9114cb362be00"
 }

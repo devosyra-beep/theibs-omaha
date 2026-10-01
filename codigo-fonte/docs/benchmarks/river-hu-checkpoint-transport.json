@@ -1,0 +1,212 @@
+{
+  "generatedAt": "2026-10-01T21:12:03.970Z",
+  "baseline": "5ba76316efa7bd55557cb8e7fe7a807bb0442608",
+  "method": "REAL_CHECKPOINT_NATIVE_MESSAGECHANNEL_PAIRED_HOST_CACHE_RESUME_EMULATION",
+  "limitations": [
+    "Three pairs per checkpoint; p95 is the maximum observed, not a population percentile.",
+    "Measured host checkpoint operations exclude public-result cloning and solver work. Pack/unpack run in workers in the app.",
+    "Accounted serialized bytes are cache quota units, not JavaScript heap or browser memory. Binary may exceed sparse JSON.",
+    "Full worker/import/network/UI latency is measured separately in the native browser fixtures."
+  ],
+  "sourceDigests": {
+    "public/browser-solver-checkpoint-codec.js": "3f941cb47e233a7f833eb4e6fcd9ec0399cdfe5f69b037f185243ee7923e76bb",
+    "public/browser-solver-client.js": "fba653a60c11812b7d046ad6a65d4350eabd34284e467aca10994bb02b5002c0",
+    "scripts/browser-solver/worker-entry.js": "738c0156119fc9e17657dad75a62770c1246525f04916fbe95b1d61c9c145604",
+    "src/solver/extensive-solver.js": "6833ea3bbd568e33e65f9f5337fa7762d0a9d015582b8a6fb1be4709fddfc8f1",
+    "src/solver/action-conditioned.js": "1189c0fedebe5b394efda5fdfea945e9a4bcf6e8119c134855798547b7422213"
+  },
+  "cases": [
+    {
+      "options": {
+        "combos": 24,
+        "sizings": 2,
+        "maxAggressions": 1
+      },
+      "gameHash": "e74ec937b0e2619b7be00d477ad489942c67454482fbacdf3454d4a71f4ce572",
+      "workIterations": 152,
+      "checkpointDigest": "74f1f1ef09e92981fa50c0dfa779d4313c2ed806d1edfa70348bce6f0df7dbba",
+      "exactCheckpointEquality": true,
+      "observations": [
+        {
+          "baseline": {
+            "mainThreadMs": 26.435799999999745,
+            "accountedBytes": 33456,
+            "simultaneouslyRetainedNumericMatrixGraphs": 2,
+            "explicitHostCheckpointClones": 3,
+            "nativeStructuredCloneCrossings": 2
+          },
+          "candidate": {
+            "mainThreadMs": 13.744699999999739,
+            "packMs": 19.488400000000183,
+            "unpackMs": 10.146600000000035,
+            "accountedBytes": 30072,
+            "binaryBufferBytes": 15168,
+            "simultaneouslyRetainedNumericMatrixGraphs": 0,
+            "simultaneouslyRetainedCompactBuffers": 1,
+            "explicitHostCheckpointClones": 0,
+            "explicitResumeBufferCopies": 1,
+            "nativeTransferredCrossings": 2
+          }
+        },
+        {
+          "baseline": {
+            "mainThreadMs": 12.035400000000209,
+            "accountedBytes": 33456,
+            "simultaneouslyRetainedNumericMatrixGraphs": 2,
+            "explicitHostCheckpointClones": 3,
+            "nativeStructuredCloneCrossings": 2
+          },
+          "candidate": {
+            "mainThreadMs": 10.054399999999987,
+            "packMs": 9.628900000000158,
+            "unpackMs": 4.872699999999895,
+            "accountedBytes": 30072,
+            "binaryBufferBytes": 15168,
+            "simultaneouslyRetainedNumericMatrixGraphs": 0,
+            "simultaneouslyRetainedCompactBuffers": 1,
+            "explicitHostCheckpointClones": 0,
+            "explicitResumeBufferCopies": 1,
+            "nativeTransferredCrossings": 2
+          }
+        },
+        {
+          "baseline": {
+            "mainThreadMs": 11.237800000000334,
+            "accountedBytes": 33456,
+            "simultaneouslyRetainedNumericMatrixGraphs": 2,
+            "explicitHostCheckpointClones": 3,
+            "nativeStructuredCloneCrossings": 2
+          },
+          "candidate": {
+            "mainThreadMs": 7.565200000000004,
+            "packMs": 8.14280000000008,
+            "unpackMs": 5.162299999999959,
+            "accountedBytes": 30072,
+            "binaryBufferBytes": 15168,
+            "simultaneouslyRetainedNumericMatrixGraphs": 0,
+            "simultaneouslyRetainedCompactBuffers": 1,
+            "explicitHostCheckpointClones": 0,
+            "explicitResumeBufferCopies": 1,
+            "nativeTransferredCrossings": 2
+          }
+        }
+      ],
+      "baselineHost": {
+        "n": 3,
+        "p50Ms": 12.035400000000209,
+        "p95Ms": 26.435799999999745
+      },
+      "candidateHost": {
+        "n": 3,
+        "p50Ms": 10.054399999999987,
+        "p95Ms": 13.744699999999739
+      },
+      "candidatePack": {
+        "n": 3,
+        "p50Ms": 9.628900000000158,
+        "p95Ms": 19.488400000000183
+      },
+      "candidateUnpack": {
+        "n": 3,
+        "p50Ms": 5.162299999999959,
+        "p95Ms": 10.146600000000035
+      }
+    },
+    {
+      "options": {
+        "combos": 32,
+        "sizings": 2,
+        "maxAggressions": 0
+      },
+      "gameHash": "8c6db68d63bef891f3879fdc505015cedba7529ff4365f6af701588e33b7e8b5",
+      "workIterations": 110,
+      "checkpointDigest": "88f5138a94f5b5ab8ba9f55ab3044d26633885b189fcb486161869a97bd1094f",
+      "exactCheckpointEquality": true,
+      "observations": [
+        {
+          "baseline": {
+            "mainThreadMs": 2.2305999999998676,
+            "accountedBytes": 10810,
+            "simultaneouslyRetainedNumericMatrixGraphs": 2,
+            "explicitHostCheckpointClones": 3,
+            "nativeStructuredCloneCrossings": 2
+          },
+          "candidate": {
+            "mainThreadMs": 2.229899999999361,
+            "packMs": 1.9304999999994834,
+            "unpackMs": 1.2804000000005544,
+            "accountedBytes": 11436,
+            "binaryBufferBytes": 3040,
+            "simultaneouslyRetainedNumericMatrixGraphs": 0,
+            "simultaneouslyRetainedCompactBuffers": 1,
+            "explicitHostCheckpointClones": 0,
+            "explicitResumeBufferCopies": 1,
+            "nativeTransferredCrossings": 2
+          }
+        },
+        {
+          "baseline": {
+            "mainThreadMs": 1.729099999999562,
+            "accountedBytes": 10810,
+            "simultaneouslyRetainedNumericMatrixGraphs": 2,
+            "explicitHostCheckpointClones": 3,
+            "nativeStructuredCloneCrossings": 2
+          },
+          "candidate": {
+            "mainThreadMs": 2.1592000000000553,
+            "packMs": 1.594000000000051,
+            "unpackMs": 1.0959000000002561,
+            "accountedBytes": 11436,
+            "binaryBufferBytes": 3040,
+            "simultaneouslyRetainedNumericMatrixGraphs": 0,
+            "simultaneouslyRetainedCompactBuffers": 1,
+            "explicitHostCheckpointClones": 0,
+            "explicitResumeBufferCopies": 1,
+            "nativeTransferredCrossings": 2
+          }
+        },
+        {
+          "baseline": {
+            "mainThreadMs": 1.5628000000006068,
+            "accountedBytes": 10810,
+            "simultaneouslyRetainedNumericMatrixGraphs": 2,
+            "explicitHostCheckpointClones": 3,
+            "nativeStructuredCloneCrossings": 2
+          },
+          "candidate": {
+            "mainThreadMs": 2.1332000000002154,
+            "packMs": 1.2395999999998821,
+            "unpackMs": 1.0299000000004526,
+            "accountedBytes": 11436,
+            "binaryBufferBytes": 3040,
+            "simultaneouslyRetainedNumericMatrixGraphs": 0,
+            "simultaneouslyRetainedCompactBuffers": 1,
+            "explicitHostCheckpointClones": 0,
+            "explicitResumeBufferCopies": 1,
+            "nativeTransferredCrossings": 2
+          }
+        }
+      ],
+      "baselineHost": {
+        "n": 3,
+        "p50Ms": 1.729099999999562,
+        "p95Ms": 2.2305999999998676
+      },
+      "candidateHost": {
+        "n": 3,
+        "p50Ms": 2.1592000000000553,
+        "p95Ms": 2.229899999999361
+      },
+      "candidatePack": {
+        "n": 3,
+        "p50Ms": 1.594000000000051,
+        "p95Ms": 1.9304999999994834
+      },
+      "candidateUnpack": {
+        "n": 3,
+        "p50Ms": 1.0959000000002561,
+        "p95Ms": 1.2804000000005544
+      }
+    }
+  ]
+}

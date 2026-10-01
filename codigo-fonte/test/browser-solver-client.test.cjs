@@ -1,8 +1,9 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict'),{webcrypto}=require('node:crypto');
 const {create,normalizeComparisonPolicy}=require('../public/browser-solver-client');
+const codec=require('../public/browser-solver-checkpoint-codec');
 const comparison=require('../src/solver/decision-outcome');
-const fingerprint='a'.repeat(64),manifest={schemaVersion:1,buildFingerprint:fingerprint,versions:{solver:'SAME_CORE_V1',rules:'SAME_RULES_V1'}};
+const fingerprint='a'.repeat(64),manifest={schemaVersion:1,buildFingerprint:fingerprint,versions:{adaptive:'SAME_ADAPTIVE_V1',solver:'SAME_CORE_V1',certificate:'SAME_CERTIFICATE_V1',rules:'SAME_RULES_V1'}};
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
 function input(hand='hand-1'){return {multiway:{handId:hand,config:{playerCount:2,heroCards:['As','Kh','Qd','Jc','9s']},events:[],editEpoch:0},ranges:[],sizing:{type:'MIN_MID_MAX',maxAggressions:1},rake:{type:'NONE',basis:'BEFORE_FEES'}};}
 function result(refine=true){const actions=[{id:'CHECK',action:'CHECK',size:null,frequency:1,evBB:2}];return {status:'APPROXIMATE',method:'CFR_PLUS',solverVersion:'SAME_CORE_V1',source:'REFERENCE_SUBGAME_STRATEGY',actions,
@@ -10,8 +11,17 @@ function result(refine=true){const actions=[{id:'CHECK',action:'CHECK',size:null
   adaptation:{phase:'STOPPED',stopReason:refine?'TIME_RESOURCE_CEILING':'GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION',refinementRecommended:refine}};}
 function harness(onSolve,extra={}){const workers=[];
   const client=create({manifest,crypto:webcrypto,createWorker:()=>{
-    const worker={terminated:false,postMessage(message){this.solve=message;onSolve?.(worker,message,workers.length);},terminate(){this.terminated=true;},send(message){this.onmessage?.({data:message});}};
-    workers.push(worker);queueMicrotask(()=>worker.send({type:'ready',schemaVersion:1,buildFingerprint:fingerprint}));return worker;
+    const worker={terminated:false,postMessage(message,transfer=[]){
+      const received=structuredClone(message,{transfer});this.wireSolve=received;
+      this.solve={...received,checkpoint:codec.unpack(received.checkpoint)};onSolve?.(worker,this.solve,workers.length);
+    },terminate(){this.terminated=true;},send(message){
+      if(message.checkpoint && !codec.isPacket(message.checkpoint))message={...message,checkpoint:codec.pack({version:manifest.versions.adaptive,
+        solverVersion:manifest.versions.solver,certificateVersion:manifest.versions.certificate,
+        comparisonPolicyKey:comparison.policyKey(this.solve?.input.comparisonPolicy),...message.checkpoint})};
+      const transfer=message.checkpoint?codec.transfers(message.checkpoint):[];
+      this.onmessage?.({data:structuredClone(message,{transfer})});
+    }};
+    workers.push(worker);queueMicrotask(()=>worker.send({type:'ready',schemaVersion:1,buildFingerprint:fingerprint,checkpointTransportVersion:codec.VERSION}));return worker;
   },...extra});return {client,workers};}
 function done(worker,message,{workerMs=message.budget.timeMs,iterations=message.budget.iterations,refine=true}={}){worker.send({type:'done',jobId:message.jobId,generation:message.generation,buildFingerprint:fingerprint,
   handId:message.input.multiway.handId,revisionKey:message.expectedRevisionKey,result:result(refine),checkpoint:{workIterations:(message.checkpoint?.workIterations||0)+iterations},workerMs});}
@@ -131,6 +141,26 @@ test('cancel and owner invalidation terminate immediately and reject delayed sta
     const next=await client.start('owner',input(),{handId:'hand-1',revisionKey:'rev-1'});await tick();client.cancelOwner('owner');
     assert.equal(workers[1].terminated,true);assert.equal(client.get('owner',next.jobId).phase,'CANCELLED');
     const pending=client.start('owner',input(),{handId:'hand-1',revisionKey:'rev-1'});client.clearOwner('owner');await assert.rejects(pending,/superseded/);
+  }finally{client.close();}
+});
+
+test('cancellation immediately after native resume transfer preserves attached cache buffers and the coherent public result',async()=>{
+  let elapsed=0;const {client,workers}=harness((worker,_message,count)=>{if(count===2)client.cancelOwner('owner');},{now:()=>elapsed});
+  try{
+    const initial=await client.start('owner',input(),{handId:'hand-1',revisionKey:'rev-1'});await tick();const message=workers[0].solve;
+    const checkpoint={workIterations:1,global:{version:manifest.versions.solver,iterations:1,averagingDelay:0,gameHash:'b'.repeat(64),regrets:[[Math.PI,-0]],strategySums:[[2,3]]}};
+    workers[0].send({type:'progress',jobId:message.jobId,generation:message.generation,buildFingerprint:fingerprint,
+      handId:'hand-1',revisionKey:'rev-1',result:result(),checkpoint,workerMs:100});
+    elapsed=1000;client.cancelOwner('owner');const retained=client.get('owner',initial.jobId).result;
+    const resumed=await client.start('owner',input(),{handId:'hand-1',revisionKey:'rev-1'});await tick();
+    assert.equal(client.get('owner',resumed.jobId).phase,'CANCELLED');assert.equal(workers[1].terminated,true);
+    assert.deepEqual(workers[1].solve.checkpoint.global,checkpoint.global);assert.deepEqual(client.get('owner',resumed.jobId).result,retained);
+    assert.equal(client.stats().retainedCheckpointJobs,0);assert.equal(client.stats().entries,1);
+    const warm=await client.start('owner',input(),{handId:'hand-1',revisionKey:'rev-1',budget:'FAST'});
+    assert.equal(warm.cache.hit,true);assert.deepEqual(warm.result,retained);assert.equal(workers.length,2);
+    const again=await client.start('owner',input(),{handId:'hand-1',revisionKey:'rev-1',budget:'DEEP'});await tick();
+    assert.deepEqual(workers[2].solve.checkpoint.global,checkpoint.global);assert.equal(again.timing.decisionComputeMs,1000);
+    client.cancelOwner('owner');
   }finally{client.close();}
 });
 

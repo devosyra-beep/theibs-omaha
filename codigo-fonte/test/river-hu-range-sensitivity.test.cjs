@@ -21,14 +21,14 @@ test('nested24/32/48 QA ranges preserve previous hands and weights with disjoint
   }
 });
 
-test('in-memory admission experiments keep production24 and all resource guards unchanged', () => {
+test('in-memory admission experiments keep validated production32 and all resource guards unchanged', () => {
   const adapter = experimentalAdapter();
   assert.equal(adapter.HU_SUPPORT.maxCombosPerSeat, 48);
   assert.equal(adapter.HU_SUPPORT.maxWorlds, 2304);
   assert.equal(adapter.HU_SUPPORT.maxMemoryBytes, production.HU_SUPPORT.maxMemoryBytes);
   assert.equal(adapter.LIMITS.maxNodes, production.LIMITS.maxNodes);
   assert.equal(adapter.LIMITS.maxBuildMs, production.LIMITS.maxBuildMs);
-  assert.equal(production.HU_SUPPORT.maxCombosPerSeat, 24);
+  assert.equal(production.HU_SUPPORT.maxCombosPerSeat, 32);
   assert.equal(production.coverage(capacityRiverInput({ combos: 48 })).reasons[0].code, 'RANGE_BUDGET');
 });
 

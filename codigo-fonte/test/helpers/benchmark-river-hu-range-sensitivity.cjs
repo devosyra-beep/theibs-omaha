@@ -15,8 +15,8 @@ const budgets = Object.freeze({ maxWorlds: 2304, maxNodes: 12000, maxMemoryBytes
 const hash = value => crypto.createHash('sha256').update(typeof value === 'string' ? value.replace(/\r\n/g, '\n') : JSON.stringify(value)).digest('hex');
 
 function experimentalAdapter(source = fs.readFileSync(adapterPath, 'utf8')) {
-  const original = 'maxCombosPerSeat: 24, maxSizingLevels: 12, maxWorlds: 576';
-  assert.ok(source.includes(original), 'Experiment expects the production24/576 admission contract.');
+  const original = source.match(/maxCombosPerSeat: (24|32), maxSizingLevels: 12, maxWorlds: (576|1024)/)?.[0];
+  assert.ok(original, 'Experiment expects the validated production24/576 or32/1024 admission contract.');
   const loaded = new Module(adapterPath, module); loaded.filename = adapterPath;
   loaded.paths = Module._nodeModulePaths(path.dirname(adapterPath));
   loaded._compile(source.replace(original, 'maxCombosPerSeat: 48, maxSizingLevels: 12, maxWorlds: 2304'), adapterPath);
@@ -146,7 +146,7 @@ if (!isMainThread) {
     const sourceHashes = Object.fromEntries(['plo-river-game.js', 'extensive-solver.js', 'action-conditioned.js', 'job-worker.js', 'versions.js']
       .map(name => [name, hash(fs.readFileSync(path.join(sourceRoot, 'src/solver', name), 'utf8'))]));
     const report = { classification: 'QA_ONLY_NESTED_EXPLICIT_RANGE_SENSITIVITY', generatedAt: new Date().toISOString(), node: process.version,
-      sourceHashes, productionHUAdmission: { combos: 24, worlds: 576 }, experimentHUAdmission: { combos: 48, worlds: 2304 }, budgets,
+      sourceHashes, productionHUAdmission: { combos: require('../../src/solver/plo-river-game').HU_SUPPORT.maxCombosPerSeat, worlds: require('../../src/solver/plo-river-game').HU_SUPPORT.maxWorlds }, experimentHUAdmission: { combos: 48, worlds: 2304 }, budgets,
       solverBudget: { timeMs: 3000, iterations: 1000 }, fixedCheckpointsPerTree: [16, 32, 64],
       protocol: 'One cold-runtime and one warm-runtime fresh job per admitted cell, then16/32/64 cumulative fixed-work checkpoints on the same original and conditioned trees. Warm reuses loaded modules only; no result cache or checkpoint continuation. Each template uses the same board, utility, fees, sizes and aggression cap across nested24/32/48 ranges.',
       limitations: ['Different ranges change the game/prior;48is not numerical truth or population coverage.',

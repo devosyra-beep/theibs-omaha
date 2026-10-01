@@ -40,17 +40,23 @@
   }
   $('river').onclick=()=>run(async()=>{
     const rows=[];
-    for(const fixture of fixtures.solver){for(let i=0;i<3;i++){
+    for(const fixture of fixtures.solver){for(let i=0;i<(fixture.expectedRefusal?1:3);i++){
       const client=TheibsBrowserSolverClient.create();
-      try{const result=await finish(client,fixture),warm=await finish(client,fixture,'FAST');
+      try{const result=await finish(client,fixture);
+        if(fixture.expectedRefusal){
+          if(result.phase!=='UNSUPPORTED'||result.result?.status!=='NOT_SOLVED'||result.result?.actions?.length||result.result?.reasons?.[0]?.code!==fixture.expectedRefusal)throw Error('Atomic refusal contract failed: '+fixture.id);
+          rows.push({fixtureId:fixture.id,combos:fixture.combos,maxAggressions:fixture.maxAggressions,phase:result.phase,status:result.result.status,refusal:fixture.expectedRefusal,timing:result.timing,buildFingerprint:result.buildFingerprint,metrics:client.stats()});
+          continue;
+        }
+        const warm=await finish(client,fixture,'FAST');
         if(!result.result?.actions?.length||result.result.abstraction?.compatibleWorlds!==fixture.combos**2)throw Error('River capacity incomplete.');
         if(result.result.qualification.gto!==false||result.result.qualification.fullHandEquilibrium!==false)throw Error('Invalid scope upgrade.');
-        rows.push({combos:fixture.combos,phase:result.phase,status:result.result.status,precision:result.result.decisionPrecision?.status,outcome:result.result.decisionOutcome?.status,
+        rows.push({fixtureId:fixture.id,combos:fixture.combos,maxAggressions:fixture.maxAggressions,buildFingerprint:result.buildFingerprint,phase:result.phase,status:result.result.status,precision:result.result.decisionPrecision?.status,outcome:result.result.decisionOutcome?.status,
           worlds:result.result.abstraction.compatibleWorlds,timing:result.timing,costs:result.result.metrics?.costs,nashConv:result.result.convergence?.nashConv,
           bounds:result.result.actionPrecision?.actions.map(({id,lowerBB,upperBB,certified})=>({id,lowerBB,upperBB,certified})),warm:{cache:warm.cache,timing:warm.timing},metrics:client.stats()});
       }finally{client.close();}
     }}
-    report({status:'PASS',scope:'RIVER_HU_EXACT_DECLARED_TREES_48MIB',groups:fixtures.solver.map(fixture=>{const data=rows.filter(row=>row.combos===fixture.combos);return {combos:fixture.combos,first:distribution(data.map(row=>row.timing.firstValueMs)),resolution:distribution(data.map(row=>row.timing.completionMs)),bounds:distribution(data.map(row=>row.costs?.actionCertificateMs||0))};}),rows});
+    report({status:'PASS',scope:'RIVER_HU_EXACT_DECLARED_TREES_48MIB',policy:{initialTimeMs:3000,initialWorkIterations:1000,adaptiveTimeMs:5000},groups:fixtures.solver.filter(fixture=>!fixture.expectedRefusal).map(fixture=>{const data=rows.filter(row=>row.fixtureId===fixture.id);return {fixtureId:fixture.id,combos:fixture.combos,maxAggressions:fixture.maxAggressions,first:distribution(data.map(row=>row.timing.firstValueMs)),resolution:distribution(data.map(row=>row.timing.completionMs)),bounds:distribution(data.map(row=>row.costs?.actionCertificateMs||0))};}),refusals:rows.filter(row=>row.refusal),rows});
   });
   $('cancel').onclick=()=>run(async()=>{
     const client=TheibsBrowserMultiwayClient.create(),controller=new AbortController();

@@ -14,12 +14,13 @@ const conditioned = require('../src/solver/action-conditioned');
 const job = require('../src/solver/job-worker');
 const session = require('../src/multiway-session');
 const fixtures = require('./helpers/solver-reference-fixtures.cjs');
+const checkpointCodec = require('../public/browser-solver-checkpoint-codec');
 const root = path.resolve(__dirname,'..');
 const plain = value=>JSON.parse(JSON.stringify(value));
 function load({transport=false}={}) {
   const messages = [], listeners = {};
   const context = vm.createContext({TextEncoder,TextDecoder,structuredClone,crypto:crypto.webcrypto,performance:{now:()=>0},SharedArrayBuffer:undefined,Atomics:undefined,
-    ...(transport?{postMessage:message=>messages.push(plain(message)),addEventListener:(type,callback)=>{listeners[type]=callback;}}:{})});
+    ...(transport?{postMessage:(message,transfer=[])=>messages.push(structuredClone(message,{transfer})),addEventListener:(type,callback)=>{listeners[type]=callback;}}:{})});
   vm.runInContext(fs.readFileSync(path.join(root,'public/browser-solver-worker.js'),'utf8'),context,{timeout:10000});
   return {api:context.TheibsBrowserSolver,messages,dispatch:data=>listeners.message({data})};
 }
@@ -89,22 +90,23 @@ test('real river ledger, action certificates and compatible resume preserve Node
 test('worker transport binds build and canonical decision revisions, emits coherent original progress/done',()=>{
   const worker = load({transport:true}),input = fixtures.riverCallInput();
   const observed = session.envelope(input.multiway);
-  assert.deepEqual(worker.messages[0],{type:'ready',schemaVersion:1,buildFingerprint:worker.api.manifest.buildFingerprint});
+  assert.deepEqual(worker.messages[0],{type:'ready',schemaVersion:1,buildFingerprint:worker.api.manifest.buildFingerprint,checkpointTransportVersion:checkpointCodec.VERSION});
   worker.dispatch({type:'solve',jobId:'parity-job',generation:3,input,budget:{timeMs:5000,iterations:128},
-    expectedBuildFingerprint:worker.api.manifest.buildFingerprint,expectedRevisionKey:observed.state.revisionKey});
+    expectedBuildFingerprint:worker.api.manifest.buildFingerprint,expectedRevisionKey:observed.state.revisionKey,checkpointTransportVersion:checkpointCodec.VERSION});
   const progress = worker.messages.filter(message=>message.type==='progress'),done = worker.messages.at(-1);
   assert.ok(progress.length>0); assert.equal(done.type,'done'); assert.equal(done.paused,false);
   assert.equal(done.result.metrics.compilation?.scope,'CURRENT_EXECUTION_ONLY');
   for (const message of [...progress,done]) {
+    const checkpoint=checkpointCodec.unpack(message.checkpoint);
     assert.equal(message.jobId,'parity-job');assert.equal(message.generation,3);
     assert.equal(message.handId,input.multiway.handId);assert.equal(message.revisionKey,observed.state.revisionKey);
     assert.equal(message.buildFingerprint,worker.api.manifest.buildFingerprint);
-    assert.equal(message.result.gameHash,message.checkpoint.baseGameHash);
-    assert.equal(message.result.iterations,message.checkpoint.global.iterations);
+    assert.equal(message.result.gameHash,checkpoint.baseGameHash);
+    assert.equal(message.result.iterations,checkpoint.global.iterations);
   }
   const node = job.execute({input:structuredClone({...input,budget:plain(worker.api.limits)}),budget:{timeMs:5000,iterations:128}},{compilationReuse:true});
   assert.deepEqual(withoutObservationalTiming(done.result),withoutObservationalTiming(node.result));
-  assert.deepEqual(withoutObservationalTiming(done.checkpoint),withoutObservationalTiming(node.checkpoint));
+  assert.deepEqual(withoutObservationalTiming(checkpointCodec.unpack(done.checkpoint)),withoutObservationalTiming(node.checkpoint));
   worker.dispatch({type:'solve'});assert.match(worker.messages.at(-1).error,/new solver worker/);
 });
 test('worker rejects stale revision/build, unsupported seats and caller memory budgets before emitting a value',()=>{
@@ -113,20 +115,20 @@ test('worker rejects stale revision/build, unsupported seats and caller memory b
     message=>{message.budget.timeMs=5001;}]) {
     const worker = load({transport:true});
     const message = {type:'solve',jobId:'invalid-job',generation:1,input,budget:{timeMs:5000,iterations:128},
-      expectedBuildFingerprint:worker.api.manifest.buildFingerprint,expectedRevisionKey:revision};
+      expectedBuildFingerprint:worker.api.manifest.buildFingerprint,expectedRevisionKey:revision,checkpointTransportVersion:checkpointCodec.VERSION};
     change(message);worker.dispatch(message);
     assert.equal(worker.messages.at(-1).type,'error');assert.equal(worker.messages.filter(item=>item.result).length,0);
   }
   const unsupported = load({transport:true});
   const threeSeats = session.start({variant:'PLO5_HIGH',playerCount:3,heroPosition:'SB',startingStack:20,smallBlind:.5,bigBlind:1,heroCards:fixtures.heroCards});
   unsupported.dispatch({type:'solve',jobId:'three-seats',generation:1,input:{...input,multiway:threeSeats.multiway},budget:{timeMs:5000,iterations:128},
-    expectedBuildFingerprint:unsupported.api.manifest.buildFingerprint,expectedRevisionKey:threeSeats.state.revisionKey});
+    expectedBuildFingerprint:unsupported.api.manifest.buildFingerprint,expectedRevisionKey:threeSeats.state.revisionKey,checkpointTransportVersion:checkpointCodec.VERSION});
   assert.match(unsupported.messages.at(-1).error,/heads-up river/);
   assert.equal(unsupported.messages.filter(item=>item.result).length,0);
   const worker = load({transport:true});
   const injected = {...input,budget:{maxNodes:1,maxWorlds:1,maxMemoryBytes:1,maxBuildMs:1}};
   worker.dispatch({type:'solve',jobId:'normalized',generation:1,input:injected,budget:{timeMs:5000,iterations:128},
-    expectedBuildFingerprint:worker.api.manifest.buildFingerprint,expectedRevisionKey:revision});
+    expectedBuildFingerprint:worker.api.manifest.buildFingerprint,expectedRevisionKey:revision,checkpointTransportVersion:checkpointCodec.VERSION});
   assert.equal(worker.messages.at(-1).type,'done');
   assert.equal(worker.messages.at(-1).result.abstraction.budget.maxNodes,12000);
 });
