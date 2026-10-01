@@ -65,11 +65,14 @@
     const current = state?.players?.find(item => item.id === state.actor);
     if (state?.phase !== 'BETTING' || !current?.hero) return null;
     const fresh = analysis?.status === 'OK' && ['FINAL','PROVISIONAL'].includes(analysis.analysisStage) &&
-      analysis.observedState?.revisionKey === state.revisionKey;
+      analysis.observedState?.revisionKey === state.revisionKey && (state.handId===undefined || analysis.observedState?.handId===state.handId);
     const ev = fresh && readiness.heroDraftReady !== false ? analysis.ev : null;
     const waitingCards = readiness.heroDraftReady === false;
-    const idle = !ev && readiness.analysisBusy === false;
-    const provisional = Boolean(ev && analysis.analysisStage === 'PROVISIONAL');
+    const provisional = Boolean(fresh && !waitingCards && analysis.analysisStage === 'PROVISIONAL');
+    const refinement = provisional && ['TIME_BUDGET','FAILED'].includes(analysis?.refinement?.status) &&
+      !(analysis.clientTiming?.refinementPending===true && readiness.analysisBusy!==false) ? analysis.refinement : null;
+    const refining = provisional && readiness.analysisBusy!==false && !refinement;
+    const idle = !ev && !provisional && readiness.analysisBusy === false;
     const bigBlind = finite(ev?.bigBlind) && ev.bigBlind > 0 ? ev.bigBlind : finite(state.bigBlind) && state.bigBlind > 0 ? state.bigBlind : null;
     const candidates = Array.isArray(ev?.candidates) ? ev.candidates.filter(item => state.legal?.actions?.includes(item.action)) : null;
     const entries = candidates?.length ? candidates : (state.legal?.actions || []).map(action => ({ ...ev?.actions?.[action], action }));
@@ -79,7 +82,7 @@
       const valueBB = modeled ? finite(item.evBB) ? item.evBB : bigBlind ? item.ev / bigBlind : null : null;
       return {
         action, optionId: item?.optionId || action, size: finite(item?.size) ? item.size : null,
-        status: !ev ? waitingCards || idle ? 'NOT_MODELED' : 'PENDING' : modeled ? 'MODELED' : 'NOT_MODELED',
+        status: !ev ? waitingCards || idle || provisional && !refining ? 'NOT_MODELED' : 'PENDING' : modeled ? 'MODELED' : 'NOT_MODELED',
         evBB: valueBB,
         differenceBB: !provisional && modeled && ev?.decisionPrecision?.bestActionId && finite(item.differenceToBestModeledBB) ? item.differenceToBestModeledBB : null,
         method: item?.method || item?.model || null,
@@ -91,14 +94,16 @@
       };
     });
     const modeledCount = rows.filter(row => row.status === 'MODELED' && finite(row.evBB)).length;
+    const estimateCount = rows.filter(row=>row.status==='MODELED' && finite(row.evBB) && row.action!=='FOLD' && row.method!=='DECISION_REFERENCE').length;
+    const foldReference = rows.some(row=>row.action==='FOLD' && row.status==='MODELED' && row.evBB===0 && row.method==='DECISION_REFERENCE');
     return {
       rows, bigBlind,feeBasis:ev?.feeBasis || (rakeChoice.mode==='GROSS'?'BEFORE_FEES':null),
       potBeforeDecision: finite(ev?.potBeforeDecision) ? ev.potBeforeDecision : finite(state.pot) ? state.pot : null,
       toCall: finite(state.legal?.toCall) ? state.legal.toCall : null,
-      stage: waitingCards ? 'WAITING_CARDS' : analysis?.status && analysis.status !== 'OK' ? analysis.status === 'NO_DECISION' ? 'NO_DECISION' : 'UNAVAILABLE' : idle ? 'IDLE' : !ev ? 'PENDING' : provisional ? 'PROVISIONAL' : String(ev.comparisonStatus || '').startsWith('INCOMPARABLE_') ? 'INCOMPARABLE' : !ev.comparisonComplete ? 'PARTIAL' : ev.globalBestSupported ? 'COMPLETE' : 'INCONCLUSIVE',
-      refinement: provisional && ['TIME_BUDGET', 'FAILED'].includes(analysis?.refinement?.status) ? analysis.refinement : null,
+      stage: waitingCards ? 'WAITING_CARDS' : analysis?.status && analysis.status !== 'OK' ? analysis.status === 'NO_DECISION' ? 'NO_DECISION' : 'UNAVAILABLE' : idle ? 'IDLE' : provisional ? 'PROVISIONAL' : !ev ? 'PENDING' : String(ev.comparisonStatus || '').startsWith('INCOMPARABLE_') ? 'INCOMPARABLE' : !ev.comparisonComplete ? 'PARTIAL' : ev.globalBestSupported ? 'COMPLETE' : 'INCONCLUSIVE',
+      refinement,refining,
       comparisonStatus: ev?.comparisonStatus || null,
-      modeledCount,
+      modeledCount,estimateCount,foldReference,
       bestModeledAction: !provisional && modeledCount && (!ev.decisionPrecision || ev.decisionPrecision.bestActionId) ? ev.bestModeledAction : null,
       bestModeledSize: rows.find(row => row.optionId === ev?.bestModeledOptionId)?.size ?? null,
       finiteSizeGrid: Boolean(candidates?.length),
@@ -214,9 +219,9 @@
     const price = decision.toCall === null ? 'Call price unavailable' : `Call ${money(decision.toCall)}${decision.bigBlind ? ` (${bb(decision.toCall / decision.bigBlind)} bb)` : ''}`;
     const pot = (decision.potBeforeDecision === null ? 'Pot unavailable' : `Pot ${money(decision.potBeforeDecision)}`)+(decision.feeBasis==='BEFORE_FEES'?' · Before fees':'');
     const needsRake = decision.rows.some(row => row.missingInputs.some(text => /rake/i.test(text)));
-    const badge = needsRake ? 'Fee basis required' : decision.stage === 'WAITING_CARDS' ? 'Add your cards' : decision.stage === 'IDLE' ? 'Not calculated' : decision.stage === 'PROVISIONAL' ? decision.refinement ? 'HEURISTIC · preliminary' : 'HEURISTIC · refining' : decision.stage === 'PENDING' ? 'Calculating' : decision.stage === 'NO_DECISION' ? 'No decision' : decision.stage === 'UNAVAILABLE' ? 'Calculation unavailable' : 'HEURISTIC';
+    const badge = needsRake ? 'Fee basis required' : decision.stage === 'WAITING_CARDS' ? 'Add your cards' : decision.stage === 'IDLE' ? 'Not calculated' : decision.stage === 'PROVISIONAL' ? decision.estimateCount ? decision.refining ? 'HEURISTIC · refining' : 'HEURISTIC · preliminary' : decision.refining ? 'Calculating action EV' : 'No sampled EV estimate' : decision.stage === 'PENDING' ? 'Calculating' : decision.stage === 'NO_DECISION' ? 'No decision' : decision.stage === 'UNAVAILABLE' ? 'Calculation unavailable' : 'HEURISTIC';
     const rows = decision.rows.map(row => {
-      const status = ['WAITING_CARDS','IDLE','NO_DECISION','UNAVAILABLE'].includes(decision.stage) ? 'Unavailable' : row.status === 'PENDING' ? 'Calculating' : row.status === 'MODELED' ? 'Modeled' : 'Not modeled';
+      const status = ['WAITING_CARDS','IDLE','NO_DECISION','UNAVAILABLE'].includes(decision.stage) ? 'Unavailable' : row.status === 'PENDING' ? 'Calculating' : row.status === 'MODELED' ? row.method==='DECISION_REFERENCE'?'Decision reference':'Modeled' : 'Not modeled';
       const size = row.size === null ? '' : ` <small>to ${esc(money(row.size))}</small>`;
       const difference = row.differenceBB === null ? '—' : bb(Math.abs(row.differenceBB)).replace(/^\+/, '');
       return `<tr><th scope="row"><span>${esc(ACTIONS[row.action]?.label || row.action)}${size}</span><small>${status}</small></th><td>${row.evBB === null ? '—' : bb(row.evBB)}</td><td>${difference}</td></tr>`;
@@ -226,7 +231,7 @@
       ? decision.modeledCount === 1
         ? `Only ${esc(ACTIONS[decision.bestModeledAction]?.label || decision.bestModeledAction)} modeled · no overall best action.`
         : `${decision.leaderConclusive ? 'Best modeled action' : 'Current EV leader'}: ${esc(bestLabel)}`
-      : decision.stage === 'WAITING_CARDS' ? 'Enter your cards to evaluate this decision.' : decision.stage === 'IDLE' ? 'No estimate for this decision.' : decision.stage === 'PROVISIONAL' ? decision.refinement ? 'Preliminary estimates retained.' : 'Preliminary estimates · refinement in progress.' : decision.stage === 'PENDING' ? 'Waiting for the current decision estimate.' : decision.stage === 'INCOMPARABLE' ? decision.comparisonStatus === 'INCOMPARABLE_ASSUMPTIONS' ? 'Action assumptions differ; EVs cannot be ranked.' : 'Opponent coverage differs; action EVs cannot be compared.' : decision.reason ? esc(decision.reason) : 'No action has modeled EV.';
+      : decision.stage === 'WAITING_CARDS' ? 'Enter your cards to evaluate this decision.' : decision.stage === 'IDLE' ? 'No estimate for this decision.' : decision.stage === 'PROVISIONAL' ? decision.estimateCount ? decision.refining ? 'Preliminary estimates · refinement in progress.' : 'Preliminary estimates retained.' : decision.refining ? 'Waiting for the first sampled action EV estimate.' : decision.foldReference ? 'Fold is the exact zero reference; other action EV is unavailable.' : 'No action EV estimate is available.' : decision.stage === 'PENDING' ? 'Waiting for the current decision estimate.' : decision.stage === 'INCOMPARABLE' ? decision.comparisonStatus === 'INCOMPARABLE_ASSUMPTIONS' ? 'Action assumptions differ; EVs cannot be ranked.' : 'Opponent coverage differs; action EVs cannot be compared.' : decision.reason ? esc(decision.reason) : 'No action has modeled EV.';
     const gap = decision.stage === 'PROVISIONAL' || decision.modeledCount < 1 ? '' : `<span>ΔEV · top two: ${decision.gapBestSecondBB===null?'unavailable':money(decision.gapBestSecondBB)+' bb'}</span><span>${decision.leaderConclusive?'CONCLUSIVE':'INCONCLUSIVE'} · ${esc(precisionReason(decision.precision))}</span>`;
     const details = [
       '<li>EV is incremental from the current decision. Below leader = leader EV − action EV; it is a comparison gap, not an uncertainty interval or another EV estimate.</li>',
@@ -245,7 +250,7 @@
       ...decision.warnings.map(item => `<li>${esc(item)}</li>`)
     ].join('');
     const solverJob = window.TheibsMultiwaySolverUI?.getState?.();
-    const refinementStatus = decision.refinement ? `<p class="mw-ev-limit" role="status">Latest estimate retained. ${decision.refinement.status === 'TIME_BUDGET' ? 'Refinement reached its time budget.' : 'Refinement unavailable.'} Analyze hand to retry.</p>` : '';
+    const refinementStatus = decision.refinement ? `<p class="mw-ev-limit" role="status">${decision.estimateCount?'Latest estimate retained.':'No sampled action EV estimate was completed.'} ${decision.refinement.status === 'TIME_BUDGET' ? 'Refinement reached its time budget.' : 'Refinement unavailable.'} Analyze hand to retry.</p>` : '';
     const solverPending = ['QUEUED','BUILDING','REFINING'].includes(solverJob?.phase) ? '<p class="mw-ev-limit" role="status">River study refining · current table uses heuristic EV.</p>' : '';
     host.innerHTML = `<div class="mw-ev-heading"><strong>Decision EV</strong><span class="mw-ev-badge" data-status="${decision.stage.toLowerCase()}">${badge}</span></div><p class="mw-ev-context">${pot} · ${price} · ${decision.bigBlind ? `1 bb = ${money(decision.bigBlind)} chips` : 'Big blind unavailable'}</p><table class="mw-ev-table"><thead><tr><th scope="col">Action</th><th scope="col">EV · bb</th><th scope="col">Below leader · bb</th></tr></thead><tbody>${rows}</tbody></table><div class="mw-ev-conclusion">${leader}${gap}</div>${refinementStatus}${solverPending}${needsRake ? '<button type="button" class="ghost-button" data-mw-rake>Set fee basis</button>' : ''}${decision.missingLegalActions.length && decision.modeledCount > 1 ? '<p class="mw-ev-limit">Some legal actions are not modeled; no overall best action.</p>' : ''}<details class="mw-ev-details"${priorDetails ? ' open' : ''}><summary>Methods & limits</summary><button type="button" class="text-button" data-mw-rake>Room fees · optional</button>${solverControls()}<ul>${details}</ul></details>`;
   }

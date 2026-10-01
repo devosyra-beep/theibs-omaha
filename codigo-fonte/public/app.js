@@ -29,11 +29,12 @@
   const qualityName = (quality) => ({ INCONCLUSIVE_COMPARISON: 'No clear advantage between options', INCOMPLETE_COMPARISON: 'Limited comparison', MATCHED_HEURISTIC: 'Matches the previous heuristic', DIFFERENT_HEURISTIC: 'Differs from the previous heuristic', MATCHED_MODELED: 'Favored choice in this exercise', DIFFERENT_MODELED: 'Another option had higher EV', UNVERIFIED: 'Not evaluated yet' })[quality] || quality;
   const actionName = action => ({FOLD:'Fold',CALL:'Call',CHECK:'Check',BET:'Bet',RAISE:'Raise',NO_DECISION:'No recommendation'})[action] || action || '—';
   const actionWithSize = (action,size) => actionName(action)+(['BET','RAISE'].includes(action)&&Number.isFinite(size)?' to '+money(size):'');
-  const comparisonLabel = data => data.analysisStage === 'PROVISIONAL' ? data.refinement ? 'Provisional estimate · refinement stopped' : 'Provisional estimate · refining' : data.ev?.decisionPrecision ? data.ev.decisionPrecision.leaderConclusive ? 'Best modeled action' : 'Current EV leader' : !data.ev?.comparisonComplete ? 'Partial comparison' : data.recommendation?.status === 'CONDITIONAL' ? 'Highest EV under assumptions' : 'Inconclusive comparison';
+  const comparisonLabel = data => data.analysisStage === 'PROVISIONAL' ? data.refinement && data.clientTiming?.refinementPending!==true ? 'Provisional estimate · refinement stopped' : 'Provisional estimate · refining' : data.ev?.decisionPrecision ? data.ev.decisionPrecision.leaderConclusive ? 'Best modeled action' : 'Current EV leader' : !data.ev?.comparisonComplete ? 'Partial comparison' : data.recommendation?.status === 'CONDITIONAL' ? 'Highest EV under assumptions' : 'Inconclusive comparison';
   function retainedPreviewDisplay(data) {
-    if (data?.status !== 'OK' || data.analysisStage !== 'PROVISIONAL' || !['TIME_BUDGET','FAILED'].includes(data.refinement?.status)) return null;
-    return { tone:'neutral', state:'Provisional estimate · refinement stopped', title:'Preliminary estimates retained',
-      shortTitle:'Preliminary estimate', detail:`${data.refinement.reason} This preview does not supply a recommended action.`, uncertain:true, target:null };
+    if (data?.status !== 'OK' || data.analysisStage !== 'PROVISIONAL' || data.clientTiming?.refinementPending===true || !['TIME_BUDGET','FAILED'].includes(data.refinement?.status)) return null;
+    const hasEV=[...(data.ev?.candidates || []),...Object.values(data.ev?.actions || {})].some(row=>row.action!=='FOLD' && row.method!=='DECISION_REFERENCE' && row.status==='MODELED' && Number.isFinite(row.ev));
+    return { tone:'neutral', state:hasEV?'Provisional estimate · refinement stopped':'Sampling stopped', title:hasEV?'Preliminary estimates retained':'No sampled action EV estimate',
+      shortTitle:hasEV?'Preliminary estimate':'No sampled EV estimate', detail:`${data.refinement.reason || data.refinement.reasonEnglish}${hasEV?'':' No sampled action EV estimate is available.'} This preview does not supply a recommended action.`, uncertain:true, target:null };
   }
   const recommendationText = data => data.analysisStage === 'PROVISIONAL' ? retainedPreviewDisplay(data)?.shortTitle || 'Refining…' : data.recommendation?.action ? actionName(data.recommendation.action) : 'No clear choice';
   const numberLabel = n => Number.isFinite(n) ? Math.round(n).toLocaleString('en-US') : '—';
@@ -390,9 +391,9 @@ function renderCharts(latest) {
     : '';
   document.querySelector('#chart-total').textContent = latest ? streetName(latest.street) : '—';
   document.querySelector('#win-percent').textContent = latest ? percent(latest.winRate) : '—';
-  document.querySelector('#loss-percent').textContent = latest ? percent(1 - latest.winRate) : '—';
-  document.querySelector('#win-fill').style.width = latest ? `${Math.max(0, Math.min(100, latest.winRate * 100))}%` : '0%';
-  const points = snapshotModel.ordered(snapshots.filter((item) => item.equity != null && !item.stale));
+  document.querySelector('#loss-percent').textContent = Number.isFinite(latest?.winRate) ? percent(1 - latest.winRate) : '—';
+  document.querySelector('#win-fill').style.width = Number.isFinite(latest?.winRate) ? `${Math.max(0, Math.min(100, latest.winRate * 100))}%` : '0%';
+  const points = snapshotModel.ordered(snapshots.filter((item) => Number.isFinite(item.equity) && !item.stale));
   document.querySelector('#timeline-range').textContent = points.length ? `${points.length} compatible point(s)` : '—';
   document.querySelector('#timeline-empty').style.display = points.length ? 'none' : 'block';
   if (!points.length) {
@@ -761,7 +762,7 @@ function renderResult(data, street) {
     const requestedRevision = inputRevision, inputAt = event?.type ? performance.now() : inputChangedAt;
     const requestedSignature = snapshotModel.stable(payload), requestedSession = JSON.stringify(window.theibsVoiceSessionContext?.());
     const requestedHandId = payload.multiway?.handId, requestedDecisionKey = multiwayState?.revisionKey;
-    let publishedSnapshot = null;
+    let publishedSnapshot = null, publishedAnalysis = null;
     analysisBusy = true; const controller = analysisController = new AbortController();
     if(multiway)renderMultiway();
     analyzeButton.disabled = true; $('#quick-analyze').disabled = true;
@@ -769,31 +770,48 @@ function renderResult(data, street) {
     quickAction(null, 'The engine is calculating this hand…');
     if(payload.multiwayEvaluation)void window.TheibsMultiwaySolverUI?.evaluate?.(payload);
     if(!multiway)$('#equity-range').textContent='Calculating…';
+    const computationFailure = error => ['TIME_BUDGET','WORKER_TIMEOUT','WORKER_FAILED','ENGINE_BUSY'].includes(error?.code) && ![401,403,409].includes(error.status);
+    const currentRequest = () => {
+      if(requestedRevision!==inputRevision || controller.signal.aborted || activeView!==entryView ||
+        requestedSession!==JSON.stringify(window.theibsVoiceSessionContext?.()) || window.theibsVoiceSessionContext?.().expired)return false;
+      if(payload.multiway){
+        if(requestedHandId!==multiway?.handId || requestedDecisionKey!==multiwayState?.revisionKey)return false;
+        try{return requestedSignature===snapshotModel.stable(buildAnalysisPayload());}catch{return false;}
+      }
+      return true;
+    };
     const publish = async (data, started, phase) => {
-      if (requestedRevision !== inputRevision || controller.signal.aborted) return false;
-      data.clientTiming={httpElapsedMs:performance.now()-started,scope:'HTTP_ROUND_TRIP_AND_SECOND_FRAME_PROXY'};
+      if (!currentRequest()) return false;
+      if(payload.multiwayEvaluation && data.status==='OK' && (data.observedState?.handId!==requestedHandId || data.observedState?.revisionKey!==requestedDecisionKey))throw Error('The calculation does not match the current decision.');
+      if(phase==='FINAL' && data.status==='OK' && data.analysisStage==='PROVISIONAL' && !data.refinement){
+        const timeout=data.multiwayEvaluation?.stopReason==='TIME_BUDGET';
+        data.refinement={status:timeout?'TIME_BUDGET':'FAILED',reason:timeout?'Calculation reached its time budget; available values remain preliminary.':'Calculation stopped; available values remain preliminary.'};
+      }
+      if(data.refinement?.reasonEnglish && !data.refinement.reason)data.refinement={...data.refinement,reason:data.refinement.reasonEnglish};
+      data.clientTiming={httpElapsedMs:performance.now()-started,scope:'HTTP_ROUND_TRIP_AND_SECOND_FRAME_PROXY',refinementPending:phase==='PREVIEW' && data.status==='OK' && data.analysisStage==='PROVISIONAL'};
       renderResult(data, payload.street); quickAction(data);
       const snapshot=data.status==='OK'?snapshotModel.create(data,payload):null;
       if (phase==='FINAL' || payload.multiwayEvaluation) {
         lastAnalysis = { signature: snapshotModel.stable(payload), input:structuredClone(payload), data, street: payload.street };
+        publishedAnalysis=lastAnalysis;
         if(multiway)renderMultiway();
-        if(snapshot && phase==='FINAL') {
-          const index=snapshots.findIndex(item=>item.street===payload.street);
-          if(index>=0)snapshots.splice(index,1,snapshot);else snapshots.push(snapshot);
-          renderStreetCards();
-        }
       }
       renderCharts(snapshot);
       // Two rAF callbacks bound a display opportunity, not guaranteed physical paint.
       await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
-      if (requestedRevision !== inputRevision || controller.signal.aborted) return false;
+      if (!currentRequest()) return false;
+      if(snapshot && phase==='FINAL' && data.analysisStage==='FINAL' && Number.isFinite(snapshot.equity)) {
+        const index=snapshots.findIndex(item=>item.street===payload.street);
+        if(index>=0)snapshots.splice(index,1,snapshot);else snapshots.push(snapshot);
+        renderStreetCards();renderCharts(snapshot);
+      }
       data.clientTiming.inputToFrameMs=performance.now()-inputAt;
       data.clientTiming.responseToFrameMs=performance.now()-started-data.clientTiming.httpElapsedMs;
       metrics.analyses.push({analysisId:data.analysisId,phase,status:data.status,...data.clientTiming});
       if(metrics.analyses.length>1000)metrics.analyses.shift();
       document.dispatchEvent(new CustomEvent('theibs:analysis-painted',{detail:metrics.analyses.at(-1)}));
       if(phase==='FINAL'){renderEngineDetails();scheduleSave();}
-      if (payload.multiwayEvaluation && data.status === 'OK') publishedSnapshot = structuredClone(lastAnalysis);
+      if (payload.multiwayEvaluation && data.status === 'OK') {publishedAnalysis=lastAnalysis;publishedSnapshot = structuredClone(lastAnalysis);}
       return true;
     };
     try {
@@ -816,18 +834,24 @@ function renderResult(data, street) {
       // Full study branches retain their specified budgets, so skip duplicate study work.
       if (payload.multiwayEvaluation || !payload.aggressionStudy && (payload.samplingMode==='ADAPTIVE' || Number(payload.samples)>512)) {
         const started=performance.now();
-        const preview=await requestJson('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...payload,analysisPhase:'PREVIEW'}),signal:controller.signal});
-        if(!await publish(preview,started,'PREVIEW') || preview.status!=='OK')return;
+        try {
+          const preview=await requestJson('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...payload,analysisPhase:'PREVIEW'}),signal:controller.signal});
+          if((preview.status==='OK' || !computationFailure(preview)) && (!await publish(preview,started,'PREVIEW') || preview.status!=='OK'))return;
+        } catch(error) {
+          // A short cold preview can expire before its first complete world.
+          // The original request still gets one FINAL attempt, never a new action.
+          if(!computationFailure(error))throw error;
+        }
       }
+      if(!currentRequest())return;
       const started=performance.now();
       const data=await requestJson('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...payload,analysisPhase:'FINAL'}),signal:controller.signal});
       await publish(data,started,'FINAL');
     } catch (error) {
       if(error.name==='AbortError' || controller.signal.aborted)return;
-      if(requestedRevision===inputRevision){
-        const computationFailure = ['TIME_BUDGET','WORKER_TIMEOUT','WORKER_FAILED','ENGINE_BUSY'].includes(error.code) && ![401,403,409].includes(error.status);
+      if(currentRequest()){
         let sameInput = false;
-        if (computationFailure && publishedSnapshot && activeView === 'analyze' &&
+        if (computationFailure(error) && publishedSnapshot && activeView === 'analyze' &&
           requestedSession === JSON.stringify(window.theibsVoiceSessionContext?.()) && !window.theibsVoiceSessionContext?.().expired &&
           requestedHandId === multiway?.handId && requestedDecisionKey === multiwayState?.revisionKey &&
           publishedSnapshot.data.observedState?.handId === requestedHandId && publishedSnapshot.data.observedState?.revisionKey === requestedDecisionKey &&
@@ -837,10 +861,12 @@ function renderResult(data, street) {
         if (sameInput) {
           const timeout = ['TIME_BUDGET','WORKER_TIMEOUT'].includes(error.code);
           const data = publishedSnapshot.data;
+          const hasEstimate=[...(data.ev?.candidates || []),...Object.values(data.ev?.actions || {})].some(row=>row.action!=='FOLD' && row.method!=='DECISION_REFERENCE' && row.status==='MODELED' && Number.isFinite(row.ev));
+          data.clientTiming={...data.clientTiming,refinementPending:false};
           data.refinement = { status: timeout ? 'TIME_BUDGET' : 'FAILED', reason: timeout
-            ? 'Refinement reached its time budget; preliminary estimates remain available.'
-            : 'Refinement could not finish; preliminary estimates remain available.' };
-          lastAnalysis = publishedSnapshot;
+            ? hasEstimate?'Refinement reached its time budget; preliminary estimates remain available.':'Refinement reached its time budget; no sampled action EV estimate was completed.'
+            : hasEstimate?'Refinement could not finish; preliminary estimates remain available.':'Refinement could not finish; no sampled action EV estimate was completed.' };
+          lastAnalysis = publishedAnalysis = publishedSnapshot;
           renderResult(data,payload.street);quickAction(data);
           renderCharts(snapshotModel.create(data,payload));renderEngineDetails();
         } else {
@@ -849,6 +875,7 @@ function renderResult(data, street) {
         }
       }
     } finally {
+      if(!currentRequest() && lastAnalysis===publishedAnalysis){lastAnalysis=null;renderCharts();}
       analysisBusy=false;analysisController=null;analyzeButton.disabled=false;$('#quick-analyze').disabled=false;
       if(multiway)renderMultiway();
       analyzeButton.innerHTML='Analyze street <span>↗</span>';$('#quick-analyze').innerHTML=multiway?'Analyze hand <span>↗</span>':'Calculate equity <span>↗</span>';

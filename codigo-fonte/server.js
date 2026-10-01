@@ -232,12 +232,16 @@ async function analyzeManual(payload, response, owner = 'local') {
   }
   let result = await analyzeInWorker(computeInput, response);
   if (prepared) result = multiway.guardResult(result, prepared);
-  result.analysisStage = preview ? 'PROVISIONAL' : 'FINAL';
+  const noCompletedWorlds = observed && result.multiwayEvaluation?.samples === 0;
+  const stoppedAtBudget = observed && (result.multiwayEvaluation?.stopReason === 'TIME_BUDGET' || result.refinement?.status === 'TIME_BUDGET');
+  result.analysisStage = preview || noCompletedWorlds ? 'PROVISIONAL' : 'FINAL';
   // Build the public assessment only after street guards and the final/preview
   // stage are known; an unguarded worker result cannot supply a green signal.
   if(!observed)result = attachAnalysisContract(result, prepared ? { ...computeInput, multiway: payload.multiway } : computeInput);
   result.performance = { ...result.performance, cacheHit: false };
-  if (result.status === 'OK' && !response.destroyed) putBounded(manualCache, key, { result: structuredClone(result), createdAt: Date.now(), expires: Date.now() + CACHE_TTL_MS });
+  // An exhausted continuation remains useful on screen, but must not prevent a
+  // new request from trying again with the now-warm worker.
+  if (result.status === 'OK' && !noCompletedWorlds && !stoppedAtBudget && !response.destroyed) putBounded(manualCache, key, { result: structuredClone(result), createdAt: Date.now(), expires: Date.now() + CACHE_TTL_MS });
   return result;
   } finally { releasePriority();releaseSolver(); }
 }

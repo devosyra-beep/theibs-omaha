@@ -213,7 +213,6 @@ function weightedBounds(values, weights, lower, upper, comparisons, maxSamples) 
 function evaluateMultiway(input) {
   const started = performance.now(), context = normalize(input), { state, candidates, costs: costModel } = context;
   context.deadline = started + context.timeBudgetMs;
-  require('./fast-evaluator').initialize();
   const rng = new Lcg(context.seed), weights = [], equityValues = [], values = candidates.map(() => []);
   const opponents = state.players.filter(player => !player.folded && !player.hero);
   const lower = -state.players[state.heroId].stack, upper = state.pot + state.players.filter(player => !player.hero).reduce((sum, player) => sum + player.stack, 0);
@@ -221,6 +220,10 @@ function evaluateMultiway(input) {
   for (let sample = 0; sample < context.samples; sample++) {
     try {
       checkDeadline(context);
+      if (sample === 0) {
+        require('./fast-evaluator').initialize();
+        checkDeadline(context);
+      }
       const world = drawWorld(context, rng), scores = scoresFor(world), weight = historyWeight(context, world);
       const max = Math.max(scores[state.heroId], ...opponents.map(player => scores[player.id]));
       const tied = 1 + opponents.filter(player => scores[player.id] === scores[state.heroId]).length;
@@ -230,11 +233,14 @@ function evaluateMultiway(input) {
       equityValues.push(scores[state.heroId] === max ? 1 / tied : 0); weights.push(weight);
       for (let index = 0; index < candidates.length; index++) values[index].push(outcomes[index]);
     } catch (error) {
-      if (error.code === 'TIME_BUDGET' && weights.length) { stopReason = 'TIME_BUDGET'; break; }
+      if (error.code === 'TIME_BUDGET') { stopReason = 'TIME_BUDGET'; break; }
       throw error;
     }
   }
-  const n = weights.length, weightSum = weights.reduce((a, b) => a + b, 0), effectiveSamples = weightSum * weightSum / weights.reduce((a, b) => a + b * b, 0);
+  const n = weights.length, weightSum = weights.reduce((a, b) => a + b, 0), effectiveSamples = n ? weightSum * weightSum / weights.reduce((a, b) => a + b * b, 0) : 0;
+  const noWorldReason = 'The time budget ended before any complete joint world was evaluated. Non-fold action EV and equity are unavailable.';
+  const refinement = stopReason === 'TIME_BUDGET' ? { status: 'TIME_BUDGET', reasonEnglish: n ?
+    'The calculation reached its time budget. Estimates use only complete joint worlds; action differences remain conditional on the declared continuation model.' : noWorldReason } : null;
   const assumptions = [
     'Joint card worlds are conditioned on recorded opponent actions using the declared card-dependent response policy; unseen cards remain simulated.',
     'Response means use the frozen pre-hand Dirichlet profile for this exact variant, original table format and size, position, street, active participant group and call-price band. Missing contexts use the reference prior.',
@@ -249,12 +255,14 @@ function evaluateMultiway(input) {
   if (!costModel) assumptions.push('Rake is unknown; non-fold action EV remains unavailable.');
   if (context.raw.feeBasis === 'BEFORE_FEES' && costModel?.fixed === 0) assumptions.push('EV is before room fees. No room-specific fee schedule is inferred.');
   const results = candidates.map((candidate, index) => {
-    const modeled = candidate.action === 'FOLD' || Boolean(costModel), ev = modeled ? weightedMean(values[index], weights) : null;
+    const modeled = candidate.action === 'FOLD' || Boolean(costModel && n), ev = candidate.action === 'FOLD' ? 0 : modeled ? weightedMean(values[index], weights) : null;
     return { ...candidate, status: modeled ? 'MODELED' : 'NOT_MODELED', ev,
       evBB: ev == null ? null : ev / state.bigBlind,
       confidenceInterval95: !modeled ? null : candidate.action === 'FOLD' ? [0, 0] : weightedBounds(values[index], weights, lower, upper, candidates.length + 1, context.samples),
       samples: candidate.action === 'FOLD' ? 0 : modeled ? n : 0,
-      method: candidate.action === 'FOLD' ? 'DECISION_REFERENCE' : MODEL, missingInputs: modeled ? [] : ['Declared rake or explicit no-rake assumption'] };
+      method: candidate.action === 'FOLD' ? 'DECISION_REFERENCE' : MODEL,
+      missingInputs: candidate.action !== 'FOLD' && !costModel ? ['Declared rake or explicit no-rake assumption'] : [],
+      ...(!n && candidate.action !== 'FOLD' ? { unavailableReasonCode: 'NO_COMPLETE_JOINT_WORLDS', unavailableReason: noWorldReason } : {}) };
   });
   const ranked = results.filter(item => item.status === 'MODELED').sort((a, b) => b.ev - a.ev), best = ranked[0] || null;
   for (const item of results) item.differenceToBestModeledBB = best && item.ev != null ? (best.ev - item.ev) / state.bigBlind : null;
@@ -278,9 +286,9 @@ function evaluateMultiway(input) {
     street: state.street, position: state.players[state.heroId].position, players: state.activePlayers,
     opponentCount: opponents.length, potBeforeAction: state.pot, amountToCall: state.legal.toCall,
     effectiveStack: state.players[state.heroId].stack, heroContribution: state.players[state.heroId].streetPaid, bigBlind: state.bigBlind };
-  const equity = { method: 'MONTE_CARLO', equity: weightedMean(equityValues, weights), samples: n,
+  const equity = { method: 'MONTE_CARLO', equity: n ? weightedMean(equityValues, weights) : null, samples: n,
     effectiveSamples, seed: context.seed, opponents: opponents.length,
-    confidenceInterval95: weightedBounds(equityValues, weights, 0, 1, candidates.length + 1, context.samples),
+    confidenceInterval95: n ? weightedBounds(equityValues, weights, 0, 1, candidates.length + 1, context.samples) : null,
     intervalMethod: 'JOINT_WEIGHTED_RATIO_HOEFFDING_WITH_STOPPING_UNION_BOUND', stopReason,
     scope: 'SHOWDOWN_SHARE_UNDER_HISTORY_CONDITIONED_PRIOR_NOT_ACTION_EV' };
   const ev = enrichActionEV({ status: ranked.length ? 'MODELED' : 'NOT_MODELED', actions: actionEV, assumptions, warnings: [] }, { ...basic, legalActions }, equity);
@@ -296,6 +304,7 @@ function evaluateMultiway(input) {
     cardDependence: 'HEURISTIC_EXPONENTIAL_STRENGTH_LINK', sizePolicy: 'UNIFORM_LEGAL_STREET_TOTAL', learnedObservations: 'PRE_HAND_ONLY', externallyValidated: false };
   policy.profileUncertaintyPropagation = 'NOT_PROPAGATED_FIXED_POSTERIOR_MEANS';
   const result = { status: 'OK', contractVersion: 'THEIBS_DECISION_V1', state: basic,
+    ...(!n ? { analysisStage: 'PROVISIONAL' } : {}), ...(refinement ? { refinement } : {}),
     observedState: { ...state, revisionKey: context.raw.revisionKey, handId: context.raw.handId, revision: context.events.length },
     observedSource: 'USER_OBSERVED_ACTIONS', observedOpponentIds: opponents.map(player => player.id),
     opponentHypotheses: opponents.map(player => ({ playerId: context.ids[player.id], seatId: player.id, position: player.position,
@@ -319,11 +328,12 @@ function evaluateMultiway(input) {
     multiwayEvaluation: { model: MODEL, policy, candidates: results, fingerprint: context.fingerprint,
       profileSnapshotHash: policy.profileSnapshotHash, revisionKey: context.raw.revisionKey, handId: context.raw.handId,
       samples: n, requestedSamples: context.samples, effectiveSamples, elapsedMs: performance.now() - started,
-      stopReason, rangeMethod: 'JOINT_IMPORTANCE_SAMPLING_CONDITIONED_ON_CONFIRMED_ACTIONS',
+      stopReason, partial: stopReason === 'TIME_BUDGET', rangeMethod: 'JOINT_IMPORTANCE_SAMPLING_CONDITIONED_ON_CONFIRMED_ACTIONS',
       intervalMethod: equity.intervalMethod, sizeScope: ev.comparisonScope },
-    handInsights: describeHand(context.config.heroCards, state.board), assumptions,
-    reason: !costModel ? 'Declare rake to calculate non-fold action EV.' : 'Action EV is conditional on a contextual continuation model. The table compares tested sizes; it is not a solved strategy.',
+    handInsights: stopReason === 'TIME_BUDGET' ? null : describeHand(context.config.heroCards, state.board), assumptions,
+    reason: !n ? noWorldReason : !costModel ? 'Declare rake to calculate non-fold action EV.' : 'Action EV is conditional on a contextual continuation model. The table compares tested sizes; it is not a solved strategy.',
     warnings: ['The response policy and its card-strength link are modeling assumptions, not validated opponent strategies.',
+      ...(refinement ? [refinement.reasonEnglish] : []),
       ...(effectiveSamples < 16 ? ['History conditioning has low effective sample support; action differences are inconclusive.'] : [])] };
   return attachAnalysisContract(result, { ...basic, handId: context.raw.handId, revisionKey: context.raw.revisionKey,
     config: context.config, events: context.events, profileSnapshot: context.snapshot,

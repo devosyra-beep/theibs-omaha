@@ -171,13 +171,13 @@ test('retained previews report refinement stops without creating a ranked decisi
   assert.ok(stale.rows.every(row => row.evBB === null));
 });
 
-function renderDecision(analysis, solverSnapshot = null) {
+function renderDecision(analysis, solverSnapshot = null, readiness = {}) {
   const host = { innerHTML: '', querySelector: () => null };
   const renderWindow = { TheibsMultiwaySolverUI: { decisionSnapshot: () => solverSnapshot, getState: () => null } };
   const document = { querySelector: selector => selector === '#mw-decision-ev' ? host : null, body: { dataset: {} } };
   vm.runInNewContext(source.replace('function refreshDecisionEV() {', 'window.__refreshDecisionEV = function refreshDecisionEV() {'),
     { window: renderWindow, document, clearTimeout }, { filename: 'multiway-ui.js' });
-  renderWindow.theibsMultiwayUI.render({ enabled: true, state: state(), analysis, heroDraftReady: true, analysisBusy: false });
+  renderWindow.theibsMultiwayUI.render({ enabled: true, state: state(), analysis, heroDraftReady: true, analysisBusy: false, ...readiness });
   renderWindow.__refreshDecisionEV();
   return host.innerHTML;
 }
@@ -220,6 +220,31 @@ test('rendered timeout keeps preliminary values visible and generic errors are u
   assert.doesNotMatch(errorHtml, />No decision</);
   const noDecisionHtml = renderDecision({ status: 'NO_DECISION', reason: 'Hero cards incomplete.' });
   assert.match(noDecisionHtml, /data-status="no_decision">No decision/);
+});
+
+test('zero-world Fold reference is visible without pretending sampling, ranking or a completed estimate',()=>{
+  const rows=[{optionId:'FOLD',action:'FOLD',status:'MODELED',ev:0,evBB:0,method:'DECISION_REFERENCE',samples:0},
+    ...['CALL','RAISE'].map(action=>({optionId:action,action,status:'NOT_MODELED',ev:null,evBB:null,samples:0}))];
+  const analysis={status:'OK',analysisStage:'PROVISIONAL',observedState:{revisionKey:'hand-1:4'},equity:{equity:null,samples:0},
+    refinement:{status:'TIME_BUDGET',reasonEnglish:'No complete joint world was evaluated.'},
+    ev:{bigBlind:2,candidates:rows,comparisonComplete:false,globalBestSupported:false,bestModeledAction:null,decisionPrecision:{status:'INCONCLUSIVE',bestActionId:null}}};
+  const decision=describe(state(),analysis,{heroDraftReady:true,analysisBusy:false});assert.equal(decision.stage,'PROVISIONAL');assert.equal(decision.modeledCount,1);
+  assert.equal(decision.estimateCount,0);assert.equal(decision.foldReference,true);assert.equal(decision.rows.find(row=>row.action==='FOLD').evBB,0);
+  assert.ok(decision.rows.filter(row=>row.action!=='FOLD').every(row=>row.evBB===null && row.differenceBB===null));
+  const stopped=renderDecision(analysis);assert.match(stopped,/No sampled EV estimate/);assert.match(stopped,/Fold is the exact zero reference; other action EV is unavailable/);
+  assert.match(stopped,/Fold<\/span><small>Decision reference<\/small><\/th><td>0\.0<\/td><td>—<\/td>/);
+  assert.doesNotMatch(stopped,/Latest estimate retained|Preliminary estimates retained|Current EV leader|Best modeled action|ΔEV · top two|refinement in progress/);
+  analysis.clientTiming={refinementPending:true};const pending=renderDecision(analysis,null,{analysisBusy:true});assert.match(pending,/Calculating action EV/);
+  assert.match(pending,/Waiting for the first sampled action EV estimate/);assert.doesNotMatch(pending,/Analyze hand to retry|Refinement reached its time budget/);
+});
+
+test('a stopped preview with no values stays empty and a mismatched hand cannot display the Fold reference',()=>{
+  const analysis={status:'OK',analysisStage:'PROVISIONAL',observedState:{revisionKey:'hand-1:4',handId:'old'},refinement:{status:'TIME_BUDGET'},ev:null};
+  const empty=renderDecision(analysis);assert.match(empty,/No sampled EV estimate/);assert.match(empty,/No action EV estimate is available/);
+  assert.doesNotMatch(empty,/Latest estimate retained|Preliminary estimates retained|refinement in progress/);
+  analysis.ev={actions:{FOLD:{status:'MODELED',ev:0,evBB:0,method:'DECISION_REFERENCE'}}};
+  const stale=describe({...state(),handId:'new'},analysis,{heroDraftReady:true,analysisBusy:false});assert.ok(stale.rows.every(row=>row.evBB===null));
+  assert.equal(stale.foldReference,false);assert.equal(stale.modeledCount,0);
 });
 
 function outcomeSnapshot(status='NEAR_EQUIVALENT') {

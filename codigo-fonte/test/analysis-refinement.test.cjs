@@ -105,9 +105,81 @@ test('a successful FINAL replaces the preview and carries no stopped-refinement 
 });
 
 test('an initial computation failure cannot recover an estimate from a previous invocation', async () => {
-  const h = harness([codeError('TIME_BUDGET')]); h.context.lastAnalysis = { data: preview(), input: h.context.payload };
-  await h.run(); assert.deepEqual(h.calls, ['PREVIEW']);
+  const h = harness([codeError('TIME_BUDGET'),codeError('TIME_BUDGET')]); h.context.lastAnalysis = { data: preview(), input: h.context.payload };
+  await h.run(); assert.deepEqual(h.calls, ['PREVIEW','FINAL']);
   assert.equal(h.context.lastAnalysis.data.status, 'ERROR'); assert.equal(h.context.lastAnalysis.data.refinement, undefined);
+});
+
+test('a transient cold PREVIEW gets exactly one contextual FINAL attempt, including the quick surface', async () => {
+  for(const code of ['TIME_BUDGET','WORKER_TIMEOUT','WORKER_FAILED','ENGINE_BUSY']){
+    const final={...preview(),analysisId:'recovered-final',analysisStage:'FINAL'};
+    const h=harness([codeError(code),reply(final)],()=>{},{quickSurface:true});await h.run();
+    assert.deepEqual(h.calls,['PREVIEW','FINAL']);assert.equal(h.rendered.length,1);assert.equal(h.context.lastAnalysis.data.analysisId,'recovered-final');
+    assert.equal(h.context.lastAnalysis.data.refinement,undefined);assert.equal(h.context.snapshots.length,1);assert.equal(h.context.analysisBusy,false);
+  }
+  const h=harness([reply({status:'ERROR',code:'TIME_BUDGET',reason:'Preview expired.'}),reply({...preview(),analysisStage:'FINAL'})]);await h.run();
+  assert.deepEqual(h.calls,['PREVIEW','FINAL']);assert.equal(h.rendered.length,1);assert.equal(h.context.lastAnalysis.data.status,'OK');
+});
+
+test('a hard PREVIEW failure never retries auth, invalid inputs or a network error as FINAL',async()=>{
+  for(const response of [codeError('AUTH_REQUIRED'),codeError('INVALID_RANGE'),new TypeError('Network unavailable.'),
+    {...codeError('TIME_BUDGET'),status:401},{...codeError('WORKER_TIMEOUT'),status:403},{...codeError('ENGINE_BUSY'),status:409}]){
+    const h=harness([response]);await h.run();assert.deepEqual(h.calls,['PREVIEW']);assert.equal(h.context.lastAnalysis.data.status,'ERROR');
+  }
+});
+
+test('a failed PREVIEW cannot schedule FINAL after hand, revision, owner, view, exact inputs or cancellation changes',async()=>{
+  for(const mutate of [c=>c.inputRevision++,c=>{c.multiway.handId='hand-2';},c=>{c.multiwayState.revisionKey='decision-2';},
+    c=>{c.session.owner='owner-2';},c=>{c.session.expired=true;},c=>{c.activeView='train';},
+    c=>{c.payload.multiwayEvaluation.feeBasis='DECLARED_FEES';},c=>c.analysisController.abort()]){
+    const h=harness([codeError('TIME_BUDGET')],mutate);await h.run();assert.deepEqual(h.calls,['PREVIEW']);assert.equal(h.rendered.length,0);
+    assert.equal(h.context.lastAnalysis,null);assert.equal(h.context.analysisBusy,false);
+  }
+});
+
+function zeroWorldPreview(){
+  const rows=[{optionId:'FOLD',action:'FOLD',status:'MODELED',ev:0,evBB:0,samples:0,method:'DECISION_REFERENCE',confidenceInterval95:[0,0]},
+    ...['CALL','RAISE'].map(action=>({optionId:action,action,status:'NOT_MODELED',ev:null,evBB:null,samples:0,confidenceInterval95:null}))];
+  return {...preview(),equity:{method:'MONTE_CARLO',equity:null,winRate:null,tieRate:null,samples:0,effectiveSamples:0,confidenceInterval95:null},
+    ev:{bigBlind:2,candidates:rows,actions:Object.fromEntries(rows.map(row=>[row.action,row])),comparisonComplete:false,globalBestSupported:false,
+      decisionPrecision:{status:'INCONCLUSIVE',leaderConclusive:false,bestActionId:null,deltaEVBB:null}},
+    multiwayEvaluation:{samples:0,effectiveSamples:0,stopReason:'TIME_BUDGET'},
+    refinement:{status:'TIME_BUDGET',reasonEnglish:'The time budget ended before any complete joint world was evaluated. Fold remains the exact zero reference; other action EV and equity are unavailable.'}};
+}
+
+test('zero-world PREVIEW remains pending until FINAL; a terminal provisional response never archives a final decision',async()=>{
+  const original=zeroWorldPreview(),h=harness([reply(original),reply(original)],()=>{},{quickSurface:true});await h.run();
+  assert.deepEqual(h.calls,['PREVIEW','FINAL']);assert.equal(h.rendered[0].clientTiming.refinementPending,true);
+  const kept=h.context.lastAnalysis.data;assert.equal(kept.clientTiming.refinementPending,false);assert.equal(kept.analysisStage,'PROVISIONAL');
+  assert.deepEqual(kept.ev,original.ev);assert.equal(kept.equity.equity,null);assert.equal(h.charts.at(-1).equity,null);assert.equal(h.context.snapshots.length,0);
+  assert.equal(kept.refinement.reason,original.refinement.reasonEnglish);assert.doesNotMatch(h.nodes.get('#analysis-next-detail').textContent,/undefined|calculating|still running/i);
+  assert.equal(h.nodes.get('#analysis-next-title').textContent,'No sampled action EV estimate');assert.doesNotMatch(h.nodes.get('#analysis-next-title').textContent,/retained/i);
+});
+
+test('a stopped provisional response with no EV reports absent estimates instead of retained values',async()=>{
+  const noEV={...zeroWorldPreview(),ev:{actions:{},candidates:[]}},h=harness([reply(noEV),codeError('TIME_BUDGET')],()=>{},{quickSurface:true});await h.run();
+  assert.equal(h.nodes.get('#analysis-next-title').textContent,'No sampled action EV estimate');assert.match(h.nodes.get('#analysis-next-detail').textContent,/No sampled action EV estimate is available/);
+  assert.equal(h.context.lastAnalysis.data.equity.equity,null);assert.equal(h.context.snapshots.length,0);
+});
+
+test('null equity and win rates remain missing in production chart labels and never create a timeline point',()=>{
+  const nodes=new Map(),node=selector=>{if(!nodes.has(selector))nodes.set(selector,{style:{},setAttribute(){}});return nodes.get(selector);};
+  const chart=extract('function renderCharts(', '\nfunction renderEvTable');
+  const percentSource=extract('  const percent = ', '\n  const quickEquityPrecision');
+  const data=zeroWorldPreview(),snapshot=snapshots.create(data,{street:'PREFLOP'}),context={document:{querySelector:node},activeView:'analyze',multiway:{},
+    snapshotModel:snapshots,snapshots:[snapshot],streetName:street=>street};
+  vm.createContext(context);vm.runInContext(percentSource+'\n'+chart,context);context.renderCharts(snapshot);
+  for(const selector of ['#hero-equity','#win-percent','#loss-percent'])assert.equal(node(selector).textContent,'—');
+  assert.equal(node('#timeline-range').textContent,'—');assert.equal(node('#chart-points').innerHTML,'');assert.equal(snapshot.equity,null);
+});
+
+test('context changes during display frames discard this invocation and cannot archive a stale final snapshot',async()=>{
+  for(const changedPhase of ['PREVIEW','FINAL']){
+    const h=harness([reply(preview()),reply({...preview(),analysisStage:'FINAL'})]);let frames=0;
+    h.context.requestAnimationFrame=callback=>{frames++;if(frames===(changedPhase==='PREVIEW'?1:3))h.context.payload.multiwayEvaluation.feeBasis='DECLARED_FEES';callback();};
+    await h.run();assert.deepEqual(h.calls,changedPhase==='PREVIEW'?['PREVIEW']:['PREVIEW','FINAL']);assert.equal(h.context.lastAnalysis,null);
+    assert.equal(h.context.snapshots.length,0);assert.equal(h.context.analysisBusy,false);assert.equal(h.charts.at(-1),undefined);
+  }
 });
 
 test('auth, invalid-model, uncoded and network failures do not retain a preview', async () => {
