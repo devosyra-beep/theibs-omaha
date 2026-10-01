@@ -1,6 +1,7 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict'),{webcrypto}=require('node:crypto');
-const {create}=require('../public/browser-solver-client');
+const {create,normalizeComparisonPolicy}=require('../public/browser-solver-client');
+const comparison=require('../src/solver/decision-outcome');
 const fingerprint='a'.repeat(64),manifest={schemaVersion:1,buildFingerprint:fingerprint,versions:{solver:'SAME_CORE_V1',rules:'SAME_RULES_V1'}};
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
 function input(hand='hand-1'){return {multiway:{handId:hand,config:{playerCount:2,heroCards:['As','Kh','Qd','Jc','9s']},events:[],editEpoch:0},ranges:[],sizing:{type:'MIN_MID_MAX',maxAggressions:1},rake:{type:'NONE',basis:'BEFORE_FEES'}};}
@@ -193,4 +194,77 @@ test('delayed stale messages cannot alter cancellation timing or compute costs',
     assert.equal(later.timing.firstResponseMs,null);assert.equal(later.timing.jobCosts,null);assert.equal(later.result,null);
     assert.equal(later.timing.completionMs,stopped.timing.completionMs);assert.equal(client.stats().staleMessages,1);
   }finally{client.close();}
+});
+
+test('comparison policy normalization agrees with the core and rejects explicit invalid thresholds',()=>{
+  for(const value of [undefined,{}, {nearEquivalenceBB:0}, {nearEquivalenceBB:-0}, {nearEquivalenceBB:.02}])assert.deepEqual(normalizeComparisonPolicy(value),comparison.normalizePolicy(value));
+  for(const nearEquivalenceBB of [null,'0.01',false,-1,NaN,Infinity])assert.throws(()=>normalizeComparisonPolicy({nearEquivalenceBB}));
+  for(const value of [null,[],{version:'OTHER'},{unit:'CHIPS'},{scope:'CURRENT_HAND'}])assert.throws(()=>normalizeComparisonPolicy(value));
+});
+
+test('the normalized comparison policy isolates the cache without changing returned game identity',async()=>{
+  const {client,workers}=harness((worker,message)=>queueMicrotask(()=>done(worker,message,{refine:false,workerMs:1,iterations:1})));
+  try{
+    const original=input(),first=await client.start('owner',original,{handId:'hand-1',revisionKey:'rev-1'});await finish(client,'owner',first);
+    const equivalent={...original,comparisonPolicy:comparison.normalizePolicy({nearEquivalenceBB:.01})};
+    const warm=await client.start('owner',equivalent,{handId:'hand-1',revisionKey:'rev-1',budget:'FAST'});assert.equal(warm.cache.hit,true);assert.equal(warm.policyKey,comparison.policyKey());
+    const changed=await client.start('owner',{...original,comparisonPolicy:{nearEquivalenceBB:.02}},{handId:'hand-1',revisionKey:'rev-1',budget:'FAST'});
+    assert.equal(changed.cache.hit,false);assert.notEqual(changed.policyKey,warm.policyKey);await finish(client,'owner',changed);
+    assert.equal(workers.length,2);assert.deepEqual(workers[1].solve.input.comparisonPolicy,comparison.normalizePolicy({nearEquivalenceBB:.02}));
+    assert.deepEqual(client.get('owner',changed.jobId).result.actions,client.get('owner',first.jobId).result.actions);
+    const originalAgain=await client.start('owner',original,{handId:'hand-1',revisionKey:'rev-1',budget:'FAST'});assert.equal(originalAgain.cache.hit,true);
+  }finally{client.close();}
+});
+
+test('a changed threshold cancels old work and mismatched policy output cannot publish or cache',async()=>{
+  const {client,workers}=harness();
+  try{
+    const first=await client.start('owner',input(),{handId:'hand-1',revisionKey:'rev-1'});await tick();const old=workers[0],late=old.onmessage,oldMessage=old.solve;
+    const second=await client.start('owner',{...input(),comparisonPolicy:{nearEquivalenceBB:.02}},{handId:'hand-1',revisionKey:'rev-1'});await tick();assert.equal(old.terminated,true);
+    late({data:{type:'done',jobId:oldMessage.jobId,generation:oldMessage.generation,buildFingerprint:fingerprint,handId:'hand-1',revisionKey:'rev-1',result:result(),workerMs:3000}});
+    assert.equal(client.get('owner',second.jobId).result,null);assert.equal(client.get('owner',first.jobId).phase,'CANCELLED');
+    const current=workers[1].solve;workers[1].send({type:'done',jobId:current.jobId,generation:current.generation,buildFingerprint:fingerprint,handId:'hand-1',revisionKey:'rev-1',
+      result:{...result(),decisionOutcome:{status:'NEAR_EQUIVALENT',policyKey:comparison.policyKey()}},checkpoint:{workIterations:1},workerMs:10});
+    const failed=client.get('owner',second.jobId);assert.equal(failed.phase,'FAILED');assert.match(failed.reason,/comparison policy changed/);assert.equal(failed.result,null);
+    assert.equal(failed.timing.workerMs,10);assert.equal(client.stats().writes,0);
+  }finally{client.close();}
+});
+
+test('host time and iteration ceilings finalize only pending outcomes and cache the coherent retained snapshot',async()=>{
+  for(const stop of ['WATCHDOG','TIME_BUDGET','ITERATIONS']){
+    let elapsed=0,id=0;const timers=new Map(),{client,workers}=harness(null,{now:()=>elapsed,
+      setTimeout:(callback,duration)=>{const key=++id;timers.set(key,{callback,duration});return key;},clearTimeout:key=>timers.delete(key)});
+    try{
+      const first=await client.start('owner',input(),{handId:'hand-1',revisionKey:'rev-1'});await tick();const worker=workers[0],message=worker.solve;
+      const identity={jobId:message.jobId,generation:message.generation,buildFingerprint:fingerprint,handId:'hand-1',revisionKey:'rev-1'};
+      const pending={...result(),decisionOutcome:{version:comparison.VERSION,status:'ESTIMATING',policy:comparison.normalizePolicy(),policyKey:comparison.policyKey(),
+        diagnostics:{category:'TWO_ACTIONS_COMPETITIVE',categories:['TWO_ACTIONS_COMPETITIVE']}}};
+      worker.send({...identity,type:'progress',result:pending,checkpoint:{workIterations:stop==='ITERATIONS'?1000:1},workerMs:100});
+      let stopped;
+      if(stop==='WATCHDOG'){elapsed=4000;[...timers.values()].find(timer=>timer.duration===4000).callback();stopped=client.get('owner',first.jobId);}
+      else if(stop==='TIME_BUDGET'){worker.send({...identity,type:'error',code:'TIME_BUDGET',error:'Time budget reached.',workerMs:3000});stopped=client.get('owner',first.jobId);}
+      else {client.cancel('owner',first.jobId);stopped=await client.start('owner',input(),{handId:'hand-1',revisionKey:'rev-1'});}
+      assert.equal(stopped.phase,'COMPLETE');assert.equal(stopped.result.decisionOutcome.status,'INCONCLUSIVE');assert.equal(stopped.result.decisionPrecision.status,'INCONCLUSIVE');
+      assert.deepEqual(stopped.result.actions,pending.actions);assert.equal(stopped.result.decisionOutcome.diagnostics.category,stop==='ITERATIONS'?'TWO_ACTIONS_COMPETITIVE':'TIME_BUDGET_EXHAUSTED');
+      assert.equal(stopped.result.decisionOutcome.diagnostics.iterationBudgetExhausted,stop==='ITERATIONS');assert.ok(!stopped.result.decisionOutcome.diagnostics.categories.includes('ITERATION_BUDGET_EXHAUSTED'));
+      const warm=await client.start('owner',input(),{handId:'hand-1',revisionKey:'rev-1',budget:'FAST'});assert.equal(warm.cache.hit,true);assert.deepEqual(warm.result,stopped.result);
+    }finally{client.close();}
+  }
+});
+
+test('host watchdog retains certified and near-equivalent proof metadata without promotion or demotion',async()=>{
+  for(const status of ['CERTIFIED','NEAR_EQUIVALENT']){
+    let elapsed=0,id=0;const timers=new Map(),{client,workers}=harness(null,{now:()=>elapsed,
+      setTimeout:(callback,duration)=>{const key=++id;timers.set(key,{callback,duration});return key;},clearTimeout:key=>timers.delete(key)});
+    try{
+      const first=await client.start('owner',input(),{handId:'hand-1',revisionKey:'rev-1'});await tick();const worker=workers[0],message=worker.solve;
+      const retained={...result(),decisionOutcome:{version:comparison.VERSION,status,policy:comparison.normalizePolicy(),policyKey:comparison.policyKey(),
+        globalConverged:true,nearGroupActionIds:status==='NEAR_EQUIVALENT'?['CHECK','BET']:[],robustWorstDifferenceBB:.005,diagnostics:{category:'UNKNOWN',categories:['UNKNOWN']}}};
+      worker.send({type:'progress',jobId:message.jobId,generation:message.generation,buildFingerprint:fingerprint,handId:'hand-1',revisionKey:'rev-1',
+        result:retained,checkpoint:{workIterations:1},workerMs:100});
+      elapsed=4000;[...timers.values()].find(timer=>timer.duration===4000).callback();const stopped=client.get('owner',first.jobId);
+      assert.equal(stopped.phase,'COMPLETE');assert.deepEqual(stopped.result,retained);assert.equal(worker.terminated,true);
+      const warm=await client.start('owner',input(),{handId:'hand-1',revisionKey:'rev-1',budget:'FAST'});assert.equal(warm.cache.hit,true);assert.deepEqual(warm.result,retained);
+    }finally{client.close();}
+  }
 });

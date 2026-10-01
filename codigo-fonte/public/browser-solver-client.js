@@ -5,12 +5,20 @@
 })(typeof window === 'undefined' ? globalThis : window, function (root) {
   'use strict';
   const SCHEMA_VERSION = 1, VERSION = 'THEIBS_BROWSER_SOLVER_CLIENT_V1';
+  const POLICY_VERSION = 'THEIBS_COMPARISON_POLICY_V1';
   const BUDGETS = Object.freeze({ FAST: Object.freeze({timeMs:500,iterations:50}),
     STANDARD: Object.freeze({timeMs:3000,iterations:1000}), DEEP: Object.freeze({timeMs:30000,iterations:20000}) });
   const END_PHASES = new Set(['COMPLETE','FAILED','UNSUPPORTED','CANCELLED']);
-  const REUSABLE_STOPS = new Set(['GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION','FIXED_CONTINUATIONS_FULLY_EVALUATED','GLOBAL_CONVERGENCE_ACTION_CERTIFICATES_NOT_COVERED']);
+  const REUSABLE_STOPS = new Set(['GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION','GLOBAL_CONVERGENCE_AND_CERTIFIED_NEAR_EQUIVALENCE','FIXED_CONTINUATIONS_FULLY_EVALUATED','GLOBAL_CONVERGENCE_ACTION_CERTIFICATES_NOT_COVERED']);
   const clone = value => value == null ? value : typeof root.structuredClone === 'function' ? root.structuredClone(value) : JSON.parse(JSON.stringify(value));
   const workIterations = checkpoint => Number.isSafeInteger(checkpoint?.workIterations) ? checkpoint.workIterations : Number.isSafeInteger(checkpoint?.iterations) ? checkpoint.iterations : 0;
+  function normalizeComparisonPolicy(value) {
+    if(value!==undefined && (!value || typeof value!=='object' || Array.isArray(value) || Object.getPrototypeOf(value)!==Object.prototype && Object.getPrototypeOf(value)!==null)) throw Error('Use a valid comparison policy.');
+    const nearEquivalenceBB=value?.nearEquivalenceBB===undefined?.01:value.nearEquivalenceBB;
+    if(!Number.isFinite(nearEquivalenceBB) || nearEquivalenceBB<0 || value?.version!==undefined && value.version!==POLICY_VERSION ||
+      value?.unit!==undefined && value.unit!=='BB' || value?.scope!==undefined && value.scope!=='FULL_PRIOR_COMMITMENT') throw Error('Use a nonnegative finite near-equivalence threshold in bb for range commitments.');
+    return {version:POLICY_VERSION,nearEquivalenceBB:nearEquivalenceBB===0?0:nearEquivalenceBB,unit:'BB',scope:'FULL_PRIOR_COMMITMENT'};
+  }
   function costSnapshot(value) {
     if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
     const entries = Object.entries(value).filter(([key,ms])=>/^[a-z][a-zA-Z0-9]{0,45}Ms$/.test(key) && Number.isFinite(ms) && ms>=0);
@@ -66,6 +74,7 @@
       const readOnly=job.cacheHit && job.workerRuns===0 && END_PHASES.has(job.phase);
       return {status:job.result?.status || (END_PHASES.has(job.phase)?'NOT_SOLVED':'REFINING'),jobId:job.id,revisionKey:job.revisionKey,handId:job.handId,
         budget:job.budget,phase:job.phase,updateVersion:job.updateVersion,result:clone(job.result),reason:job.reason || null,runtime:'BROWSER',runtimeLabel:'Browser compute',
+        comparisonPolicy:clone(job.input.comparisonPolicy),comparisonPolicyKey:job.policyKey,policyKey:job.policyKey,
         buildFingerprint:job.buildFingerprint,cache:{hit:job.cacheHit,source:job.cacheHit?'MEMORY':'NONE',readOnly,
           originalTiming:clone(job.cachedTiming),...stats()},
         timing:{acknowledgementMs:job.ackMs,workerReadyMs:job.workerReadyMs ?? null,firstResponseMs:job.firstResponseMs ?? null,
@@ -132,18 +141,29 @@
     function continueJob(job) {
       job.continuations++;if(job.budget==='STANDARD')job.ceilingMs=adaptiveCeilingMs;run(job);
     }
+    function finishPendingOutcome(job,category) {
+      const outcome=job.result?.decisionOutcome;if(outcome?.status!=='ESTIMATING')return;
+      const iteration=category==='ITERATION_BUDGET_EXHAUSTED';
+      const allowed=new Set(['TIME_BUDGET_EXHAUSTED','BOUNDS_TOO_WIDE','TWO_ACTIONS_COMPETITIVE','MULTIPLE_ACTIONS_COMPETITIVE','POSSIBLE_NEAR_EQUIVALENCE','CERTIFICATION_BOTTLENECK','BASE_SOLVER_BOTTLENECK','UNKNOWN']);
+      const primary=iteration && allowed.has(outcome.diagnostics?.category)?outcome.diagnostics.category:iteration?'UNKNOWN':category;
+      job.result={...job.result,decisionOutcome:{...outcome,status:'INCONCLUSIVE',reasonCode:category,
+        reason:iteration?'The iteration budget ended before the commitment comparison was certified.':'The host time budget ended before the commitment comparison was certified.',
+        diagnostics:{...outcome.diagnostics,category:primary,categories:[primary,...(outcome.diagnostics?.categories || []).filter(value=>allowed.has(value) && value!==primary && value!=='UNKNOWN')],
+          stopReason:iteration?'ITERATION_RESOURCE_CEILING':'TIME_RESOURCE_CEILING',iterationBudgetExhausted:iteration,hostResourceStop:true,reasonCode:category}}};
+      remember(job);
+    }
     function fail(job,message,code='WORKER_FAILED') {
       if(END_PHASES.has(job.phase))return;
       stopWorker(job);metrics.workerErrors++;job.reason=message || 'Browser solver unavailable.';
       // A host resource stop does not establish precision or discard a completed checkpoint.
-      if(code==='TIME_BUDGET' && hasStrategy(job.result)){metrics.completed++;setPhase(job,'COMPLETE');}
+      if(code==='TIME_BUDGET' && hasStrategy(job.result)){finishPendingOutcome(job,'TIME_BUDGET_EXHAUSTED');metrics.completed++;setPhase(job,'COMPLETE');}
       else setPhase(job,'FAILED');
     }
     function run(job) {
       if(closed || generations.get(job.owner)!==job.generation || END_PHASES.has(job.phase))return;
       const iterationsCeiling=job.budget==='STANDARD' && job.continuations ? Math.min(20000,profiles.STANDARD.iterations*2) : profiles[job.budget].iterations;
       const remaining={timeMs:Math.min(5000,Math.max(0,job.ceilingMs-job.decision.consumedMs)),iterations:Math.max(0,iterationsCeiling-job.decision.workIterations)};
-      if(remaining.timeMs<=0 || remaining.iterations<=0){job.reason='Cumulative calculation budget reached; latest estimate retained.';setPhase(job,'COMPLETE');return;}
+      if(remaining.timeMs<=0 || remaining.iterations<=0){job.reason='Cumulative calculation budget reached; latest estimate retained.';finishPendingOutcome(job,remaining.timeMs<=0?'TIME_BUDGET_EXHAUSTED':'ITERATION_BUDGET_EXHAUSTED');setPhase(job,'COMPLETE');return;}
       job.runReportedMs=0;job.runStarted=null;job.currentRunCosts=null;job.runAccountedCosts={};setPhase(job,'BUILDING');
       let worker;
       try{worker=makeWorker(workerUrl);job.worker=worker;job.workerRuns++;}catch(error){fail(job,error.message);return;}
@@ -159,7 +179,7 @@
           job.watchdog=delay(()=>{
             if(!current(job,worker))return;account(job,now()-job.runStarted);stopWorker(job);
             if(needsContinuation(job,true)){continueJob(job);}
-            else {job.reason='Browser compute time limit reached; latest completed estimate retained.';if(hasStrategy(job.result)){metrics.completed++;setPhase(job,'COMPLETE');}else setPhase(job,'UNSUPPORTED');}
+            else {job.reason='Browser compute time limit reached; latest completed estimate retained.';if(hasStrategy(job.result)){finishPendingOutcome(job,'TIME_BUDGET_EXHAUSTED');metrics.completed++;setPhase(job,'COMPLETE');}else setPhase(job,'UNSUPPORTED');}
           },remaining.timeMs+1000);
           worker.postMessage({type:'solve',jobId:job.id,generation:job.generation,input:clone(job.input),budget:remaining,checkpoint:clone(job.checkpoint),
             expectedRevisionKey:job.revisionKey,expectedBuildFingerprint:job.buildFingerprint});
@@ -169,6 +189,7 @@
         if(message.type==='error'){job.firstResponseMs ??= Math.max(0,Math.round(now()-job.started));account(job,message.workerMs);fail(job,message.error,message.code);return;}
         if(message.handId!==job.handId || message.revisionKey!==job.revisionKey){fail(job,'Browser solver response does not match this decision.');return;}
         if(message.type!=='progress' && message.type!=='done')return;
+        if(message.result?.decisionOutcome && message.result.decisionOutcome.policyKey!==job.policyKey || message.result?.comparisonPolicyKey && message.result.comparisonPolicyKey!==job.policyKey){account(job,message.workerMs);fail(job,'Browser solver comparison policy changed. Recalculate this study.');return;}
         job.firstResponseMs ??= Math.max(0,Math.round(now()-job.started));accountCosts(job,message.result);
         save(job,message);
         if(message.type==='progress'){job.phase='REFINING';changed(job);return;}
@@ -180,14 +201,15 @@
     async function start(owner,input,{budget='STANDARD',revisionKey,handId,automatic=false}={}) {
       ownerId(owner);if(closed)throw Error('Browser solver service is closed.');if(!profiles[budget])throw Error('Choose FAST, STANDARD or DEEP.');
       if(typeof revisionKey!=='string' || !revisionKey || typeof handId!=='string' || !handId || input?.multiway?.handId!==handId)throw Error('A current hand and decision revision are required.');
-      const detached=clone({multiway:input.multiway,ranges:input.ranges,sizing:input.sizing,rake:input.rake});
+      const comparisonPolicy=normalizeComparisonPolicy(input.comparisonPolicy);
+      const detached=clone({multiway:input.multiway,ranges:input.ranges,sizing:input.sizing,rake:input.rake,comparisonPolicy});
       const exactInput=stable(detached),started=now();
       const duplicate=[...jobs.values()].find(job=>job.owner===owner && job.exactInput===exactInput && job.revisionKey===revisionKey && job.handId===handId &&
         job.budget===budget && !END_PHASES.has(job.phase));
       if(duplicate)return view(duplicate);
       const generation=(generations.get(owner)||0)+1;generations.set(owner,generation);
       for(const previous of jobs.values())if(previous.owner===owner && !END_PHASES.has(previous.phase))cancelJob(previous,'Superseded by the current decision.');
-      const build=await manifest(),ownerHash=await digest(owner),key=await digest(stable({schemaVersion:SCHEMA_VERSION,clientVersion:VERSION,
+      const build=await manifest(),ownerHash=await digest(owner),policyKey=await digest(JSON.stringify([comparisonPolicy.version,comparisonPolicy.nearEquivalenceBB,comparisonPolicy.unit,comparisonPolicy.scope])),key=await digest(stable({schemaVersion:SCHEMA_VERSION,clientVersion:VERSION,
         buildFingerprint:build.buildFingerprint,versions:build.versions,handId,revisionKey,input:detached}));
       if(closed || generations.get(owner)!==generation)throw Error('The browser solver request was superseded.');
       while(jobs.size>=maxJobs){const old=[...jobs.values()].find(job=>END_PHASES.has(job.phase));if(!old)throw Error('Browser solver queue is full.');jobs.delete(old.id);}
@@ -197,7 +219,7 @@
       let decision=decisions.get(decisionKey);if(!decision){decision={owner,consumedMs:0,workIterations:0};decisions.set(decisionKey,decision);}
       while(decisions.size>maxJobs*2){const old=[...decisions.keys()].find(id=>![...jobs.values()].some(job=>job.decisionKey===id && !END_PHASES.has(job.phase)));if(!old)break;decisions.delete(old);}
       const reusable=automatic && hasStrategy(found?.result) && found.result.adaptation?.phase==='STOPPED' && found.result.adaptation.refinementRecommended===false && REUSABLE_STOPS.has(found.result.adaptation.stopReason);
-      const job={id:crypto.randomUUID?.() || `browser-${Date.now()}-${++sequence}`,owner,ownerHash,key,exactInput,input:detached,generation,handId,revisionKey,budget,automatic:automatic===true,
+      const job={id:crypto.randomUUID?.() || `browser-${Date.now()}-${++sequence}`,owner,ownerHash,key,policyKey,exactInput,input:detached,generation,handId,revisionKey,budget,automatic:automatic===true,
         decisionKey,decision,started,ackMs:Math.max(0,Math.round(now()-started)),buildFingerprint:build.buildFingerprint,ceilingMs:profiles[budget].timeMs,continuations:0,
         result:clone(found?.result || null),checkpoint:clone(found?.checkpoint || null),lastWorkIterations:workIterations(found?.checkpoint),cacheHit:Boolean(found),
         cachedTiming:clone(found?.originalTiming || null),workerMs:0,workerRuns:0,runReportedMs:0,currentRunCosts:null,jobCosts:null,runAccountedCosts:{},
@@ -226,5 +248,5 @@
     function close() {closed=true;for(const job of jobs.values())cancelJob(job,'Browser solver service closed.');cache.clear();decisions.clear();jobs.clear();generations.clear();bytes=0;}
     return {supported,ready:manifest,start,get:(owner,id)=>view(ownerJob(owner,id)),wait,cancel,cancelOwner,clearOwner,close,stats,version:VERSION,schemaVersion:SCHEMA_VERSION};
   }
-  return {create,VERSION,SCHEMA_VERSION,BUDGETS,_testing:{stable,hasStrategy}};
+  return {create,VERSION,SCHEMA_VERSION,BUDGETS,POLICY_VERSION,normalizeComparisonPolicy,_testing:{stable,hasStrategy}};
 });

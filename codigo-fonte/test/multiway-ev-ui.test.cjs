@@ -221,3 +221,38 @@ test('rendered timeout keeps preliminary values visible and generic errors are u
   const noDecisionHtml = renderDecision({ status: 'NO_DECISION', reason: 'Hero cards incomplete.' });
   assert.match(noDecisionHtml, /data-status="no_decision">No decision/);
 });
+
+function outcomeSnapshot(status='NEAR_EQUIVALENT') {
+  const policy={version:'THEIBS_COMPARISON_POLICY_V1',nearEquivalenceBB:.01,unit:'BB',scope:'FULL_PRIOR_COMMITMENT'},key='a'.repeat(64),base='b'.repeat(64),hash='c'.repeat(64);
+  const utility={unit:'BB',basis:'INCREMENTAL_TERMINAL_PAYOFF_FROM_ORIGINAL_DECISION',scope:'FULL_PRIOR_EX_ANTE'},target='PRIVATE_INFORMATION_SET_COMMITMENT_VALUE';
+  const rows=[{id:'FOLD',action:'FOLD',size:null,frequency:0,evBB:0},{id:'CALL',action:'CALL',size:null,frequency:1,evBB:.001}];
+  const bounds=rows.map(row=>({...row,certified:true,estimateBB:row.evBB,lowerBB:row.evBB-.001,upperBB:row.evBB+.001,baseGameHash:hash,baseContextKey:base,
+    gameHash:row.id+'-conditioned',conditionedHash:row.id+'-conditioned',target,utility,origin:'SOURCE',version:'CERT_V1',solverVersion:'SOLVER_V1'}));
+  return {revisionKey:'hand-1:4',phase:'COMPLETE',status:'SOLVED',solverVersion:'SOLVER_V1',gameHash:hash,actions:rows,
+    comparisonPolicy:policy,comparisonPolicyKey:key,convergence:{exact:true,thresholdMet:true,nashConv:0,thresholdBB:.001},
+    decisionPrecision:{status:status==='CERTIFIED'?'CONCLUSIVE':'INCONCLUSIVE',leaderConclusive:status==='CERTIFIED',bestActionId:'CALL',target,contextKey:base,deltaEVBB:.001},
+    actionPrecision:{target,baseContextKey:base,supportedGameClass:true,fullPriorPreserved:true,originalHandActionEV:false,utility,origin:'SOURCE',version:'CERT_V1',actions:bounds},
+    decisionOutcome:{version:'THEIBS_DECISION_OUTCOME_V1',status,target,scope:'FULL_PRIOR_COMMITMENT',actualHandEVEquivalence:false,policy,policyKey:key,globalConverged:true,
+      actionIds:['FOLD','CALL'],strictLeaderActionId:status==='CERTIFIED'?'CALL':null,nearGroupActionIds:status==='NEAR_EQUIVALENT'?['FOLD','CALL']:[],robustWorstDifferenceBB:.003,diagnostics:{pointLeaderActionId:'CALL'}}};
+}
+
+test('near-equivalent commitments form a scoped group without an arbitrary winner or current-hand equivalence',()=>{
+  const html=renderDecision(null,outcomeSnapshot());assert.match(html,/Near-equivalent commitments: Fold, Call/);assert.match(html,/Solver · SOLVED/);
+  assert.match(html,/NEAR_EQUIVALENT/);assert.match(html,/FULL_PRIOR_COMMITMENT/);assert.match(html,/does not imply equal EV for your current hand/);
+  assert.doesNotMatch(html,/Best action:|Current EV leader:|Current commitment estimate leader/);
+});
+
+test('malformed near or certified proof cannot claim an outcome without global convergence and matching bounds',()=>{
+  for(const status of ['NEAR_EQUIVALENT','CERTIFIED'])for(const mutation of [
+    value=>{value.decisionOutcome.globalConverged=false;},value=>{value.convergence.thresholdMet=false;},value=>{value.convergence.nashConv=-.001;},
+    value=>{value.convergence.nashConv=.02;},value=>{value.convergence.thresholdBB=NaN;},value=>{value.actionPrecision.actions[0].baseGameHash='OTHER';},
+    value=>{value.actionPrecision.actions[0].utility={...value.actionPrecision.actions[0].utility,scope:'CURRENT_HAND'};},value=>{value.comparisonPolicyKey='d'.repeat(64);}]){
+    const value=outcomeSnapshot(status);mutation(value);const html=renderDecision(null,value);assert.match(html,/Commitment comparison unavailable/);assert.doesNotMatch(html,/Near-equivalent commitments:|Best action:/);
+  }
+});
+
+test('estimating keeps certified point estimates provisional and never substitutes original-hand EV for missing bounds',()=>{
+  const value=outcomeSnapshot('ESTIMATING');value.phase='REFINING';value.decisionOutcome.globalConverged=false;
+  const html=renderDecision(null,value);assert.match(html,/Current commitment estimate leader · provisional: Call/);assert.doesNotMatch(html,/Best action:/);
+  value.actionPrecision.actions.forEach(row=>{row.certified=false;});assert.match(renderDecision(null,value),/Commitment bounds pending/);
+});

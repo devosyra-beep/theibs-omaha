@@ -1,5 +1,5 @@
 'use strict';
-// QA artifact only: uses the unchanged Node solver for matched-work browser parity.
+// QA artifact only: current Node pipeline and unchanged mathematical core.
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
@@ -21,8 +21,9 @@ function mathematical(result, checkpoint) {
     actionPrecision: { ...pick(result.actionPrecision, ['version', 'target', 'origin', 'solverVersion', 'baseGameHash', 'baseContextKey', 'scope', 'utility', 'supportedGameClass', 'fullPriorPreserved', 'originalHandActionEV']),
       actions: (result.actionPrecision?.actions || []).map(row => pick(row, ['id', 'certified', 'estimateBB', 'lowerBB', 'upperBB', 'baseGameHash', 'baseContextKey', 'gameHash', 'conditionedHash', 'rootActionFixed', 'target', 'utility', 'iterations', 'strategicDecisionCount'])) },
     decisionPrecision: pick(result.decisionPrecision, ['status', 'target', 'bestActionId', 'secondActionId', 'leaderConclusive', 'globalBestSupported', 'reasonCode', 'separationToleranceBB', 'uncertaintyMethod', 'uncertaintyScope', 'confidenceLevel']),
+    decisionOutcome: pick(result.decisionOutcome, ['version', 'status', 'scope', 'target', 'actualHandEVEquivalence', 'policy', 'policyKey', 'actionIds', 'strictLeaderActionId', 'nearGroupActionIds', 'robustWorstDifferenceBB', 'reasonCode']),
     adaptation: pick(result.adaptation, ['stopReason', 'workIterations', 'globalIterations', 'actionIterations']),
-    checkpoint: pick(checkpoint, ['version', 'solverVersion', 'certificateVersion', 'baseContextKey', 'baseGameHash', 'iterations', 'workIterations'])
+    checkpoint: pick(checkpoint, ['version', 'solverVersion', 'certificateVersion', 'comparisonPolicyKey', 'baseContextKey', 'baseGameHash', 'iterations', 'workIterations'])
   };
 }
 const budget = { timeMs: 5000, iterations: 512 };
@@ -88,7 +89,7 @@ const report = {
   schemaVersion: 1,
   classification: 'NODE_MATH_REFERENCE',
   releaseVersion: require('../../package.json').version,
-  methodology: 'Same unchanged Node job-worker execute, fixed maximum 512 work iterations and 5000 ms. Cases must stop before a time ceiling. Browser comparison requires identical game/context hashes, action identities, stopped work count, and numeric values within 1e-10. The richer 4x4 input is checked against the stored LP game key before extracting containment values; LP residual tolerance never declares dominance. Timed benchmarks do not require identical point values across different stopping work.',
+  methodology: 'Current Node adaptive pipeline, unchanged mathematical core, fixed maximum 512 work iterations and 5000 ms. Cases must stop before a time ceiling. Browser comparison requires identical game/context hashes, comparison policy, action identities, stopped work count, and numeric values within 1e-10. The richer 4x4 input is checked against the stored LP game key before extracting containment values; LP residual tolerance never declares dominance. Timed benchmarks do not require identical point values across different stopping work.',
   independentReference: fixtures.reference,
   sourceJobWorkerSha256: crypto.createHash('sha256').update(fs.readFileSync(path.join(root, 'src/solver/job-worker.js'), 'utf8').replace(/\r\n?/g, '\n')).digest('hex'),
   sourceBuildFingerprint: require('../../public/browser-solver-manifest.json').buildFingerprint,

@@ -2,6 +2,7 @@
 const browserJob = requireBrowserModule('src/solver/job-worker.js');
 const browserSession = requireBrowserModule('src/multiway-session.js');
 const browserRiver = requireBrowserModule('src/solver/plo-river-game.js');
+const browserOutcome = requireBrowserModule('src/solver/decision-outcome.js');
 const browserLimits = Object.freeze({maxNodes:12000,maxWorlds:144,maxMemoryBytes:48*1024*1024,maxBuildMs:750});
 // Trusted runtime capability, never a message/input/checkpoint preference.
 // Same mathematical solver; compilation reuse is enabled only in the browser.
@@ -32,7 +33,8 @@ if (typeof globalThis.addEventListener === 'function' && typeof globalThis.postM
       context.handId = observed.multiway.handId || null; context.revisionKey = observed.state.revisionKey;
       if (message.expectedRevisionKey !== context.revisionKey) throw Error('The solver decision revision changed.');
       if (observed.multiway.config.playerCount !== 2) throw Error('The browser solver currently covers heads-up river decisions.');
-      const input = structuredClone({multiway:observed.multiway,ranges:message.input.ranges,sizing:message.input.sizing,rake:message.input.rake,budget:browserLimits});
+      const input = structuredClone({multiway:observed.multiway,ranges:message.input.ranges,sizing:message.input.sizing,rake:message.input.rake,
+        comparisonPolicy:browserOutcome.normalizePolicy(message.input.comparisonPolicy),budget:browserLimits});
       // Termination is owned by the host. A Web Worker cannot handle a queued
       // cancel message while this unchanged synchronous solver is computing.
       // The host keeps the last complete result/checkpoint pair before stopping.

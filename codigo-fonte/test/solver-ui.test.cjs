@@ -257,3 +257,18 @@ test('timeout copy claims a retained estimate only when this decision has a usab
   await retained.evaluate(payload(current),{automatic:false});await retained.evaluate(payload(current),{budget:'DEEP',automatic:false});
   assert.equal(retained.getState().error,'Solver request timed out. Latest completed estimate retained.');assert.equal(retained.decisionSnapshot().status,'APPROXIMATE');retained.invalidate();
 });
+
+test('study comparison policy is restored and sent while a changed threshold clears the prior comparison',async()=>{
+  const api=createUI(),current=context(),starts=[];let resolveChanged;
+  const browser={supported:true,start:async(owner,input,settings)=>{starts.push(input);if(input.comparisonPolicy.nearEquivalenceBB===.02)return new Promise(resolve=>resolveChanged=resolve);return response(settings.budget);},cancelOwner(){}};
+  api.init({getContext:()=>current,browserClient:browser});api.restore(study());await api.evaluate(payload(current),{automatic:false});
+  assert.equal(starts[0].comparisonPolicy.nearEquivalenceBB,.01);const updated=study();updated.comparisonPolicy={nearEquivalenceBB:.02};api.restore(updated);
+  const running=api.evaluate(payload(current),{automatic:false});await tick();assert.equal(api.decisionSnapshot(),null);assert.equal(api.getState().comparisonPolicy.nearEquivalenceBB,.02);
+  assert.equal(api.serialize().comparisonPolicy.nearEquivalenceBB,.02);assert.deepEqual(copy(starts[1].ranges),updated.ranges);
+  resolveChanged(response('STANDARD'));await running;assert.equal(api.decisionSnapshot().comparisonPolicy.nearEquivalenceBB,.02);api.invalidate();
+});
+
+test('a response using a different outcome policy cannot render a new study comparison',async()=>{
+  const api=createUI(),current=context();api.init({getContext:()=>current,request:async()=>response('STANDARD',{result:{...result(),decisionOutcome:{policy:{nearEquivalenceBB:.02}}}})});
+  await api.evaluate(payload(current),{automatic:false});assert.equal(api.getState().phase,'FAILED');assert.match(api.getState().error,/comparison policy does not match/);assert.equal(api.decisionSnapshot(),null);api.invalidate();
+});

@@ -2,15 +2,17 @@
   "schemaVersion": 1,
   "runtimeVersion": "THEIBS_BROWSER_SOLVER_V1",
   "entry": "src/solver/job-worker.js",
-  "builderSha256": "3ef82ca3f2d706e04137abb1dcebc16bc9ebddafdb573431d3865d7d5c075043",
+  "builderSha256": "d3d76595e5df9915e38bfd37cccbdf602ef9c015b7180d5c88eaf079bc7cdce1",
   "versions": {
-    "adaptive": "THEIBS_HU_ADAPTIVE_V5",
+    "adaptive": "THEIBS_HU_ADAPTIVE_V6",
     "solver": "THEIBS_FULL_TREE_CFR_PLUS_V1",
     "river": "PLO5_FINITE_RIVER_V2",
     "rules": "OBSERVED_HAND_CENT_LEDGER_0148",
     "qualification": "THEIBS_SOLUTION_QUALIFICATION_V1",
     "precision": "THEIBS_DECISION_PRECISION_V2",
-    "certificate": "THEIBS_ACTION_CONDITIONED_V1"
+    "certificate": "THEIBS_ACTION_CONDITIONED_V1",
+    "decisionOutcome": "THEIBS_DECISION_OUTCOME_V1",
+    "comparisonPolicy": "THEIBS_COMPARISON_POLICY_V1"
   },
   "sources": [
     {
@@ -94,14 +96,19 @@
       "bytes": 10485
     },
     {
+      "id": "src/solver/decision-outcome.js",
+      "sha256": "27a130ef2da41ff76879e214c3f87ccc7bb292297b6a4946a4c35dcc6c4e7a50",
+      "bytes": 11737
+    },
+    {
       "id": "src/solver/extensive-solver.js",
       "sha256": "5622613b33cb9265b936ff35673b159363f770524d81f69ad6cffa9c23b76cac",
       "bytes": 36525
     },
     {
       "id": "src/solver/job-worker.js",
-      "sha256": "508a22af120a6f240930cadc153187ba870b413e8c8695444a2ca05b7c783e11",
-      "bytes": 21676
+      "sha256": "1a91246c36ae3ca2326ee6c850a257b96bc2a734b161c88eaf345fe6862c6ebf",
+      "bytes": 24716
     },
     {
       "id": "src/solver/plo-river-game.js",
@@ -115,8 +122,8 @@
     },
     {
       "id": "src/solver/versions.js",
-      "sha256": "395005aaba06119cc871440ce0bc4051cb74192d267f8514687dd4917be64b5f",
-      "bytes": 383
+      "sha256": "16a57fda32f5e069dfaced026af9d59e8f1ddda7a983fac8f54ee146d0a7be64",
+      "bytes": 387
     },
     {
       "id": "src/strategy-engine.js",
@@ -136,7 +143,7 @@
     },
     {
       "id": "scripts/browser-solver/worker-entry.js",
-      "sha256": "24969598a00dff59de9ff4b1f10275de593ac1e8437e7c083800f132219810fe"
+      "sha256": "49c0833466fb4aa8d063bf49a9353ae85ab7693351f671907fd249f1b1063b2e"
     }
   ],
   "nodeAdapters": [
@@ -147,5 +154,5 @@
   "cancellation": "HOST_WORKER_TERMINATE_WITH_COMPLETE_CHECKPOINT_RESUME",
   "memoryMetric": "UNAVAILABLE_IN_BROWSER",
   "sourceNormalization": "LF",
-  "buildFingerprint": "f280932b2d80b1b49f96fe0c5e9ac15e15aa9b06dfb68c1c3dcdd2f8ddc93aed"
+  "buildFingerprint": "309aafd9b23d540fddabaf552357bd9b633301d935a0f6e39f597e7e19bc29b6"
 }

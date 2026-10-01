@@ -17,8 +17,9 @@
       actionPrecision: { ...pick(result.actionPrecision, ['version', 'target', 'origin', 'solverVersion', 'baseGameHash', 'baseContextKey', 'scope', 'utility', 'supportedGameClass', 'fullPriorPreserved', 'originalHandActionEV']),
         actions: (result.actionPrecision?.actions || []).map(row => pick(row, ['id', 'certified', 'estimateBB', 'lowerBB', 'upperBB', 'baseGameHash', 'baseContextKey', 'gameHash', 'conditionedHash', 'rootActionFixed', 'target', 'utility', 'iterations', 'strategicDecisionCount'])) },
       decisionPrecision: pick(result.decisionPrecision, ['status', 'target', 'bestActionId', 'secondActionId', 'leaderConclusive', 'globalBestSupported', 'reasonCode', 'separationToleranceBB', 'uncertaintyMethod', 'uncertaintyScope', 'confidenceLevel']),
+      decisionOutcome: pick(result.decisionOutcome, ['version', 'status', 'scope', 'target', 'actualHandEVEquivalence', 'policy', 'policyKey', 'actionIds', 'strictLeaderActionId', 'nearGroupActionIds', 'robustWorstDifferenceBB', 'reasonCode']),
       adaptation: pick(result.adaptation, ['stopReason', 'workIterations', 'globalIterations', 'actionIterations']),
-      checkpoint: pick(checkpoint, ['version', 'solverVersion', 'certificateVersion', 'baseContextKey', 'baseGameHash', 'iterations', 'workIterations']) };
+      checkpoint: pick(checkpoint, ['version', 'solverVersion', 'certificateVersion', 'comparisonPolicyKey', 'baseContextKey', 'baseGameHash', 'iterations', 'workIterations']) };
   }
   function differences(actual, expected, path = 'result', issues = []) {
     if (typeof actual === 'number' && typeof expected === 'number') {
@@ -65,6 +66,15 @@
       if (!leader?.certified || cert.some(row => !row.certified || row.id !== leader.id && !(leader.lowerBB > row.upperBB + tolerance))) issues.push('Conclusive leader does not strictly dominate every alternative.');
       if (precision.leaderConclusive !== true || precision.globalBestSupported !== false || precision.confidenceLevel !== null) issues.push('Comparison makes an unsupported global or confidence claim.');
     }
+    const outcome = result?.decisionOutcome;
+    if (!outcome || outcome.scope !== 'FULL_PRIOR_COMMITMENT' || outcome.actualHandEVEquivalence !== false) issues.push('Decision outcome is missing or confuses current-hand EV with range commitments.');
+    if (outcome?.status === 'CERTIFIED' && (precision?.status !== 'CONCLUSIVE' || result.convergence?.thresholdMet !== true)) issues.push('Certification lacks strict all-action separation or global convergence.');
+    if (outcome?.status === 'NEAR_EQUIVALENT') {
+      const group = cert.filter(row => outcome.nearGroupActionIds?.includes(row.id)), epsilon = outcome.policy?.nearEquivalenceBB;
+      if (!finite(epsilon) || epsilon < 0 || group.length < 2 || result.convergence?.thresholdMet !== true || cert.some(row => !row.certified) ||
+          Math.max(...cert.map(row => row.upperBB)) - Math.min(...group.map(row => row.lowerBB)) > epsilon ||
+          !finite(outcome.robustWorstDifferenceBB) || outcome.robustWorstDifferenceBB > epsilon) issues.push('Practical equivalence lacks the all-action bounds proof.');
+    }
     const tolerance = expected.referenceToleranceBB ?? 1e-7;
     for (const [id, value] of Object.entries(expected.actionValues || {})) {
       const row = cert.find(item => item.id === id);
@@ -92,6 +102,7 @@
     return {
       ...pick(result, ['status', 'method', 'solverVersion', 'gameHash', 'scope', 'strategyScope', 'iterations']),
       decisionPrecision: pick(result?.decisionPrecision, ['status', 'target', 'reasonCode', 'bestActionId', 'secondActionId', 'deltaEVBB', 'differenceBoundsBB', 'leaderConclusive', 'globalBestSupported', 'separationToleranceBB']),
+      decisionOutcome: clone(result?.decisionOutcome || null),
       convergence: pick(result?.convergence, ['metric', 'exact', 'nashConv', 'maxUnilateralGain', 'thresholdMet', 'thresholdBB', 'scope', 'convergenceGuarantee']),
       stopReason: adaptation.stopReason ?? null,
       workIterations: adaptation.workIterations ?? null,
@@ -128,7 +139,7 @@
       const values = [row.id, finite(row.evBB) ? row.evBB.toFixed(6) : 'Unavailable', bound?.certified ? '[' + bound.lowerBB.toFixed(6) + ', ' + bound.upperBB.toFixed(6) + ']' : 'Pending / unsupported', finite(row.frequency) ? (100 * row.frequency).toFixed(2) + '%' : 'Unavailable'];
       for (const value of values) { const td = document.createElement('td'); td.textContent = value; tr.append(td); } return tr;
     }));
-    $('summary').textContent = result ? (result.status + ' · Commitment comparison: ' + (result.decisionPrecision?.status || 'Unavailable') + ' · ' + (result.adaptation?.stopReason || 'No complete strategy')) : 'No result yet.';
+    $('summary').textContent = result ? (result.status + ' · Commitment outcome: ' + (result.decisionOutcome?.status || 'Unavailable') + ' · Strict comparison: ' + (result.decisionPrecision?.status || 'Unavailable') + ' · ' + (result.adaptation?.stopReason || 'No complete strategy')) : 'No result yet.';
     $('convergence').textContent = 'Global returned-profile NashConv: ' + (finite(result?.convergence?.nashConv) ? result.convergence.nashConv.toPrecision(6) + ' BB' : 'Unavailable') + '. This measurement is not an action-EV confidence interval.';
   }
   function client(timeMs) {
@@ -142,15 +153,19 @@
     let envelope = await service.start(chosenOwner, clone(variant.input), { budget, automatic: false, revisionKey: variant.expectedRevisionKey, handId: variant.input.multiway.handId });
     const acknowledgement = clone(envelope), ackWallMs = performance.now() - started;
     let firstObservedMs = envelope.result?.actions?.length ? ackWallMs : null, observations = 1;
+    const outcomeTransitions=[];
+    const observeOutcome=()=>{const status=envelope.result?.decisionOutcome?.status;if(status && outcomeTransitions.at(-1)?.status!==status)outcomeTransitions.push({status,observedMs:performance.now()-started});};
+    observeOutcome();
     while (!terminal.has(envelope.phase)) {
       if (stopped || token !== currentToken) { service.cancel(chosenOwner, envelope.jobId); throw Error('Validation stopped.'); }
       if (performance.now() - started > 12000) { service.cancel(chosenOwner, envelope.jobId); throw Error('The bounded browser check exceeded its wait ceiling.'); }
       envelope = await service.wait(chosenOwner, envelope.jobId, { afterVersion: envelope.updateVersion, waitMs: 1000 }); observations++;
       if (firstObservedMs === null && envelope.result?.actions?.length) firstObservedMs = performance.now() - started;
+      observeOutcome();
       if (envelope.result) show(envelope.result);
     }
     if (envelope.revisionKey !== variant.expectedRevisionKey || envelope.handId !== variant.input.multiway.handId || envelope.buildFingerprint !== manifest.buildFingerprint) throw Error('Response context differs from the current fixture.');
-    return { data: envelope, acknowledgement, measurements: { wallMs: performance.now() - started, ackWallMs, firstObservedMs, observations, timing: envelope.timing, runtimeBudget: envelope.runtimeBudget, phase: envelope.phase, cacheHit: acknowledgement.cache?.hit === true, cache: clone(envelope.cache || null), mathematicalMetrics: mathematicalMetrics(envelope.result) } };
+    return { data: envelope, acknowledgement, measurements: { wallMs: performance.now() - started, ackWallMs, firstObservedMs, observations, outcomeTransitions, timing: envelope.timing, runtimeBudget: envelope.runtimeBudget, phase: envelope.phase, cacheHit: acknowledgement.cache?.hit === true, cache: clone(envelope.cache || null), mathematicalMetrics: mathematicalMetrics(envelope.result) } };
   }
   async function digest(value) { return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify(value)))), byte => byte.toString(16).padStart(2, '0')).join(''); }
   async function pair(scenario, variant, timeMs) {
@@ -162,6 +177,7 @@
     report.runs.push({ kind: 'COLD_WARM_PAIR', scenario: scenario.id, variant: variant.id, requestedBudgetMs: timeMs, cold: cold.measurements, warm: warm.measurements, coldResultSha256: coldDigest, warmResultSha256: warmDigest, mathIssues: issues, stats: service.stats() });
     check(variant.id + ': real cold miss', before.entries === 0 && cold.acknowledgement.cache?.hit === false && cold.data.runtime === 'BROWSER');
     check(variant.id + ': complete result and mathematical contract', cold.data.phase === 'COMPLETE' && issues.length === 0, issues.join(' '));
+    check(variant.id + ': terminal outcome is no longer estimating', ['CERTIFIED','NEAR_EQUIVALENT','INCONCLUSIVE'].includes(cold.data.result?.decisionOutcome?.status));
     check(variant.id + ': warm snapshot hit', warm.acknowledgement.cache?.hit === true && warm.data.phase === 'COMPLETE' && coldDigest === warmDigest, 'FAST reads the identical completed ' + timeMs + ' ms-budget snapshot.');
     check(variant.id + ': warm read does not charge new solver work', warm.data.cache?.source === 'MEMORY' && warm.data.cache?.readOnly === true && warm.data.timing?.workerMs === 0 && warm.data.timing?.jobElapsedMs === 0 && warm.data.timing?.firstResponseMs === null);
     check(variant.id + ': cold timing separates first response and usable value', finite(cold.data.timing?.workerReadyMs) && finite(cold.data.timing?.firstResponseMs) && finite(cold.data.timing?.firstValueMs) && cold.data.timing.firstResponseMs <= cold.data.timing.firstValueMs && finite(cold.data.timing?.jobElapsedMs), 'Worker timing is distinct from acknowledgement and from the first usable EV.');
@@ -233,6 +249,11 @@
     }
     const baselineWarm = await complete(service, base, 'FAST');
     check('Original cache snapshot remains reusable', baselineWarm.acknowledgement.cache?.hit === true && await digest(baselineWarm.data.result) === await digest(initial.data.result));
+    const policyVariant = clone(base); policyVariant.input.comparisonPolicy = { nearEquivalenceBB: .02 };
+    const policyChanged = await complete(service, policyVariant, 'FAST');
+    check('Practical threshold invalidates cached outcome, not game identity', policyChanged.acknowledgement.cache?.hit === false && policyChanged.data.result?.gameHash === initial.data.result?.gameHash);
+    const originalAgain = await complete(service, base, 'FAST');
+    check('Policy variant cannot contaminate original cache entry', originalAgain.acknowledgement.cache?.hit === true && await digest(originalAgain.data.result) === await digest(initial.data.result));
     const otherOwner = owner + '_OTHER', isolated = await complete(service, base, 'FAST', otherOwner);
     check('Owner isolation blocks cross-owner cache reuse', isolated.acknowledgement.cache?.hit === false);
     report.runs.push({ kind: 'CACHE_OWNER_ISOLATION', phase: isolated.data.phase, cacheHit: isolated.acknowledgement.cache?.hit === true, stats: service.stats() });

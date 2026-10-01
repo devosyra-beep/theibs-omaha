@@ -2,11 +2,12 @@
 const path=require('node:path'),crypto=require('node:crypto');
 const {Worker}=require('node:worker_threads');
 const {createSolutionCache,keyFor}=require('./solution-cache');
+const {normalizePolicy}=require('./decision-outcome');
 const BUDGETS={FAST:{timeMs:500,iterations:50},STANDARD:{timeMs:3000,iterations:1000},DEEP:{timeMs:30000,iterations:20000}};
 const LIMITS={maxNodes:12000,maxWorlds:27,maxMemoryBytes:48*1024*1024,maxBuildMs:750};
 const HU_LIMITS=Object.freeze({...LIMITS,maxWorlds:144});
 const TERMINAL_PHASES=new Set(['COMPLETE','FAILED','UNSUPPORTED','CANCELLED']);
-const REUSABLE_STOPS=new Set(['GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION','FIXED_CONTINUATIONS_FULLY_EVALUATED','GLOBAL_CONVERGENCE_ACTION_CERTIFICATES_NOT_COVERED']);
+const REUSABLE_STOPS=new Set(['GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION','GLOBAL_CONVERGENCE_AND_CERTIFIED_NEAR_EQUIVALENCE','FIXED_CONTINUATIONS_FULLY_EVALUATED','GLOBAL_CONVERGENCE_ACTION_CERTIFICATES_NOT_COVERED']);
 const workIterations=checkpoint=>Number.isSafeInteger(checkpoint?.workIterations)?checkpoint.workIterations:Number.isSafeInteger(checkpoint?.iterations)?checkpoint.iterations:0;
 function createSolverService({cacheDirectory,maxJobs=24,maxQueued=2,workerFile=path.join(__dirname,'job-worker.js')}={}){
   const jobs=new Map(),generations=new Map(),decisions=new Map(),cache=createSolutionCache({directory:cacheDirectory});let active=null,priority=0,closed=false,cacheWriteTail=Promise.resolve();
@@ -20,6 +21,21 @@ function createSolverService({cacheDirectory,maxJobs=24,maxQueued=2,workerFile=p
     // teardown may finish later; this is not a worker-exit/cancellation latency.
     if(TERMINAL_PHASES.has(phase)&&job.completionMs==null)job.completionMs=Math.max(0,Math.round(performance.now()-job.started));
     changed(job);
+  }
+  function closePendingEstimate(job,reason){
+    if(job.result?.decisionOutcome?.status!=='ESTIMATING')return;
+    // A host stop cannot certify a pending estimate. Retain the exact strategy,
+    // intervals and checkpoint; only finish its observable lifecycle status.
+    const old=job.result.decisionOutcome,time=reason==='HOST_TIME_BUDGET_EXHAUSTED';
+    job.result={...job.result,decisionOutcome:{...old,status:'INCONCLUSIVE',reasonCode:reason,
+      reason:time?'The host time budget ended before the commitment comparison was completed.':'The cumulative work budget ended before the commitment comparison was completed.',
+      diagnostics:{...old.diagnostics,category:time?'TIME_BUDGET_EXHAUSTED':old.diagnostics?.category||'UNKNOWN',
+        hostStopReason:reason,terminalEstimateRetained:true}}};
+    if(job.checkpoint&&hasStrategy(job.result)){
+      const result=structuredClone(job.result),checkpoint=structuredClone(job.checkpoint);
+      cacheWriteTail=cacheWriteTail.catch(()=>{}).then(()=>!closed&&generations.get(job.owner)===job.generation&&job.phase==='COMPLETE'
+        ?cache.put(job.owner,job.key,result,checkpoint):null);
+    }
   }
   function account(job,reported){
     if(!Number.isFinite(reported))return;
@@ -90,12 +106,12 @@ function createSolverService({cacheDirectory,maxJobs=24,maxQueued=2,workerFile=p
     if(closed||active||priority)return;
     const job=[...jobs.values()].filter(item=>item.phase==='QUEUED'&&generations.get(item.owner)===item.generation).sort((a,b)=>b.started-a.started)[0];if(!job)return;
     const remaining={timeMs:BUDGETS[job.budget].timeMs-job.decision.consumedMs,iterations:BUDGETS[job.budget].iterations-job.decision.workIterations};
-    if(remaining.timeMs<=0||remaining.iterations<=0){setPhase(job,'COMPLETE');job.reason='Cumulative calculation budget reached.';kick();return;}
+    if(remaining.timeMs<=0||remaining.iterations<=0){closePendingEstimate(job,remaining.timeMs<=0?'HOST_TIME_BUDGET_EXHAUSTED':'HOST_ITERATION_BUDGET_EXHAUSTED');setPhase(job,'COMPLETE');job.reason='Cumulative calculation budget reached.';kick();return;}
     setPhase(job,'BUILDING');job.runReportedMs=0;const cancel=new Int32Array(new SharedArrayBuffer(4));
     const worker=new Worker(workerFile,{resourceLimits:{maxOldGenerationSizeMb:128,maxYoungGenerationSizeMb:16,stackSizeMb:4}});
     const slot=active={job,worker,cancel,started:performance.now()};
     const finish=()=>{if(active===slot)active=null;void worker.terminate();kick();};
-    const timer=setTimeout(()=>{if(active!==slot)return;account(job,performance.now()-slot.started);setPhase(job,'COMPLETE');job.reason='Budget reached; retained the last completed refinement.';Atomics.store(cancel,0,1);finish();},remaining.timeMs+LIMITS.maxBuildMs+2000);timer.unref();
+    const timer=setTimeout(()=>{if(active!==slot)return;account(job,performance.now()-slot.started);closePendingEstimate(job,'HOST_TIME_BUDGET_EXHAUSTED');setPhase(job,'COMPLETE');job.reason='Budget reached; retained the last completed refinement.';Atomics.store(cancel,0,1);finish();},remaining.timeMs+LIMITS.maxBuildMs+2000);timer.unref();
     worker.on('message',async message=>{
       if(!current(job,slot))return;
       if(message.type==='progress'){job.phase='REFINING';job.saveChain=job.saveChain.then(()=>save(job,message,slot));await job.saveChain;return;}
@@ -110,15 +126,19 @@ function createSolverService({cacheDirectory,maxJobs=24,maxQueued=2,workerFile=p
   }
   async function start(owner,input,{budget='STANDARD',revisionKey,handId,automatic=false}={}){
     if(closed)throw Error('Solver service is closed.');if(!BUDGETS[budget])throw Error('Choose FAST, STANDARD or DEEP.');
+    const comparisonPolicy=normalizePolicy(input.comparisonPolicy);
     const started=performance.now(),generation=(generations.get(owner)||0)+1;generations.set(owner,generation);
     // The API supplies a validated canonical ledger. Profiles/exploit data and
     // client memory/time budgets never enter this reference-strategy input.
     // Queueing/cache I/O can outlive the caller's object. Fingerprint and run
     // the same detached snapshot, including nested ranges and ledger events.
     const normalized=structuredClone({multiway:input.multiway,ranges:input.ranges,sizing:input.sizing,rake:input.rake,
+      comparisonPolicy,
       budget:input.multiway?.config?.playerCount===2?HU_LIMITS:LIMITS});
     const coverage=require('./plo-river-game').coverage(normalized);
-    const key=keyFor(coverage.status==='READY' ? {game:coverage.key,heroInformationSet:coverage.heroInformationSet} : normalized);
+    // Presentation thresholds do not change the game, but cached outcomes and
+    // adaptive checkpoints belong to the exact normalized comparison policy.
+    const key=keyFor(coverage.status==='READY' ? {game:coverage.key,heroInformationSet:coverage.heroInformationSet,comparisonPolicy:normalized.comparisonPolicy} : normalized);
     const existing=[...jobs.values()].find(job=>job.owner===owner&&job.key===key&&job.revisionKey===revisionKey&&job.handId===handId&&['QUEUED','BUILDING','REFINING'].includes(job.phase));
     if(existing&&existing.budget===budget){existing.generation=generation;return view(existing);}
     for(const job of jobs.values())if(job.owner===owner&&['QUEUED','BUILDING','REFINING'].includes(job.phase))cancelJob(job,'Superseded by the current decision.');

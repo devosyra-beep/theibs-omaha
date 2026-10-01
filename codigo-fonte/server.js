@@ -431,7 +431,7 @@ const server = http.createServer(async (request, response) => {
         const observed=multiway.envelope(payload.multiway);
         if(payload.expectedRevisionKey!==observed.state.revisionKey)throw Error('The solver decision revision changed.');
         return json(response,200,await solverJobs.start(auth.user.id,{multiway:observed.multiway,
-          ranges:payload.ranges,sizing:payload.sizing,rake:payload.rake},{budget:payload.budget||'STANDARD',
+          ranges:payload.ranges,sizing:payload.sizing,rake:payload.rake,comparisonPolicy:payload.comparisonPolicy},{budget:payload.budget||'STANDARD',
           revisionKey:observed.state.revisionKey,handId:observed.multiway.handId,automatic:payload.automatic===true}));
       }
       if (route === '/api/multiway/solver/cancel') return json(response,200,solverJobs.cancel(auth.user.id,payload.jobId));

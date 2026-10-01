@@ -92,6 +92,55 @@ test('cache fingerprints ignore object-key order but invalidate mathematical inp
   }
 });
 
+test('comparison policy isolates cached outcomes without changing the mathematical game', async t => {
+  const workerFile = await mockWorker(t), service = createSolverService({ workerFile });
+  const original = inputFixture(), coverage = require('../src/solver/plo-river-game').coverage;
+  const options = { revisionKey: 'policy-fixture', handId: original.multiway.handId, budget: 'FAST' };
+  try {
+    const cold = await service.start('policy-owner', original, options);
+    await until(() => service.get('policy-owner', cold.jobId), x => x.phase === 'COMPLETE');
+    const explicitDefault = structuredClone(original);
+    explicitDefault.comparisonPolicy = { nearEquivalenceBB: .01, version: 'THEIBS_COMPARISON_POLICY_V1' };
+    assert.equal((await service.start('policy-owner', explicitDefault, options)).cache.hit, true);
+    const changedPolicy = structuredClone(original);
+    changedPolicy.comparisonPolicy = { nearEquivalenceBB: .02 };
+    assert.equal(coverage(changedPolicy).key, coverage(original).key, 'policy is not mathematical tree input');
+    const changed = await service.start('policy-owner', changedPolicy, options);
+    assert.equal(changed.cache.hit, false, 'another practical threshold must not reuse the old outcome');
+    await until(() => service.get('policy-owner', changed.jobId), x => x.phase === 'COMPLETE');
+    assert.equal((await service.start('policy-owner', changedPolicy, options)).cache.hit, true);
+    for (const nearEquivalenceBB of [-1, NaN, Infinity, '0.01']) {
+      await assert.rejects(service.start('policy-owner', { ...original, comparisonPolicy: { nearEquivalenceBB } }, options));
+    }
+    await assert.rejects(service.start('policy-owner', { ...original, comparisonPolicy: { version: 'fake' } }, options));
+    assert.equal((await service.start('policy-owner', original, options)).cache.hit, true, 'policy variants cannot contaminate the original entry');
+  } finally { await service.close(); }
+});
+
+test('a retained pending estimate closes inconclusively at the cumulative work ceiling and in warm cache', async t => {
+  const directory=await temporaryDirectory(t),workerFile=path.join(directory,'pending-estimate.cjs');
+  await fs.writeFile(workerFile, `const {parentPort}=require('node:worker_threads');
+    parentPort.on('message',({budget})=>{
+      const result={status:'REFINING',actions:[{id:'CHECK',frequency:1,evBB:2}],decisionOutcome:{status:'ESTIMATING',diagnostics:{category:'BOUNDS_TOO_WIDE'}}};
+      const checkpoint={iterations:budget.iterations,workIterations:budget.iterations};
+      parentPort.postMessage({type:'progress',result,checkpoint,workerMs:1});
+      parentPort.postMessage({type:'done',result,checkpoint,workerMs:2,paused:true});
+    });`);
+  const service=createSolverService({workerFile}),input=inputFixture(),options={revisionKey:'pending-estimate',handId:input.multiway.handId,budget:'FAST'};
+  try{
+    const start=await service.start('pending-owner',input,options);
+    const completed=await until(()=>service.get('pending-owner',start.jobId),view=>view.phase==='COMPLETE');
+    assert.equal(completed.result.decisionOutcome.status,'INCONCLUSIVE');
+    assert.equal(completed.result.decisionOutcome.reasonCode,'HOST_ITERATION_BUDGET_EXHAUSTED');
+    assert.equal(completed.result.actions[0].evBB,2);
+    await delay(30);
+    const warm=await service.start('pending-owner',input,options);
+    assert.equal(warm.cache.hit,true);assert.equal(warm.phase,'COMPLETE');
+    assert.equal(warm.result.decisionOutcome.status,'INCONCLUSIVE');
+    assert.equal(warm.result.actions[0].evBB,2);
+  }finally{await service.close();}
+});
+
 test('cache isolates owners and snapshots both input and returned values', async () => {
   const cache = createSolutionCache(), key = keyFor({ fixture: 1 });
   const result = { actions: [{ evBB: 2 }] }, checkpoint = { regrets: [[1, 2]] };

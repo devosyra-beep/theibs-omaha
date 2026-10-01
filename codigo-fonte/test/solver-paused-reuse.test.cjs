@@ -8,6 +8,7 @@ const {execute}=require('../src/solver/job-worker');
 const {createSolverService}=require('../src/solver/job-service');
 const {createSolutionCache,keyFor}=require('../src/solver/solution-cache');
 const {coverage}=require('../src/solver/plo-river-game');
+const {normalizePolicy}=require('../src/solver/decision-outcome');
 const {riverMixedInput}=require('./helpers/solver-reference-fixtures.cjs');
 
 const COMPLETE_STOP='GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION';
@@ -58,7 +59,7 @@ async function fixture(t){
   t.after(async()=>{assert.equal(path.dirname(path.resolve(directory)),parent);assert.ok(path.basename(directory).startsWith('theibs-paused-cache-'));await fs.rm(directory,{recursive:true,force:true});});
   const input=riverMixedInput(),covered=coverage(input);
   assert.equal(covered.status,'READY');
-  return {workerFile,cacheDirectory,input,key:keyFor({game:covered.key,heroInformationSet:covered.heroInformationSet}),
+  return {workerFile,cacheDirectory,input,key:keyFor({game:covered.key,heroInformationSet:covered.heroInformationSet,comparisonPolicy:normalizePolicy(input.comparisonPolicy)}),
     options:{budget:'STANDARD',automatic:true,handId:input.multiway.handId,revisionKey:'revision'}};
 }
 async function until(service,id,predicate){
@@ -117,7 +118,7 @@ test('disk snapshots incorrectly marked stopped and final never bypass continuat
 
 test('only known mathematical terminal stops retain automatic final cache reuse',async t=>{
   const f=await fixture(t);
-  for(const stopReason of [COMPLETE_STOP,'FIXED_CONTINUATIONS_FULLY_EVALUATED','GLOBAL_CONVERGENCE_ACTION_CERTIFICATES_NOT_COVERED']){
+  for(const stopReason of [COMPLETE_STOP,'GLOBAL_CONVERGENCE_AND_CERTIFIED_NEAR_EQUIVALENCE','FIXED_CONTINUATIONS_FULLY_EVALUATED','GLOBAL_CONVERGENCE_ACTION_CERTIFICATES_NOT_COVERED']){
     const result={status:'APPROXIMATE',actions:[{id:'CHECK',evBB:2,frequency:1}],iterations:5,
       adaptation:{phase:'STOPPED',stopReason,refinementRecommended:false}};
     await createSolutionCache({directory:f.cacheDirectory}).put('owner',f.key,result,{iterations:5});

@@ -238,11 +238,11 @@ test('default Node computation remains uncached; only trusted dependencies enabl
   assert.deepEqual(prepared.checkpoint.actionCheckpoints, ordinary.checkpoint.actionCheckpoints);
 });
 
-test('adaptive V5 rejects old execution checkpoints while mathematical CFR checkpoint identity is preserved', () => {
-  assert.equal(job.VERSION, 'THEIBS_HU_ADAPTIVE_V5');
+test('adaptive V6 rejects old execution checkpoints while mathematical CFR checkpoint identity is preserved', () => {
+  assert.equal(job.VERSION, 'THEIBS_HU_ADAPTIVE_V6');
   assert.equal(core.VERSION, 'THEIBS_FULL_TREE_CFR_PLUS_V1');
   const input = fixtures.cases[0].variants[0].input, first = job.execute({ input, budget: { timeMs: 3000, iterations: 1000 } });
-  const stale = structuredClone(first.checkpoint); stale.version = 'THEIBS_HU_ADAPTIVE_V4'; stale.workIterations = 123456;
+  const stale = structuredClone(first.checkpoint); stale.version = 'THEIBS_HU_ADAPTIVE_V5'; stale.workIterations = 123456;
   stale.actionCertificates = { FAKE: { certified: true, lowerBB: 100, upperBB: 100 } };
   const restarted = job.execute({ input, checkpoint: stale, budget: { timeMs: 3000, iterations: 1000 } });
   assert.equal(restarted.checkpoint.global.iterations, first.checkpoint.global.iterations);

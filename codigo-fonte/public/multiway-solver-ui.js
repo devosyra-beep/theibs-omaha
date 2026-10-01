@@ -9,8 +9,16 @@
   const END_PHASES = new Set(['COMPLETE','UNSUPPORTED','FAILED','CANCELLED']);
   const rangeLimit = seats => seats === 2 ? 12 : 3;
   const levelLimit = seats => seats === 2 ? 12 : 8;
+  function normalizeComparisonPolicy(value) {
+    if(root.TheibsBrowserSolverClient?.normalizeComparisonPolicy)return root.TheibsBrowserSolverClient.normalizeComparisonPolicy(clone(value));
+    if(value!==undefined && (!value || typeof value!=='object' || Array.isArray(value)))throw Error('Use a valid comparison policy.');
+    const nearEquivalenceBB=value?.nearEquivalenceBB===undefined?.01:value.nearEquivalenceBB;
+    if(!Number.isFinite(nearEquivalenceBB) || nearEquivalenceBB<0 || value?.version!==undefined && value.version!=='THEIBS_COMPARISON_POLICY_V1' ||
+      value?.unit!==undefined && value.unit!=='BB' || value?.scope!==undefined && value.scope!=='FULL_PRIOR_COMMITMENT')throw Error('Use a nonnegative finite near-equivalence threshold in bb for range commitments.');
+    return {version:'THEIBS_COMPARISON_POLICY_V1',nearEquivalenceBB:nearEquivalenceBB===0?0:nearEquivalenceBB,unit:'BB',scope:'FULL_PRIOR_COMMITMENT'};
+  }
   const blank = () => ({ phase:'IDLE',result:null,jobId:null,revisionKey:null,handId:null,budget:null,cache:null,timing:null,error:null,configured:false,updateVersion:null,
-    runtime:null,runtimeLabel:null,runtimeReason:null,runtimeBudget:null,buildFingerprint:null });
+    runtime:null,runtimeLabel:null,runtimeReason:null,runtimeBudget:null,buildFingerprint:null,comparisonPolicy:null,comparisonPolicyKey:null,policyKey:null });
   let options = {}, initialized = false, study = null, view = blank(), generation = 0, pollTimer = null, pending = null;
   let lastPayload = null, lastBinding = null, lastSignature = null, dialog = null, openedHand = null, autoRefined = false,
     cancellation = Promise.resolve(), startAcknowledgement = Promise.resolve(), pendingRestore = false, automaticStandard = false;
@@ -36,7 +44,7 @@
     return {runtime:'BROWSER',runtimeLabel:'Browser compute',runtimeReason:null,request:async(url,init={})=>{
       if(init.signal?.aborted)throw Object.assign(Error('Solver request cancelled.'),{name:'AbortError'});
       const body=init.body ? JSON.parse(init.body) : {};
-      if(url==='/api/multiway/solver/start')return browserClient.start(owner,{multiway:body.multiway,ranges:body.ranges,sizing:body.sizing,rake:body.rake},
+      if(url==='/api/multiway/solver/start')return browserClient.start(owner,{multiway:body.multiway,ranges:body.ranges,sizing:body.sizing,rake:body.rake,comparisonPolicy:body.comparisonPolicy},
         {budget:body.budget,revisionKey:body.expectedRevisionKey,handId:body.multiway?.handId,automatic:body.automatic===true});
       if(url==='/api/multiway/solver/cancel')return browserClient.cancel(owner,body.jobId);
       const match=url.match(/^\/api\/multiway\/solver\/jobs\/([^?]+)(?:\?(.*))?$/);
@@ -124,10 +132,15 @@
     if (!data || !current(mine,bound)) return false;
     const now = context();
     if (data.handId !== handId(now) || data.revisionKey !== now.state?.revisionKey || typeof data.jobId !== 'string') throw Error('Solver response does not match this decision.');
+    for(const policy of [data.comparisonPolicy,data.result?.decisionOutcome?.policy])if(policy && JSON.stringify(normalizeComparisonPolicy(policy))!==JSON.stringify(view.comparisonPolicy))throw Error('Solver response comparison policy does not match this study.');
+    const returnedPolicyKey=data.comparisonPolicyKey || data.policyKey || data.result?.comparisonPolicyKey;
+    if(returnedPolicyKey && data.result?.decisionOutcome?.policyKey && returnedPolicyKey!==data.result.decisionOutcome.policyKey)throw Error('Solver comparison outcome does not match its policy.');
     view = { ...view,phase:data.phase,result:data.result || view.result,jobId:data.jobId,revisionKey:data.revisionKey,handId:data.handId,
       budget:data.budget,cache:data.cache || null,timing:data.timing || null,error:data.reason || null,
       runtime:data.runtime || view.runtime,runtimeLabel:data.runtimeLabel || view.runtimeLabel,runtimeReason:data.runtimeReason || null,
       runtimeBudget:data.runtimeBudget || null,buildFingerprint:data.buildFingerprint || null,
+      comparisonPolicy:data.comparisonPolicy || view.comparisonPolicy,comparisonPolicyKey:data.comparisonPolicyKey || data.result?.comparisonPolicyKey || data.policyKey || view.comparisonPolicyKey,
+      policyKey:data.comparisonPolicyKey || data.result?.comparisonPolicyKey || data.policyKey || view.policyKey,
       updateVersion:Number.isSafeInteger(data.updateVersion) && data.updateVersion >= 0 ? data.updateVersion : null };
     emit();
     return true;
@@ -180,10 +193,10 @@
     if (!initialized || !now.multiway?.enabled || !now.state?.revisionKey) return getState();
     if (!payload?.multiway || JSON.stringify(payload.multiway) !== JSON.stringify(now.multiway)) return getState();
     if (!['FAST','STANDARD','DEEP'].includes(budget)) throw Error('Choose FAST, STANDARD or DEEP.');
-    let transport;
-    try{transport=selectTransport();}catch(error){view.phase='FAILED';view.error=error.message;emit();return getState();}
+    let transport,comparisonPolicy;
+    try{transport=selectTransport();comparisonPolicy=normalizeComparisonPolicy(configured(now)?study.comparisonPolicy:payload.comparisonPolicy);}catch(error){view.phase='FAILED';view.error=error.message;emit();return getState();}
     synchronizeStudy();
-    const signature = JSON.stringify([bound,configured(now) ? study : null,feeFromPayload(payload),transport.runtime]);
+    const signature = JSON.stringify([bound,configured(now) ? study : null,feeFromPayload(payload),transport.runtime,comparisonPolicy]);
     if (!force && signature === lastSignature && (budget === view.budget || budget === 'FAST' || automatic && budget === 'STANDARD' && view.budget === 'DEEP') && !['IDLE','FAILED','CANCELLED'].includes(view.phase)) return getState();
     const samePreviousContext=signature===lastSignature && viewBinding===bound;
     lastSignature = signature;
@@ -195,7 +208,7 @@
     if (!refinement) autoRefined = false;
     // Keep only the declared fee basis and ledger. Profiles, transcripts and
     // private notes never enter the reference solver request.
-    lastPayload = {multiway:clone(payload.multiway),multiwayEvaluation:{
+    lastPayload = {multiway:clone(payload.multiway),comparisonPolicy:clone(comparisonPolicy),multiwayEvaluation:{
       ...(payload.multiwayEvaluation?.rakeSchedule ? {rakeSchedule:clone(payload.multiwayEvaluation.rakeSchedule)} : {}),
       ...(payload.multiwayEvaluation?.rake !== undefined ? {rake:payload.multiwayEvaluation.rake} : {}),
       ...(payload.multiwayEvaluation?.assumeNoRake === true ? {assumeNoRake:true} : {}),
@@ -204,7 +217,7 @@
     const previous = samePreviousContext && view.revisionKey === now.state.revisionKey && view.handId === handId(now) ? view.result : null;
     viewBinding=bound;activeTransport=transport;
     view = {...blank(),phase:'QUEUED',result:previous,revisionKey:now.state.revisionKey,handId:handId(now),budget,
-      runtime:transport.runtime,runtimeLabel:transport.runtimeLabel,runtimeReason:transport.runtimeReason}; emit();
+      runtime:transport.runtime,runtimeLabel:transport.runtimeLabel,runtimeReason:transport.runtimeReason,comparisonPolicy}; emit();
     try {
       // Finish cancellation before starting an identical cache-key job; an
       // outstanding cancel must never stop a newly deduplicated request.
@@ -214,7 +227,7 @@
       const declared = configured(now);
       const acknowledgement = request('/api/multiway/solver/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
         multiway:lastPayload.multiway,expectedRevisionKey:now.state.revisionKey,ranges:declared ? clone(study.ranges) : [],
-        sizing:declared ? clone(study.sizing) : null,rake:feeFromPayload(lastPayload),budget,automatic
+        sizing:declared ? clone(study.sizing) : null,rake:feeFromPayload(lastPayload),comparisonPolicy,budget,automatic
       })},mine,bound,transport);
       startAcknowledgement = acknowledgement.then(()=>{},()=>{});
       const data = await acknowledgement;
@@ -247,7 +260,8 @@
     if (!usableResult(currentView.result)) return null;
     return clone({handId:currentView.handId,revisionKey:currentView.revisionKey,budget:currentView.budget,phase:currentView.phase,
       ...currentView.result,cache:currentView.cache,timing:currentView.timing,runtime:currentView.runtime,runtimeLabel:currentView.runtimeLabel,
-      runtimeReason:currentView.runtimeReason,runtimeBudget:currentView.runtimeBudget,buildFingerprint:currentView.buildFingerprint});
+      runtimeReason:currentView.runtimeReason,runtimeBudget:currentView.runtimeBudget,buildFingerprint:currentView.buildFingerprint,
+      comparisonPolicy:currentView.comparisonPolicy,comparisonPolicyKey:currentView.comparisonPolicyKey,policyKey:currentView.policyKey});
   }
   function serialize() { return study && (configured(context()) || pendingRestore) ? clone(study) : null; }
   function restore(saved) {
@@ -259,7 +273,8 @@
       range.combos.length < 1 || range.combos.length > rangeLimit(saved.ranges.length) || range.combos.some(combo => !Array.isArray(combo.cards) || combo.cards.length !== 5 || !Number.isFinite(combo.weight) || combo.weight <= 0))) return;
     if (!['MIN_MID_MAX','EXPLICIT_TOTALS'].includes(saved.sizing.type) || !Number.isInteger(saved.sizing.maxAggressions) || saved.sizing.maxAggressions < 0 || saved.sizing.maxAggressions > 3 ||
       saved.sizing.type === 'EXPLICIT_TOTALS' && (!Array.isArray(saved.sizing.levels) || saved.sizing.levels.length < 1 || saved.sizing.levels.length > levelLimit(saved.ranges.length) || saved.sizing.levels.some(level => !Number.isFinite(level) || level <= 0))) return;
-    study = clone(saved);pendingRestore=true;
+    let comparisonPolicy;try{comparisonPolicy=normalizeComparisonPolicy(saved.comparisonPolicy);}catch{return;}
+    study = {...clone(saved),comparisonPolicy};pendingRestore=true;
   }
   function parseRange(text,notation,maxCombos = 3) {
     const lines = String(text || '').split(/\r?\n/).map(line=>line.trim()).filter(Boolean);
@@ -320,7 +335,7 @@
       <p class="mw-solver-hint">One five-card combination per line, up to ${maxCombos} per seat. Add <code>| weight</code> if needed; omitted weights are 1. Include your current cards within your declared range. The declared tree may still exceed the solver's safety limits.</p>
       <div class="mw-solver-grid"><label>Sizing abstraction<select name="sizing"><option value="MIN_MID_MAX">Minimum / middle / maximum</option><option value="EXPLICIT_TOTALS">Specific street totals</option></select></label><label>Additional bets / raises<select name="aggressions"><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></label></div>
       <label data-solver-levels hidden>Street totals · chips<input name="levels" type="text" inputmode="decimal" placeholder="2, 4, 6" autocomplete="off"></label>
-      <details class="mw-solver-limits"><summary>Study scope & privacy</summary><p>These are explicitly chosen study ranges, including folded seats. They are not observed cards or learned statistics. Every player knows the declared ranges; a one-combination range reveals that seat’s hand within the study.</p><p>The sizing selection and aggression limit restrict the tree. Convergence applies to this river subgame only, not a full-hand GTO solution. Room fees follow the current calculation basis.</p><p>Browser compute runs the river study on this device and currently covers two original seats. Server compute sends the entered combinations and public hand ledger to the server and covers two or three original seats. No voice transcripts, profile notes or inferred ranges are included. This setup resets with the next hand.</p></details>
+      <details class="mw-solver-limits"><summary>Study scope & privacy</summary><p>These are explicitly chosen study ranges, including folded seats. They are not observed cards or learned statistics. Every player knows the declared ranges; a one-combination range reveals that seat’s hand within the study.</p><p>The sizing selection and aggression limit restrict the tree. Convergence applies to this river subgame only, not a full-hand GTO solution. Room fees follow the current calculation basis.</p><label>Near-equivalence threshold · bb<input name="nearEquivalenceBB" type="number" min="0" step="any" value="${normalizeComparisonPolicy(matches?study.comparisonPolicy:undefined).nearEquivalenceBB}" required></label><p>This threshold compares ex-ante commitments across the full supplied prior (FULL_PRIOR_COMMITMENT). It does not imply equal EV for your current hand. It changes the comparison policy, not the game tree or mathematical bounds.</p><p>Browser compute runs the river study on this device and currently covers two original seats. Server compute sends the entered combinations and public hand ledger to the server and covers two or three original seats. No voice transcripts, profile notes or inferred ranges are included. This setup resets with the next hand.</p></details>
       <label class="mw-solver-confirm"><input name="complete" type="checkbox" required><span>I define these as the complete ranges for this study.</span></label>
       <p class="multiway-error" data-solver-error role="alert" hidden></p><div class="mw-solver-actions"><button type="button" class="ghost-button" data-solver-clear${matches?'':' hidden'}>Clear study</button><button type="submit" class="primary-button"${supported?'':' disabled'}>Save study</button></div></form>`;
     const form = dialog.querySelector('form');
@@ -344,8 +359,10 @@
           sizing.levels = [...new Set(levels)].sort((a,b)=>a-b);
         }
         if (!form.elements.complete.checked) throw Error('Confirm that these are the complete ranges for this study.');
+        if(!form.elements.nearEquivalenceBB.value.trim())throw Error('Enter a near-equivalence threshold of zero or more bb.');
+        const comparisonPolicy=normalizeComparisonPolicy({nearEquivalenceBB:Number(form.elements.nearEquivalenceBB.value)});
         const payload = lastBinding === binding(context()) ? clone(lastPayload) : null;
-        invalidate();computePreference=form.elements.compute.value;study = {schemaVersion:1,handId:openedHand,notation:form.elements.notation.value,ranges,sizing};emit();dialog.close();
+        invalidate();computePreference=form.elements.compute.value;study = {schemaVersion:1,handId:openedHand,notation:form.elements.notation.value,ranges,sizing,comparisonPolicy};emit();dialog.close();
         if (payload) void evaluate(payload);
       } catch (error) { dialogError(error.message); }
     };
@@ -382,6 +399,6 @@
     return api;
   }
   const api = {init,evaluate,invalidate,getState,decisionSnapshot,serialize,restore,openSetup,clearOwner,setRuntime,
-    _testing:{parseRange,rangeText,feeFromPayload,binding,usableResult,cancel}};
+    _testing:{parseRange,rangeText,feeFromPayload,binding,usableResult,normalizeComparisonPolicy,cancel}};
   return api;
 });

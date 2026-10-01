@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "classification": "NODE_MATH_REFERENCE",
   "releaseVersion": "0.14.10",
-  "methodology": "Same unchanged Node job-worker execute, fixed maximum 512 work iterations and 5000 ms. Cases must stop before a time ceiling. Browser comparison requires identical game/context hashes, action identities, stopped work count, and numeric values within 1e-10. The richer 4x4 input is checked against the stored LP game key before extracting containment values; LP residual tolerance never declares dominance. Timed benchmarks do not require identical point values across different stopping work.",
+  "methodology": "Current Node adaptive pipeline, unchanged mathematical core, fixed maximum 512 work iterations and 5000 ms. Cases must stop before a time ceiling. Browser comparison requires identical game/context hashes, comparison policy, action identities, stopped work count, and numeric values within 1e-10. The richer 4x4 input is checked against the stored LP game key before extracting containment values; LP residual tolerance never declares dominance. Timed benchmarks do not require identical point values across different stopping work.",
   "independentReference": "Terminal values use exact ledger/showdown arithmetic; four-world commitment values independently verified by sequence-form LP. Tolerance1e-7 is for comparing the numeric reference, never for declaring dominance.",
-  "sourceJobWorkerSha256": "508a22af120a6f240930cadc153187ba870b413e8c8695444a2ca05b7c783e11",
-  "sourceBuildFingerprint": "f280932b2d80b1b49f96fe0c5e9ac15e15aa9b06dfb68c1c3dcdd2f8ddc93aed",
+  "sourceJobWorkerSha256": "1a91246c36ae3ca2326ee6c850a257b96bc2a734b161c88eaf345fe6862c6ebf",
+  "sourceBuildFingerprint": "309aafd9b23d540fddabaf552357bd9b633301d935a0f6e39f597e7e19bc29b6",
   "cases": [
     {
       "id": "separated_terminal_call",
@@ -143,6 +143,28 @@
           "uncertaintyScope": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
           "confidenceLevel": null
         },
+        "decisionOutcome": {
+          "version": "THEIBS_DECISION_OUTCOME_V1",
+          "status": "CERTIFIED",
+          "scope": "FULL_PRIOR_COMMITMENT",
+          "target": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+          "actualHandEVEquivalence": false,
+          "policy": {
+            "version": "THEIBS_COMPARISON_POLICY_V1",
+            "nearEquivalenceBB": 0.01,
+            "unit": "BB",
+            "scope": "FULL_PRIOR_COMMITMENT"
+          },
+          "policyKey": "bbe7e98a415ae1c70a69aa7d5a8189fd561d1e69a7780692c2624dc855b1f34b",
+          "actionIds": [
+            "FOLD",
+            "CALL"
+          ],
+          "strictLeaderActionId": "CALL",
+          "nearGroupActionIds": [],
+          "robustWorstDifferenceBB": null,
+          "reasonCode": "STRICT_LEADER_PROVED"
+        },
         "adaptation": {
           "stopReason": "GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION",
           "workIterations": 120,
@@ -150,9 +172,10 @@
           "actionIterations": 100
         },
         "checkpoint": {
-          "version": "THEIBS_HU_ADAPTIVE_V5",
+          "version": "THEIBS_HU_ADAPTIVE_V6",
           "solverVersion": "THEIBS_FULL_TREE_CFR_PLUS_V1",
           "certificateVersion": "THEIBS_ACTION_CONDITIONED_V1",
+          "comparisonPolicyKey": "bbe7e98a415ae1c70a69aa7d5a8189fd561d1e69a7780692c2624dc855b1f34b",
           "baseContextKey": "65e7676b15f5068c281978d9ea9fad477fa30237583882f82f39be5e5d4615a4",
           "baseGameHash": "884e304da5c76ce231c506ec0362c097abcb0f36e8297f1e728cd6d701ef2b10",
           "iterations": 20,
@@ -297,16 +320,42 @@
           "uncertaintyScope": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
           "confidenceLevel": null
         },
+        "decisionOutcome": {
+          "version": "THEIBS_DECISION_OUTCOME_V1",
+          "status": "NEAR_EQUIVALENT",
+          "scope": "FULL_PRIOR_COMMITMENT",
+          "target": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+          "actualHandEVEquivalence": false,
+          "policy": {
+            "version": "THEIBS_COMPARISON_POLICY_V1",
+            "nearEquivalenceBB": 0.01,
+            "unit": "BB",
+            "scope": "FULL_PRIOR_COMMITMENT"
+          },
+          "policyKey": "bbe7e98a415ae1c70a69aa7d5a8189fd561d1e69a7780692c2624dc855b1f34b",
+          "actionIds": [
+            "FOLD",
+            "CALL"
+          ],
+          "strictLeaderActionId": null,
+          "nearGroupActionIds": [
+            "FOLD",
+            "CALL"
+          ],
+          "robustWorstDifferenceBB": 4.551914400963143e-15,
+          "reasonCode": "NEAR_EQUIVALENCE_PROVED"
+        },
         "adaptation": {
-          "stopReason": "FIXED_CONTINUATIONS_FULLY_EVALUATED",
+          "stopReason": "GLOBAL_CONVERGENCE_AND_CERTIFIED_NEAR_EQUIVALENCE",
           "workIterations": 110,
           "globalIterations": 10,
           "actionIterations": 100
         },
         "checkpoint": {
-          "version": "THEIBS_HU_ADAPTIVE_V5",
+          "version": "THEIBS_HU_ADAPTIVE_V6",
           "solverVersion": "THEIBS_FULL_TREE_CFR_PLUS_V1",
           "certificateVersion": "THEIBS_ACTION_CONDITIONED_V1",
+          "comparisonPolicyKey": "bbe7e98a415ae1c70a69aa7d5a8189fd561d1e69a7780692c2624dc855b1f34b",
           "baseContextKey": "3b290d5cb585a4dfeaf9de04692d8110be737058554ac526fd3ae7fd7783c1e7",
           "baseGameHash": "92cea1ee73ff4685aa59b6a35d17cc849ccd44552cf939eea72a4cdb5025d54b",
           "iterations": 10,
@@ -535,6 +584,31 @@
           "uncertaintyScope": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
           "confidenceLevel": null
         },
+        "decisionOutcome": {
+          "version": "THEIBS_DECISION_OUTCOME_V1",
+          "status": "CERTIFIED",
+          "scope": "FULL_PRIOR_COMMITMENT",
+          "target": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+          "actualHandEVEquivalence": false,
+          "policy": {
+            "version": "THEIBS_COMPARISON_POLICY_V1",
+            "nearEquivalenceBB": 0.01,
+            "unit": "BB",
+            "scope": "FULL_PRIOR_COMMITMENT"
+          },
+          "policyKey": "bbe7e98a415ae1c70a69aa7d5a8189fd561d1e69a7780692c2624dc855b1f34b",
+          "actionIds": [
+            "FOLD",
+            "CHECK",
+            "BET:1.00",
+            "BET:1.50",
+            "BET:2.00"
+          ],
+          "strictLeaderActionId": "CHECK",
+          "nearGroupActionIds": [],
+          "robustWorstDifferenceBB": null,
+          "reasonCode": "STRICT_LEADER_PROVED"
+        },
         "adaptation": {
           "stopReason": "GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION",
           "workIterations": 280,
@@ -542,9 +616,10 @@
           "actionIterations": 250
         },
         "checkpoint": {
-          "version": "THEIBS_HU_ADAPTIVE_V5",
+          "version": "THEIBS_HU_ADAPTIVE_V6",
           "solverVersion": "THEIBS_FULL_TREE_CFR_PLUS_V1",
           "certificateVersion": "THEIBS_ACTION_CONDITIONED_V1",
+          "comparisonPolicyKey": "bbe7e98a415ae1c70a69aa7d5a8189fd561d1e69a7780692c2624dc855b1f34b",
           "baseContextKey": "4c8cf3613eae8301ece776692461ce9e67006733929d0273352183b968011566",
           "baseGameHash": "bab17238c3739cb0885cf3acb027d4fa3d9d1c6ce1488f6bd7a2929658002d90",
           "iterations": 30,
@@ -1049,6 +1124,33 @@
           "uncertaintyScope": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
           "confidenceLevel": null
         },
+        "decisionOutcome": {
+          "version": "THEIBS_DECISION_OUTCOME_V1",
+          "status": "CERTIFIED",
+          "scope": "FULL_PRIOR_COMMITMENT",
+          "target": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+          "actualHandEVEquivalence": false,
+          "policy": {
+            "version": "THEIBS_COMPARISON_POLICY_V1",
+            "nearEquivalenceBB": 0.01,
+            "unit": "BB",
+            "scope": "FULL_PRIOR_COMMITMENT"
+          },
+          "policyKey": "bbe7e98a415ae1c70a69aa7d5a8189fd561d1e69a7780692c2624dc855b1f34b",
+          "actionIds": [
+            "FOLD",
+            "CHECK",
+            "BET:1.00",
+            "BET:1.25",
+            "BET:1.50",
+            "BET:1.75",
+            "BET:2.00"
+          ],
+          "strictLeaderActionId": "CHECK",
+          "nearGroupActionIds": [],
+          "robustWorstDifferenceBB": null,
+          "reasonCode": "STRICT_LEADER_PROVED"
+        },
         "adaptation": {
           "stopReason": "GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION",
           "workIterations": 370,
@@ -1056,9 +1158,10 @@
           "actionIterations": 350
         },
         "checkpoint": {
-          "version": "THEIBS_HU_ADAPTIVE_V5",
+          "version": "THEIBS_HU_ADAPTIVE_V6",
           "solverVersion": "THEIBS_FULL_TREE_CFR_PLUS_V1",
           "certificateVersion": "THEIBS_ACTION_CONDITIONED_V1",
+          "comparisonPolicyKey": "bbe7e98a415ae1c70a69aa7d5a8189fd561d1e69a7780692c2624dc855b1f34b",
           "baseContextKey": "b11ad9b19a8bb78c50985f909dee1da8d0b4b3995b9c00b750a1bd8c664a6b5d",
           "baseGameHash": "5f6fbe067acffe5b8b3ef2ed802928a017c474e4283ff267e4913b4b67308437",
           "iterations": 20,
@@ -1401,9 +1504,9 @@
             {
               "id": "FOLD",
               "certified": true,
-              "estimateBB": 1.1442480652608555,
-              "lowerBB": 1.144078733554814,
-              "upperBB": 1.1444173969668974,
+              "estimateBB": 1.1440430818218879,
+              "lowerBB": 1.1433723954567945,
+              "upperBB": 1.144713768186981,
               "baseGameHash": "73332e8fb3dc843e25564ba298bff38ed220eb3d7fe9f4dc03febeba9be8aa7b",
               "baseContextKey": "069d516627c6675a4ae03c39d99497c2371b1f41bfdd400a3145569df91d6c96",
               "gameHash": "676f296ad8777c0677bf7179e9d52aa60bb894c81818498724a79962f7e7fce8",
@@ -1415,15 +1518,15 @@
                 "basis": "INCREMENTAL_TERMINAL_PAYOFF_FROM_ORIGINAL_DECISION",
                 "scope": "FULL_PRIOR_EX_ANTE"
               },
-              "iterations": 100,
+              "iterations": 50,
               "strategicDecisionCount": 23
             },
             {
               "id": "CHECK",
               "certified": true,
-              "estimateBB": 1.144314724520938,
-              "lowerBB": 1.144145392814896,
-              "upperBB": 1.1444840562269798,
+              "estimateBB": 1.14410974108197,
+              "lowerBB": 1.1434390547168767,
+              "upperBB": 1.1447804274470634,
               "baseGameHash": "73332e8fb3dc843e25564ba298bff38ed220eb3d7fe9f4dc03febeba9be8aa7b",
               "baseContextKey": "069d516627c6675a4ae03c39d99497c2371b1f41bfdd400a3145569df91d6c96",
               "gameHash": "d88092cae1acce35a98dd23510ca8cd635fc520113b9a40251484847f167e1f4",
@@ -1435,15 +1538,15 @@
                 "basis": "INCREMENTAL_TERMINAL_PAYOFF_FROM_ORIGINAL_DECISION",
                 "scope": "FULL_PRIOR_EX_ANTE"
               },
-              "iterations": 100,
+              "iterations": 50,
               "strategicDecisionCount": 23
             },
             {
               "id": "BET:1.00",
               "certified": true,
-              "estimateBB": 1.144224477339396,
-              "lowerBB": 1.144024572763714,
-              "upperBB": 1.144424381915078,
+              "estimateBB": 1.1440320242269801,
+              "lowerBB": 1.143361285580114,
+              "upperBB": 1.144702762873846,
               "baseGameHash": "73332e8fb3dc843e25564ba298bff38ed220eb3d7fe9f4dc03febeba9be8aa7b",
               "baseContextKey": "069d516627c6675a4ae03c39d99497c2371b1f41bfdd400a3145569df91d6c96",
               "gameHash": "8ebff985598dbf9b3216bdaea8aa6e812eed0e88ec4b6b0a843a0e9ddf90fa08",
@@ -1455,7 +1558,7 @@
                 "basis": "INCREMENTAL_TERMINAL_PAYOFF_FROM_ORIGINAL_DECISION",
                 "scope": "FULL_PRIOR_EX_ANTE"
               },
-              "iterations": 92,
+              "iterations": 50,
               "strategicDecisionCount": 23
             },
             {
@@ -1548,25 +1651,61 @@
           "leaderConclusive": false,
           "globalBestSupported": false,
           "reasonCode": "BEST_SECOND_INTERVALS_OVERLAP",
-          "separationToleranceBB": 4.066732129649933e-15,
+          "separationToleranceBB": 4.067077083814267e-15,
           "uncertaintyMethod": "OUTWARD_ROUNDED_INFORMATION_SET_BEST_RESPONSE_SADDLE_BOUNDS",
           "uncertaintyScope": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
           "confidenceLevel": null
         },
+        "decisionOutcome": {
+          "version": "THEIBS_DECISION_OUTCOME_V1",
+          "status": "NEAR_EQUIVALENT",
+          "scope": "FULL_PRIOR_COMMITMENT",
+          "target": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+          "actualHandEVEquivalence": false,
+          "policy": {
+            "version": "THEIBS_COMPARISON_POLICY_V1",
+            "nearEquivalenceBB": 0.01,
+            "unit": "BB",
+            "scope": "FULL_PRIOR_COMMITMENT"
+          },
+          "policyKey": "bbe7e98a415ae1c70a69aa7d5a8189fd561d1e69a7780692c2624dc855b1f34b",
+          "actionIds": [
+            "FOLD",
+            "CHECK",
+            "BET:1.00",
+            "BET:1.25",
+            "BET:1.50",
+            "BET:1.75",
+            "BET:2.00"
+          ],
+          "strictLeaderActionId": null,
+          "nearGroupActionIds": [
+            "FOLD",
+            "CHECK",
+            "BET:1.00",
+            "BET:1.25",
+            "BET:1.50",
+            "BET:1.75",
+            "BET:2.00"
+          ],
+          "robustWorstDifferenceBB": 0.001496911003711743,
+          "reasonCode": "NEAR_EQUIVALENCE_PROVED"
+        },
         "adaptation": {
-          "stopReason": "ITERATION_RESOURCE_CEILING",
-          "workIterations": 512,
+          "stopReason": "GLOBAL_CONVERGENCE_AND_CERTIFIED_NEAR_EQUIVALENCE",
+          "workIterations": 370,
           "globalIterations": 20,
-          "actionIterations": 492
+          "actionIterations": 350
         },
         "checkpoint": {
-          "version": "THEIBS_HU_ADAPTIVE_V5",
+          "version": "THEIBS_HU_ADAPTIVE_V6",
           "solverVersion": "THEIBS_FULL_TREE_CFR_PLUS_V1",
           "certificateVersion": "THEIBS_ACTION_CONDITIONED_V1",
+          "comparisonPolicyKey": "bbe7e98a415ae1c70a69aa7d5a8189fd561d1e69a7780692c2624dc855b1f34b",
           "baseContextKey": "069d516627c6675a4ae03c39d99497c2371b1f41bfdd400a3145569df91d6c96",
           "baseGameHash": "73332e8fb3dc843e25564ba298bff38ed220eb3d7fe9f4dc03febeba9be8aa7b",
           "iterations": 20,
-          "workIterations": 512
+          "workIterations": 370
         }
       },
       "evidence": "NODE_REFERENCE_NOT_INDEPENDENT_LP_FOR_CHANGED_WEIGHTS_NOT_BROWSER_EXECUTION"
@@ -1594,11 +1733,11 @@
             ],
             "players": [
               {
-                "playerId": "953b9583-2770-4aa0-93af-034d5d6397bd",
+                "playerId": "caeed82a-99cf-4978-b752-83827e630f05",
                 "name": "You"
               },
               {
-                "playerId": "3e3e91d0-417e-4f74-a0bb-7eb9439695f3",
+                "playerId": "9a1aeec3-f20e-4a2a-a2f1-75ca0a816d46",
                 "name": "A1"
               }
             ]
@@ -1734,7 +1873,7 @@
           "basis": "BEFORE_FEES"
         }
       },
-      "expectedRevisionKey": "f03d6fbf48b09e6f8033cb32f924b82a7f38b6d60e39c3b2a6a4dbe19eac1dfc",
+      "expectedRevisionKey": "d48020e2726692190309d801f17a1b5162b5ee0f94304aa964ed0835f5dc1e59",
       "budget": {
         "timeMs": 5000,
         "iterations": 512
@@ -1901,6 +2040,28 @@
           "uncertaintyScope": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
           "confidenceLevel": null
         },
+        "decisionOutcome": {
+          "version": "THEIBS_DECISION_OUTCOME_V1",
+          "status": "CERTIFIED",
+          "scope": "FULL_PRIOR_COMMITMENT",
+          "target": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+          "actualHandEVEquivalence": false,
+          "policy": {
+            "version": "THEIBS_COMPARISON_POLICY_V1",
+            "nearEquivalenceBB": 0.01,
+            "unit": "BB",
+            "scope": "FULL_PRIOR_COMMITMENT"
+          },
+          "policyKey": "bbe7e98a415ae1c70a69aa7d5a8189fd561d1e69a7780692c2624dc855b1f34b",
+          "actionIds": [
+            "FOLD",
+            "CALL"
+          ],
+          "strictLeaderActionId": "CALL",
+          "nearGroupActionIds": [],
+          "robustWorstDifferenceBB": null,
+          "reasonCode": "STRICT_LEADER_PROVED"
+        },
         "adaptation": {
           "stopReason": "GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION",
           "workIterations": 160,
@@ -1908,9 +2069,10 @@
           "actionIterations": 100
         },
         "checkpoint": {
-          "version": "THEIBS_HU_ADAPTIVE_V5",
+          "version": "THEIBS_HU_ADAPTIVE_V6",
           "solverVersion": "THEIBS_FULL_TREE_CFR_PLUS_V1",
           "certificateVersion": "THEIBS_ACTION_CONDITIONED_V1",
+          "comparisonPolicyKey": "bbe7e98a415ae1c70a69aa7d5a8189fd561d1e69a7780692c2624dc855b1f34b",
           "baseContextKey": "8db291d6f6c89962f89091d91f1a72da0b57832073cabfd710b518149b45322a",
           "baseGameHash": "3fefcba1874e17a37de51949a41200bdea1e63d7e97d38e8b5f9b290d7d22253",
           "iterations": 60,
@@ -1942,11 +2104,11 @@
             ],
             "players": [
               {
-                "playerId": "b6f30d13-4b63-4bc0-acfa-957ebc01d461",
+                "playerId": "9a5fa151-25d1-4fc6-be67-2f30c3d6bf61",
                 "name": "You"
               },
               {
-                "playerId": "93639524-8723-4114-8380-c9fdcd2ca4f2",
+                "playerId": "2d5b1287-5b57-4407-bf39-05734a73c2ff",
                 "name": "A1"
               }
             ]
@@ -2082,7 +2244,7 @@
           "basis": "BEFORE_FEES"
         }
       },
-      "expectedRevisionKey": "a823b11d10a9f6a48f8ee6943b11c91bb24f32f008ce26c5d0a72854107913a7",
+      "expectedRevisionKey": "ab4ede30986077aa6e5956f813ab41d381a2c85abb2c4a8dc2adf09ec1041734",
       "budget": {
         "timeMs": 5000,
         "iterations": 512
@@ -2249,6 +2411,28 @@
           "uncertaintyScope": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
           "confidenceLevel": null
         },
+        "decisionOutcome": {
+          "version": "THEIBS_DECISION_OUTCOME_V1",
+          "status": "CERTIFIED",
+          "scope": "FULL_PRIOR_COMMITMENT",
+          "target": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+          "actualHandEVEquivalence": false,
+          "policy": {
+            "version": "THEIBS_COMPARISON_POLICY_V1",
+            "nearEquivalenceBB": 0.01,
+            "unit": "BB",
+            "scope": "FULL_PRIOR_COMMITMENT"
+          },
+          "policyKey": "bbe7e98a415ae1c70a69aa7d5a8189fd561d1e69a7780692c2624dc855b1f34b",
+          "actionIds": [
+            "FOLD",
+            "CALL"
+          ],
+          "strictLeaderActionId": "CALL",
+          "nearGroupActionIds": [],
+          "robustWorstDifferenceBB": null,
+          "reasonCode": "STRICT_LEADER_PROVED"
+        },
         "adaptation": {
           "stopReason": "GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION",
           "workIterations": 120,
@@ -2256,9 +2440,10 @@
           "actionIterations": 100
         },
         "checkpoint": {
-          "version": "THEIBS_HU_ADAPTIVE_V5",
+          "version": "THEIBS_HU_ADAPTIVE_V6",
           "solverVersion": "THEIBS_FULL_TREE_CFR_PLUS_V1",
           "certificateVersion": "THEIBS_ACTION_CONDITIONED_V1",
+          "comparisonPolicyKey": "bbe7e98a415ae1c70a69aa7d5a8189fd561d1e69a7780692c2624dc855b1f34b",
           "baseContextKey": "8b278b655e4267ee0b5bab30099b62072da8f518bacda7a88f1db3293b98a2e1",
           "baseGameHash": "543f8661e626af60f40f2c123968f906cc40f2ee8b50eef6a036093cb4eff8be",
           "iterations": 20,
@@ -2290,11 +2475,11 @@
             ],
             "players": [
               {
-                "playerId": "dd63cbc4-2da7-405a-bd8b-9e837c13aff8",
+                "playerId": "3fe053e0-e5c2-4b8c-b7a4-ca3ed2d43ca7",
                 "name": "You"
               },
               {
-                "playerId": "ec0764cd-5322-41b1-a654-2066041bf37e",
+                "playerId": "f2d4cd8a-3310-4c37-8eb5-a200b4fc92ae",
                 "name": "A1"
               }
             ]
@@ -2430,7 +2615,7 @@
           "basis": "BEFORE_FEES"
         }
       },
-      "expectedRevisionKey": "2bd2b8b7c3b3cb52cbb4a40a7807926e22f813caf19fe96a808d71d37bb6683a",
+      "expectedRevisionKey": "51cd9656dbd0a53631717cffd0e2d96f8ccb4aba16abd25323bd4dcae26a8fea",
       "budget": {
         "timeMs": 5000,
         "iterations": 512
@@ -2597,16 +2782,42 @@
           "uncertaintyScope": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
           "confidenceLevel": null
         },
+        "decisionOutcome": {
+          "version": "THEIBS_DECISION_OUTCOME_V1",
+          "status": "NEAR_EQUIVALENT",
+          "scope": "FULL_PRIOR_COMMITMENT",
+          "target": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+          "actualHandEVEquivalence": false,
+          "policy": {
+            "version": "THEIBS_COMPARISON_POLICY_V1",
+            "nearEquivalenceBB": 0.01,
+            "unit": "BB",
+            "scope": "FULL_PRIOR_COMMITMENT"
+          },
+          "policyKey": "bbe7e98a415ae1c70a69aa7d5a8189fd561d1e69a7780692c2624dc855b1f34b",
+          "actionIds": [
+            "FOLD",
+            "CALL"
+          ],
+          "strictLeaderActionId": null,
+          "nearGroupActionIds": [
+            "FOLD",
+            "CALL"
+          ],
+          "robustWorstDifferenceBB": 4.2632564145606024e-14,
+          "reasonCode": "NEAR_EQUIVALENCE_PROVED"
+        },
         "adaptation": {
-          "stopReason": "FIXED_CONTINUATIONS_FULLY_EVALUATED",
+          "stopReason": "GLOBAL_CONVERGENCE_AND_CERTIFIED_NEAR_EQUIVALENCE",
           "workIterations": 110,
           "globalIterations": 10,
           "actionIterations": 100
         },
         "checkpoint": {
-          "version": "THEIBS_HU_ADAPTIVE_V5",
+          "version": "THEIBS_HU_ADAPTIVE_V6",
           "solverVersion": "THEIBS_FULL_TREE_CFR_PLUS_V1",
           "certificateVersion": "THEIBS_ACTION_CONDITIONED_V1",
+          "comparisonPolicyKey": "bbe7e98a415ae1c70a69aa7d5a8189fd561d1e69a7780692c2624dc855b1f34b",
           "baseContextKey": "5c261c2d51b2bf3fafacb8403fd36bc38cbbb0ed02050484190e307c20ff920e",
           "baseGameHash": "a8c04b3c70cf8c1bb67d210c866b1d61add652e8cea6ae6178707627afefefb7",
           "iterations": 10,
@@ -2638,11 +2849,11 @@
             ],
             "players": [
               {
-                "playerId": "ac1ab73e-9255-4240-a1af-862987a33957",
+                "playerId": "ac07197b-369b-432a-8070-2946bfba212e",
                 "name": "You"
               },
               {
-                "playerId": "c2be3f57-0cac-451d-8969-ffe9c0d99e66",
+                "playerId": "007eaae9-1d24-4672-89c8-6ca5700ea392",
                 "name": "A1"
               }
             ]
@@ -2778,7 +2989,7 @@
           "basis": "BEFORE_FEES"
         }
       },
-      "expectedRevisionKey": "e6f8e594fc79351c6b57f7304087037a6ff50146c77b700812c5d35458efa2d0",
+      "expectedRevisionKey": "d013aae80d926f82717bf53f7727476562f6ca6e0b69fa29aba24d560e88b455",
       "budget": {
         "timeMs": 5000,
         "iterations": 512
@@ -2945,6 +3156,28 @@
           "uncertaintyScope": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
           "confidenceLevel": null
         },
+        "decisionOutcome": {
+          "version": "THEIBS_DECISION_OUTCOME_V1",
+          "status": "CERTIFIED",
+          "scope": "FULL_PRIOR_COMMITMENT",
+          "target": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+          "actualHandEVEquivalence": false,
+          "policy": {
+            "version": "THEIBS_COMPARISON_POLICY_V1",
+            "nearEquivalenceBB": 0.01,
+            "unit": "BB",
+            "scope": "FULL_PRIOR_COMMITMENT"
+          },
+          "policyKey": "bbe7e98a415ae1c70a69aa7d5a8189fd561d1e69a7780692c2624dc855b1f34b",
+          "actionIds": [
+            "FOLD",
+            "CALL"
+          ],
+          "strictLeaderActionId": "FOLD",
+          "nearGroupActionIds": [],
+          "robustWorstDifferenceBB": null,
+          "reasonCode": "STRICT_LEADER_PROVED"
+        },
         "adaptation": {
           "stopReason": "GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION",
           "workIterations": 120,
@@ -2952,9 +3185,10 @@
           "actionIterations": 100
         },
         "checkpoint": {
-          "version": "THEIBS_HU_ADAPTIVE_V5",
+          "version": "THEIBS_HU_ADAPTIVE_V6",
           "solverVersion": "THEIBS_FULL_TREE_CFR_PLUS_V1",
           "certificateVersion": "THEIBS_ACTION_CONDITIONED_V1",
+          "comparisonPolicyKey": "bbe7e98a415ae1c70a69aa7d5a8189fd561d1e69a7780692c2624dc855b1f34b",
           "baseContextKey": "d2ab01cade9fe2ade992d31d197a5728b393c77996c2da3b6b1f1cacf869bf54",
           "baseGameHash": "7fdad61150831b73aa7f40e14c2175af17fd1b1f580108e74a163826d90cc0bb",
           "iterations": 20,
@@ -2986,11 +3220,11 @@
             ],
             "players": [
               {
-                "playerId": "6c330f42-f96b-480c-bebc-5669d787c4b3",
+                "playerId": "d20ea5c7-aefb-43a0-924d-0052959907cc",
                 "name": "You"
               },
               {
-                "playerId": "db460007-418a-413f-acab-c89bdef6a222",
+                "playerId": "2aae1496-39df-4876-879b-b9ea06659f85",
                 "name": "A1"
               }
             ]
@@ -3126,7 +3360,7 @@
           "amount": 8
         }
       },
-      "expectedRevisionKey": "6989af868aff4e90821ca919b9bd8ea4125672ee0ca47f0e594a4b88585c4597",
+      "expectedRevisionKey": "afa739a377f9cd40a57447f28d1cefd9599498ee0ae14722771bba784e758217",
       "budget": {
         "timeMs": 5000,
         "iterations": 512
@@ -3293,6 +3527,28 @@
           "uncertaintyScope": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
           "confidenceLevel": null
         },
+        "decisionOutcome": {
+          "version": "THEIBS_DECISION_OUTCOME_V1",
+          "status": "CERTIFIED",
+          "scope": "FULL_PRIOR_COMMITMENT",
+          "target": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+          "actualHandEVEquivalence": false,
+          "policy": {
+            "version": "THEIBS_COMPARISON_POLICY_V1",
+            "nearEquivalenceBB": 0.01,
+            "unit": "BB",
+            "scope": "FULL_PRIOR_COMMITMENT"
+          },
+          "policyKey": "bbe7e98a415ae1c70a69aa7d5a8189fd561d1e69a7780692c2624dc855b1f34b",
+          "actionIds": [
+            "FOLD",
+            "CALL"
+          ],
+          "strictLeaderActionId": "FOLD",
+          "nearGroupActionIds": [],
+          "robustWorstDifferenceBB": null,
+          "reasonCode": "STRICT_LEADER_PROVED"
+        },
         "adaptation": {
           "stopReason": "GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION",
           "workIterations": 110,
@@ -3300,9 +3556,10 @@
           "actionIterations": 100
         },
         "checkpoint": {
-          "version": "THEIBS_HU_ADAPTIVE_V5",
+          "version": "THEIBS_HU_ADAPTIVE_V6",
           "solverVersion": "THEIBS_FULL_TREE_CFR_PLUS_V1",
           "certificateVersion": "THEIBS_ACTION_CONDITIONED_V1",
+          "comparisonPolicyKey": "bbe7e98a415ae1c70a69aa7d5a8189fd561d1e69a7780692c2624dc855b1f34b",
           "baseContextKey": "1697925a1f0527bc5f1cf5e50246f8aa71238e211b8381319b4dfe1b4058a847",
           "baseGameHash": "28108ddb265b8e0c6669cb177dd48b31d940b3564ffe065ea823907d50dc672c",
           "iterations": 10,
@@ -3334,11 +3591,11 @@
             ],
             "players": [
               {
-                "playerId": "ea12d5ec-7d22-4bc9-9714-847b38f73255",
+                "playerId": "7b9a363e-335e-4068-b09f-5ea7b7b1cb41",
                 "name": "You"
               },
               {
-                "playerId": "7aa87cdc-84d4-48b7-a347-324fe9fb9f7a",
+                "playerId": "7e3eaa5e-d7c4-4162-a7b8-a0ea8d87619d",
                 "name": "A1"
               }
             ]
@@ -3474,7 +3731,7 @@
           "amount": 0.3
         }
       },
-      "expectedRevisionKey": "87315c96e3edb465cffbebb1499ea65daf733965c91eff27d61138faec0335ec",
+      "expectedRevisionKey": "150c1a873cc23a08769e6821a1167e19e0c522255eb1d5b1464b52ef30bb337b",
       "budget": {
         "timeMs": 5000,
         "iterations": 512
@@ -3641,6 +3898,28 @@
           "uncertaintyScope": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
           "confidenceLevel": null
         },
+        "decisionOutcome": {
+          "version": "THEIBS_DECISION_OUTCOME_V1",
+          "status": "CERTIFIED",
+          "scope": "FULL_PRIOR_COMMITMENT",
+          "target": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+          "actualHandEVEquivalence": false,
+          "policy": {
+            "version": "THEIBS_COMPARISON_POLICY_V1",
+            "nearEquivalenceBB": 0.01,
+            "unit": "BB",
+            "scope": "FULL_PRIOR_COMMITMENT"
+          },
+          "policyKey": "bbe7e98a415ae1c70a69aa7d5a8189fd561d1e69a7780692c2624dc855b1f34b",
+          "actionIds": [
+            "FOLD",
+            "CALL"
+          ],
+          "strictLeaderActionId": "CALL",
+          "nearGroupActionIds": [],
+          "robustWorstDifferenceBB": null,
+          "reasonCode": "STRICT_LEADER_PROVED"
+        },
         "adaptation": {
           "stopReason": "GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION",
           "workIterations": 120,
@@ -3648,9 +3927,10 @@
           "actionIterations": 100
         },
         "checkpoint": {
-          "version": "THEIBS_HU_ADAPTIVE_V5",
+          "version": "THEIBS_HU_ADAPTIVE_V6",
           "solverVersion": "THEIBS_FULL_TREE_CFR_PLUS_V1",
           "certificateVersion": "THEIBS_ACTION_CONDITIONED_V1",
+          "comparisonPolicyKey": "bbe7e98a415ae1c70a69aa7d5a8189fd561d1e69a7780692c2624dc855b1f34b",
           "baseContextKey": "0c745baa9bd39c5231eb7187b803ba79cb5ea6d554cbc7b933a190984d2013a1",
           "baseGameHash": "a322ac1aa787102ac02b73d996b2dc5959b6b07c3d73e6af4e652f544a727b0d",
           "iterations": 20,
@@ -3682,11 +3962,11 @@
             ],
             "players": [
               {
-                "playerId": "57b0d463-8f06-41ac-b40b-37cfc392ca60",
+                "playerId": "5ba43bee-a352-4a6f-818f-53fe2facf34a",
                 "name": "You"
               },
               {
-                "playerId": "aed79a75-9f1d-47c0-9b27-00289d4d1796",
+                "playerId": "30ba52b6-8e9e-42da-a89d-a6b8ce33a6ab",
                 "name": "A1"
               }
             ]
@@ -3812,7 +4092,7 @@
           "basis": "BEFORE_FEES"
         }
       },
-      "expectedRevisionKey": "45d5e61fb71b541aed07d3f07904c4ca8862c933b1bc62f3f618d068f4cf33db",
+      "expectedRevisionKey": "1727289b514812781b016aaaab28997b36d7199aab2ad2986c16975472f1f690",
       "budget": {
         "timeMs": 5000,
         "iterations": 512
@@ -3979,6 +4259,28 @@
           "uncertaintyScope": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
           "confidenceLevel": null
         },
+        "decisionOutcome": {
+          "version": "THEIBS_DECISION_OUTCOME_V1",
+          "status": "CERTIFIED",
+          "scope": "FULL_PRIOR_COMMITMENT",
+          "target": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+          "actualHandEVEquivalence": false,
+          "policy": {
+            "version": "THEIBS_COMPARISON_POLICY_V1",
+            "nearEquivalenceBB": 0.01,
+            "unit": "BB",
+            "scope": "FULL_PRIOR_COMMITMENT"
+          },
+          "policyKey": "bbe7e98a415ae1c70a69aa7d5a8189fd561d1e69a7780692c2624dc855b1f34b",
+          "actionIds": [
+            "FOLD",
+            "CALL"
+          ],
+          "strictLeaderActionId": "CALL",
+          "nearGroupActionIds": [],
+          "robustWorstDifferenceBB": null,
+          "reasonCode": "STRICT_LEADER_PROVED"
+        },
         "adaptation": {
           "stopReason": "GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION",
           "workIterations": 140,
@@ -3986,9 +4288,10 @@
           "actionIterations": 100
         },
         "checkpoint": {
-          "version": "THEIBS_HU_ADAPTIVE_V5",
+          "version": "THEIBS_HU_ADAPTIVE_V6",
           "solverVersion": "THEIBS_FULL_TREE_CFR_PLUS_V1",
           "certificateVersion": "THEIBS_ACTION_CONDITIONED_V1",
+          "comparisonPolicyKey": "bbe7e98a415ae1c70a69aa7d5a8189fd561d1e69a7780692c2624dc855b1f34b",
           "baseContextKey": "a3f7e67981fcdffb614238bec38eff92af6186f6d079f9adf650dfeb077836c1",
           "baseGameHash": "3fdab51319280983cbb12aa15b005c848468f83f6dbcd72cd20297d19f7e0bfa",
           "iterations": 40,
@@ -4020,11 +4323,11 @@
             ],
             "players": [
               {
-                "playerId": "5741f68d-104a-4657-a74e-64a93c6a4fc0",
+                "playerId": "b77afddc-1b94-4e89-a5e9-b8a925e86f74",
                 "name": "You"
               },
               {
-                "playerId": "2b4dd498-73fb-43af-94e9-c72698657f64",
+                "playerId": "4bd11bcf-ea9a-4cfe-9445-21ed175cda5a",
                 "name": "A1"
               }
             ]
@@ -4170,7 +4473,7 @@
           "basis": "BEFORE_FEES"
         }
       },
-      "expectedRevisionKey": "e2c2e42c6dd92ce741069f30f6359ce48299cde15d8f840c5d61ffff7f34feb4",
+      "expectedRevisionKey": "2d84f9eec942c4d1d66e7863929fd306f5dbfbb56a785dfbfb263957b4821954",
       "budget": {
         "timeMs": 5000,
         "iterations": 512
@@ -4337,6 +4640,28 @@
           "uncertaintyScope": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
           "confidenceLevel": null
         },
+        "decisionOutcome": {
+          "version": "THEIBS_DECISION_OUTCOME_V1",
+          "status": "CERTIFIED",
+          "scope": "FULL_PRIOR_COMMITMENT",
+          "target": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+          "actualHandEVEquivalence": false,
+          "policy": {
+            "version": "THEIBS_COMPARISON_POLICY_V1",
+            "nearEquivalenceBB": 0.01,
+            "unit": "BB",
+            "scope": "FULL_PRIOR_COMMITMENT"
+          },
+          "policyKey": "bbe7e98a415ae1c70a69aa7d5a8189fd561d1e69a7780692c2624dc855b1f34b",
+          "actionIds": [
+            "FOLD",
+            "CALL"
+          ],
+          "strictLeaderActionId": "CALL",
+          "nearGroupActionIds": [],
+          "robustWorstDifferenceBB": null,
+          "reasonCode": "STRICT_LEADER_PROVED"
+        },
         "adaptation": {
           "stopReason": "GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION",
           "workIterations": 150,
@@ -4344,9 +4669,10 @@
           "actionIterations": 100
         },
         "checkpoint": {
-          "version": "THEIBS_HU_ADAPTIVE_V5",
+          "version": "THEIBS_HU_ADAPTIVE_V6",
           "solverVersion": "THEIBS_FULL_TREE_CFR_PLUS_V1",
           "certificateVersion": "THEIBS_ACTION_CONDITIONED_V1",
+          "comparisonPolicyKey": "bbe7e98a415ae1c70a69aa7d5a8189fd561d1e69a7780692c2624dc855b1f34b",
           "baseContextKey": "2abd4f76cd4501216adaa37487c8ca1baf5b494d894f77457d1a8fbf0d5ede78",
           "baseGameHash": "36f3f18609eb479df189a2d58067e2c29e01cefc8e28aed8a7895919981eda08",
           "iterations": 50,
@@ -4378,11 +4704,11 @@
             ],
             "players": [
               {
-                "playerId": "d027e077-638c-4358-9753-21871eab96d2",
+                "playerId": "1e4520fa-c787-40e3-9ab8-ce537b157858",
                 "name": "You"
               },
               {
-                "playerId": "8daa6391-0cc6-4a20-b24d-acb907473257",
+                "playerId": "41b209cf-3984-4eaa-bd60-ae11111285d5",
                 "name": "A1"
               }
             ]
@@ -4528,7 +4854,7 @@
           "basis": "BEFORE_FEES"
         }
       },
-      "expectedRevisionKey": "7821dfa46ad3394fc85d63598b05f34d844087ca29dc678a333bb58d81ab1726",
+      "expectedRevisionKey": "eb07b4e5a538c425dceffebd6b23b03ebacc9231649ec62d2dc83efa4c8110a3",
       "budget": {
         "timeMs": 5000,
         "iterations": 512
@@ -4695,6 +5021,28 @@
           "uncertaintyScope": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
           "confidenceLevel": null
         },
+        "decisionOutcome": {
+          "version": "THEIBS_DECISION_OUTCOME_V1",
+          "status": "CERTIFIED",
+          "scope": "FULL_PRIOR_COMMITMENT",
+          "target": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+          "actualHandEVEquivalence": false,
+          "policy": {
+            "version": "THEIBS_COMPARISON_POLICY_V1",
+            "nearEquivalenceBB": 0.01,
+            "unit": "BB",
+            "scope": "FULL_PRIOR_COMMITMENT"
+          },
+          "policyKey": "bbe7e98a415ae1c70a69aa7d5a8189fd561d1e69a7780692c2624dc855b1f34b",
+          "actionIds": [
+            "FOLD",
+            "CALL"
+          ],
+          "strictLeaderActionId": "CALL",
+          "nearGroupActionIds": [],
+          "robustWorstDifferenceBB": null,
+          "reasonCode": "STRICT_LEADER_PROVED"
+        },
         "adaptation": {
           "stopReason": "GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION",
           "workIterations": 120,
@@ -4702,9 +5050,10 @@
           "actionIterations": 100
         },
         "checkpoint": {
-          "version": "THEIBS_HU_ADAPTIVE_V5",
+          "version": "THEIBS_HU_ADAPTIVE_V6",
           "solverVersion": "THEIBS_FULL_TREE_CFR_PLUS_V1",
           "certificateVersion": "THEIBS_ACTION_CONDITIONED_V1",
+          "comparisonPolicyKey": "bbe7e98a415ae1c70a69aa7d5a8189fd561d1e69a7780692c2624dc855b1f34b",
           "baseContextKey": "db86247232dd88662106c8533dfe31a6234eaf4f654381723d7aa1b99b252d8a",
           "baseGameHash": "585deb75decd602a785ed2a18795e09805f7e7e4291da19d34c23ffc702511e2",
           "iterations": 20,
@@ -4736,11 +5085,11 @@
             ],
             "players": [
               {
-                "playerId": "bcc6522b-3c2c-46d9-9124-ad64a69f1445",
+                "playerId": "b508c4e4-3f94-4d02-8acf-0bb36439b7f3",
                 "name": "You"
               },
               {
-                "playerId": "f35f8041-b159-4ea4-a17b-c4cfee49ec9c",
+                "playerId": "ccab197a-f81c-47cb-8d8f-f2cdb815ab47",
                 "name": "A1"
               }
             ]
@@ -4876,7 +5225,7 @@
           "basis": "BEFORE_FEES"
         }
       },
-      "expectedRevisionKey": "8d3ff1084f8cfbbf0eabe398847a0c07947aef71315ab10412e7a78d44d54173",
+      "expectedRevisionKey": "85f43fb2b7999379f6da3bf44eed8cf7ef7770e567fca972ef950ca9df6070d1",
       "budget": {
         "timeMs": 5000,
         "iterations": 512
@@ -5043,6 +5392,28 @@
           "uncertaintyScope": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
           "confidenceLevel": null
         },
+        "decisionOutcome": {
+          "version": "THEIBS_DECISION_OUTCOME_V1",
+          "status": "CERTIFIED",
+          "scope": "FULL_PRIOR_COMMITMENT",
+          "target": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+          "actualHandEVEquivalence": false,
+          "policy": {
+            "version": "THEIBS_COMPARISON_POLICY_V1",
+            "nearEquivalenceBB": 0.01,
+            "unit": "BB",
+            "scope": "FULL_PRIOR_COMMITMENT"
+          },
+          "policyKey": "bbe7e98a415ae1c70a69aa7d5a8189fd561d1e69a7780692c2624dc855b1f34b",
+          "actionIds": [
+            "FOLD",
+            "CALL"
+          ],
+          "strictLeaderActionId": "CALL",
+          "nearGroupActionIds": [],
+          "robustWorstDifferenceBB": null,
+          "reasonCode": "STRICT_LEADER_PROVED"
+        },
         "adaptation": {
           "stopReason": "GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION",
           "workIterations": 120,
@@ -5050,9 +5421,10 @@
           "actionIterations": 100
         },
         "checkpoint": {
-          "version": "THEIBS_HU_ADAPTIVE_V5",
+          "version": "THEIBS_HU_ADAPTIVE_V6",
           "solverVersion": "THEIBS_FULL_TREE_CFR_PLUS_V1",
           "certificateVersion": "THEIBS_ACTION_CONDITIONED_V1",
+          "comparisonPolicyKey": "bbe7e98a415ae1c70a69aa7d5a8189fd561d1e69a7780692c2624dc855b1f34b",
           "baseContextKey": "82e23910bfa50c51520cdf6bc8ebdad171ae567ca65974bc9ae9de00492db567",
           "baseGameHash": "fb7ccfe3196f1336af869d51a513c4afd090f914689731c857b963b2808bf23e",
           "iterations": 20,
@@ -5084,11 +5456,11 @@
             ],
             "players": [
               {
-                "playerId": "294b8605-179d-4864-bdac-f4bb1e45bd21",
+                "playerId": "602f524f-c0ea-4e73-9975-0a992823e9e5",
                 "name": "You"
               },
               {
-                "playerId": "eb23f8a8-148e-467c-9f9f-95b51248c927",
+                "playerId": "6f858b79-a38e-4140-a561-82c43dba8021",
                 "name": "A1"
               }
             ]
@@ -5224,7 +5596,7 @@
           "basis": "BEFORE_FEES"
         }
       },
-      "expectedRevisionKey": "58b23328a8e3571d005ec86c88d0789c7b802db585249148a76ce5cb879fc232",
+      "expectedRevisionKey": "1d6f01223294ce601a0d34be74309dd75bd18a65febd5e0e0e92195350546869",
       "budget": {
         "timeMs": 5000,
         "iterations": 512
@@ -5391,6 +5763,28 @@
           "uncertaintyScope": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
           "confidenceLevel": null
         },
+        "decisionOutcome": {
+          "version": "THEIBS_DECISION_OUTCOME_V1",
+          "status": "CERTIFIED",
+          "scope": "FULL_PRIOR_COMMITMENT",
+          "target": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+          "actualHandEVEquivalence": false,
+          "policy": {
+            "version": "THEIBS_COMPARISON_POLICY_V1",
+            "nearEquivalenceBB": 0.01,
+            "unit": "BB",
+            "scope": "FULL_PRIOR_COMMITMENT"
+          },
+          "policyKey": "bbe7e98a415ae1c70a69aa7d5a8189fd561d1e69a7780692c2624dc855b1f34b",
+          "actionIds": [
+            "FOLD",
+            "CALL"
+          ],
+          "strictLeaderActionId": "CALL",
+          "nearGroupActionIds": [],
+          "robustWorstDifferenceBB": null,
+          "reasonCode": "STRICT_LEADER_PROVED"
+        },
         "adaptation": {
           "stopReason": "GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION",
           "workIterations": 120,
@@ -5398,9 +5792,10 @@
           "actionIterations": 100
         },
         "checkpoint": {
-          "version": "THEIBS_HU_ADAPTIVE_V5",
+          "version": "THEIBS_HU_ADAPTIVE_V6",
           "solverVersion": "THEIBS_FULL_TREE_CFR_PLUS_V1",
           "certificateVersion": "THEIBS_ACTION_CONDITIONED_V1",
+          "comparisonPolicyKey": "bbe7e98a415ae1c70a69aa7d5a8189fd561d1e69a7780692c2624dc855b1f34b",
           "baseContextKey": "36fa7df7bc6395ea021ae734f97f0303770d1817bef82a98c9564d10a828d91d",
           "baseGameHash": "e810f5bf2c4d676eb5710ef44b7ad1e1fdd26ca4604baf5387f1a4cf68a5c5a9",
           "iterations": 20,
@@ -5432,11 +5827,11 @@
             ],
             "players": [
               {
-                "playerId": "d9eaf134-d498-4853-a930-207612b844e8",
+                "playerId": "6ce79922-9e0a-4c88-bd76-bc3317822f8f",
                 "name": "You"
               },
               {
-                "playerId": "02e384c0-a8d0-4e47-a1b7-849c8b5cc706",
+                "playerId": "13b2934c-f980-45a5-8697-18b6fb4b6f91",
                 "name": "A1"
               }
             ],
@@ -5576,7 +5971,7 @@
           "basis": "BEFORE_FEES"
         }
       },
-      "expectedRevisionKey": "4bd21ad8997a78522a46c557875373ad6746bc8f2c003f65bb4e9415f9f6d940",
+      "expectedRevisionKey": "d218e727540872792c796dac79a431952daa04c1260cbc0fa5c0c7a5442a248c",
       "budget": {
         "timeMs": 5000,
         "iterations": 512
@@ -5743,6 +6138,28 @@
           "uncertaintyScope": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
           "confidenceLevel": null
         },
+        "decisionOutcome": {
+          "version": "THEIBS_DECISION_OUTCOME_V1",
+          "status": "CERTIFIED",
+          "scope": "FULL_PRIOR_COMMITMENT",
+          "target": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+          "actualHandEVEquivalence": false,
+          "policy": {
+            "version": "THEIBS_COMPARISON_POLICY_V1",
+            "nearEquivalenceBB": 0.01,
+            "unit": "BB",
+            "scope": "FULL_PRIOR_COMMITMENT"
+          },
+          "policyKey": "bbe7e98a415ae1c70a69aa7d5a8189fd561d1e69a7780692c2624dc855b1f34b",
+          "actionIds": [
+            "FOLD",
+            "CALL"
+          ],
+          "strictLeaderActionId": "CALL",
+          "nearGroupActionIds": [],
+          "robustWorstDifferenceBB": null,
+          "reasonCode": "STRICT_LEADER_PROVED"
+        },
         "adaptation": {
           "stopReason": "GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION",
           "workIterations": 120,
@@ -5750,9 +6167,10 @@
           "actionIterations": 100
         },
         "checkpoint": {
-          "version": "THEIBS_HU_ADAPTIVE_V5",
+          "version": "THEIBS_HU_ADAPTIVE_V6",
           "solverVersion": "THEIBS_FULL_TREE_CFR_PLUS_V1",
           "certificateVersion": "THEIBS_ACTION_CONDITIONED_V1",
+          "comparisonPolicyKey": "bbe7e98a415ae1c70a69aa7d5a8189fd561d1e69a7780692c2624dc855b1f34b",
           "baseContextKey": "43d7b048c0c91165c6368f8b4ec04be0afead1a9229a9b1e55c119910348106a",
           "baseGameHash": "d74f287f56446a6062e374e6b559e3c622f68aff2ac9dcb5cb702a2a8f80e216",
           "iterations": 20,
@@ -5784,11 +6202,11 @@
             ],
             "players": [
               {
-                "playerId": "f172535b-2baf-47da-a3af-05cab10e8998",
+                "playerId": "1f7f408a-e287-46eb-99c9-9f16ca49fe67",
                 "name": "You"
               },
               {
-                "playerId": "e309b516-f89a-43f1-8b36-08d3a80b159b",
+                "playerId": "47df77d1-3bea-4e5d-9d18-d7a8cdb16766",
                 "name": "A1"
               }
             ]
@@ -5798,13 +6216,13 @@
               "type": "ACT",
               "actor": 0,
               "action": "CALL",
-              "eventId": "49c9e7ac-a268-49de-baa7-3d9f110f489d"
+              "eventId": "ae9a5ae8-38b2-4ce4-9cb7-9858feae39c8"
             },
             {
               "type": "ACT",
               "actor": 1,
               "action": "CHECK",
-              "eventId": "263b5739-5a82-4361-85ad-f8f5a0f28e27"
+              "eventId": "f952e082-d8c5-4f92-b624-0bd9560aa7e3"
             },
             {
               "type": "BOARD",
@@ -5813,19 +6231,19 @@
                 "3h",
                 "4d"
               ],
-              "eventId": "7cce06a5-89e1-43b4-bd59-dc39bd2e347b"
+              "eventId": "eb81a30d-1c18-426f-9ad6-b8a31c46b071"
             },
             {
               "type": "ACT",
               "actor": 1,
               "action": "CHECK",
-              "eventId": "0ad34f49-5833-4060-aa26-ffdb28dea6e5"
+              "eventId": "8df609e3-a99a-454e-91d6-155dd32f3e1e"
             },
             {
               "type": "ACT",
               "actor": 0,
               "action": "CHECK",
-              "eventId": "73d7d3df-5cee-45a8-ad38-fab3acbf629e"
+              "eventId": "64e52e26-cefd-4dd0-9113-c845a30966f4"
             },
             {
               "type": "BOARD",
@@ -5835,19 +6253,19 @@
                 "4d",
                 "8c"
               ],
-              "eventId": "c8aaf180-0195-48e2-be66-27c29ee0276e"
+              "eventId": "ae495e78-155c-4d24-a788-e802b835c28f"
             },
             {
               "type": "ACT",
               "actor": 1,
               "action": "CHECK",
-              "eventId": "9f4d0dc6-3c46-41e9-b30a-c4c4b6379d2a"
+              "eventId": "16155897-eaf5-4b16-bc47-510885f04eda"
             },
             {
               "type": "ACT",
               "actor": 0,
               "action": "CHECK",
-              "eventId": "d65a5159-0fd0-4c5e-8ea4-654bb92c83bc"
+              "eventId": "f1bb959f-334d-49a5-8c92-e662f39d0c05"
             },
             {
               "type": "BOARD",
@@ -5858,13 +6276,13 @@
                 "8c",
                 "9s"
               ],
-              "eventId": "bbb79ca7-f9cc-4754-93fa-6f961b057802"
+              "eventId": "124ada3e-02a4-4359-b972-db837f9e570d"
             },
             {
               "type": "ACT",
               "actor": 1,
               "action": "CHECK",
-              "eventId": "9538dee9-ad02-4bd3-a04b-c4009a86bb25"
+              "eventId": "53e25639-03bd-4bd4-a76b-e3597cfc11cf"
             }
           ],
           "handId": "00000000-0000-4000-8000-000000000013",
@@ -5939,7 +6357,7 @@
           "basis": "BEFORE_FEES"
         }
       },
-      "expectedRevisionKey": "6dc2e8b4640cfdee658568a1d26a8a8ccefa1eb734f74affad98bd3b2063a00c",
+      "expectedRevisionKey": "4da6ce9fd1535dcab1cfc6f2cffffa85082cc56d58093e1528359c13564ebfbf",
       "budget": {
         "timeMs": 5000,
         "iterations": 512
@@ -6188,6 +6606,30 @@
           "uncertaintyScope": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
           "confidenceLevel": null
         },
+        "decisionOutcome": {
+          "version": "THEIBS_DECISION_OUTCOME_V1",
+          "status": "CERTIFIED",
+          "scope": "FULL_PRIOR_COMMITMENT",
+          "target": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+          "actualHandEVEquivalence": false,
+          "policy": {
+            "version": "THEIBS_COMPARISON_POLICY_V1",
+            "nearEquivalenceBB": 0.01,
+            "unit": "BB",
+            "scope": "FULL_PRIOR_COMMITMENT"
+          },
+          "policyKey": "bbe7e98a415ae1c70a69aa7d5a8189fd561d1e69a7780692c2624dc855b1f34b",
+          "actionIds": [
+            "FOLD",
+            "CHECK",
+            "BET:1.00",
+            "BET:2.00"
+          ],
+          "strictLeaderActionId": "CHECK",
+          "nearGroupActionIds": [],
+          "robustWorstDifferenceBB": null,
+          "reasonCode": "STRICT_LEADER_PROVED"
+        },
         "adaptation": {
           "stopReason": "GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION",
           "workIterations": 230,
@@ -6195,9 +6637,10 @@
           "actionIterations": 200
         },
         "checkpoint": {
-          "version": "THEIBS_HU_ADAPTIVE_V5",
+          "version": "THEIBS_HU_ADAPTIVE_V6",
           "solverVersion": "THEIBS_FULL_TREE_CFR_PLUS_V1",
           "certificateVersion": "THEIBS_ACTION_CONDITIONED_V1",
+          "comparisonPolicyKey": "bbe7e98a415ae1c70a69aa7d5a8189fd561d1e69a7780692c2624dc855b1f34b",
           "baseContextKey": "8a14f5fced34392c72715db1a470903cd5213a817efe96488b1da6b073b8e337",
           "baseGameHash": "50951f76f9dec0fee060a2291e3727c8dc0c73b53b08944e4ca0bf0e6d4b63e3",
           "iterations": 30,
@@ -6229,11 +6672,11 @@
             ],
             "players": [
               {
-                "playerId": "aa4856f1-d1de-4e84-914c-41f127ba9397",
+                "playerId": "f4675cc1-a75b-46d0-9e1e-f0c3651d9332",
                 "name": "You"
               },
               {
-                "playerId": "c9054324-e574-4eeb-b13d-403edd9b446e",
+                "playerId": "e1f076ca-f15a-428a-8787-f77781eb3dd2",
                 "name": "A1"
               }
             ]
@@ -6243,13 +6686,13 @@
               "type": "ACT",
               "actor": 0,
               "action": "CALL",
-              "eventId": "31c4c38d-6398-49d8-9f36-4c0a948d1ef9"
+              "eventId": "c5dfc04d-c3fa-486a-b564-f9b36024e572"
             },
             {
               "type": "ACT",
               "actor": 1,
               "action": "CHECK",
-              "eventId": "81eb037b-b8b9-429b-9f97-e34e5a884914"
+              "eventId": "6e70ffd0-29ad-4385-99d8-086f0c568ab8"
             },
             {
               "type": "BOARD",
@@ -6258,19 +6701,19 @@
                 "3h",
                 "4d"
               ],
-              "eventId": "65bfcbf5-bd15-470d-8684-12d4bba3e89a"
+              "eventId": "27cfa9f5-88c1-4319-83d2-d85146766157"
             },
             {
               "type": "ACT",
               "actor": 1,
               "action": "CHECK",
-              "eventId": "bc0ef37a-6df2-49ff-88a6-1506bdf7175f"
+              "eventId": "4aa83917-3cf5-4ed3-804e-e32c475ca59f"
             },
             {
               "type": "ACT",
               "actor": 0,
               "action": "CHECK",
-              "eventId": "4ec44774-9fc9-49db-89f0-ea5d46f89a55"
+              "eventId": "4c4e8809-f77e-42e1-bf69-bdc0fb69d8e9"
             },
             {
               "type": "BOARD",
@@ -6280,19 +6723,19 @@
                 "4d",
                 "8c"
               ],
-              "eventId": "c24c4fc6-f205-4030-93d6-6f989f310f91"
+              "eventId": "fe92a42d-b794-49ac-adff-650b660e6706"
             },
             {
               "type": "ACT",
               "actor": 1,
               "action": "CHECK",
-              "eventId": "0f1bf5aa-63e0-469c-8199-4057a581ab3f"
+              "eventId": "f22aac95-44f5-48c2-a11d-beaed526b147"
             },
             {
               "type": "ACT",
               "actor": 0,
               "action": "CHECK",
-              "eventId": "babd3324-46ce-41f1-95cc-ceb2b4fc7544"
+              "eventId": "e0f8f865-87c1-4a4c-926b-a2171a2531d9"
             },
             {
               "type": "BOARD",
@@ -6303,13 +6746,13 @@
                 "8c",
                 "9s"
               ],
-              "eventId": "e8a473a4-9adf-425e-8f94-21c9ccb22bf2"
+              "eventId": "4ae9e73e-7071-495a-8fe6-6c83a29b9f26"
             },
             {
               "type": "ACT",
               "actor": 1,
               "action": "CHECK",
-              "eventId": "7192b5f4-79ee-4223-8cc7-36901a67a651"
+              "eventId": "9afcdf76-3a45-43be-8a45-f56ae23b3245"
             }
           ],
           "handId": "00000000-0000-4000-8000-000000000014",
@@ -6384,7 +6827,7 @@
           "basis": "BEFORE_FEES"
         }
       },
-      "expectedRevisionKey": "a3cc7a554e40b047719fc1d02ebae2b9d79e835523be24a03846fd7a95d954f1",
+      "expectedRevisionKey": "594a79b517ee2b0d02ad8434707be6ea911e749317d70cd233e7370c90756b97",
       "budget": {
         "timeMs": 5000,
         "iterations": 512
@@ -6541,9 +6984,9 @@
             {
               "id": "FOLD",
               "certified": true,
-              "estimateBB": 1.4997371812766163,
-              "lowerBB": 1.499625817410774,
-              "upperBB": 1.4998485451424586,
+              "estimateBB": 1.4998470894056486,
+              "lowerBB": 1.4994060011527093,
+              "upperBB": 1.5002881776585877,
               "baseGameHash": "abf2ec6a115c0d03dfbbf54bfdc3b1229b22807415e884ea29519807ae77dc0e",
               "baseContextKey": "ec455d0c64b270dc1278f22b0ca616672c01f175770084bdaa568e9dbb310774",
               "gameHash": "5a2e2b3b28f9ad73adbfea6e3b3ef3c50972d767e1521f0feeb688a8cbff29f7",
@@ -6555,15 +6998,15 @@
                 "basis": "INCREMENTAL_TERMINAL_PAYOFF_FROM_ORIGINAL_DECISION",
                 "scope": "FULL_PRIOR_EX_ANTE"
               },
-              "iterations": 100,
+              "iterations": 50,
               "strategicDecisionCount": 5
             },
             {
               "id": "CHECK",
               "certified": true,
-              "estimateBB": 1.4999101377910953,
-              "lowerBB": 1.499879784405812,
-              "upperBB": 1.4999404911763783,
+              "estimateBB": 1.500047049413647,
+              "lowerBB": 1.4996059611607078,
+              "upperBB": 1.5004881376665864,
               "baseGameHash": "abf2ec6a115c0d03dfbbf54bfdc3b1229b22807415e884ea29519807ae77dc0e",
               "baseContextKey": "ec455d0c64b270dc1278f22b0ca616672c01f175770084bdaa568e9dbb310774",
               "gameHash": "0f11f72350c1d47507db60db305c497bafed42261eae4912c50956b9cc6da599",
@@ -6575,15 +7018,15 @@
                 "basis": "INCREMENTAL_TERMINAL_PAYOFF_FROM_ORIGINAL_DECISION",
                 "scope": "FULL_PRIOR_EX_ANTE"
               },
-              "iterations": 192,
+              "iterations": 50,
               "strategicDecisionCount": 5
             },
             {
               "id": "BET:1.00",
               "certified": true,
-              "estimateBB": 1.4998371810786364,
-              "lowerBB": 1.4997257974147733,
-              "upperBB": 1.4999485647424993,
+              "estimateBB": 1.4999471478253374,
+              "lowerBB": 1.4995059811567086,
+              "upperBB": 1.500388314493966,
               "baseGameHash": "abf2ec6a115c0d03dfbbf54bfdc3b1229b22807415e884ea29519807ae77dc0e",
               "baseContextKey": "ec455d0c64b270dc1278f22b0ca616672c01f175770084bdaa568e9dbb310774",
               "gameHash": "e142e7f04a53fea9e318c2fde2161df8b682adbf5ed481ab30b6cb9af75d059d",
@@ -6595,15 +7038,15 @@
                 "basis": "INCREMENTAL_TERMINAL_PAYOFF_FROM_ORIGINAL_DECISION",
                 "scope": "FULL_PRIOR_EX_ANTE"
               },
-              "iterations": 100,
+              "iterations": 50,
               "strategicDecisionCount": 5
             },
             {
               "id": "BET:2.00",
               "certified": true,
-              "estimateBB": 1.4997372109736473,
-              "lowerBB": 1.499625817410774,
-              "upperBB": 1.4998486045365207,
+              "estimateBB": 1.4998472070291826,
+              "lowerBB": 1.4994060011527093,
+              "upperBB": 1.5002884129056562,
               "baseGameHash": "abf2ec6a115c0d03dfbbf54bfdc3b1229b22807415e884ea29519807ae77dc0e",
               "baseContextKey": "ec455d0c64b270dc1278f22b0ca616672c01f175770084bdaa568e9dbb310774",
               "gameHash": "3cb843283811e7afe6eb15228f013e4691b9b97f5fcb4111164059f5fed40ad4",
@@ -6615,7 +7058,7 @@
                 "basis": "INCREMENTAL_TERMINAL_PAYOFF_FROM_ORIGINAL_DECISION",
                 "scope": "FULL_PRIOR_EX_ANTE"
               },
-              "iterations": 100,
+              "iterations": 50,
               "strategicDecisionCount": 5
             }
           ]
@@ -6628,25 +7071,55 @@
           "leaderConclusive": false,
           "globalBestSupported": false,
           "reasonCode": "BEST_SECOND_INTERVALS_OVERLAP",
-          "separationToleranceBB": 5.328887783457856e-15,
+          "separationToleranceBB": 5.330804731565971e-15,
           "uncertaintyMethod": "OUTWARD_ROUNDED_INFORMATION_SET_BEST_RESPONSE_SADDLE_BOUNDS",
           "uncertaintyScope": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
           "confidenceLevel": null
         },
+        "decisionOutcome": {
+          "version": "THEIBS_DECISION_OUTCOME_V1",
+          "status": "NEAR_EQUIVALENT",
+          "scope": "FULL_PRIOR_COMMITMENT",
+          "target": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+          "actualHandEVEquivalence": false,
+          "policy": {
+            "version": "THEIBS_COMPARISON_POLICY_V1",
+            "nearEquivalenceBB": 0.01,
+            "unit": "BB",
+            "scope": "FULL_PRIOR_COMMITMENT"
+          },
+          "policyKey": "bbe7e98a415ae1c70a69aa7d5a8189fd561d1e69a7780692c2624dc855b1f34b",
+          "actionIds": [
+            "FOLD",
+            "CHECK",
+            "BET:1.00",
+            "BET:2.00"
+          ],
+          "strictLeaderActionId": null,
+          "nearGroupActionIds": [
+            "FOLD",
+            "CHECK",
+            "BET:1.00",
+            "BET:2.00"
+          ],
+          "robustWorstDifferenceBB": 0.001082136513877119,
+          "reasonCode": "NEAR_EQUIVALENCE_PROVED"
+        },
         "adaptation": {
-          "stopReason": "ITERATION_RESOURCE_CEILING",
-          "workIterations": 512,
+          "stopReason": "GLOBAL_CONVERGENCE_AND_CERTIFIED_NEAR_EQUIVALENCE",
+          "workIterations": 220,
           "globalIterations": 20,
-          "actionIterations": 492
+          "actionIterations": 200
         },
         "checkpoint": {
-          "version": "THEIBS_HU_ADAPTIVE_V5",
+          "version": "THEIBS_HU_ADAPTIVE_V6",
           "solverVersion": "THEIBS_FULL_TREE_CFR_PLUS_V1",
           "certificateVersion": "THEIBS_ACTION_CONDITIONED_V1",
+          "comparisonPolicyKey": "bbe7e98a415ae1c70a69aa7d5a8189fd561d1e69a7780692c2624dc855b1f34b",
           "baseContextKey": "ec455d0c64b270dc1278f22b0ca616672c01f175770084bdaa568e9dbb310774",
           "baseGameHash": "abf2ec6a115c0d03dfbbf54bfdc3b1229b22807415e884ea29519807ae77dc0e",
           "iterations": 20,
-          "workIterations": 512
+          "workIterations": 220
         }
       },
       "evidence": "NODE_REFERENCE_WITH_INDEPENDENT_LP_AND_ZERO_TOLERANCE_RATIONAL_CONTAINMENT_NOT_BROWSER_EXECUTION"
@@ -6674,11 +7147,11 @@
             ],
             "players": [
               {
-                "playerId": "2f750c6a-00cb-434c-b978-f299205f8634",
+                "playerId": "57772ce6-c32a-4b5e-ba3f-a8e7ecf521e6",
                 "name": "You"
               },
               {
-                "playerId": "faf5b847-da19-4e3c-a899-06591f475c6c",
+                "playerId": "68533845-68e8-492d-8116-71d54b595a1c",
                 "name": "A1"
               }
             ],
@@ -6692,13 +7165,13 @@
               "type": "ACT",
               "actor": 0,
               "action": "CALL",
-              "eventId": "b0ccea48-de6f-4d9e-a1c7-196b65d04631"
+              "eventId": "0a104805-2141-4544-a3c2-524d2bf13c6a"
             },
             {
               "type": "ACT",
               "actor": 1,
               "action": "CHECK",
-              "eventId": "733cdcf2-93de-42f2-8c92-ecf11d34b6fd"
+              "eventId": "bfc64101-6092-41fe-99d5-2d36fdb99215"
             },
             {
               "type": "BOARD",
@@ -6707,19 +7180,19 @@
                 "3h",
                 "4d"
               ],
-              "eventId": "2abc56c2-29e8-4177-a48c-0c7ab86a787d"
+              "eventId": "9e6431bb-e413-463c-b07c-4109b6cc095c"
             },
             {
               "type": "ACT",
               "actor": 1,
               "action": "CHECK",
-              "eventId": "8b45f479-fbde-4a02-bd79-8397858ce970"
+              "eventId": "73a3fa4e-a2a8-4f13-8229-32a53585a9ee"
             },
             {
               "type": "ACT",
               "actor": 0,
               "action": "CHECK",
-              "eventId": "ddf507d9-8556-45c2-9515-a3e84fae074c"
+              "eventId": "7235045f-1a82-4d6c-8ee8-e361fc031dc5"
             },
             {
               "type": "BOARD",
@@ -6729,19 +7202,19 @@
                 "4d",
                 "8c"
               ],
-              "eventId": "1360bcb8-3f42-4480-8816-f54bb90fe30f"
+              "eventId": "6b3aafd9-27ba-459a-9e37-b6f5f238179b"
             },
             {
               "type": "ACT",
               "actor": 1,
               "action": "CHECK",
-              "eventId": "19be2741-e443-4a6b-9fab-85314d669d2f"
+              "eventId": "06345615-a14c-4986-a280-1b2fc263263a"
             },
             {
               "type": "ACT",
               "actor": 0,
               "action": "CHECK",
-              "eventId": "5c4b8dcd-bfdc-4d27-ba14-729dedb56d84"
+              "eventId": "f0d133b2-0c94-48eb-9ade-8b4ecd684ad9"
             },
             {
               "type": "BOARD",
@@ -6752,13 +7225,13 @@
                 "8c",
                 "9s"
               ],
-              "eventId": "385daf9a-0cfb-4acb-92f5-2f31df3c226f"
+              "eventId": "71f55b77-ce2c-4e82-94dd-fb9c53b44a33"
             },
             {
               "type": "ACT",
               "actor": 1,
               "action": "CHECK",
-              "eventId": "1a00ca5f-e3de-479f-b098-f4528febfd69"
+              "eventId": "aa22d28c-f93e-4a9c-af17-7b81294bbf52"
             }
           ],
           "handId": "00000000-0000-4000-8000-000000000015",
@@ -6833,7 +7306,7 @@
           "basis": "BEFORE_FEES"
         }
       },
-      "expectedRevisionKey": "3521838ca87471771dee6df66417c2d0d2f2eeac1ecad87f36a1ae1a45dcaddb",
+      "expectedRevisionKey": "c322f9de2ec34c5a3477f6fde29e01e65f5470bd74ea3727a41a0e6962eb3a1a",
       "budget": {
         "timeMs": 5000,
         "iterations": 512
@@ -7041,6 +7514,29 @@
           "uncertaintyScope": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
           "confidenceLevel": null
         },
+        "decisionOutcome": {
+          "version": "THEIBS_DECISION_OUTCOME_V1",
+          "status": "CERTIFIED",
+          "scope": "FULL_PRIOR_COMMITMENT",
+          "target": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+          "actualHandEVEquivalence": false,
+          "policy": {
+            "version": "THEIBS_COMPARISON_POLICY_V1",
+            "nearEquivalenceBB": 0.01,
+            "unit": "BB",
+            "scope": "FULL_PRIOR_COMMITMENT"
+          },
+          "policyKey": "bbe7e98a415ae1c70a69aa7d5a8189fd561d1e69a7780692c2624dc855b1f34b",
+          "actionIds": [
+            "FOLD",
+            "CHECK",
+            "BET:1.00"
+          ],
+          "strictLeaderActionId": "CHECK",
+          "nearGroupActionIds": [],
+          "robustWorstDifferenceBB": null,
+          "reasonCode": "STRICT_LEADER_PROVED"
+        },
         "adaptation": {
           "stopReason": "GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION",
           "workIterations": 170,
@@ -7048,9 +7544,10 @@
           "actionIterations": 150
         },
         "checkpoint": {
-          "version": "THEIBS_HU_ADAPTIVE_V5",
+          "version": "THEIBS_HU_ADAPTIVE_V6",
           "solverVersion": "THEIBS_FULL_TREE_CFR_PLUS_V1",
           "certificateVersion": "THEIBS_ACTION_CONDITIONED_V1",
+          "comparisonPolicyKey": "bbe7e98a415ae1c70a69aa7d5a8189fd561d1e69a7780692c2624dc855b1f34b",
           "baseContextKey": "8c8a31b32be5cd501db109f68ede4fd03b652cbe5d93a8c9c613c7e2c180c1aa",
           "baseGameHash": "4a3f179322723e239febed7d4af566c2cf4003c3e3bb49e20d2dab940b8cdf62",
           "iterations": 20,
@@ -7082,11 +7579,11 @@
             ],
             "players": [
               {
-                "playerId": "edc1ae03-3b3e-42e4-aa7a-ce313b6b5910",
+                "playerId": "6553559b-096d-4ef1-a1d3-9ad36b9913b2",
                 "name": "You"
               },
               {
-                "playerId": "0d1ac6d4-7bba-42e1-aaed-8eb79f3e5e46",
+                "playerId": "6e000e7d-e6aa-40c8-a736-c20cbba17174",
                 "name": "A1"
               }
             ]
@@ -7227,7 +7724,7 @@
           "basis": "BEFORE_FEES"
         }
       },
-      "expectedRevisionKey": "1323b6441190657d95a69af2aaf477bcbb0da4d39d9f7c7d33f011f7a1aaba0b",
+      "expectedRevisionKey": "a95adb918cc9c333adef3d3d29528aa77669666ee16102b51eb016a5fedbbfd1",
       "budget": {
         "timeMs": 5000,
         "iterations": 512
@@ -7394,6 +7891,28 @@
           "uncertaintyScope": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
           "confidenceLevel": null
         },
+        "decisionOutcome": {
+          "version": "THEIBS_DECISION_OUTCOME_V1",
+          "status": "CERTIFIED",
+          "scope": "FULL_PRIOR_COMMITMENT",
+          "target": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+          "actualHandEVEquivalence": false,
+          "policy": {
+            "version": "THEIBS_COMPARISON_POLICY_V1",
+            "nearEquivalenceBB": 0.01,
+            "unit": "BB",
+            "scope": "FULL_PRIOR_COMMITMENT"
+          },
+          "policyKey": "bbe7e98a415ae1c70a69aa7d5a8189fd561d1e69a7780692c2624dc855b1f34b",
+          "actionIds": [
+            "FOLD",
+            "CALL"
+          ],
+          "strictLeaderActionId": "CALL",
+          "nearGroupActionIds": [],
+          "robustWorstDifferenceBB": null,
+          "reasonCode": "STRICT_LEADER_PROVED"
+        },
         "adaptation": {
           "stopReason": "GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION",
           "workIterations": 120,
@@ -7401,9 +7920,10 @@
           "actionIterations": 100
         },
         "checkpoint": {
-          "version": "THEIBS_HU_ADAPTIVE_V5",
+          "version": "THEIBS_HU_ADAPTIVE_V6",
           "solverVersion": "THEIBS_FULL_TREE_CFR_PLUS_V1",
           "certificateVersion": "THEIBS_ACTION_CONDITIONED_V1",
+          "comparisonPolicyKey": "bbe7e98a415ae1c70a69aa7d5a8189fd561d1e69a7780692c2624dc855b1f34b",
           "baseContextKey": "04bdd262d04d86c0a7cf5af187785d1b2687fbd1ce0d6c5c9d7bc4b91db416e8",
           "baseGameHash": "c0433f06af27b4520de1207d124ce75a8fd7353d419193aff2e0dd00dfcac8a4",
           "iterations": 20,

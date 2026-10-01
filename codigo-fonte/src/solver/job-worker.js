@@ -6,6 +6,7 @@ const core=require('./extensive-solver');
 const actionConditioned=require('./action-conditioned');
 const {qualify,THRESHOLD_BB}=require('./solution-status');
 const {solverDecisionPrecision}=require('../decision-precision');
+const decisionOutcome=require('./decision-outcome');
 
 const {ADAPTIVE_VERSION:VERSION}=require('./versions');
 const LIMITS=Object.freeze({maxNodes:12000,maxInformationSets:12000,maxWorkingBytes:64*1024*1024,maxDepth:256});
@@ -32,29 +33,47 @@ function focusActions(ids,rows){
     separated:ids.length>1&&allCertified&&survivingActionIds.length===1,
     policy:'CERTIFIED_DOMINATION_ONLY_GLOBAL_TREE_UNCHANGED'};
 }
-function chooseFocus(ids,rows,attempts={}){
+function chooseFocus(ids,rows,attempts={},comparisonPolicy){
   const focus=focusActions(ids,rows),found=new Map(rows.map(row=>[row.id,row]));
-  const candidates=focus.survivingActionIds.map(id=>({id,row:found.get(id),attempts:attempts[id]||0}));
-  // Optimistic compatible bounds prioritize contenders. A two-batch maximum
-  // lead keeps a difficult/wide candidate from starving another contender.
+  const epsilon=decisionOutcome.normalizePolicy(comparisonPolicy).nearEquivalenceBB;
+  const leader=found.get(focus.leaderActionId);
+  const epsilonNearActionIds=ids.filter(id=>{
+    const row=found.get(id);
+    return !leader||!validBounds(row)||row.upperBB+epsilon+focus.toleranceBB>=leader.lowerBB;
+  });
+  const refinementActionIds=ids.filter(id=>focus.survivingActionIds.includes(id)||epsilonNearActionIds.includes(id));
+  const candidates=refinementActionIds.map(id=>({id,row:found.get(id),attempts:Number.isSafeInteger(attempts[id])&&attempts[id]>=0?attempts[id]:0}));
+  const initial=candidates.find(candidate=>!validBounds(candidate.row)&&candidate.attempts===0);
+  if(initial)return {focus,id:initial.id,refinementActionIds,epsilonNearActionIds,phase:'INITIAL_ALL_ACTIONS'};
+  // A two-batch maximum lead keeps frontier priority from starving a wide
+  // third candidate. The entire original strategy tree remains unchanged.
   // Original-profile point EV and strategy frequency never exclude an action.
   const leastAttempts=Math.min(...candidates.map(candidate=>candidate.attempts));
   const eligible=candidates.filter(candidate=>candidate.attempts<=leastAttempts+1);
+  const second=candidates.filter(candidate=>candidate.id!==leader?.id&&validBounds(candidate.row))
+    .sort((a,b)=>b.row.upperBB-a.row.upperBB||ids.indexOf(a.id)-ids.indexOf(b.id))[0];
   eligible.sort((a,b)=>{
     const aKnown=validBounds(a.row),bKnown=validBounds(b.row);
     if(aKnown!==bKnown)return aKnown?1:-1;
     if(!aKnown)return a.attempts-b.attempts||ids.indexOf(a.id)-ids.indexOf(b.id);
-    return b.row.upperBB-a.row.upperBB||(b.row.upperBB-b.row.lowerBB)-(a.row.upperBB-a.row.lowerBB)||a.attempts-b.attempts||ids.indexOf(a.id)-ids.indexOf(b.id);
+    const aFrontier=a.id===leader?.id||a.id===second?.id,bFrontier=b.id===leader?.id||b.id===second?.id;
+    return Number(bFrontier)-Number(aFrontier)||(b.row.upperBB-b.row.lowerBB)-(a.row.upperBB-a.row.lowerBB)||
+      b.row.upperBB-a.row.upperBB||a.attempts-b.attempts||ids.indexOf(a.id)-ids.indexOf(b.id);
   });
-  return {focus,id:eligible[0]?.id||null};
+  return {focus,id:eligible[0]?.id||null,refinementActionIds,epsilonNearActionIds,phase:'FAIR_BOUND_FRONTIER'};
 }
 
 function execute({input,budget,checkpoint,shouldCancel=()=>false,onProgress=()=>{}},dependencies={}){
   const engine=dependencies.core||core,certifier=dependencies.actionConditioned||actionConditioned;
   const build=dependencies.build||buildPloRiverGame,qualification=dependencies.qualify||qualify,now=dependencies.now||(()=>performance.now());
+  const comparisonPolicy=decisionOutcome.normalizePolicy(input?.comparisonPolicy),comparisonPolicyKey=decisionOutcome.policyKey(comparisonPolicy);
   const started=now(),runCosts=emptyCosts();let last=null,solved=null,diagnostics=null,stopReason=null;
   const built=build(input);runCosts.buildMs=now()-started;
-  if(built.status!=='READY')return {result:{status:'NOT_SOLVED',reasons:built.reasons,actions:[],method:'CFR_PLUS',qualification:{gto:false},metrics:built.metrics},workerMs:now()-started,paused:shouldCancel()};
+  if(built.status!=='READY'){
+    const result={status:'NOT_SOLVED',reasons:built.reasons,actions:[],method:'CFR_PLUS',qualification:{gto:false},metrics:built.metrics,comparisonPolicy,comparisonPolicyKey};
+    result.decisionOutcome=decisionOutcome.decide(result,{policy:comparisonPolicy});
+    return {result,workerMs:now()-started,paused:shouldCancel()};
+  }
   const game=built.game,meta=game.meta,ids=meta.rootActions.map(action=>action.id);
   // Trusted browser runtime opt-in, never request or checkpoint data. The Node
   // default stays uncached; native SHA has no demonstrated app-level speedup.
@@ -63,7 +82,7 @@ function execute({input,budget,checkpoint,shouldCancel=()=>false,onProgress=()=>
   const actionCompilation={compileCount:0,reuseCount:0,freezeMs:0,compileMs:0,peakRetainedBytes:0};
   try {
   const baseContextKey=hash([meta.key,meta.heroInformationSet,engine.VERSION,certifier.VERSION]);
-  const compatible=checkpoint?.version===VERSION&&checkpoint.baseContextKey===baseContextKey&&checkpoint.solverVersion===engine.VERSION&&checkpoint.certificateVersion===certifier.VERSION;
+  const compatible=checkpoint?.version===VERSION&&checkpoint.baseContextKey===baseContextKey&&checkpoint.comparisonPolicyKey===comparisonPolicyKey&&checkpoint.solverVersion===engine.VERSION&&checkpoint.certificateVersion===certifier.VERSION;
   let globalCheckpoint=compatible?checkpoint.global:checkpoint?.version===engine.VERSION?checkpoint:null;
   const actionCheckpoints=compatible?clone(checkpoint.actionCheckpoints||{}):{};
   const actionCertificates=compatible?clone(checkpoint.actionCertificates||{}):{};
@@ -72,6 +91,7 @@ function execute({input,budget,checkpoint,shouldCancel=()=>false,onProgress=()=>
   const cumulativeCosts=compatible?clone(checkpoint.costs||emptyCosts()):emptyCosts();
   const stabilityHistory=compatible?clone(checkpoint.stabilityHistory||[]):[];
   let previousDiagnostics=compatible?clone(checkpoint.lastDiagnostics):null;
+  let firstValueMs=compatible&&finite(checkpoint.firstValueMs)?checkpoint.firstValueMs:null,latestOutcomeStatus=null;
   let totalWork=compatible?workIterations(checkpoint):workIterations(globalCheckpoint),initialWork=totalWork;
   let baseGameHash=compatible?checkpoint.baseGameHash:null,verifiedClass=compatible?checkpoint.supportedGameClass:null;
   const actionEligible=game.playerCount===2&&meta.originalSeats===2&&meta.constantSum===true&&meta.treeComplete===true&&meta.chanceSupportComplete===true;
@@ -103,15 +123,16 @@ function execute({input,budget,checkpoint,shouldCancel=()=>false,onProgress=()=>
       peakRetainedBytes:Math.max(base.retainedBytes,actionCompilation.peakRetainedBytes),maxRetainedBytes:engine.MAX_RETAINED_COMPILATION_BYTES}};
   }
   function saved(){return {version:VERSION,solverVersion:engine.VERSION,certificateVersion:certifier.VERSION,baseContextKey,baseGameHash,
+    comparisonPolicy,comparisonPolicyKey,firstValueMs,
     global:globalCheckpoint,actionCheckpoints:clone(actionCheckpoints),actionCertificates:clone(actionCertificates),actionCosts:clone(actionCosts),
     attempts:{...attempts},supportedGameClass:verifiedClass,iterations:globalCheckpoint?.iterations||0,workIterations:totalWork,
     costs:costs(),stabilityHistory:clone(stabilityHistory),lastDiagnostics:clone(previousDiagnostics)};}
   function render(refining){
     if(!solved?.strategy||!solved.checkpoint||!(solved.iterations>0))return null;
-    const rows=certificateRows(),focus=focusActions(ids,rows),converged=globalMet();
+    const rows=certificateRows(),selection=chooseFocus(ids,rows,attempts,comparisonPolicy),focus=selection.focus,converged=globalMet();
     const precisionSupported=actionEligible&&verifiedClass==='TWO_PLAYER_CONSTANT_SUM_PERFECT_RECALL';
     const result={...qualification(meta,solved,{coverage:built.coverage}),source:'REFERENCE_SUBGAME_STRATEGY',method:solved.method,
-      solverVersion:solved.solverVersion,gameHash:solved.gameHash,scope:'DECLARED_FINITE_RIVER_SUBGAME',strategyScope:'CURRENT_HAND_COMBINATION',
+      solverVersion:solved.solverVersion,gameHash:solved.gameHash,scope:'DECLARED_FINITE_RIVER_SUBGAME',strategyScope:'CURRENT_HAND_COMBINATION',comparisonPolicy,comparisonPolicyKey,
       actions:meta.rootActions.map(action=>{const value=diagnostics?.actions?.find(item=>item.id===action.id);return {...action,frequency:value?.frequency??null,evBB:value?.ev??null};}),
       convergence:{...solved.convergence,unit:'BB',thresholdBB:THRESHOLD_BB,thresholdMet:converged},iterations:solved.iterations,
       abstraction:meta,termination:solved.termination,
@@ -124,14 +145,15 @@ function execute({input,budget,checkpoint,shouldCancel=()=>false,onProgress=()=>
       adaptation:{version:VERSION,phase:refining?'REFINING':stopReason==='FOREGROUND_PRIORITY_PAUSE'?'PAUSED':'STOPPED',stopReason:refining?null:stopReason,
         // Interrupting execution does not establish mathematical completion.
         // The service owns resume/cancel and cumulative resource ceilings.
-        refinementRecommended:stopReason!=='FIXED_CONTINUATIONS_FULLY_EVALUATED'&&(!converged||actionEligible&&!focus.separated),
+        refinementRecommended:stopReason!=='FIXED_CONTINUATIONS_FULLY_EVALUATED'&&(!converged||actionEligible&&(!focus.separated||selection.refinementActionIds.length>=2)),
         resourceCeiling:{timeMs:budget.timeMs,iterations:budget.iterations},workIterations:totalWork,
         globalIterations:solved.iterations,actionIterations:Object.values(actionCheckpoints).reduce((sum,item)=>sum+(item?.iterations||0),0),
         sizingRefinement:{mode:'FIXED_DECLARED_TREE_ADAPTIVE_CERTIFICATES',scope:'DECLARED_LEGAL_CANDIDATES_ONLY',
           treeKey:meta.key,gameHash:baseGameHash,baseContextKey,allDeclaredActionsRetained:true,
           allLegalSizesRepresented:meta.fullLegalSizingCoverage===true,
           sizingActionIds:meta.rootActions.filter(action=>finite(action.size)).map(action=>action.id),
-          selectionPolicy:'UNCERTIFIED_FIRST_THEN_OPTIMISTIC_BOUND_WITH_TWO_BATCH_FAIRNESS',
+          selectionPolicy:'INITIAL_ALL_ACTIONS_THEN_BOUND_FRONTIER_WITH_TWO_BATCH_FAIRNESS',
+          comparisonPolicyKey,refinementActionIds:selection.refinementActionIds,epsilonNearActionIds:selection.epsilonNearActionIds,
           candidates:ids.map(id=>({id,attempts:attempts[id]||0,
             state:focus.dominatedActions.some(row=>row.id===id)?'CERTIFIED_DOMINATED':
               validBounds(rows.find(row=>row.id===id))?'CERTIFIED_CONTENDER':attempts[id]?'AWAITING_CERTIFICATE':'NOT_EVALUATED'}))}},
@@ -146,9 +168,15 @@ function execute({input,budget,checkpoint,shouldCancel=()=>false,onProgress=()=>
         'Global strategy frequencies and conditional profile EV are kept separate from commitment-value certificates.',
         'Independent linear-programming checks cover selected small heads-up PLO5 river test cases. LP is not run for each request. This release does not label poker results GTO.']};
     result.decisionPrecision=solverDecisionPrecision(result);
+    result.decisionOutcome=decisionOutcome.decide(result,{policy:comparisonPolicy,refining,costs:costs(),firstValueMs,attempts,stopReason:refining?null:stopReason});
+    if(['CERTIFIED','NEAR_EQUIVALENT'].includes(result.decisionOutcome.status)&&stopReason?.startsWith('GLOBAL_CONVERGENCE_AND_CERTIFIED'))result.adaptation.refinementRecommended=false;
     return result;
   }
-  function publish(){runCosts.totalComputeMs=now()-started;const result=render(true);if(result){last=result;onProgress({type:'progress',result,checkpoint:saved(),workerMs:now()-started});}}
+  function publish(){
+    runCosts.totalComputeMs=now()-started;
+    if(originalReady())firstValueMs??=(cumulativeCosts.totalComputeMs||0)+runCosts.totalComputeMs;
+    const result=render(true);if(result){last=result;latestOutcomeStatus=result.decisionOutcome.status;onProgress({type:'progress',result,checkpoint:saved(),workerMs:now()-started});}
+  }
   function globalBatch(){
     const start=now(),before=globalCheckpoint?.iterations||0;
     const next=engine.solve(game,{...LIMITS,compilationContext,checkpoint:globalCheckpoint,iterations:Math.min(50,Math.max(0,remainingIterations())),
@@ -173,7 +201,7 @@ function execute({input,budget,checkpoint,shouldCancel=()=>false,onProgress=()=>
     publish();return next.additionalIterations>0;
   }
   function actionBatch(){
-    const selected=chooseFocus(ids,certificateRows(),attempts).id;if(!selected)return false;
+    const selected=chooseFocus(ids,certificateRows(),attempts,comparisonPolicy).id;if(!selected)return false;
     const start=now(),before=actionCheckpoints[selected]?.iterations||0;
     attempts[selected]=(attempts[selected]||0)+1;
     const response=certifier.solveActionConditioned(game,{...LIMITS,compilationContext,player:meta.heroSeat,informationSet:meta.heroInformationSet,actionIds:[selected],
@@ -217,9 +245,10 @@ function execute({input,budget,checkpoint,shouldCancel=()=>false,onProgress=()=>
   }
   globalBatch();
   while(!shouldCancel()&&!ceilingReached()){
-    const focused=focusActions(ids,certificateRows());
-    if(globalMet()&&(!actionEligible||focused.separated)){stopReason=actionEligible?'GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION':'GLOBAL_CONVERGENCE_ACTION_CERTIFICATES_NOT_COVERED';break;}
-    if(globalMet()&&actionEligible&&focused.allCertified&&focused.survivingActionIds.every(id=>actionCertificates[id]?.strategicDecisionCount===0)){
+    const selection=chooseFocus(ids,certificateRows(),attempts,comparisonPolicy),focused=selection.focus;
+    if(latestOutcomeStatus==='NEAR_EQUIVALENT'){stopReason='GLOBAL_CONVERGENCE_AND_CERTIFIED_NEAR_EQUIVALENCE';break;}
+    if(globalMet()&&(!actionEligible||focused.separated&&selection.refinementActionIds.length<2)){stopReason=actionEligible?'GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION':'GLOBAL_CONVERGENCE_ACTION_CERTIFICATES_NOT_COVERED';break;}
+    if(globalMet()&&actionEligible&&focused.allCertified&&selection.refinementActionIds.every(id=>actionCertificates[id]?.strategicDecisionCount===0)){
       // These entire conditioned games contain only chance and forced actions.
       // More CFR iterations cannot improve their already evaluated profiles;
       // overlapping rounding bounds still leave the comparison inconclusive.
@@ -234,10 +263,12 @@ function execute({input,budget,checkpoint,shouldCancel=()=>false,onProgress=()=>
     if(!progressed&&(!actionEligible||!originalReady())){stopReason='NO_COMPLETE_REFINEMENT_WITHIN_REMAINING_BUDGET';break;}
   }
   if(shouldCancel())stopReason='FOREGROUND_PRIORITY_PAUSE';
+  else if(latestOutcomeStatus==='NEAR_EQUIVALENT')stopReason='GLOBAL_CONVERGENCE_AND_CERTIFIED_NEAR_EQUIVALENCE';
   else if(!stopReason)stopReason=remainingIterations()<=0?'ITERATION_RESOURCE_CEILING':'TIME_RESOURCE_CEILING';
   runCosts.totalComputeMs=now()-started;
   const final=render(false)||last||{status:'NOT_SOLVED',actions:[],qualification:{gto:false},reasons:[{code:'BUDGET_BEFORE_FIRST_STRATEGY',message:'Budget ended before a strategy could be evaluated.'}],
     adaptation:{version:VERSION,phase:shouldCancel()?'PAUSED':'STOPPED',stopReason,refinementRecommended:true,resourceCeiling:{timeMs:budget.timeMs,iterations:budget.iterations}}};
+  if(!final.decisionOutcome){final.comparisonPolicy=comparisonPolicy;final.comparisonPolicyKey=comparisonPolicyKey;final.decisionOutcome=decisionOutcome.decide(final,{policy:comparisonPolicy,costs:costs(),firstValueMs,attempts,stopReason});}
   return {result:final,checkpoint:saved(),workerMs:now()-started,paused:shouldCancel()};
   } finally {
     if(compilationContext!==undefined)engine.releaseCompilationContext(compilationContext);

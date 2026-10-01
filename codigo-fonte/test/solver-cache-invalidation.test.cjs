@@ -23,7 +23,8 @@ function ready(input) {
   const covered = adapter.coverage(input);
   assert.equal(covered.status, 'READY', JSON.stringify(covered));
   // Exactly the supported-input identity used by job-service.start().
-  return { ...covered, cacheKey: keyFor({ game: covered.key, heroInformationSet: covered.heroInformationSet }) };
+  return { ...covered, cacheKey: keyFor({ game: covered.key, heroInformationSet: covered.heroInformationSet,
+    comparisonPolicy: require('../src/solver/decision-outcome').normalizePolicy(input.comparisonPolicy) }) };
 }
 function options(input, budget = 'FAST') {
   const observed = session.envelope(input.multiway);
@@ -224,7 +225,8 @@ test('dependency-version changes invalidate keys; caller-supplied version claims
   const input = { game: coverage.key, heroInformationSet: coverage.heroInformationSet }, original = keyFor(input);
   const dependencies = [[core, 'VERSION'], [adapter, 'VERSION'], [adapter, 'RULES_VERSION'],
     [require('../src/solver/solution-status'), 'VERSION'], [require('../src/decision-precision'), 'VERSION'],
-    [require('../src/solver/action-conditioned'), 'VERSION']];
+    [require('../src/solver/action-conditioned'), 'VERSION'], [require('../src/solver/decision-outcome'), 'VERSION'],
+    [require('../src/solver/decision-outcome'), 'POLICY_VERSION']];
   // Module-boundary test only. These versions and the payoff rules are server
   // code, not editable product settings or fictional user-configurable options.
   for (const [module, field] of dependencies) {
@@ -233,7 +235,7 @@ test('dependency-version changes invalidate keys; caller-supplied version claims
     finally { module[field] = saved; }
   }
   assert.equal(keyFor({ ...input, version: 'fake', solver: 'fake', adapter: 'fake', rules: 'fake',
-    qualification: 'fake', precision: 'fake', actionCertificate: 'fake', adaptive: 'fake' }), original);
+    qualification: 'fake', precision: 'fake', actionCertificate: 'fake', adaptive: 'fake', decisionOutcome: 'fake', comparisonPolicyVersion: 'fake' }), original);
 });
 
 test('core utility, chance, action topology and information-set changes reject checkpoint reuse', () => {
