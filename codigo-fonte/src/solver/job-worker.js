@@ -7,6 +7,7 @@ const actionConditioned=require('./action-conditioned');
 const {qualify,THRESHOLD_BB}=require('./solution-status');
 const {solverDecisionPrecision}=require('../decision-precision');
 const decisionOutcome=require('./decision-outcome');
+const studyComparison=require('../../public/solver-study-comparison');
 
 const {ADAPTIVE_VERSION:VERSION}=require('./versions');
 const LIMITS=Object.freeze({maxNodes:12000,maxInformationSets:12000,maxWorkingBytes:64*1024*1024,maxDepth:256});
@@ -75,6 +76,8 @@ function execute({input,budget,checkpoint,shouldCancel=()=>false,onProgress=()=>
     return {result,workerMs:now()-started,paused:shouldCancel()};
   }
   const game=built.game,meta=game.meta,ids=meta.rootActions.map(action=>action.id);
+  const studyLedger=studyComparison.ledgerFor(input);
+  const studyContext=studyLedger?{version:studyComparison.CONTEXT_VERSION,inputKey:meta.key,ledger:studyLedger}:null;
   // Trusted browser runtime opt-in, never request or checkpoint data. The Node
   // default stays uncached; native SHA has no demonstrated app-level speedup.
   // The capability belongs only to the owned tree built for this invocation.
@@ -131,7 +134,7 @@ function execute({input,budget,checkpoint,shouldCancel=()=>false,onProgress=()=>
     if(!solved?.strategy||!solved.checkpoint||!(solved.iterations>0))return null;
     const rows=certificateRows(),selection=chooseFocus(ids,rows,attempts,comparisonPolicy),focus=selection.focus,converged=globalMet();
     const precisionSupported=actionEligible&&verifiedClass==='TWO_PLAYER_CONSTANT_SUM_PERFECT_RECALL';
-    const result={...qualification(meta,solved,{coverage:built.coverage}),source:'REFERENCE_SUBGAME_STRATEGY',method:solved.method,
+    const result={...qualification(meta,solved,{coverage:built.coverage}),source:'REFERENCE_SUBGAME_STRATEGY',method:solved.method,studyContext,
       solverVersion:solved.solverVersion,gameHash:solved.gameHash,scope:'DECLARED_FINITE_RIVER_SUBGAME',strategyScope:'CURRENT_HAND_COMBINATION',comparisonPolicy,comparisonPolicyKey,
       actions:meta.rootActions.map(action=>{const value=diagnostics?.actions?.find(item=>item.id===action.id);return {...action,frequency:value?.frequency??null,evBB:value?.ev??null};}),
       convergence:{...solved.convergence,unit:'BB',thresholdBB:THRESHOLD_BB,thresholdMet:converged},iterations:solved.iterations,

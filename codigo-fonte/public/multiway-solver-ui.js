@@ -9,6 +9,9 @@
   const END_PHASES = new Set(['COMPLETE','UNSUPPORTED','FAILED','CANCELLED']);
   const rangeLimit = seats => seats === 2 ? 32 : 3;
   const levelLimit = seats => seats === 2 ? 12 : 8;
+  const MAX_SCENARIOS = 3;
+  const text = (value, maximum, fallback = '') => typeof value === 'string' ? value.trim().slice(0,maximum) || fallback : fallback;
+  const idleComparison = () => ({phase:'IDLE',entries:[],binding:null,error:null,elapsedMs:0,report:null});
   function normalizeComparisonPolicy(value) {
     if(root.TheibsBrowserSolverClient?.normalizeComparisonPolicy)return root.TheibsBrowserSolverClient.normalizeComparisonPolicy(clone(value));
     if(value!==undefined && (!value || typeof value!=='object' || Array.isArray(value)))throw Error('Use a valid comparison policy.');
@@ -26,6 +29,7 @@
   const transports = new Map();
   const isolatedOwner = `solver-page-${Date.now()}-${Math.random().toString(36).slice(2)}`;
   let browserClient = null, browserOwner = null, activeTransport = null, viewBinding = null, computePreference = null;
+  let comparisonRunner = null, comparisonView = idleComparison(), comparisonTransport = null, comparisonBinding = null, studyOwner = null;
   function reserveAutomaticDeep(signature) {
     if (!signature || automaticDeepAttempts.has(signature)) return false;
     automaticDeepAttempts.add(signature);
@@ -36,7 +40,25 @@
   const handId = value => value?.multiway?.handId || value?.state?.handId || null;
   const ownerBinding = () => typeof options.getOwner === 'function' ? options.getOwner() : isolatedOwner;
   const binding = value => JSON.stringify([handId(value),value?.state?.revisionKey || null,ownerBinding()]);
-  const configured = value => Boolean(study?.handId && study.handId === handId(value) && study.ranges?.length === value?.multiway?.config?.playerCount);
+  const configured = value => Boolean(study?.handId && typeof ownerBinding()==='string' && ownerBinding().length && (studyOwner===null || studyOwner===ownerBinding()) && study.handId === handId(value) && study.ranges?.length === value?.multiway?.config?.playerCount);
+  const activeScenario = () => study?.scenarios?.find(item=>item.id===study.activeScenarioId) || null;
+  const mathematicalStudy = () => study ? {ranges:study.ranges,sizing:study.sizing} : null;
+  function studyProvenance() {
+    const active=activeScenario();
+    return active && configured(context()) ? clone({scenarioId:active.id,name:active.name,treeName:active.treeName,
+      rationaleBySeat:active.rationaleBySeat,scenarioCount:study.scenarios.length,source:'USER_DECLARED_HYPOTHESIS'}) : null;
+  }
+  function comparisonCurrent(value) {
+    return Boolean(value && comparisonBinding && value.token===comparisonBinding.token && value.handId===handId(context()) &&
+      value.revisionKey===context().state?.revisionKey && value.token===binding(context()));
+  }
+  function cancelComparison() {
+    if(!comparisonRunner)return Promise.resolve();
+    const stopped=Promise.resolve(comparisonRunner.cancel()).catch(()=>{});
+    cancellation=Promise.all([cancellation,stopped]).then(()=>{});
+    return stopped;
+  }
+  function getComparisonState() { return comparisonCurrent(comparisonView.binding) ? clone(comparisonView) : idleComparison(); }
   function current(mine, bound) { return mine === generation && binding(context()) === bound; }
   function emit() { view.configured = configured(context()); options.onChange?.(getState()); }
   function clearPoll() { if (pollTimer != null) root.clearTimeout(pollTimer); pollTimer = null; }
@@ -54,6 +76,9 @@
     }};
   }
   function clearChangedOwner() {
+    if(studyOwner!==null && studyOwner!==ownerBinding()){
+      study=null;studyOwner=null;pendingRestore=false;void cancelComparison();comparisonBinding=null;comparisonView=idleComparison();
+    }
     if(!browserOwner || browserOwner===ownerBinding())return false;
     browserClient?.clearOwner?.(browserOwner);browserOwner=null;computePreference=null;return true;
   }
@@ -86,10 +111,11 @@
   function synchronizeStudy() {
     const currentHand = handId(context());
     if (!currentHand && pendingRestore) return;
-    if (study && study.handId !== currentHand) study = null;
+    if (study && study.handId !== currentHand) {study = null;studyOwner=null;}
     pendingRestore = false;
   }
   function invalidate() {
+    void cancelComparison();comparisonBinding=null;comparisonView=idleComparison();
     generation++; clearPoll(); stopRequest();
     if(!clearChangedOwner() && browserOwner)browserClient?.cancelOwner?.(browserOwner);
     const oldJob = view.jobId, oldPhase = view.phase;
@@ -99,12 +125,13 @@
     emit();
   }
   function getState() {
+    clearChangedOwner();
     const now = context();
     if (view.revisionKey && (view.revisionKey !== now.state?.revisionKey || view.handId !== handId(now) || viewBinding!==binding(now))) {
       if(!clearChangedOwner() && view.runtime==='BROWSER' && browserOwner)browserClient?.cancelOwner?.(browserOwner);
       return { ...blank(),configured:configured(now) };
     }
-    return { ...clone(view),configured:configured(now) };
+    return { ...clone(view),configured:configured(now),studyProvenance:studyProvenance(),comparisonPhase:getComparisonState().phase };
   }
   function failure(message, mine, bound) {
     if (!current(mine,bound)) return;
@@ -193,10 +220,12 @@
     if (!initialized || !now.multiway?.enabled || !now.state?.revisionKey) return getState();
     if (!payload?.multiway || JSON.stringify(payload.multiway) !== JSON.stringify(now.multiway)) return getState();
     if (!['FAST','STANDARD','DEEP'].includes(budget)) throw Error('Choose FAST, STANDARD or DEEP.');
+    void cancelComparison();
     let transport,comparisonPolicy;
     try{transport=selectTransport();comparisonPolicy=normalizeComparisonPolicy(configured(now)?study.comparisonPolicy:payload.comparisonPolicy);}catch(error){view.phase='FAILED';view.error=error.message;emit();return getState();}
     synchronizeStudy();
-    const signature = JSON.stringify([bound,configured(now) ? study : null,feeFromPayload(payload),transport.runtime,comparisonPolicy]);
+    const signature = JSON.stringify([bound,configured(now) ? mathematicalStudy() : null,feeFromPayload(payload),transport.runtime,comparisonPolicy]);
+    if(signature!==lastSignature){comparisonBinding=null;comparisonView=idleComparison();}
     if (!force && signature === lastSignature && (budget === view.budget || budget === 'FAST' || automatic && budget === 'STANDARD' && view.budget === 'DEEP') && !['IDLE','FAILED','CANCELLED'].includes(view.phase)) return getState();
     const samePreviousContext=signature===lastSignature && viewBinding===bound;
     lastSignature = signature;
@@ -261,11 +290,13 @@
     return clone({handId:currentView.handId,revisionKey:currentView.revisionKey,budget:currentView.budget,phase:currentView.phase,
       ...currentView.result,cache:currentView.cache,timing:currentView.timing,runtime:currentView.runtime,runtimeLabel:currentView.runtimeLabel,
       runtimeReason:currentView.runtimeReason,runtimeBudget:currentView.runtimeBudget,buildFingerprint:currentView.buildFingerprint,
-      comparisonPolicy:currentView.comparisonPolicy,comparisonPolicyKey:currentView.comparisonPolicyKey,policyKey:currentView.policyKey});
+      comparisonPolicy:currentView.comparisonPolicy,comparisonPolicyKey:currentView.comparisonPolicyKey,policyKey:currentView.policyKey,
+      studyProvenance:currentView.studyProvenance});
   }
-  function serialize() { return study && (configured(context()) || pendingRestore) ? clone(study) : null; }
+  function serialize() { clearChangedOwner();return study && (configured(context()) || pendingRestore) ? clone(study) : null; }
   function restore(saved) {
-    if (!saved) { study = null;pendingRestore=false; return; }
+    if (!saved) { study = null;studyOwner=null;pendingRestore=false; return; }
+    if(initialized && (typeof ownerBinding()!=='string' || !ownerBinding().length)){study=null;studyOwner=null;pendingRestore=false;return;}
     // Full domain, ledger and blocker checks run in the selected solver runtime.
     if (saved.schemaVersion !== 1 || typeof saved.handId !== 'string' || !['KEYBOARD','CANONICAL'].includes(saved.notation) ||
       !Array.isArray(saved.ranges) || saved.ranges.length < 2 || saved.ranges.length > 3 || !saved.sizing) return;
@@ -274,7 +305,51 @@
     if (!['MIN_MID_MAX','EXPLICIT_TOTALS'].includes(saved.sizing.type) || !Number.isInteger(saved.sizing.maxAggressions) || saved.sizing.maxAggressions < 0 || saved.sizing.maxAggressions > 3 ||
       saved.sizing.type === 'EXPLICIT_TOTALS' && (!Array.isArray(saved.sizing.levels) || saved.sizing.levels.length < 1 || saved.sizing.levels.length > levelLimit(saved.ranges.length) || saved.sizing.levels.some(level => !Number.isFinite(level) || level <= 0))) return;
     let comparisonPolicy;try{comparisonPolicy=normalizeComparisonPolicy(saved.comparisonPolicy);}catch{return;}
-    study = {...clone(saved),comparisonPolicy};pendingRestore=true;
+    let scenarios;
+    try { scenarios=normalizeScenarios(saved); } catch { return; }
+    const selected=scenarios.find(item=>item.id===saved.activeScenarioId) || scenarios[0];
+    study = {schemaVersion:1,handId:saved.handId,notation:saved.notation,comparisonPolicy,scenarios,activeScenarioId:selected.id,
+      ranges:clone(selected.ranges),sizing:clone(selected.sizing)};studyOwner=initialized?ownerBinding():null;pendingRestore=true;
+  }
+  function normalizeScenarios(saved) {
+    const values=saved.scenarios===undefined ? [{id:'scenario-1',name:saved.name || 'Scenario 1',treeName:saved.treeName || 'Tree 1',
+      rationaleBySeat:saved.rationaleBySeat || {},ranges:saved.ranges,sizing:saved.sizing}] : saved.scenarios;
+    if(!Array.isArray(values) || !values.length || values.length>MAX_SCENARIOS)throw Error('Use one to three explicit scenarios.');
+    const ids=new Set(),seats=saved.ranges.length;
+    const normalized=values.map((item,index)=>{
+      const id=text(item?.id,80);
+      if(!id || ids.has(id) || !Array.isArray(item.ranges) || item.ranges.length!==seats || !item.sizing)throw Error('Use valid, distinct scenario identifiers.');
+      ids.add(id);
+      const ranges=item.ranges.map(range=>{
+        if(!Number.isInteger(range.seatId) || range.complete!==true || typeof range.source!=='string' || !range.source || range.source.length>120 ||
+          !Array.isArray(range.combos) || !range.combos.length || range.combos.length>rangeLimit(seats) || range.combos.some(combo=>
+            !Array.isArray(combo.cards) || combo.cards.length!==5 || !Number.isFinite(combo.weight) || combo.weight<=0 || combo.weight>1e12))throw Error('Use complete weighted ranges for every scenario.');
+        return {seatId:range.seatId,complete:true,source:range.source,combos:range.combos.map(combo=>({cards:clone(combo.cards),weight:combo.weight}))};
+      });
+      if(new Set(ranges.map(range=>range.seatId)).size!==seats || !['MIN_MID_MAX','EXPLICIT_TOTALS'].includes(item.sizing.type) ||
+        !Number.isInteger(item.sizing.maxAggressions) || item.sizing.maxAggressions<0 || item.sizing.maxAggressions>3 ||
+        item.sizing.type==='EXPLICIT_TOTALS' && (!Array.isArray(item.sizing.levels) || !item.sizing.levels.length || item.sizing.levels.length>levelLimit(seats) || item.sizing.levels.some(value=>!Number.isFinite(value) || value<=0)))throw Error('Use a valid sizing tree for every scenario.');
+      const sizing={type:item.sizing.type,maxAggressions:item.sizing.maxAggressions,...(item.sizing.type==='EXPLICIT_TOTALS'?{levels:clone(item.sizing.levels)}:{})};
+      const rationaleBySeat={};for(const range of ranges)rationaleBySeat[range.seatId]=text(item.rationaleBySeat?.[range.seatId],500);
+      return {id,name:text(item.name,80,`Scenario ${index+1}`),treeName:text(item.treeName,80,`Tree ${index+1}`),rationaleBySeat,ranges,sizing};
+    });
+    if(saved.activeScenarioId!==undefined && !ids.has(saved.activeScenarioId))throw Error('Select a saved scenario.');
+    return normalized;
+  }
+  function saveStudy(next, expectedBinding, compute) {
+    if(binding(context())!==expectedBinding)throw Error('The hand, decision or session changed. Reopen Solver study for the current table.');
+    if(typeof ownerBinding()!=='string' || !ownerBinding().length)throw Error('The session changed. Sign in again before saving a study.');
+    const scenarios=normalizeScenarios(next),selected=scenarios.find(item=>item.id===next.activeScenarioId) || scenarios[0];
+    const nextStudy={schemaVersion:1,handId:handId(context()),notation:next.notation,comparisonPolicy:normalizeComparisonPolicy(next.comparisonPolicy),
+      scenarios,activeScenarioId:selected.id,ranges:clone(selected.ranges),sizing:clone(selected.sizing)};
+    const sameMath=JSON.stringify([mathematicalStudy(),study?.comparisonPolicy])===JSON.stringify([{ranges:nextStudy.ranges,sizing:nextStudy.sizing},nextStudy.comparisonPolicy]);
+    const sameCompute=!compute || compute===activeTransport?.runtime || compute===computePreference;
+    const payload=lastBinding===expectedBinding?clone(lastPayload):null;
+    void cancelComparison();comparisonBinding=null;comparisonView=idleComparison();
+    if(!sameMath || !sameCompute)invalidate();
+    study=nextStudy;studyOwner=ownerBinding();if(compute)computePreference=compute;pendingRestore=false;emit();
+    if(payload && (!sameMath || !sameCompute))void evaluate(payload);
+    return serialize();
   }
   function parseRange(text,notation,maxCombos = 3) {
     const lines = String(text || '').split(/\r?\n/).map(line=>line.trim()).filter(Boolean);
@@ -301,6 +376,73 @@
     const suits = notation === 'CANONICAL' ? {s:'s',h:'h',d:'d',c:'c'} : {s:'E',h:'C',d:'O',c:'P'};
     return (range?.combos || []).map(combo=>`${combo.cards.map(card=>card.slice(0,-1)+suits[card.slice(-1)]).join(' ')}${combo.weight === 1 ? '' : ` | ${combo.weight}`}`).join('\n');
   }
+  function comparisonAvailability() {
+    const job=getState();
+    if(context().multiway?.config?.playerCount!==2 || job.runtime!=='BROWSER')return 'Scenario comparison requires two original seats and Browser compute.';
+    if(['QUEUED','BUILDING','REFINING'].includes(job.phase))return 'Finish or stop the active study before comparing scenarios.';
+    if(!usableResult(job.result) || !lastPayload || lastBinding!==binding(context()))return 'Calculate the active scenario for this decision before comparing.';
+    if(!comparisonRunner)return 'Scenario comparison is unavailable. Reload the app to load its comparison modules.';
+    if((study?.scenarios?.length || 0)<2)return 'Save an explicit alternative scenario to compare ranges or sizing trees.';
+    return null;
+  }
+  async function runComparison() {
+    const unavailable=comparisonAvailability();
+    if(unavailable){comparisonView={...idleComparison(),error:unavailable,binding:{handId:handId(context()),revisionKey:context().state?.revisionKey,token:binding(context())}};
+      comparisonBinding=comparisonView.binding;emit();refreshDialogComparison();return getComparisonState();}
+    await cancelComparison();await startAcknowledgement;await cancellation;
+    const now=context(),bound=binding(now),selected=activeScenario();
+    if(comparisonAvailability())return getComparisonState();
+    comparisonTransport=activeTransport;
+    comparisonBinding={handId:handId(now),revisionKey:now.state.revisionKey,token:bound};
+    const inputFor=item=>({multiway:clone(lastPayload.multiway),ranges:clone(item.ranges),sizing:clone(item.sizing),
+      rake:feeFromPayload(lastPayload),comparisonPolicy:clone(study.comparisonPolicy)});
+    return comparisonRunner.run({binding:clone(comparisonBinding),baseline:{id:selected.id,name:selected.name,input:inputFor(selected),
+      result:clone(view.result),phase:view.phase,timing:clone(view.timing),cache:clone(view.cache)},
+      entries:study.scenarios.filter(item=>item.id!==selected.id).map(item=>({id:item.id,name:item.name,input:inputFor(item)}))});
+  }
+  function initializeComparisonRunner() {
+    if(comparisonRunner)return;
+    const create=options.studyRunnerFactory || root.TheibsSolverStudyRunner?.create;
+    if(!create)return;
+    comparisonRunner=create({
+      start:async(input,settings)=>{
+        const transport=comparisonTransport;
+        if(transport?.runtime!=='BROWSER')throw Error('Scenario comparison requires Browser compute.');
+        const job=await transport.request('/api/multiway/solver/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+          multiway:input.multiway,ranges:input.ranges,sizing:input.sizing,rake:input.rake,comparisonPolicy:input.comparisonPolicy,
+          expectedRevisionKey:settings.revisionKey,budget:'STANDARD',automatic:false})});
+        if(job?.jobId)transports.set(job.jobId,transport);
+        return job;
+      },
+      wait:(id,settings)=>{
+        const transport=transports.get(id);
+        if(!transport)throw Error('Scenario comparison job is unavailable.');
+        return transport.request(`/api/multiway/solver/jobs/${encodeURIComponent(id)}?afterVersion=${settings.afterVersion}&waitMs=${settings.waitMs}`,
+          {method:'GET',signal:settings.signal});
+      },
+      cancel:id=>{
+        const transport=transports.get(id);
+        return transport ? transport.request('/api/multiway/solver/cancel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({jobId:id})}) : null;
+      },
+      isCurrent:comparisonCurrent,
+      onUpdate:state=>{
+        if(!comparisonCurrent(state.binding))return;
+        let report=null;
+        try{report=root.TheibsSolverStudyComparison?.compare?.(state.entries);}catch{}
+        comparisonView={...clone(state),report:clone(report)};emit();refreshDialogComparison();
+      }
+    });
+  }
+  function refreshDialogComparison() {
+    const node=dialog?.querySelector('[data-solver-comparison-result]');
+    if(!node)return;
+    const state=getComparisonState();
+    const rows=state.entries.map(entry=>`<li><strong>${esc(entry.name)}</strong>: ${esc(entry.phase || 'Pending')}${entry.error?` · ${esc(entry.error)}`:''}</li>`).join('');
+    node.innerHTML=`<p>${state.phase==='RUNNING'?'Comparing sequentially · up to 3s per alternative, 6s total.':state.phase==='COMPLETE'?'Comparison complete.':state.phase==='CANCELLED'?'Comparison stopped; completed values retained.':comparisonAvailability() || 'Ready to compare saved scenarios.'}</p>${state.error?`<p class="multiway-error">${esc(state.error)}</p>`:''}${rows?`<ul>${rows}</ul>`:''}`;
+    const run=dialog.querySelector('[data-solver-compare]'),stop=dialog.querySelector('[data-solver-comparison-stop]');
+    if(run)run.disabled=state.phase==='RUNNING' || Boolean(comparisonAvailability());
+    if(stop)stop.hidden=state.phase!=='RUNNING';
+  }
   function dialogError(message) {
     const node = dialog?.querySelector('[data-solver-error]');
     if (node) { node.textContent = message || ''; node.hidden = !message; }
@@ -316,7 +458,9 @@
     if (!now.multiway?.enabled) return;
     if (dialog?.open) { dialog.focus(); return; }
     const seats = now.state?.players || [], matches = configured(now), notation = matches ? study.notation : 'KEYBOARD';
-    openedHand = handId(now);
+    openedHand = handId(now);const openedBinding=binding(now);
+    const drafts=matches?clone(study.scenarios):[{id:'scenario-1',name:'Scenario 1',treeName:'Tree 1',rationaleBySeat:{},ranges:[],sizing:{type:'MIN_MID_MAX',maxAggressions:1}}];
+    let selectedId=matches?study.activeScenarioId:drafts[0].id;
     if (!dialog) {
       dialog = root.document.createElement('dialog');dialog.id = 'mw-solver-dialog';dialog.className = 'multiway-dialog mw-solver-dialog';
       dialog.setAttribute('aria-labelledby','mw-solver-title');root.document.body.append(dialog);
@@ -328,52 +472,87 @@
     dialog.innerHTML = `<div class="multiway-dialog-head"><h2 id="mw-solver-title">Solver study</h2><button type="button" class="text-button" data-solver-close aria-label="Close solver study">×</button></div>
       <form data-solver-form><p class="mw-solver-intro">A finite PLO5 river study for two or three seats. Your normal game and approximate EV remain available.</p>
       ${supported ? '' : '<p class="multiway-error">This table is outside the current solver coverage. Use PLO5 with two or three original seats.</p>'}
+      <p class="mw-solver-hint">Current decision · ${esc(now.state?.street || 'River study')} · Pot ${esc(now.state?.pot ?? '—')} · Call ${esc(now.state?.legal?.toCall ?? '—')} chips. Ranges are hypotheses at this public decision, not inferred posteriors.</p>
+      <div class="mw-solver-scenario-picker"><label>Scenario<select name="scenario"></select></label><div class="mw-solver-actions"><button type="button" class="text-button" data-solver-duplicate>Duplicate</button><button type="button" class="text-button" data-solver-new>New blank</button><button type="button" class="text-button" data-solver-remove>Remove</button></div></div>
+      <div class="mw-solver-grid"><label>Scenario name<input name="scenarioName" type="text" maxlength="80" required></label><label>Tree name<input name="treeName" type="text" maxlength="80" required></label></div>
       <label>Compute location<select name="compute"><option value="BROWSER"${selectedCompute==='BROWSER'?' selected':''}${browserAvailable?'':' disabled'}>Browser compute · this device</option><option value="SERVER"${selectedCompute==='SERVER'?' selected':''}>Server compute · sends study ranges</option></select></label>
       <label>Card notation<select name="notation"><option value="KEYBOARD"${notation==='KEYBOARD'?' selected':''}>Keyboard · E / C / O / P</option><option value="CANONICAL"${notation==='CANONICAL'?' selected':''}>Standard · s / h / d / c</option></select></label>
       <p class="mw-solver-hint" data-solver-notation></p>
       <div class="mw-solver-ranges">${seats.map(seat=>`<label><span>${esc(seat.hero?'You':seat.name || seat.seatName || `Seat ${seat.id+1}`)} <small>${esc(seat.position)}${seat.folded?' · folded':''}</small></span><textarea rows="${seats.length===2?5:3}" data-solver-range="${seat.id}" aria-label="${esc(seat.hero?'Your':seat.name || `Seat ${seat.id+1}`)} complete study range" autocomplete="off" autocapitalize="characters" spellcheck="false" required${supported?'':' disabled'}>${esc(rangeText(matches ? study.ranges.find(range=>range.seatId===seat.id) : null,notation))}</textarea></label>`).join('')}</div>
-      <p class="mw-solver-hint">One five-card combination per line, up to ${maxCombos} per seat. Add <code>| weight</code> if needed; omitted weights are 1. Include your current cards within your declared range. The declared tree may still exceed the solver's safety limits.</p>
+      <p class="mw-solver-hint">One five-card combination per line, up to ${maxCombos} per seat. Add <code>| weight</code> if needed; omitted weights are 1. Weights are relative within each seat; compatible joint assignments are renormalized after card blockers. Include your current cards within your declared range. The declared tree may still exceed the solver's safety limits.</p>
+      <details class="mw-solver-limits"><summary>Range source & rationale · optional</summary><p>Record where each hypothesis came from and the context you assumed. These notes are not observations or learned statistics and are not sent to the solver.</p>${seats.map(seat=>`<label>${esc(seat.hero?'You':seat.name || `Seat ${seat.id+1}`)} · source / rationale<textarea rows="2" maxlength="500" data-solver-rationale="${seat.id}" autocomplete="off"></textarea></label>`).join('')}</details>
       <div class="mw-solver-grid"><label>Sizing abstraction<select name="sizing"><option value="MIN_MID_MAX">Minimum / middle / maximum</option><option value="EXPLICIT_TOTALS">Specific street totals</option></select></label><label>Additional bets / raises<select name="aggressions"><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></label></div>
       <label data-solver-levels hidden>Street totals · chips<input name="levels" type="text" inputmode="decimal" placeholder="2, 4, 6" autocomplete="off"></label>
+      <p class="mw-solver-hint">Specific sizes are absolute totals committed on this street, reused wherever legal in the tree. They are not pot percentages. Minimum / middle / maximum uses the legal minimum, arithmetic midpoint and maximum at each node. The aggression limit can omit later bets or raises.</p>
       <details class="mw-solver-limits"><summary>Study scope & privacy</summary><p>These are explicitly chosen study ranges, including folded seats. They are not observed cards or learned statistics. Every player knows the declared ranges; a one-combination range reveals that seat’s hand within the study.</p><p>The sizing selection and aggression limit restrict the tree. Convergence applies to this river subgame only, not a full-hand GTO solution. Room fees follow the current calculation basis.</p><label>Near-equivalence threshold · bb<input name="nearEquivalenceBB" type="number" min="0" step="any" value="${normalizeComparisonPolicy(matches?study.comparisonPolicy:undefined).nearEquivalenceBB}" required></label><p>This threshold compares ex-ante commitments across the full supplied prior (FULL_PRIOR_COMMITMENT). It does not imply equal EV for your current hand. It changes the comparison policy, not the game tree or mathematical bounds.</p><p>Browser compute runs the river study on this device and currently covers two original seats. Server compute sends the entered combinations and public hand ledger to the server and covers two or three original seats. No voice transcripts, profile notes or inferred ranges are included. This setup resets with the next hand.</p></details>
-      <label class="mw-solver-confirm"><input name="complete" type="checkbox" required><span>I define these as the complete ranges for this study.</span></label>
-      <p class="multiway-error" data-solver-error role="alert" hidden></p><div class="mw-solver-actions"><button type="button" class="ghost-button" data-solver-clear${matches?'':' hidden'}>Clear study</button><button type="submit" class="primary-button"${supported?'':' disabled'}>Save study</button></div></form>`;
+      <label class="mw-solver-confirm"><input name="complete" type="checkbox" required><span>I define these as the complete ranges for every saved scenario.</span></label>
+      <details class="mw-solver-limits"><summary>Compare saved scenarios</summary><p>Compare the active scenario with up to two explicit alternatives, sequentially in Browser compute. Each alternative has up to 3s; total comparison work has a 6s wall limit. Save edits first. Range hypotheses and sizing changes describe model sensitivity, not uncertainty or a universal best action.</p><div class="mw-solver-actions"><button type="button" class="text-button" data-solver-compare>Run comparison</button><button type="button" class="text-button" data-solver-comparison-stop hidden>Stop comparison</button></div><div data-solver-comparison-result role="status" aria-live="polite"></div></details>
+      <p class="multiway-error" data-solver-error role="alert" hidden></p><div class="mw-solver-actions"><button type="button" class="ghost-button" data-solver-clear${matches?'':' hidden'}>Clear study</button><button type="submit" class="primary-button"${supported?'':' disabled'}>Save & use scenario</button></div></form>`;
     const form = dialog.querySelector('form');
-    form.elements.sizing.value = matches ? study.sizing.type : 'MIN_MID_MAX';
-    form.elements.aggressions.value = String(matches ? study.sizing.maxAggressions : 1);
-    form.elements.levels.value = matches && study.sizing.levels ? study.sizing.levels.join(', ') : '';
     const sizingChanged = () => { const show = form.elements.sizing.value === 'EXPLICIT_TOTALS'; dialog.querySelector('[data-solver-levels]').hidden = !show;form.elements.levels.required=show; };
-    form.elements.sizing.onchange = sizingChanged;sizingChanged();updateNotation();
+    const captureDraft=()=>{
+      const draft=drafts.find(item=>item.id===selectedId);
+      draft.name=form.elements.scenarioName.value;draft.treeName=form.elements.treeName.value;draft._notation=form.elements.notation.value;
+      draft._texts={};draft.rationaleBySeat={};
+      for(const seat of seats){draft._texts[seat.id]=dialog.querySelector(`[data-solver-range="${seat.id}"]`).value;draft.rationaleBySeat[seat.id]=dialog.querySelector(`[data-solver-rationale="${seat.id}"]`).value;}
+      draft.sizing={type:form.elements.sizing.value,maxAggressions:Number(form.elements.aggressions.value)};draft._levels=form.elements.levels.value;
+    };
+    const fillDraft=()=>{
+      const draft=drafts.find(item=>item.id===selectedId);
+      form.elements.scenario.innerHTML=drafts.map(item=>`<option value="${esc(item.id)}">${esc(text(item.name,80,'Unnamed scenario'))}${item.id===study?.activeScenarioId?' · active':''}</option>`).join('');
+      form.elements.scenario.value=selectedId;form.elements.scenarioName.value=draft.name;form.elements.treeName.value=draft.treeName;
+      form.elements.notation.value=draft._notation || notation;
+      for(const seat of seats){dialog.querySelector(`[data-solver-range="${seat.id}"]`).value=draft._texts?.[seat.id] ?? rangeText(draft.ranges.find(range=>range.seatId===seat.id),form.elements.notation.value);
+        dialog.querySelector(`[data-solver-rationale="${seat.id}"]`).value=draft.rationaleBySeat?.[seat.id] || '';}
+      form.elements.sizing.value=draft.sizing.type;form.elements.aggressions.value=String(draft.sizing.maxAggressions);form.elements.levels.value=draft._levels ?? draft.sizing.levels?.join(', ') ?? '';
+      form.elements.complete.checked=false;sizingChanged();updateNotation();dialogError('');
+      dialog.querySelector('[data-solver-duplicate]').disabled=drafts.length>=MAX_SCENARIOS;dialog.querySelector('[data-solver-new]').disabled=drafts.length>=MAX_SCENARIOS;
+      dialog.querySelector('[data-solver-remove]').disabled=drafts.length===1;
+    };
+    const nextId=()=>`scenario-${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
+    form.elements.scenario.onchange=()=>{const next=form.elements.scenario.value;captureDraft();selectedId=next;fillDraft();};
+    dialog.querySelector('[data-solver-duplicate]').onclick=()=>{if(drafts.length>=MAX_SCENARIOS)return;captureDraft();const draft=clone(drafts.find(item=>item.id===selectedId));draft.id=nextId();draft.name=text(draft.name,70,'Scenario')+' copy';drafts.push(draft);selectedId=draft.id;fillDraft();};
+    dialog.querySelector('[data-solver-new]').onclick=()=>{if(drafts.length>=MAX_SCENARIOS)return;captureDraft();const draft={id:nextId(),name:`Scenario ${drafts.length+1}`,treeName:`Tree ${drafts.length+1}`,rationaleBySeat:{},ranges:[],sizing:{type:'MIN_MID_MAX',maxAggressions:1}};drafts.push(draft);selectedId=draft.id;fillDraft();};
+    dialog.querySelector('[data-solver-remove]').onclick=()=>{if(drafts.length===1)return;const index=drafts.findIndex(item=>item.id===selectedId);drafts.splice(index,1);selectedId=drafts[Math.max(0,index-1)].id;fillDraft();};
+    form.elements.sizing.onchange = sizingChanged;fillDraft();
     form.elements.notation.onchange = () => { updateNotation();dialogError('The notation changed. Review the entered cards before saving.'); };
     dialog.querySelector('[data-solver-close]').onclick = () => dialog.close();
     dialog.querySelector('[data-solver-clear]').onclick = () => { study = null; invalidate();dialog.close(); };
+    dialog.querySelector('[data-solver-compare]').onclick=()=>void runComparison();
+    dialog.querySelector('[data-solver-comparison-stop]').onclick=()=>void cancelComparison();refreshDialogComparison();
     form.onsubmit = event => {
       event.preventDefault();dialogError('');
-      if (handId(context()) !== openedHand) { dialogError('The hand changed. Reopen Solver study for the current table.');return; }
+      if (binding(context()) !== openedBinding) { dialogError('The hand, decision or session changed. Reopen Solver study for the current table.');return; }
       try {
-        const ranges = seats.map(seat=>({seatId:seat.id,complete:true,source:'USER_DEFINED_COMPLETE_STUDY',combos:parseRange(dialog.querySelector(`[data-solver-range="${seat.id}"]`).value,form.elements.notation.value,maxCombos)}));
-        const sizing = {type:form.elements.sizing.value,maxAggressions:Number(form.elements.aggressions.value)};
-        if (sizing.type === 'EXPLICIT_TOTALS') {
-          const levels = form.elements.levels.value.split(/[\s,;]+/).filter(Boolean).map(Number);
-          if (!levels.length || levels.length>maxLevels || levels.some(value=>!Number.isFinite(value)||value<=0||Math.abs(value*100-Math.round(value*100))>1e-7)) throw Error(`Enter one to ${maxLevels} positive street totals with at most two decimals.`);
-          sizing.levels = [...new Set(levels)].sort((a,b)=>a-b);
-        }
-        if (!form.elements.complete.checked) throw Error('Confirm that these are the complete ranges for this study.');
+        captureDraft();
+        const scenarios=drafts.map(draft=>{
+          const ranges=seats.map(seat=>({seatId:seat.id,complete:true,source:draft.ranges.find(range=>range.seatId===seat.id)?.source || 'USER_DEFINED_COMPLETE_STUDY',combos:parseRange(draft._texts?.[seat.id] ?? rangeText(draft.ranges.find(range=>range.seatId===seat.id),draft._notation || notation),draft._notation || notation,maxCombos)}));
+          const sizing=clone(draft.sizing);
+          if(sizing.type==='EXPLICIT_TOTALS'){
+            const levels=String(draft._levels ?? sizing.levels?.join(', ') ?? '').split(/[\s,;]+/).filter(Boolean).map(Number);
+            if(!levels.length || levels.length>maxLevels || levels.some(value=>!Number.isFinite(value)||value<=0||Math.abs(value*100-Math.round(value*100))>1e-7))throw Error(`Enter one to ${maxLevels} positive street totals with at most two decimals.`);
+            sizing.levels=[...new Set(levels)].sort((a,b)=>a-b);
+          }
+          return {id:draft.id,name:draft.name,treeName:draft.treeName,rationaleBySeat:draft.rationaleBySeat,ranges,sizing};
+        });
+        if (!form.elements.complete.checked) throw Error('Confirm complete ranges for every saved scenario.');
         if(!form.elements.nearEquivalenceBB.value.trim())throw Error('Enter a near-equivalence threshold of zero or more bb.');
         const comparisonPolicy=normalizeComparisonPolicy({nearEquivalenceBB:Number(form.elements.nearEquivalenceBB.value)});
-        const payload = lastBinding === binding(context()) ? clone(lastPayload) : null;
-        invalidate();computePreference=form.elements.compute.value;study = {schemaVersion:1,handId:openedHand,notation:form.elements.notation.value,ranges,sizing,comparisonPolicy};emit();dialog.close();
-        if (payload) void evaluate(payload);
+        const selected=scenarios.find(item=>item.id===selectedId);
+        saveStudy({schemaVersion:1,handId:openedHand,notation:form.elements.notation.value,ranges:selected.ranges,sizing:selected.sizing,
+          comparisonPolicy,scenarios,activeScenarioId:selectedId},openedBinding,form.elements.compute.value);dialog.close();
       } catch (error) { dialogError(error.message); }
     };
     dialog.showModal();
   }
   async function manualBudget(budget) {
+    void cancelComparison();
     if (!configured(context())) { openSetup();return; }
     if (!lastPayload || lastBinding !== binding(context())) { view.error = 'Calculate the current decision before refining this study.';emit();return; }
     await launch(clone(lastPayload),budget,false,true);
   }
   function cancel() {
+    void cancelComparison();
     const id = view.jobId;generation++;clearPoll();stopRequest();
     if (automaticStandard) reserveAutomaticDeep(lastSignature);
     automaticStandard=false;
@@ -384,21 +563,26 @@
   function setRuntime(runtime) {if(!['BROWSER','SERVER','AUTO'].includes(String(runtime).toUpperCase()))throw Error('Choose Browser compute or Server compute.');invalidate();computePreference=String(runtime).toUpperCase();}
   function init(next = {}) {
     options = {...options,...next};
+    if(study && studyOwner===null){const verified=ownerBinding();if(typeof verified==='string' && verified.length)studyOwner=verified;else{study=null;pendingRestore=false;}}
     if(!browserClient)browserClient=options.browserClient || root.TheibsBrowserSolverClient?.create?.(options.browserOptions || {});
+    initializeComparisonRunner();
     if (initialized) return api;
     initialized = true;
     root.document?.addEventListener('click',event=>{
-      const button=event.target.closest?.('[data-mw-solver-setup],[data-mw-solver-standard],[data-mw-solver-deep],[data-mw-solver-cancel]');
+      const button=event.target.closest?.('[data-mw-solver-setup],[data-mw-solver-standard],[data-mw-solver-deep],[data-mw-solver-cancel],[data-mw-solver-compare],[data-mw-solver-comparison-stop]');
       if (!button || button.disabled) return;
       event.preventDefault();
       if (button.hasAttribute('data-mw-solver-setup')) openSetup();
       else if (button.hasAttribute('data-mw-solver-standard')) void manualBudget('STANDARD');
       else if (button.hasAttribute('data-mw-solver-deep')) void manualBudget('DEEP');
+      else if (button.hasAttribute('data-mw-solver-compare')) void runComparison();
+      else if (button.hasAttribute('data-mw-solver-comparison-stop')) void cancelComparison();
       else cancel();
     });
     return api;
   }
   const api = {init,evaluate,invalidate,getState,decisionSnapshot,serialize,restore,openSetup,clearOwner,setRuntime,
-    _testing:{parseRange,rangeText,feeFromPayload,binding,usableResult,normalizeComparisonPolicy,cancel}};
+    runComparison,getComparisonState,cancelComparison,
+    _testing:{parseRange,rangeText,feeFromPayload,binding,usableResult,normalizeComparisonPolicy,cancel,normalizeScenarios,saveStudy,comparisonAvailability}};
   return api;
 });

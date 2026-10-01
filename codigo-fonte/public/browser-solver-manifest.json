@@ -21,6 +21,11 @@
       "bytes": 38130
     },
     {
+      "id": "public/solver-study-comparison.js",
+      "sha256": "c343f00f7cde81189ba8df3daf9586577a7e8889caaaeefd8579bd149c318415",
+      "bytes": 24280
+    },
+    {
       "id": "src/action-ev-presentation.js",
       "sha256": "9a23cd3719901b58ecf7c01a28124df1ad385f5ebebf06e9942f1af5f1546273",
       "bytes": 8549
@@ -107,8 +112,8 @@
     },
     {
       "id": "src/solver/job-worker.js",
-      "sha256": "1a91246c36ae3ca2326ee6c850a257b96bc2a734b161c88eaf345fe6862c6ebf",
-      "bytes": 24716
+      "sha256": "4f20f0b0f2a3924a48aed8475419f5ecfb39c9dabf689e7cc363a8811c58096e",
+      "bytes": 24972
     },
     {
       "id": "src/solver/plo-river-game.js",
@@ -159,5 +164,5 @@
   "checkpointTransport": "DETACHED_BINARY64_COPY_TRANSFER_V1",
   "memoryMetric": "UNAVAILABLE_IN_BROWSER",
   "sourceNormalization": "LF",
-  "buildFingerprint": "16314d92c62148695757a1f1e3395e789e6369f42a96aaf4e7e9114cb362be00"
+  "buildFingerprint": "47b66f5288af193a8da858c68c80069b64ff607877472b76a752456d398cf3be"
 }

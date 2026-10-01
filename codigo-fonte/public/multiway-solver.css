@@ -25,6 +25,12 @@
 .mw-ev-strategy th:nth-child(3),.mw-ev-strategy th:nth-child(4) { width:25%; }
 .mw-ev-strategy tbody td { white-space:normal; overflow-wrap:anywhere; }
 .mw-ev-strategy tbody th>small { display:block; color:var(--muted); margin-top:3px; }
+.mw-ev-profile th:first-child { width:31%; }
+.mw-ev-profile th:nth-child(2) { width:26%; }
+.mw-ev-profile th:nth-child(3) { width:19%; }
+.mw-ev-profile th:nth-child(4) { width:24%; }
+.mw-ev-profile tbody td { white-space:nowrap; overflow-wrap:normal; }
+.mw-ev-profile tbody td>span { white-space:nowrap; }
 .mw-ev-bounds th:first-child { width:24%; }
 .mw-ev-bounds th:nth-child(2) { width:22%; }
 .mw-ev-bounds th:nth-child(3) { width:34%; }
@@ -32,6 +38,16 @@
 .mw-ev-bounds tbody td>span { display:block; white-space:nowrap; }
 .mw-ev-details li,.mw-ev-details p { overflow-wrap:anywhere; }
 .mw-solver-profile>summary { min-height:36px; display:list-item; cursor:pointer; }
+.mw-solver-scenario-picker { display:grid; gap:8px; }
+.mw-solver-scenario-picker .mw-solver-actions { justify-content:flex-start; }
+.mw-solver-scenario-picker button { min-height:44px; }
+.mw-solver-limits>label { display:grid; gap:6px; margin-top:12px; }
+.mw-solver-study-label { color:var(--muted); font-size:13px; overflow-wrap:anywhere; }
+.mw-solver-comparison>summary { min-height:36px; cursor:pointer; }
+.mw-solver-comparison table { width:100%; table-layout:fixed; border-collapse:collapse; font-variant-numeric:tabular-nums; }
+.mw-solver-comparison th,.mw-solver-comparison td { text-align:left; vertical-align:top; padding:8px 4px; border-bottom:1px solid var(--border); overflow-wrap:anywhere; }
+.mw-solver-comparison td>span { display:block; }
+.mw-solver-comparison details>summary { cursor:pointer; min-height:32px; }
 @media(max-width:560px) {
   .mw-solver-dialog { padding:16px; }
   .mw-solver-grid { grid-template-columns:minmax(0,1fr); }

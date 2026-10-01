@@ -3,7 +3,7 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const source=fs.readFileSync(path.join(__dirname,'../public/multiway-solver-ui.js'),'utf8');
 const copy=value=>JSON.parse(JSON.stringify(value));
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
-function createUI(){const box={module:{exports:{}},setTimeout,clearTimeout,AbortController};vm.runInNewContext(source,box);return box.module.exports;}
+function createUI(globals={}){const box={module:{exports:{}},setTimeout,clearTimeout,AbortController,...globals};vm.runInNewContext(source,box);return box.module.exports;}
 function context(){return {multiway:{enabled:true,handId:'hand-1',config:{playerCount:2},events:[]},state:{handId:'hand-1',revisionKey:'revision-1'}};}
 function payload(current){return {multiway:current.multiway,multiwayEvaluation:{assumeNoRake:true,feeBasis:'BEFORE_FEES',profileSnapshot:{private:'never-send'},ranges:['never-send']}};}
 function study(){return {schemaVersion:1,handId:'hand-1',notation:'KEYBOARD',ranges:[0,1].map(seatId=>({seatId,complete:true,source:'USER_DEFINED_COMPLETE_STUDY',combos:[{cards:['As','Kh','Qd','Jc','9s'],weight:1}]})),sizing:{type:'MIN_MID_MAX',maxAggressions:1}};}
@@ -157,7 +157,7 @@ test('restored study keeps expanded HU limits separate from three-seat limits',(
   expanded.ranges[0].combos=api._testing.parseRange(twelveLines,'KEYBOARD',12);
   expanded.sizing={type:'EXPLICIT_TOTALS',maxAggressions:1,levels:Array.from({length:12},(_,index)=>index+1)};
   api.restore(expanded);assert.equal(api.serialize().ranges[0].combos.length,12);
-  const three=copy(expanded);three.ranges.push(copy(three.ranges[1]));three.ranges[0].combos=three.ranges[0].combos.slice(0,4);
+  const three=copy(expanded);three.ranges.push({...copy(three.ranges[1]),seatId:2});three.ranges[0].combos=three.ranges[0].combos.slice(0,4);
   three.sizing.levels=three.sizing.levels.slice(0,8);api.restore(three);assert.equal(api.serialize().ranges.length,2);
   three.ranges[0].combos=three.ranges[0].combos.slice(0,3);three.sizing.levels=Array.from({length:9},(_,index)=>index+1);
   api.restore(three);assert.equal(api.serialize().ranges.length,2);
@@ -271,4 +271,82 @@ test('study comparison policy is restored and sent while a changed threshold cle
 test('a response using a different outcome policy cannot render a new study comparison',async()=>{
   const api=createUI(),current=context();api.init({getContext:()=>current,request:async()=>response('STANDARD',{result:{...result(),decisionOutcome:{policy:{nearEquivalenceBB:.02}}}})});
   await api.evaluate(payload(current),{automatic:false});assert.equal(api.getState().phase,'FAILED');assert.match(api.getState().error,/comparison policy does not match/);assert.equal(api.decisionSnapshot(),null);api.invalidate();
+});
+
+function withScenarios(api,count=2){
+  const saved=study(),base=api._testing.normalizeScenarios(saved)[0];
+  saved.scenarios=Array.from({length:count},(_,index)=>({...copy(base),id:'scenario-'+(index+1),name:'Hypothesis '+(index+1),treeName:'Tree '+(index+1),rationaleBySeat:{0:'Explicit user hypothesis'},
+    ranges:base.ranges.map(range=>({...copy(range),combos:range.combos.map(combo=>({...copy(combo),weight:index+1}))}))}));
+  saved.activeScenarioId='scenario-1';return saved;
+}
+
+test('legacy study migration retains active aliases and rejects oversized or incomplete scenario collections',()=>{
+  const api=createUI();api.restore(study());let saved=api.serialize();
+  assert.equal(saved.schemaVersion,1);assert.equal(saved.scenarios.length,1);assert.equal(saved.activeScenarioId,'scenario-1');
+  assert.deepEqual(copy(saved.ranges),study().ranges);assert.deepEqual(copy(saved.sizing),study().sizing);
+  api.restore(withScenarios(api,3));assert.equal(api.serialize().scenarios.length,3);
+  api.restore(withScenarios(api,4));assert.equal(api.serialize().scenarios.length,3);
+  const invalid=withScenarios(api);invalid.scenarios[1].ranges[0].combos=[];api.restore(invalid);assert.equal(api.serialize().scenarios.length,3);
+  const selected=withScenarios(api);selected.activeScenarioId='scenario-2';api.restore(selected);saved=api.serialize();assert.equal(saved.ranges[0].combos[0].weight,2);
+  saved.scenarios[1].ranges[0].combos[0].weight=999;assert.equal(api.serialize().ranges[0].combos[0].weight,2);
+});
+
+test('metadata-only saves retain the active estimate and keep names, rationale and owner out of solver payloads',async()=>{
+  const api=createUI(),current=context(),sent=[];
+  api.init({getContext:()=>current,getOwner:()=>JSON.stringify(['verified-user',1]),browserClient:{supported:true,start:async(owner,input,settings)=>{sent.push(input);return response(settings.budget);},cancelOwner(){}}});
+  api.restore(withScenarios(api));await api.evaluate(payload(current),{automatic:false});const before=api.decisionSnapshot();
+  const renamed=api.serialize();renamed.scenarios[0].name='Reviewed hypothesis';renamed.scenarios[0].treeName='Specific tree';renamed.scenarios[0].rationaleBySeat[1]='Private rationale';
+  api._testing.saveStudy(renamed,api._testing.binding(current));await api.evaluate(payload(current),{automatic:false});
+  assert.equal(sent.length,1);assert.equal(api.decisionSnapshot().actions[0].evBB,before.actions[0].evBB);
+  assert.equal(api.decisionSnapshot().studyProvenance.name,'Reviewed hypothesis');assert.match(JSON.stringify(api.serialize()),/Private rationale/);
+  assert.doesNotMatch(JSON.stringify(sent),/Reviewed hypothesis|Specific tree|Private rationale|verified-user|scenarioId/);
+  api.invalidate();
+});
+
+test('saving a changed active model clears old values and full binding guards reject revision or owner races',async()=>{
+  const api=createUI(),current=context();let owner='owner-1',release;
+  api.init({getContext:()=>current,getOwner:()=>owner,browserClient:{supported:true,start:async(value,input,settings)=>input.ranges[0].combos[0].weight===2?new Promise(resolve=>release=resolve):response(settings.budget),cancelOwner(){},clearOwner(){}}});
+  api.restore(withScenarios(api));await api.evaluate(payload(current),{automatic:false});const bound=api._testing.binding(current),saved=api.serialize();
+  current.state.revisionKey='new';assert.throws(()=>api._testing.saveStudy(saved,bound),/decision or session changed/);current.state.revisionKey='revision-1';
+  owner='owner-2';assert.throws(()=>api._testing.saveStudy(saved,bound),/decision or session changed/);owner='owner-1';
+  saved.activeScenarioId='scenario-2';api._testing.saveStudy(saved,bound);await tick();assert.equal(api.decisionSnapshot(),null);
+  release(response('STANDARD'));await tick();assert.equal(api.decisionSnapshot().studyProvenance.scenarioId,'scenario-2');api.invalidate();
+});
+
+test('logout and session epoch changes discard scenario notes and comparison provenance',()=>{
+  const api=createUI(),current=context();let owner=JSON.stringify(['user-1',1]);
+  api.init({getContext:()=>current,getOwner:()=>owner});api.restore(withScenarios(api));assert.match(JSON.stringify(api.serialize()),/Explicit user hypothesis/);
+  owner=JSON.stringify(['user-1',2]);assert.equal(api.serialize(),null);assert.equal(api.getState().configured,false);assert.equal(api.getComparisonState().entries.length,0);
+  api.restore(withScenarios(api));owner=null;assert.equal(api.getState().configured,false);assert.equal(api.serialize(),null);
+  api.restore(withScenarios(api));assert.equal(api.serialize(),null);
+});
+
+test('sequential comparisons use the same Browser client and retain the primary result',async()=>{
+  const Runner=require('../public/solver-study-runner.js'),api=createUI(),current=context(),starts=[];
+  api.init({getContext:()=>current,studyRunnerFactory:settings=>Runner.create({...settings,perScenarioMs:50,totalMs:100}),browserClient:{supported:true,
+    start:async(owner,input,settings)=>{starts.push({input,settings});return response(settings.budget,{jobId:'job-'+starts.length});},cancelOwner(){},cancel:async()=>response('STANDARD')}});
+  api.restore(withScenarios(api,3));await api.evaluate(payload(current),{automatic:false});const base=api.decisionSnapshot();
+  await api.runComparison();assert.equal(starts.length,3);assert.equal(api.getComparisonState().phase,'COMPLETE');assert.equal(api.getComparisonState().entries.length,3);
+  assert.ok(starts.slice(1).every(item=>item.settings.budget==='STANDARD' && item.settings.automatic===false));
+  assert.equal(api.decisionSnapshot().jobId,base.jobId);assert.deepEqual(copy(api.decisionSnapshot().actions),copy(base.actions));
+  assert.doesNotMatch(JSON.stringify(starts.map(item=>item.input)),/Hypothesis|Explicit user hypothesis|treeName/);api.invalidate();
+});
+
+test('server and running base studies cannot start a comparison',async()=>{
+  const Runner=require('../public/solver-study-runner.js'),api=createUI(),current=context();let starts=0;
+  api.init({getContext:()=>current,studyRunnerFactory:Runner.create,request:async()=>{starts++;return response('STANDARD');}});
+  api.restore(withScenarios(api));await api.evaluate(payload(current),{automatic:false});await api.runComparison();assert.equal(starts,1);assert.match(api.getComparisonState().error,/Browser compute/);api.invalidate();
+  const running=createUI();running.init({getContext:()=>current,studyRunnerFactory:Runner.create,browserClient:{supported:true,start:async()=>{starts++;return response('STANDARD',{phase:'REFINING'});},cancelOwner(){},cancel:async()=>({})}});
+  running.restore(withScenarios(running));await running.evaluate(payload(current),{automatic:false});await running.runComparison();assert.equal(starts,2);assert.match(running.getComparisonState().error,/Finish or stop/);running.invalidate();
+});
+
+test('replacement compute waits for late comparison acknowledgement cancellation',async()=>{
+  const Runner=require('../public/solver-study-runner.js'),api=createUI(),current=context(),events=[];let release;
+  const browser={supported:true,start:async(owner,input,settings)=>{events.push('start:'+settings.budget);if(events.filter(value=>value.startsWith('start')).length===2)return new Promise(resolve=>release=resolve);return response(settings.budget,{jobId:'job-'+events.length});},
+    cancelOwner(){},cancel:async(owner,id)=>{events.push('cancel:'+id);return response('STANDARD',{jobId:id,phase:'CANCELLED'});}};
+  api.init({getContext:()=>current,studyRunnerFactory:settings=>Runner.create({...settings,perScenarioMs:500,totalMs:500}),browserClient:browser});
+  api.restore(withScenarios(api));await api.evaluate(payload(current),{automatic:false});const comparing=api.runComparison();await tick();
+  const replacement=api.evaluate(payload(current),{budget:'DEEP',automatic:false});await tick();assert.equal(events.filter(value=>value.startsWith('start')).length,2);
+  release(response('STANDARD',{jobId:'late-comparison',phase:'REFINING'}));await comparing;await replacement;
+  assert.ok(events.indexOf('cancel:late-comparison')<events.indexOf('start:DEEP'));assert.equal(api.getState().budget,'DEEP');api.invalidate();
 });

@@ -202,7 +202,7 @@ test('rendered comparison gaps are positive shortfalls and remain separate from 
     decisionPrecision: { status: 'INCONCLUSIVE', leaderConclusive: false, bestActionId: 'CALL', deltaEVBB: 1.2 } };
   const solvedHtml = renderDecision(null, solver);
   assert.match(solvedHtml, /Below leader · bb/);
-  assert.match(solvedHtml, /Fold<\/th><td><span>0<\/span><\/td><td>0%<\/td><td><span>1\.2<\/span><\/td>/);
+  assert.match(solvedHtml, /aria-label="Below profile leader · bb: 1\.2">1\.2<\/span>/);
   assert.match(solvedHtml, /Current EV leader: Call/);
 });
 
@@ -280,4 +280,32 @@ test('estimating keeps certified point estimates provisional and never substitut
   const value=outcomeSnapshot('ESTIMATING');value.phase='REFINING';value.decisionOutcome.globalConverged=false;
   const html=renderDecision(null,value);assert.match(html,/Current commitment estimate leader · provisional: Call/);assert.doesNotMatch(html,/Best action:/);
   value.actionPrecision.actions.forEach(row=>{row.certified=false;});assert.match(renderDecision(null,value),/Commitment bounds pending/);
+});
+
+test('current-hand profile EV stays primary when the certified range commitment leader differs',()=>{
+  const value=outcomeSnapshot('CERTIFIED');value.actions[0].evBB=8;value.actions[1].evBB=-2;
+  Object.assign(value.actionPrecision.actions[0],{estimateBB:-5,lowerBB:-6,upperBB:-4});Object.assign(value.actionPrecision.actions[1],{estimateBB:2,lowerBB:1,upperBB:3});
+  value.studyProvenance={name:'User <hypothesis>',treeName:'Tree A',rationaleBySeat:{1:'Source <note>'}};
+  value.metrics={omittedSizingNodes:3,omittedLegalSizeCount:12,aggressionCapNodes:2};
+  const html=renderDecision(null,value),primary=html.slice(0,html.indexOf('<summary>Methods &amp; limits</summary>')<0?html.indexOf('<summary>Methods & limits</summary>'):html.indexOf('<summary>Methods &amp; limits</summary>'));
+  assert.match(primary,/Current-hand EV · returned strategy/);assert.match(primary,/Current profile EV leader · provisional: Fold/);
+  assert.match(primary,/aria-label="Current-hand profile EV · bb: 8">8<\/span>/);assert.match(primary,/aria-label="Current-hand profile EV · bb: -2">-2<\/span>/);
+  assert.match(primary,/INCONCLUSIVE/);assert.doesNotMatch(primary,/Certified commitment leader|Range commitment · bb|Best action:/);
+  assert.match(html,/<summary>Full-prior commitments<\/summary>/);assert.match(html,/Certified commitment leader: Call/);
+  assert.match(html,/12 omitted legal sizes across 3 nodes; 2 nodes reached the aggression cap/);assert.match(html,/User &lt;hypothesis&gt;/);assert.doesNotMatch(html,/<note>/);
+  value.actions[0].evBB=-.402502;value.actions[0].frequency=.000460102;value.actions[1].frequency=1-value.actions[0].frequency;
+  const compact=renderDecision(null,value);assert.match(compact,/aria-label="Current-hand profile EV · bb: -0\.402502">-0\.403<\/span>/);
+  assert.match(compact,/aria-label="Profile mix · percent: [^"]+">&lt;0\.1%<\/span>/);assert.match(compact,/mw-ev-profile/);
+  value.actions[0].evBB=-.00000219;assert.match(renderDecision(null,value),/aria-label="Current-hand profile EV · bb: -0\.00000219">-2\.2e-6<\/span>/);
+});
+
+test('comparison disclosure keeps profile changes separate from commitment bounds and missing sizes',()=>{
+  const scenario={id:'base',name:'Explicit <base>',currentHand:{pointLeaderActionIds:['CALL'],actions:[{id:'CALL',evBB:1,frequency:1}]},
+    commitment:{status:'INCONCLUSIVE',nearGroupActionIds:[],rows:[{id:'CALL',certified:true,estimateBB:2,lowerBB:1.5,upperBB:2.5}]},
+    global:{status:'SOLVED',nashConv:0},coverage:{fullLegalSizingCoverage:false,omittedSizingNodes:1,omittedLegalSizeCount:2,aggressionCapNodes:1}};
+  const html=window.theibsMultiwayUI._testing.studyComparisonDetails({phase:'COMPLETE',error:null,report:{classification:'SIZING_SENSITIVITY',scenarios:[scenario,{...scenario,id:'alternative',name:'Tree B'}],
+    comparisons:[{fromId:'base',toId:'alternative',actionComparisons:[{actionId:'RAISE:4.00',state:'MISSING_IN_BASELINE',baselineEVBB:null,candidateEVBB:1,deltaBB:null}]}]}});
+  assert.match(html,/Current-hand profile leader/);assert.match(html,/Commitment outcome/);assert.match(html,/Solver convergence/);
+  assert.match(html,/Returned-profile model sensitivity, not uncertainty/);assert.match(html,/commitment bounds are not combined across studies/);
+  assert.match(html,/Not in this tree/);assert.match(html,/Explicit &lt;base&gt;/);assert.doesNotMatch(html,/Best action:/);
 });
