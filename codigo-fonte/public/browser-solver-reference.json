@@ -5,7 +5,7 @@
   "methodology": "Current Node adaptive pipeline, unchanged mathematical core, fixed maximum 512 work iterations and 5000 ms. Cases must stop before a time ceiling. Browser comparison requires identical game/context hashes, comparison policy, action identities, stopped work count, and numeric values within 1e-10. The richer 4x4 input is checked against the stored LP game key before extracting containment values; LP residual tolerance never declares dominance. Timed benchmarks do not require identical point values across different stopping work.",
   "independentReference": "Terminal values use exact ledger/showdown arithmetic; four-world commitment values independently verified by sequence-form LP. Tolerance1e-7 is for comparing the numeric reference, never for declaring dominance.",
   "sourceJobWorkerSha256": "1a91246c36ae3ca2326ee6c850a257b96bc2a734b161c88eaf345fe6862c6ebf",
-  "sourceBuildFingerprint": "d5e45edc95f89f4bc5384e0cb492db55ce74521c8b44eda0421aea70030a862b",
+  "sourceBuildFingerprint": "ced63ad9e0ee3c8f20a361f9dc5049bd55f3815e05446d159d2b91124588fc56",
   "cases": [
     {
       "id": "separated_terminal_call",
@@ -1733,11 +1733,11 @@
             ],
             "players": [
               {
-                "playerId": "caeed82a-99cf-4978-b752-83827e630f05",
+                "playerId": "72bfd795-358f-4a6e-b9d6-4c98c380d8ed",
                 "name": "You"
               },
               {
-                "playerId": "9a1aeec3-f20e-4a2a-a2f1-75ca0a816d46",
+                "playerId": "794137b6-d17a-4abf-8a6a-016ff7f52d49",
                 "name": "A1"
               }
             ]
@@ -1873,7 +1873,7 @@
           "basis": "BEFORE_FEES"
         }
       },
-      "expectedRevisionKey": "d48020e2726692190309d801f17a1b5162b5ee0f94304aa964ed0835f5dc1e59",
+      "expectedRevisionKey": "b727fe5d640ebb3280356521d1fdb0233b963013b4a00c5059eb88a96249efde",
       "budget": {
         "timeMs": 5000,
         "iterations": 512
@@ -2104,11 +2104,11 @@
             ],
             "players": [
               {
-                "playerId": "9a5fa151-25d1-4fc6-be67-2f30c3d6bf61",
+                "playerId": "18efbe55-75db-4afc-bdae-938f808ad9ed",
                 "name": "You"
               },
               {
-                "playerId": "2d5b1287-5b57-4407-bf39-05734a73c2ff",
+                "playerId": "5fd4b1d4-e68a-41cd-b1f4-4b29e60a2f00",
                 "name": "A1"
               }
             ]
@@ -2244,7 +2244,7 @@
           "basis": "BEFORE_FEES"
         }
       },
-      "expectedRevisionKey": "ab4ede30986077aa6e5956f813ab41d381a2c85abb2c4a8dc2adf09ec1041734",
+      "expectedRevisionKey": "43c7dab646228a4fa76a99320631fb44178ed650c4d0ff7821c1fb40498c0e24",
       "budget": {
         "timeMs": 5000,
         "iterations": 512
@@ -2475,11 +2475,11 @@
             ],
             "players": [
               {
-                "playerId": "3fe053e0-e5c2-4b8c-b7a4-ca3ed2d43ca7",
+                "playerId": "b4abeba4-77f8-4114-b831-78ea710273c1",
                 "name": "You"
               },
               {
-                "playerId": "f2d4cd8a-3310-4c37-8eb5-a200b4fc92ae",
+                "playerId": "01a15780-05c5-4a42-8af6-9d2f5b2447b3",
                 "name": "A1"
               }
             ]
@@ -2615,7 +2615,7 @@
           "basis": "BEFORE_FEES"
         }
       },
-      "expectedRevisionKey": "51cd9656dbd0a53631717cffd0e2d96f8ccb4aba16abd25323bd4dcae26a8fea",
+      "expectedRevisionKey": "767136a1894cef7a2f3bb6b0692174b3fd9090768d7c0221803f5021f4a3d158",
       "budget": {
         "timeMs": 5000,
         "iterations": 512
@@ -2849,11 +2849,11 @@
             ],
             "players": [
               {
-                "playerId": "ac07197b-369b-432a-8070-2946bfba212e",
+                "playerId": "96920c88-4031-4d96-9b53-7a8106c16448",
                 "name": "You"
               },
               {
-                "playerId": "007eaae9-1d24-4672-89c8-6ca5700ea392",
+                "playerId": "a0bd27f9-4555-49d4-a8c4-cb58d8b7b1b8",
                 "name": "A1"
               }
             ]
@@ -2989,7 +2989,7 @@
           "basis": "BEFORE_FEES"
         }
       },
-      "expectedRevisionKey": "d013aae80d926f82717bf53f7727476562f6ca6e0b69fa29aba24d560e88b455",
+      "expectedRevisionKey": "28445f11fbbe5339eea8c650d8d789a717c286dbf687bf3837c6fdc25335ee54",
       "budget": {
         "timeMs": 5000,
         "iterations": 512
@@ -3220,11 +3220,11 @@
             ],
             "players": [
               {
-                "playerId": "d20ea5c7-aefb-43a0-924d-0052959907cc",
+                "playerId": "34c50588-f242-4aa0-859c-93b6c393c179",
                 "name": "You"
               },
               {
-                "playerId": "2aae1496-39df-4876-879b-b9ea06659f85",
+                "playerId": "af7c6c89-e8dd-4f97-b2e7-d3e595ab9c31",
                 "name": "A1"
               }
             ]
@@ -3360,7 +3360,7 @@
           "amount": 8
         }
       },
-      "expectedRevisionKey": "afa739a377f9cd40a57447f28d1cefd9599498ee0ae14722771bba784e758217",
+      "expectedRevisionKey": "405ad4abae913858bc3a789391588e0637c7139a1f6ed07f5dfb6fb59b7204d9",
       "budget": {
         "timeMs": 5000,
         "iterations": 512
@@ -3591,11 +3591,11 @@
             ],
             "players": [
               {
-                "playerId": "7b9a363e-335e-4068-b09f-5ea7b7b1cb41",
+                "playerId": "557cc9c5-9d50-4dcb-9983-e00b52553edb",
                 "name": "You"
               },
               {
-                "playerId": "7e3eaa5e-d7c4-4162-a7b8-a0ea8d87619d",
+                "playerId": "1b6dbe03-49a6-49b2-8ffe-0720ec32b237",
                 "name": "A1"
               }
             ]
@@ -3731,7 +3731,7 @@
           "amount": 0.3
         }
       },
-      "expectedRevisionKey": "150c1a873cc23a08769e6821a1167e19e0c522255eb1d5b1464b52ef30bb337b",
+      "expectedRevisionKey": "d52e42611e3ae6d2bccf2409e1116a966937838fbc313f4e82b0e2d0691ccb30",
       "budget": {
         "timeMs": 5000,
         "iterations": 512
@@ -3962,11 +3962,11 @@
             ],
             "players": [
               {
-                "playerId": "5ba43bee-a352-4a6f-818f-53fe2facf34a",
+                "playerId": "64f74750-34a9-4d12-866b-3903a91b9e71",
                 "name": "You"
               },
               {
-                "playerId": "30ba52b6-8e9e-42da-a89d-a6b8ce33a6ab",
+                "playerId": "a829f329-57bb-46ce-b33b-cc21b46a8cad",
                 "name": "A1"
               }
             ]
@@ -4092,7 +4092,7 @@
           "basis": "BEFORE_FEES"
         }
       },
-      "expectedRevisionKey": "1727289b514812781b016aaaab28997b36d7199aab2ad2986c16975472f1f690",
+      "expectedRevisionKey": "7e714343629c20241235fc42a171a11598fa2ded3d179a8f01152ae429137ddb",
       "budget": {
         "timeMs": 5000,
         "iterations": 512
@@ -4323,11 +4323,11 @@
             ],
             "players": [
               {
-                "playerId": "b77afddc-1b94-4e89-a5e9-b8a925e86f74",
+                "playerId": "ee503180-8086-4329-a5c9-b0d5ff90528d",
                 "name": "You"
               },
               {
-                "playerId": "4bd11bcf-ea9a-4cfe-9445-21ed175cda5a",
+                "playerId": "f6a6e36e-0abb-484a-b52e-6df23ca54a19",
                 "name": "A1"
               }
             ]
@@ -4473,7 +4473,7 @@
           "basis": "BEFORE_FEES"
         }
       },
-      "expectedRevisionKey": "2d84f9eec942c4d1d66e7863929fd306f5dbfbb56a785dfbfb263957b4821954",
+      "expectedRevisionKey": "d3e72f3ea433d8a0b41ae50f575ebbd2b5d7f55b97a4c9df2f9110a0b0330e23",
       "budget": {
         "timeMs": 5000,
         "iterations": 512
@@ -4704,11 +4704,11 @@
             ],
             "players": [
               {
-                "playerId": "1e4520fa-c787-40e3-9ab8-ce537b157858",
+                "playerId": "c7793e52-26fe-4457-9e84-0b7796ab258d",
                 "name": "You"
               },
               {
-                "playerId": "41b209cf-3984-4eaa-bd60-ae11111285d5",
+                "playerId": "63b14cf3-5c75-4bfa-b162-cb6a2bb44f30",
                 "name": "A1"
               }
             ]
@@ -4854,7 +4854,7 @@
           "basis": "BEFORE_FEES"
         }
       },
-      "expectedRevisionKey": "eb07b4e5a538c425dceffebd6b23b03ebacc9231649ec62d2dc83efa4c8110a3",
+      "expectedRevisionKey": "415dee46497919aedb1f879ba7ccd3db0468fbb1499924c390fe0fa3a5650abe",
       "budget": {
         "timeMs": 5000,
         "iterations": 512
@@ -5085,11 +5085,11 @@
             ],
             "players": [
               {
-                "playerId": "b508c4e4-3f94-4d02-8acf-0bb36439b7f3",
+                "playerId": "bc31978d-6c10-487b-99da-1e7514a0d373",
                 "name": "You"
               },
               {
-                "playerId": "ccab197a-f81c-47cb-8d8f-f2cdb815ab47",
+                "playerId": "3278b9d1-9673-41af-bc95-c8252d3ad0b7",
                 "name": "A1"
               }
             ]
@@ -5225,7 +5225,7 @@
           "basis": "BEFORE_FEES"
         }
       },
-      "expectedRevisionKey": "85f43fb2b7999379f6da3bf44eed8cf7ef7770e567fca972ef950ca9df6070d1",
+      "expectedRevisionKey": "c2c10a586af90ae47f781b5acc6b39628d65b0a17d26308942efe68cc5e4bcb1",
       "budget": {
         "timeMs": 5000,
         "iterations": 512
@@ -5456,11 +5456,11 @@
             ],
             "players": [
               {
-                "playerId": "602f524f-c0ea-4e73-9975-0a992823e9e5",
+                "playerId": "6d86f4c4-a8e6-4f3a-958b-18849bc7030a",
                 "name": "You"
               },
               {
-                "playerId": "6f858b79-a38e-4140-a561-82c43dba8021",
+                "playerId": "81057f4b-a193-4c0d-a0c1-ee10ec4bf031",
                 "name": "A1"
               }
             ]
@@ -5596,7 +5596,7 @@
           "basis": "BEFORE_FEES"
         }
       },
-      "expectedRevisionKey": "1d6f01223294ce601a0d34be74309dd75bd18a65febd5e0e0e92195350546869",
+      "expectedRevisionKey": "abd7b801a4c8b4a713dd09eb1c90ea8d51df01a638e65e04b9c2306ff2700c27",
       "budget": {
         "timeMs": 5000,
         "iterations": 512
@@ -5827,11 +5827,11 @@
             ],
             "players": [
               {
-                "playerId": "6ce79922-9e0a-4c88-bd76-bc3317822f8f",
+                "playerId": "955164dd-35a9-4c8c-8fc5-160a97a141e2",
                 "name": "You"
               },
               {
-                "playerId": "13b2934c-f980-45a5-8697-18b6fb4b6f91",
+                "playerId": "a097350f-a09d-4006-be07-b56b48b84f0b",
                 "name": "A1"
               }
             ],
@@ -5971,7 +5971,7 @@
           "basis": "BEFORE_FEES"
         }
       },
-      "expectedRevisionKey": "d218e727540872792c796dac79a431952daa04c1260cbc0fa5c0c7a5442a248c",
+      "expectedRevisionKey": "09eb7a8a50c0abbb71d27a04a69686143c9f12418764b95f8606e9ab6312a162",
       "budget": {
         "timeMs": 5000,
         "iterations": 512
@@ -6202,11 +6202,11 @@
             ],
             "players": [
               {
-                "playerId": "1f7f408a-e287-46eb-99c9-9f16ca49fe67",
+                "playerId": "a28662f6-f0bb-4e4e-b839-ff1c3c777435",
                 "name": "You"
               },
               {
-                "playerId": "47df77d1-3bea-4e5d-9d18-d7a8cdb16766",
+                "playerId": "a8787af2-41d7-41aa-87bb-b335e5ea825c",
                 "name": "A1"
               }
             ]
@@ -6216,13 +6216,13 @@
               "type": "ACT",
               "actor": 0,
               "action": "CALL",
-              "eventId": "ae9a5ae8-38b2-4ce4-9cb7-9858feae39c8"
+              "eventId": "4a64dbe7-8640-4906-8c7f-f5265289179a"
             },
             {
               "type": "ACT",
               "actor": 1,
               "action": "CHECK",
-              "eventId": "f952e082-d8c5-4f92-b624-0bd9560aa7e3"
+              "eventId": "7f88db58-eb28-4c11-adf7-5de04b7623a9"
             },
             {
               "type": "BOARD",
@@ -6231,19 +6231,19 @@
                 "3h",
                 "4d"
               ],
-              "eventId": "eb81a30d-1c18-426f-9ad6-b8a31c46b071"
+              "eventId": "ba450da1-6e6b-4ad4-8b38-3e0a7b488421"
             },
             {
               "type": "ACT",
               "actor": 1,
               "action": "CHECK",
-              "eventId": "8df609e3-a99a-454e-91d6-155dd32f3e1e"
+              "eventId": "9741430b-12a5-483a-89de-38ec8e92c09d"
             },
             {
               "type": "ACT",
               "actor": 0,
               "action": "CHECK",
-              "eventId": "64e52e26-cefd-4dd0-9113-c845a30966f4"
+              "eventId": "ffc82af5-823c-4a2d-b6d9-079973c76414"
             },
             {
               "type": "BOARD",
@@ -6253,19 +6253,19 @@
                 "4d",
                 "8c"
               ],
-              "eventId": "ae495e78-155c-4d24-a788-e802b835c28f"
+              "eventId": "52f8d445-516f-468a-8804-f84fc3cadf40"
             },
             {
               "type": "ACT",
               "actor": 1,
               "action": "CHECK",
-              "eventId": "16155897-eaf5-4b16-bc47-510885f04eda"
+              "eventId": "2a787cbc-fc08-47c4-8f67-458e1400462a"
             },
             {
               "type": "ACT",
               "actor": 0,
               "action": "CHECK",
-              "eventId": "f1bb959f-334d-49a5-8c92-e662f39d0c05"
+              "eventId": "df8f7aca-8654-44f1-bb94-737be4f99624"
             },
             {
               "type": "BOARD",
@@ -6276,13 +6276,13 @@
                 "8c",
                 "9s"
               ],
-              "eventId": "124ada3e-02a4-4359-b972-db837f9e570d"
+              "eventId": "cdddf62b-fb3f-495c-a6d6-ff62f9858110"
             },
             {
               "type": "ACT",
               "actor": 1,
               "action": "CHECK",
-              "eventId": "53e25639-03bd-4bd4-a76b-e3597cfc11cf"
+              "eventId": "ad2e94a2-83ba-4f33-b236-2b136a7466f1"
             }
           ],
           "handId": "00000000-0000-4000-8000-000000000013",
@@ -6357,7 +6357,7 @@
           "basis": "BEFORE_FEES"
         }
       },
-      "expectedRevisionKey": "4da6ce9fd1535dcab1cfc6f2cffffa85082cc56d58093e1528359c13564ebfbf",
+      "expectedRevisionKey": "0a35eabb62572a31ff1f49d039c73412a252a83d4830444c1b62b9027ff8ec4a",
       "budget": {
         "timeMs": 5000,
         "iterations": 512
@@ -6672,11 +6672,11 @@
             ],
             "players": [
               {
-                "playerId": "f4675cc1-a75b-46d0-9e1e-f0c3651d9332",
+                "playerId": "aca5ba83-f47d-401c-9574-db07d7ddc0c6",
                 "name": "You"
               },
               {
-                "playerId": "e1f076ca-f15a-428a-8787-f77781eb3dd2",
+                "playerId": "f630ede4-883c-4cb9-8386-c26e693f99d7",
                 "name": "A1"
               }
             ]
@@ -6686,13 +6686,13 @@
               "type": "ACT",
               "actor": 0,
               "action": "CALL",
-              "eventId": "c5dfc04d-c3fa-486a-b564-f9b36024e572"
+              "eventId": "a84fa33f-f119-44bb-8e0b-c855afbd3c2a"
             },
             {
               "type": "ACT",
               "actor": 1,
               "action": "CHECK",
-              "eventId": "6e70ffd0-29ad-4385-99d8-086f0c568ab8"
+              "eventId": "eb4e9d7f-54e1-4387-8acb-7434ce83d2b0"
             },
             {
               "type": "BOARD",
@@ -6701,19 +6701,19 @@
                 "3h",
                 "4d"
               ],
-              "eventId": "27cfa9f5-88c1-4319-83d2-d85146766157"
+              "eventId": "b45f6728-2d9c-4b41-a748-2aa7e94b876e"
             },
             {
               "type": "ACT",
               "actor": 1,
               "action": "CHECK",
-              "eventId": "4aa83917-3cf5-4ed3-804e-e32c475ca59f"
+              "eventId": "bf54c3af-749e-4f6c-9363-6aaae847f898"
             },
             {
               "type": "ACT",
               "actor": 0,
               "action": "CHECK",
-              "eventId": "4c4e8809-f77e-42e1-bf69-bdc0fb69d8e9"
+              "eventId": "a4f2ecad-5964-4f14-befc-47ca4918d036"
             },
             {
               "type": "BOARD",
@@ -6723,19 +6723,19 @@
                 "4d",
                 "8c"
               ],
-              "eventId": "fe92a42d-b794-49ac-adff-650b660e6706"
+              "eventId": "c22631b2-ff3e-4b11-a34f-1cab696fb996"
             },
             {
               "type": "ACT",
               "actor": 1,
               "action": "CHECK",
-              "eventId": "f22aac95-44f5-48c2-a11d-beaed526b147"
+              "eventId": "194bf6b5-9a6c-46e0-b8d2-2a06a3aeb735"
             },
             {
               "type": "ACT",
               "actor": 0,
               "action": "CHECK",
-              "eventId": "e0f8f865-87c1-4a4c-926b-a2171a2531d9"
+              "eventId": "010696f3-6622-419a-8ef6-73c1f5c362c6"
             },
             {
               "type": "BOARD",
@@ -6746,13 +6746,13 @@
                 "8c",
                 "9s"
               ],
-              "eventId": "4ae9e73e-7071-495a-8fe6-6c83a29b9f26"
+              "eventId": "0d4d310e-ebb1-4d71-a30a-badbd6e82d13"
             },
             {
               "type": "ACT",
               "actor": 1,
               "action": "CHECK",
-              "eventId": "9afcdf76-3a45-43be-8a45-f56ae23b3245"
+              "eventId": "53c312c8-5db1-430d-ac39-c8e9f5b55619"
             }
           ],
           "handId": "00000000-0000-4000-8000-000000000014",
@@ -6827,7 +6827,7 @@
           "basis": "BEFORE_FEES"
         }
       },
-      "expectedRevisionKey": "594a79b517ee2b0d02ad8434707be6ea911e749317d70cd233e7370c90756b97",
+      "expectedRevisionKey": "3a9217caa9a167491300818ade0a1bfa22544869dce188c91eabc8803eb9d45b",
       "budget": {
         "timeMs": 5000,
         "iterations": 512
@@ -7147,11 +7147,11 @@
             ],
             "players": [
               {
-                "playerId": "57772ce6-c32a-4b5e-ba3f-a8e7ecf521e6",
+                "playerId": "5979b76c-2ce0-4165-a0cc-01547542a4c0",
                 "name": "You"
               },
               {
-                "playerId": "68533845-68e8-492d-8116-71d54b595a1c",
+                "playerId": "b9da8462-aedd-46ba-bdc3-9471aeac9238",
                 "name": "A1"
               }
             ],
@@ -7165,13 +7165,13 @@
               "type": "ACT",
               "actor": 0,
               "action": "CALL",
-              "eventId": "0a104805-2141-4544-a3c2-524d2bf13c6a"
+              "eventId": "21775c7d-f531-480c-bff7-714be2b393cb"
             },
             {
               "type": "ACT",
               "actor": 1,
               "action": "CHECK",
-              "eventId": "bfc64101-6092-41fe-99d5-2d36fdb99215"
+              "eventId": "1340d17d-ae97-498e-b82e-686d4d039635"
             },
             {
               "type": "BOARD",
@@ -7180,19 +7180,19 @@
                 "3h",
                 "4d"
               ],
-              "eventId": "9e6431bb-e413-463c-b07c-4109b6cc095c"
+              "eventId": "bd0882ac-596d-46b1-884a-910a151438da"
             },
             {
               "type": "ACT",
               "actor": 1,
               "action": "CHECK",
-              "eventId": "73a3fa4e-a2a8-4f13-8229-32a53585a9ee"
+              "eventId": "18945431-568b-4a3c-80fd-f9e113b64467"
             },
             {
               "type": "ACT",
               "actor": 0,
               "action": "CHECK",
-              "eventId": "7235045f-1a82-4d6c-8ee8-e361fc031dc5"
+              "eventId": "fd4268be-dd52-4bde-bb0b-5dcf60e51cb8"
             },
             {
               "type": "BOARD",
@@ -7202,19 +7202,19 @@
                 "4d",
                 "8c"
               ],
-              "eventId": "6b3aafd9-27ba-459a-9e37-b6f5f238179b"
+              "eventId": "5bbf558b-b69a-45c4-9a47-3a088874d271"
             },
             {
               "type": "ACT",
               "actor": 1,
               "action": "CHECK",
-              "eventId": "06345615-a14c-4986-a280-1b2fc263263a"
+              "eventId": "8d78e0b4-6441-4214-8729-202614405efd"
             },
             {
               "type": "ACT",
               "actor": 0,
               "action": "CHECK",
-              "eventId": "f0d133b2-0c94-48eb-9ade-8b4ecd684ad9"
+              "eventId": "4739d894-3bd5-4847-9968-c143e88549e0"
             },
             {
               "type": "BOARD",
@@ -7225,13 +7225,13 @@
                 "8c",
                 "9s"
               ],
-              "eventId": "71f55b77-ce2c-4e82-94dd-fb9c53b44a33"
+              "eventId": "db5682d1-bf9a-41bb-89aa-e3bc8d3d2374"
             },
             {
               "type": "ACT",
               "actor": 1,
               "action": "CHECK",
-              "eventId": "aa22d28c-f93e-4a9c-af17-7b81294bbf52"
+              "eventId": "eb5abf51-2faf-4868-825a-22672cd3bcfe"
             }
           ],
           "handId": "00000000-0000-4000-8000-000000000015",
@@ -7306,7 +7306,7 @@
           "basis": "BEFORE_FEES"
         }
       },
-      "expectedRevisionKey": "c322f9de2ec34c5a3477f6fde29e01e65f5470bd74ea3727a41a0e6962eb3a1a",
+      "expectedRevisionKey": "aec7ccc06df51f06438fe10ad826296c66b7310c696a1846a8ca135dee23061b",
       "budget": {
         "timeMs": 5000,
         "iterations": 512
@@ -7579,11 +7579,11 @@
             ],
             "players": [
               {
-                "playerId": "6553559b-096d-4ef1-a1d3-9ad36b9913b2",
+                "playerId": "41ea8118-2f96-4ed2-ac77-2ab344b3be8c",
                 "name": "You"
               },
               {
-                "playerId": "6e000e7d-e6aa-40c8-a736-c20cbba17174",
+                "playerId": "5e8527a4-aa57-4bbb-a069-7eb16837ca77",
                 "name": "A1"
               }
             ]
@@ -7724,7 +7724,7 @@
           "basis": "BEFORE_FEES"
         }
       },
-      "expectedRevisionKey": "a95adb918cc9c333adef3d3d29528aa77669666ee16102b51eb016a5fedbbfd1",
+      "expectedRevisionKey": "76c889969cc1fb958ace8d089c7110b72eb56cfb36ad24b8ceb9407f1d17f0e6",
       "budget": {
         "timeMs": 5000,
         "iterations": 512

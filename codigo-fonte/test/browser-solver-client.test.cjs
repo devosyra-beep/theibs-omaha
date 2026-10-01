@@ -29,6 +29,68 @@ test('automatic Browser compute uses the same result schema with one cumulative 
   }finally{client.close();}
 });
 
+test('an automatic STANDARD resume uses only the remaining adaptive time after a foreground pause',async()=>{
+  let elapsed=0;const {client,workers}=harness(null,{now:()=>elapsed});
+  try{
+    const initial=await client.start('owner',input(),{handId:'hand-1',revisionKey:'rev-1',automatic:true});await tick();
+    elapsed=3000;done(workers[0],workers[0].solve,{workerMs:3000,iterations:100});await tick();
+    assert.equal(workers[1].solve.budget.timeMs,2000);
+    elapsed=3200;const message=workers[1].solve,retained=result();retained.adaptation={phase:'REFINING',stopReason:null,refinementRecommended:true};
+    workers[1].send({type:'progress',jobId:message.jobId,generation:message.generation,buildFingerprint:fingerprint,
+      handId:'hand-1',revisionKey:'rev-1',result:retained,checkpoint:{workIterations:110},workerMs:200});
+    assert.equal(client.stats().retainedCheckpointJobs,1);
+    elapsed=3500;client.cancelOwner('owner');
+    assert.ok(workers.slice(0,2).every(worker=>worker.terminated));assert.equal(client.stats().retainedCheckpointJobs,0);
+    assert.deepEqual(client.get('owner',initial.jobId).result,retained);
+    const resumed=await client.start('owner',input(),{handId:'hand-1',revisionKey:'rev-1',automatic:true});await tick();
+    assert.equal(resumed.cache.hit,true);assert.equal(resumed.runtimeBudget.ceilingMs,5000);assert.equal(resumed.runtimeBudget.continuations,1);
+    assert.equal(workers[2].solve.budget.timeMs,1500);assert.equal(workers[2].solve.checkpoint.workIterations,110);
+    assert.deepEqual(resumed.result,retained);assert.equal(resumed.timing.decisionComputeMs,3500);
+    elapsed=5000;done(workers[2],workers[2].solve,{workerMs:1500,iterations:100});
+    const finished=client.get('owner',resumed.jobId);assert.equal(finished.phase,'COMPLETE');assert.equal(finished.timing.decisionComputeMs,5000);
+    assert.equal(finished.result.decisionPrecision.status,'INCONCLUSIVE');assert.equal(client.stats().retainedCheckpointJobs,0);
+    const exhausted=await client.start('owner',input(),{handId:'hand-1',revisionKey:'rev-1',automatic:true});
+    assert.equal(exhausted.phase,'COMPLETE');assert.equal(exhausted.timing.decisionComputeMs,5000);assert.equal(workers.length,3);
+  }finally{client.close();}
+});
+
+test('an automatic resume preserves the cumulative iteration ceiling when the initial allowance is spent',async()=>{
+  let elapsed=0;const {client,workers}=harness(null,{now:()=>elapsed});
+  try{
+    await client.start('owner',input(),{handId:'hand-1',revisionKey:'rev-1',automatic:true});await tick();
+    elapsed=2000;done(workers[0],workers[0].solve,{workerMs:2000,iterations:1000});await tick();
+    const message=workers[1].solve;elapsed=2010;
+    workers[1].send({type:'progress',jobId:message.jobId,generation:message.generation,buildFingerprint:fingerprint,
+      handId:'hand-1',revisionKey:'rev-1',result:result(),checkpoint:{workIterations:1500},workerMs:10});
+    elapsed=2020;client.cancelOwner('owner');
+    const resumed=await client.start('owner',input(),{handId:'hand-1',revisionKey:'rev-1',automatic:true});await tick();
+    assert.equal(resumed.runtimeBudget.ceilingMs,5000);assert.equal(workers[2].solve.budget.timeMs,2980);
+    assert.equal(workers[2].solve.budget.iterations,500);assert.equal(workers[2].solve.checkpoint.workIterations,1500);
+    elapsed=2030;done(workers[2],workers[2].solve,{workerMs:10,iterations:500});
+    assert.equal(client.get('owner',resumed.jobId).timing.decisionWorkIterations,2000);
+    const exhausted=await client.start('owner',input(),{handId:'hand-1',revisionKey:'rev-1',automatic:true});
+    assert.equal(exhausted.phase,'COMPLETE');assert.equal(exhausted.timing.decisionWorkIterations,2000);assert.equal(workers.length,3);
+  }finally{client.close();}
+});
+
+test('terminal job history releases private checkpoints while its coherent cache still supports resume',async()=>{
+  const {client,workers}=harness((worker,message)=>queueMicrotask(()=>done(worker,message,{refine:false,workerMs:1,iterations:1})));
+  try{
+    const history=[];
+    for(let index=0;index<24;index++){
+      const hand=`hand-${index}`,job=await client.start('owner',input(hand),{handId:hand,revisionKey:`rev-${index}`});
+      history.push(await finish(client,'owner',job));assert.equal(client.stats().retainedCheckpointJobs,0);
+    }
+    assert.equal(client.stats().entries,16);assert.equal(client.stats().active,0);assert.ok(client.stats().memoryBytes<=client.stats().maxBytes);
+    for(const old of history)assert.equal(client.get('owner',old.jobId).result.actions[0].evBB,2);
+    const warm=await client.start('owner',input('hand-23'),{handId:'hand-23',revisionKey:'rev-23',budget:'FAST'});
+    assert.equal(warm.cache.hit,true);assert.equal(warm.cache.readOnly,true);assert.equal(client.stats().retainedCheckpointJobs,0);assert.equal(workers.length,24);
+    const resumed=await client.start('owner',input('hand-23'),{handId:'hand-23',revisionKey:'rev-23',budget:'DEEP'});await finish(client,'owner',resumed);
+    assert.equal(workers[24].solve.checkpoint.workIterations,1);assert.equal(client.stats().retainedCheckpointJobs,0);
+    client.clearOwner('owner');assert.equal(client.stats().entries,0);assert.equal(client.stats().memoryBytes,0);
+  }finally{client.close();}
+});
+
 test('a separated stopped snapshot is reused without an automatic continuation',async()=>{
   const {client,workers}=harness((worker,message)=>queueMicrotask(()=>done(worker,message,{refine:false,workerMs:10,iterations:1})));
   try{const first=await client.start('owner',input(),{handId:'hand-1',revisionKey:'rev-1',automatic:true});await finish(client,'owner',first);
@@ -90,7 +152,7 @@ test('a host deadline retains the last coherent result and checkpoint without ce
   try{const started=await client.start('owner',input(),{handId:'hand-1',revisionKey:'rev-1',automatic:false});await tick();
     assert.equal(client.get('owner',started.jobId).phase,'REFINING');elapsed=4000;const watchdog=[...timers.values()].find(timer=>timer.duration===4000);assert.ok(watchdog);watchdog.callback();
     const stopped=client.get('owner',started.jobId);assert.equal(stopped.phase,'COMPLETE');assert.match(stopped.reason,/time limit/);assert.equal(stopped.result.actions[0].evBB,2);
-    assert.equal(stopped.result.decisionPrecision.status,'INCONCLUSIVE');assert.equal(workers[0].terminated,true);
+    assert.equal(stopped.result.decisionPrecision.status,'INCONCLUSIVE');assert.equal(workers[0].terminated,true);assert.equal(client.stats().retainedCheckpointJobs,0);
     const warm=await client.start('owner',input(),{handId:'hand-1',revisionKey:'rev-1',budget:'FAST'});assert.equal(warm.cache.hit,true);assert.equal(warm.phase,'COMPLETE');
   }finally{client.close();}
 });

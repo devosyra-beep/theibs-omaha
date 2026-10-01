@@ -19,7 +19,7 @@ function game() {
 function withoutTiming(value) {
   if (Array.isArray(value)) return value.map(withoutTiming);
   if (!value || typeof value !== 'object') return value;
-  return Object.fromEntries(Object.entries(value).filter(([key]) => !['elapsedMs','certificateElapsedMs','traversalVisits','costs','compilation'].includes(key))
+  return Object.fromEntries(Object.entries(value).filter(([key]) => !['elapsedMs','certificateElapsedMs','traversalVisits','costs','compilation','treeConstruction'].includes(key))
     .map(([key, child]) => [key, withoutTiming(child)]));
 }
 

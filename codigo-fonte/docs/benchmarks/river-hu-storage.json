@@ -1,0 +1,424 @@
+{
+  "baseline": "c86abe284a4d56f62a1a6fac12e3b1558521a6bf",
+  "scope": "EXISTING_RIVER_HU_24X24_TWO_SIZES_SAME_GAME_SAME64_ITERATIONS_PER_TREE",
+  "equivalence": "BIT_IDENTICAL_STRATEGY_PROFILE_EV_CFR_CHECKPOINT_NASHCONV_ACTION_BOUNDS",
+  "samples": 3,
+  "percentileNote": "Three bounded runs: p95 is the slowest observed sample, not a population SLA.",
+  "summary": [
+    {
+      "implementation": "BASELINE_C86ABE2",
+      "samples": 3,
+      "coldAllActionsMs": {
+        "p50": 1191.9856,
+        "p95": 1271.9238999999998
+      },
+      "profileMs": {
+        "p50": 279.44590000000005,
+        "p95": 307.35389999999995
+      },
+      "certificateMs": {
+        "p50": 80.02100000000019,
+        "p95": 83.6676
+      },
+      "treeBuildMs": {
+        "p50": 24.997899999999845,
+        "p95": 26.031700000000228
+      },
+      "warmSameCheckpointBoundsMs": {
+        "p50": 333.3825999999999,
+        "p95": 398.37570000000005
+      },
+      "liveResultHeapDeltaBytes": {
+        "p50": 2380640,
+        "p95": 2437024
+      },
+      "maxRSSBytes": {
+        "p50": 132116480,
+        "p95": 135913472
+      },
+      "newConditionedObjects": 15197,
+      "sharedConditionedObjects": 111
+    },
+    {
+      "implementation": "CANDIDATE",
+      "samples": 3,
+      "coldAllActionsMs": {
+        "p50": 820.0302,
+        "p95": 1140.1934
+      },
+      "profileMs": {
+        "p50": 158.9932,
+        "p95": 235.73799999999994
+      },
+      "certificateMs": {
+        "p50": 96.8216000000001,
+        "p95": 99.88630000000012
+      },
+      "treeBuildMs": {
+        "p50": 27.25350000000003,
+        "p95": 33.01599999999996
+      },
+      "warmSameCheckpointBoundsMs": {
+        "p50": 267.08269999999993,
+        "p95": 304.42409999999995
+      },
+      "liveResultHeapDeltaBytes": {
+        "p50": 718992,
+        "p95": 719736
+      },
+      "maxRSSBytes": {
+        "p50": 99258368,
+        "p95": 101490688
+      },
+      "newConditionedObjects": 77,
+      "sharedConditionedObjects": 15231
+    }
+  ],
+  "runs": [
+    {
+      "index": 0,
+      "implementation": "BASELINE_C86ABE2",
+      "gameHash": "e74ec937b0e2619b7be00d477ad489942c67454482fbacdf3454d4a71f4ce572",
+      "mathematicalDigest": "4e4cabbfe523b8b19c9cea7cae35f8e2df55624f1add774c63c263673d7f5b8e",
+      "exactTree": {
+        "nodes": 5185,
+        "infosets": 72,
+        "reservationBytes": 42475520,
+        "conservativeWorkingEstimateBytes": 1575040
+      },
+      "profileMs": 183.4214,
+      "coldAllActionsMs": 988.0806,
+      "boundsCosts": {
+        "validationMs": 0.09339999999997417,
+        "treeBuildMs": 24.089700000000107,
+        "iterationSolveMs": 702.8149000000001,
+        "certificateMs": 66.38739999999996
+      },
+      "warmSameCheckpointBoundsMs": 398.37570000000005,
+      "warmBoundsCosts": {
+        "validationMs": 0.06770000000005894,
+        "treeBuildMs": 22.043600000000197,
+        "iterationSolveMs": 309.0094999999999,
+        "certificateMs": 65.54040000000009
+      },
+      "construction": {
+        "objectCount": 15308,
+        "sharedBaseObjects": 111,
+        "newObjects": 15197,
+        "metrics": null
+      },
+      "compilation": {
+        "compileCount": 4,
+        "reuseCount": 4,
+        "freezeMs": 108.37920000000008,
+        "compileMs": 90.29740000000004,
+        "peakRetainedBytes": 3114286
+      },
+      "memory": {
+        "heapBeforeBytes": 8511112,
+        "heapAfterLiveResultsBytes": 10948136,
+        "liveResultDeltaBytes": 2437024,
+        "processLifetimeMaxRSSBytes": 135913472,
+        "interpretation": "Isolated Node process. GC snapshots retain the base compiled game and completed outputs. RSS includes runtime; neither is browser peak heap."
+      },
+      "scratch": {
+        "perNodeExpectedValueArrays": 5185,
+        "perNodeReachIntervalArrays": 5185,
+        "cfrChildVectorAllocationsPerSweep": 3458
+      }
+    },
+    {
+      "index": 0,
+      "implementation": "CANDIDATE",
+      "gameHash": "e74ec937b0e2619b7be00d477ad489942c67454482fbacdf3454d4a71f4ce572",
+      "mathematicalDigest": "4e4cabbfe523b8b19c9cea7cae35f8e2df55624f1add774c63c263673d7f5b8e",
+      "exactTree": {
+        "nodes": 5185,
+        "infosets": 72,
+        "reservationBytes": 42475520,
+        "conservativeWorkingEstimateBytes": 1575040
+      },
+      "profileMs": 235.73799999999994,
+      "coldAllActionsMs": 1140.1934,
+      "boundsCosts": {
+        "validationMs": 0.09829999999999472,
+        "treeBuildMs": 33.01599999999996,
+        "iterationSolveMs": 752.5402000000003,
+        "certificateMs": 99.88630000000012
+      },
+      "warmSameCheckpointBoundsMs": 213.1567,
+      "warmBoundsCosts": {
+        "validationMs": 0.080600000000004,
+        "treeBuildMs": 14.280499999999847,
+        "iterationSolveMs": 145.15660000000003,
+        "certificateMs": 52.37570000000005
+      },
+      "construction": {
+        "objectCount": 15308,
+        "sharedBaseObjects": 15231,
+        "newObjects": 77,
+        "metrics": {
+          "mode": "VERIFIED_IMMUTABLE_PATH_SHARING",
+          "completedGraphs": 1,
+          "visitedNodes": 5065,
+          "copiedNodes": 25,
+          "sharedNodes": 5040,
+          "copiedEdges": 24,
+          "sharedEdges": 5040,
+          "repeatedSourceVisits": 0,
+          "peakCopiedNodes": 25,
+          "peakSharedNodes": 5040
+        }
+      },
+      "compilation": {
+        "compileCount": 4,
+        "reuseCount": 4,
+        "freezeMs": 5.952200000000289,
+        "compileMs": 207.66430000000014,
+        "peakRetainedBytes": 3114286
+      },
+      "memory": {
+        "heapBeforeBytes": 8483976,
+        "heapAfterLiveResultsBytes": 9202968,
+        "liveResultDeltaBytes": 718992,
+        "processLifetimeMaxRSSBytes": 99258368,
+        "interpretation": "Isolated Node process. GC snapshots retain the base compiled game and completed outputs. RSS includes runtime; neither is browser peak heap."
+      },
+      "scratch": {
+        "expectedValueBufferBytes": 88145,
+        "reachIntervalBufferBytesPerBestResponse": 82960,
+        "cfrChildVectors": "Reusable by own-decision recursion depth only; no chance/opponent child vectors."
+      }
+    },
+    {
+      "index": 1,
+      "implementation": "CANDIDATE",
+      "gameHash": "e74ec937b0e2619b7be00d477ad489942c67454482fbacdf3454d4a71f4ce572",
+      "mathematicalDigest": "4e4cabbfe523b8b19c9cea7cae35f8e2df55624f1add774c63c263673d7f5b8e",
+      "exactTree": {
+        "nodes": 5185,
+        "infosets": 72,
+        "reservationBytes": 42475520,
+        "conservativeWorkingEstimateBytes": 1575040
+      },
+      "profileMs": 114.68899999999996,
+      "coldAllActionsMs": 749.6931999999999,
+      "boundsCosts": {
+        "validationMs": 0.0805000000000291,
+        "treeBuildMs": 22.95879999999994,
+        "iterationSolveMs": 503.09100000000007,
+        "certificateMs": 96.8216000000001
+      },
+      "warmSameCheckpointBoundsMs": 304.42409999999995,
+      "warmBoundsCosts": {
+        "validationMs": 0.12069999999994252,
+        "treeBuildMs": 21.907400000000052,
+        "iterationSolveMs": 198.2668000000001,
+        "certificateMs": 81.83750000000009
+      },
+      "construction": {
+        "objectCount": 15308,
+        "sharedBaseObjects": 15231,
+        "newObjects": 77,
+        "metrics": {
+          "mode": "VERIFIED_IMMUTABLE_PATH_SHARING",
+          "completedGraphs": 1,
+          "visitedNodes": 5065,
+          "copiedNodes": 25,
+          "sharedNodes": 5040,
+          "copiedEdges": 24,
+          "sharedEdges": 5040,
+          "repeatedSourceVisits": 0,
+          "peakCopiedNodes": 25,
+          "peakSharedNodes": 5040
+        }
+      },
+      "compilation": {
+        "compileCount": 4,
+        "reuseCount": 4,
+        "freezeMs": 5.3209000000000515,
+        "compileMs": 127.79100000000017,
+        "peakRetainedBytes": 3114286
+      },
+      "memory": {
+        "heapBeforeBytes": 8481736,
+        "heapAfterLiveResultsBytes": 9198176,
+        "liveResultDeltaBytes": 716440,
+        "processLifetimeMaxRSSBytes": 101490688,
+        "interpretation": "Isolated Node process. GC snapshots retain the base compiled game and completed outputs. RSS includes runtime; neither is browser peak heap."
+      },
+      "scratch": {
+        "expectedValueBufferBytes": 88145,
+        "reachIntervalBufferBytesPerBestResponse": 82960,
+        "cfrChildVectors": "Reusable by own-decision recursion depth only; no chance/opponent child vectors."
+      }
+    },
+    {
+      "index": 1,
+      "implementation": "BASELINE_C86ABE2",
+      "gameHash": "e74ec937b0e2619b7be00d477ad489942c67454482fbacdf3454d4a71f4ce572",
+      "mathematicalDigest": "4e4cabbfe523b8b19c9cea7cae35f8e2df55624f1add774c63c263673d7f5b8e",
+      "exactTree": {
+        "nodes": 5185,
+        "infosets": 72,
+        "reservationBytes": 42475520,
+        "conservativeWorkingEstimateBytes": 1575040
+      },
+      "profileMs": 307.35389999999995,
+      "coldAllActionsMs": 1271.9238999999998,
+      "boundsCosts": {
+        "validationMs": 0.19280000000003383,
+        "treeBuildMs": 26.031700000000228,
+        "iterationSolveMs": 840.2769000000003,
+        "certificateMs": 83.6676
+      },
+      "warmSameCheckpointBoundsMs": 333.3825999999999,
+      "warmBoundsCosts": {
+        "validationMs": 0.060899999999946886,
+        "treeBuildMs": 29.871000000000322,
+        "iterationSolveMs": 238.9928,
+        "certificateMs": 62.978199999999106
+      },
+      "construction": {
+        "objectCount": 15308,
+        "sharedBaseObjects": 111,
+        "newObjects": 15197,
+        "metrics": null
+      },
+      "compilation": {
+        "compileCount": 4,
+        "reuseCount": 4,
+        "freezeMs": 137.9924000000001,
+        "compileMs": 92.0616,
+        "peakRetainedBytes": 3114286
+      },
+      "memory": {
+        "heapBeforeBytes": 8510168,
+        "heapAfterLiveResultsBytes": 10886920,
+        "liveResultDeltaBytes": 2376752,
+        "processLifetimeMaxRSSBytes": 124788736,
+        "interpretation": "Isolated Node process. GC snapshots retain the base compiled game and completed outputs. RSS includes runtime; neither is browser peak heap."
+      },
+      "scratch": {
+        "perNodeExpectedValueArrays": 5185,
+        "perNodeReachIntervalArrays": 5185,
+        "cfrChildVectorAllocationsPerSweep": 3458
+      }
+    },
+    {
+      "index": 2,
+      "implementation": "BASELINE_C86ABE2",
+      "gameHash": "e74ec937b0e2619b7be00d477ad489942c67454482fbacdf3454d4a71f4ce572",
+      "mathematicalDigest": "4e4cabbfe523b8b19c9cea7cae35f8e2df55624f1add774c63c263673d7f5b8e",
+      "exactTree": {
+        "nodes": 5185,
+        "infosets": 72,
+        "reservationBytes": 42475520,
+        "conservativeWorkingEstimateBytes": 1575040
+      },
+      "profileMs": 279.44590000000005,
+      "coldAllActionsMs": 1191.9856,
+      "boundsCosts": {
+        "validationMs": 0.09230000000002292,
+        "treeBuildMs": 24.997899999999845,
+        "iterationSolveMs": 792.6139999999999,
+        "certificateMs": 80.02100000000019
+      },
+      "warmSameCheckpointBoundsMs": 330.4157,
+      "warmBoundsCosts": {
+        "validationMs": 0.14430000000015752,
+        "treeBuildMs": 21.09990000000016,
+        "iterationSolveMs": 254.54449999999974,
+        "certificateMs": 52.86389999999983
+      },
+      "construction": {
+        "objectCount": 15308,
+        "sharedBaseObjects": 111,
+        "newObjects": 15197,
+        "metrics": null
+      },
+      "compilation": {
+        "compileCount": 4,
+        "reuseCount": 4,
+        "freezeMs": 121.63619999999992,
+        "compileMs": 99.30089999999973,
+        "peakRetainedBytes": 3114286
+      },
+      "memory": {
+        "heapBeforeBytes": 8510456,
+        "heapAfterLiveResultsBytes": 10891096,
+        "liveResultDeltaBytes": 2380640,
+        "processLifetimeMaxRSSBytes": 132116480,
+        "interpretation": "Isolated Node process. GC snapshots retain the base compiled game and completed outputs. RSS includes runtime; neither is browser peak heap."
+      },
+      "scratch": {
+        "perNodeExpectedValueArrays": 5185,
+        "perNodeReachIntervalArrays": 5185,
+        "cfrChildVectorAllocationsPerSweep": 3458
+      }
+    },
+    {
+      "index": 2,
+      "implementation": "CANDIDATE",
+      "gameHash": "e74ec937b0e2619b7be00d477ad489942c67454482fbacdf3454d4a71f4ce572",
+      "mathematicalDigest": "4e4cabbfe523b8b19c9cea7cae35f8e2df55624f1add774c63c263673d7f5b8e",
+      "exactTree": {
+        "nodes": 5185,
+        "infosets": 72,
+        "reservationBytes": 42475520,
+        "conservativeWorkingEstimateBytes": 1575040
+      },
+      "profileMs": 158.9932,
+      "coldAllActionsMs": 820.0302,
+      "boundsCosts": {
+        "validationMs": 0.10500000000001819,
+        "treeBuildMs": 27.25350000000003,
+        "iterationSolveMs": 536.0178,
+        "certificateMs": 83.55309999999986
+      },
+      "warmSameCheckpointBoundsMs": 267.08269999999993,
+      "warmBoundsCosts": {
+        "validationMs": 0.08449999999993452,
+        "treeBuildMs": 20.47440000000006,
+        "iterationSolveMs": 157.53409999999985,
+        "certificateMs": 87.08109999999988
+      },
+      "construction": {
+        "objectCount": 15308,
+        "sharedBaseObjects": 15231,
+        "newObjects": 77,
+        "metrics": {
+          "mode": "VERIFIED_IMMUTABLE_PATH_SHARING",
+          "completedGraphs": 1,
+          "visitedNodes": 5065,
+          "copiedNodes": 25,
+          "sharedNodes": 5040,
+          "copiedEdges": 24,
+          "sharedEdges": 5040,
+          "repeatedSourceVisits": 0,
+          "peakCopiedNodes": 25,
+          "peakSharedNodes": 5040
+        }
+      },
+      "compilation": {
+        "compileCount": 4,
+        "reuseCount": 4,
+        "freezeMs": 4.982900000000086,
+        "compileMs": 141.57979999999998,
+        "peakRetainedBytes": 3114286
+      },
+      "memory": {
+        "heapBeforeBytes": 8481560,
+        "heapAfterLiveResultsBytes": 9201296,
+        "liveResultDeltaBytes": 719736,
+        "processLifetimeMaxRSSBytes": 96935936,
+        "interpretation": "Isolated Node process. GC snapshots retain the base compiled game and completed outputs. RSS includes runtime; neither is browser peak heap."
+      },
+      "scratch": {
+        "expectedValueBufferBytes": 88145,
+        "reachIntervalBufferBytesPerBestResponse": 82960,
+        "cfrChildVectors": "Reusable by own-decision recursion depth only; no chance/opponent child vectors."
+      }
+    }
+  ]
+}

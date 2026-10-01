@@ -10,17 +10,43 @@ const SUPPORTED_GAME_CLASS = 'TWO_PLAYER_CONSTANT_SUM_PERFECT_RECALL';
 const STOP = Symbol('action-conditioning-budget');
 
 function buildActionConditionedGame(game, { player, informationSet, actionId, control = () => {} } = {}) {
+  return constructActionConditionedGame(game, { player, informationSet, actionId, control });
+}
+
+// Only solveActionConditioned can select sharing, after the existing private
+// capability has validated this exact owned game and frozen all its data.
+// Public builders retain independent copies for mutable caller-owned trees.
+function constructActionConditionedGame(game, { player, informationSet, actionId, control = () => {} }, shareImmutable = false, metrics) {
   if (game?.playerCount !== 2 || ![0, 1].includes(player)) throw new Error('Action conditioning requires two players and a valid player index.');
   if (typeof informationSet !== 'string' || !informationSet || typeof actionId !== 'string' || !actionId) throw new Error('Action conditioning requires an information set and action ID.');
   let count = 0;
   const path = new Set();
+  const seenSourceNodes = shareImmutable ? new Set() : null;
+  function edge(original, child, canShare) {
+    if (canShare && child === original.node) {
+      if (metrics) metrics.sharedEdges++;
+      return original;
+    }
+    if (metrics) metrics.copiedEdges++;
+    return { ...original, node: child };
+  }
   function copy(node, beforeDecision) {
     control();
     if (!node || path.has(node)) throw new Error('The conditioned game must be a finite tree.');
+    if (metrics) metrics.visitedNodes++;
+    const repeated = seenSourceNodes?.has(node) === true;
+    if (seenSourceNodes) seenSourceNodes.add(node);
+    if (repeated && metrics) metrics.repeatedSourceVisits++;
+    // A source may reuse a terminal/subtree at two histories. Keep the output
+    // tree isolated at repeated occurrences, matching the original copy path.
+    const canShare = shareImmutable && !repeated;
     path.add(node);
     let result;
-    if (node.type === 'terminal') result = { ...node, payoffs: node.payoffs.slice() };
-    else if (node.type === 'chance') result = { ...node, outcomes: node.outcomes.map(outcome => ({ ...outcome, node: copy(outcome.node, beforeDecision) })) };
+    if (node.type === 'terminal') result = canShare ? node : { ...node, payoffs: node.payoffs.slice() };
+    else if (node.type === 'chance') {
+      const outcomes = node.outcomes.map(outcome => edge(outcome, copy(outcome.node, beforeDecision), canShare));
+      result = canShare && outcomes.every((outcome, index) => outcome === node.outcomes[index]) ? node : { ...node, outcomes };
+    }
     else if (node.type === 'decision') {
       let actions = node.actions;
       if (node.player === player && node.informationSet === informationSet) {
@@ -29,8 +55,14 @@ function buildActionConditionedGame(game, { player, informationSet, actionId, co
         if (actions.length !== 1) throw new Error('The conditioned action must exist exactly once at every information-set member.');
         count++;
       }
-      result = { ...node, actions: actions.map(action => ({ ...action, node: copy(action.node, false) })) };
+      const copied = actions.map(action => edge(action, copy(action.node, false), canShare));
+      result = canShare && copied.length === node.actions.length && copied.every((action, index) => action === node.actions[index])
+        ? node : { ...node, actions: copied };
     } else throw new Error('Unknown conditioned game node type.');
+    if (metrics) {
+      if (result === node) metrics.sharedNodes++;
+      else metrics.copiedNodes++;
+    }
     path.delete(node);
     return result;
   }
@@ -67,6 +99,9 @@ function solveActionConditioned(game, options = {}) {
   let termination = 'COMPLETE', visits = 0;
   const compilation = { compileCount: 0, reuseCount: 0, freezeMs: 0, compileMs: 0, peakRetainedBytes: 0 };
   const costs = { validationMs: 0, treeBuildMs: 0, iterationSolveMs: 0, certificateMs: 0 };
+  const treeConstruction = { mode: 'NOT_STARTED', completedGraphs: 0, visitedNodes: 0,
+    copiedNodes: 0, sharedNodes: 0, copiedEdges: 0, sharedEdges: 0, repeatedSourceVisits: 0,
+    peakCopiedNodes: 0, peakSharedNodes: 0 };
   const remaining = () => Math.max(0, timeBudgetMs - (performance.now() - started));
   function control(force = false) {
     if (!force && ++visits % 128 !== 0) return;
@@ -87,8 +122,17 @@ function solveActionConditioned(game, options = {}) {
       control(true);
       const actionStarted = performance.now();
       let conditioned;
-      try { conditioned = buildActionConditionedGame(game, { player, informationSet, actionId: id, control }); }
-      finally { costs.treeBuildMs += performance.now() - actionStarted; }
+      const shareImmutable = options.compilationContext !== undefined;
+      treeConstruction.mode = shareImmutable ? 'VERIFIED_IMMUTABLE_PATH_SHARING' : 'ISOLATED_COPY';
+      const construction = { visitedNodes: 0, copiedNodes: 0, sharedNodes: 0, copiedEdges: 0, sharedEdges: 0, repeatedSourceVisits: 0 };
+      try { conditioned = constructActionConditionedGame(game, { player, informationSet, actionId: id, control }, shareImmutable, construction); }
+      finally {
+        costs.treeBuildMs += performance.now() - actionStarted;
+        for (const key of Object.keys(construction)) treeConstruction[key] += construction[key];
+        treeConstruction.peakCopiedNodes = Math.max(treeConstruction.peakCopiedNodes, construction.copiedNodes);
+        treeConstruction.peakSharedNodes = Math.max(treeConstruction.peakSharedNodes, construction.sharedNodes);
+        if (conditioned) treeConstruction.completedGraphs++;
+      }
       const retainedBase = options.compilationContext === undefined ? 0 : core.compilationContextStats(options.compilationContext).retainedBytes;
       const conditionedContext = options.compilationContext === undefined ? undefined : core.createCompilationContext(conditioned,
         { maxRetainedBytes: Math.max(0, core.MAX_RETAINED_COMPILATION_BYTES - retainedBase), immutableSourceContext: options.compilationContext });
@@ -148,7 +192,7 @@ function solveActionConditioned(game, options = {}) {
     if (error !== STOP) throw error;
   }
   return { ...envelope, termination, metrics: { elapsedMs: performance.now() - started,
-    costs,
+    costs, treeConstruction,
     actionCount: actions.length, certifiedActionCount: actions.filter(action => action.certified).length,
     additionalIterations: actions.reduce((sum, action) => sum + action.additionalIterations, 0),
     ...(options.compilationContext === undefined ? {} : { compilation }) } };

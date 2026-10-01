@@ -220,21 +220,31 @@ function exportStrategy(compiled, rows) {
 }
 
 function expectedValues(compiled, policy, control = () => {}) {
-  const cache = new Array(compiled.nodes.length);
+  // Binary64 storage removes one small result array per node. Indexing and
+  // accumulation keep the original DFS/player/action order exactly.
+  const players = compiled.playerCount;
+  const cache = new Float64Array(compiled.nodes.length * players);
+  const ready = new Uint8Array(compiled.nodes.length);
   function value(index) {
     control();
-    if (cache[index]) return cache[index];
+    const offset = index * players;
+    if (ready[index]) return offset;
     const node = compiled.nodes[index];
-    if (node.type === 'terminal') return (cache[index] = node.payoffs);
+    if (node.type === 'terminal') {
+      for (let p = 0; p < players; p++) cache[offset + p] = node.payoffs[p];
+      ready[index] = 1;
+      return offset;
+    }
     const probabilities = node.type === 'chance' ? node.probabilities : policy[node.info];
-    const result = Array(compiled.playerCount).fill(0);
     for (let a = 0; a < node.children.length; a++) {
       const child = value(node.children[a]);
-      for (let p = 0; p < result.length; p++) result[p] += probabilities[a] * child[p];
+      for (let p = 0; p < players; p++) cache[offset + p] += probabilities[a] * cache[child + p];
     }
-    return (cache[index] = result);
+    ready[index] = 1;
+    return offset;
   }
-  return { values: value(0).slice(), cache };
+  value(0);
+  return { values: Array.from(cache.subarray(0, players)), cache };
 }
 
 function counterfactualReach(compiled, policy, player, control = () => {}) {
@@ -323,7 +333,7 @@ function actionValues(game, strategy, player, informationSet, options = {}) {
   const mass = info.nodes.reduce((sum, index) => sum + reach[index], 0);
   return {
     player, informationSet, counterfactualReach: mass, reachable: mass > 0,
-    actions: info.actions.map((id, a) => ({ id, frequency: policy[info.index][a], ev: mass > 0 ? info.nodes.reduce((sum, index) => sum + reach[index] * values[compiled.nodes[index].children[a]][player], 0) / mass : null })),
+    actions: info.actions.map((id, a) => ({ id, frequency: policy[info.index][a], ev: mass > 0 ? info.nodes.reduce((sum, index) => sum + reach[index] * values[compiled.nodes[index].children[a] * compiled.playerCount + player], 0) / mass : null })),
     method: 'EXACT_AVERAGE_STRATEGY_CONTINUATION', scope: 'SUPPLIED_FINITE_GAME'
   };
 }
@@ -365,12 +375,13 @@ function intervalProbabilities(row) {
   return row.map(value => value === 0 ? [0, 0] : [Math.max(0, down(value / sum[1])), Math.min(1, up(value / sum[0]))]);
 }
 
-function intervalBestResponse(compiled, policy, player, control, terminalUtility = node => [node.payoffs[player], node.payoffs[player]]) {
-  const rows = policy.map(intervalProbabilities);
-  const reach = new Array(compiled.nodes.length);
+function intervalBestResponse(compiled, rows, player, control, terminalUtility = node => [node.payoffs[player], node.payoffs[player]]) {
+  // Reach intervals are private scratch, never strategy/checkpoint data.
+  // Their two endpoints remain binary64 and retain outward-rounded operations.
+  const reach = new Float64Array(compiled.nodes.length * 2);
   function visit(index, probability) {
     control();
-    reach[index] = probability;
+    reach[index * 2] = probability[0]; reach[index * 2 + 1] = probability[1];
     const node = compiled.nodes[index];
     if (node.type === 'terminal') return;
     const row = node.type === 'chance' ? intervalProbabilities(node.probabilities) : rows[node.info];
@@ -388,7 +399,7 @@ function intervalBestResponse(compiled, policy, player, control, terminalUtility
     function walk(index) {
       control();
       const node = compiled.nodes[index];
-      if (node.type === 'terminal') terminals = intervalAdd(terminals, intervalMultiply(reach[index], terminalUtility(node)));
+      if (node.type === 'terminal') terminals = intervalAdd(terminals, intervalMultiply([reach[index * 2], reach[index * 2 + 1]], terminalUtility(node)));
       else if (node.type === 'decision' && node.player === player) successors.add(node.info);
       else for (const child of node.children) walk(child);
     }
@@ -426,6 +437,9 @@ function saddleBounds(game, strategy, player, options = {}) {
     if (compiled.playerCount !== 2 || compiled.metrics.constantSum === null || game.meta?.constantSum === false) throw new Error('Saddle certificates require a two-player constant-sum game.');
     if (player !== 0 && player !== 1) throw new Error('Saddle certificate player is invalid.');
     const policy = readStrategy(compiled, strategy);
+    // The same normalized supplied weights serve both best responses. Sharing
+    // these immutable numeric rows does not share choices or reveal cards.
+    const intervalRows = policy.map(intervalProbabilities);
     let minimumSum = Infinity, maximumSum = -Infinity;
     for (const node of compiled.nodes) if (node.type === 'terminal') {
       control();
@@ -439,8 +453,8 @@ function saddleBounds(game, strategy, player, options = {}) {
     // no tolerance is used as an action-value error bar. Nonconstant-sum input
     // remains rejected above, including a contrary adapter declaration.
     const offset = compiled.metrics.constantSum;
-    const heroBR = intervalBestResponse(compiled, policy, player, control);
-    const opponentBR = intervalBestResponse(compiled, policy, 1 - player, control,
+    const heroBR = intervalBestResponse(compiled, intervalRows, player, control);
+    const opponentBR = intervalBestResponse(compiled, intervalRows, 1 - player, control,
       node => intervalAdd([offset, offset], [-node.payoffs[player], -node.payoffs[player]]));
     const lower = down(offset - opponentBR[1]), upper = heroBR[1];
     if (![lower, upper, ...heroBR, ...opponentBR].every(finite) || lower > upper) throw new Error('Saddle interval could not be certified.');
@@ -467,7 +481,7 @@ function rootDiagnostics(game, strategy, player, informationSet, options = {}) {
   const reach = counterfactualReach(compiled, policy, player);
   const mass = info.nodes.reduce((sum, index) => sum + reach[index], 0);
   const expected = expectedValues(compiled, policy).cache;
-  const actions = info.actions.map((id, a) => ({ id, frequency: policy[info.index][a], ev: mass > 0 ? info.nodes.reduce((sum, index) => sum + reach[index] * expected[compiled.nodes[index].children[a]][player], 0) / mass : null }));
+  const actions = info.actions.map((id, a) => ({ id, frequency: policy[info.index][a], ev: mass > 0 ? info.nodes.reduce((sum, index) => sum + reach[index] * expected[compiled.nodes[index].children[a] * compiled.playerCount + player], 0) / mass : null }));
   const value = mass > 0 ? actions.reduce((sum, action) => sum + action.frequency * action.ev, 0) : null;
   const oneStepRegret = mass > 0 ? Math.max(0, Math.max(...actions.map(action => action.ev)) - value) : null;
   const previous = options.previous;
@@ -524,6 +538,11 @@ function solve(game, options = {}) {
     iterations = checkpoint.iterations;
   }
   const firstIteration = iterations;
+  // Only OWN decisions need all child values after traversal. Reuse one small
+  // buffer at each recursion depth instead of allocating a vector at every
+  // chance/opponent/own node on every alternating sweep. No buffer is exported
+  // or retained between solve calls; interrupted sweeps still commit nothing.
+  const childScratch = [];
   let evaluation = null, evaluationIteration = -1;
   function evaluateCurrent() {
     control(true);
@@ -542,14 +561,23 @@ function solve(game, options = {}) {
         const policy = nextRegrets.map(normalized);
         const deltas = compiled.informationSets.map(info => info.player === player ? Array(info.actions.length).fill(0) : null);
         const averaged = new Set();
-        function traverse(index, ownReach, othersReach) {
+        function traverse(index, ownReach, othersReach, depth = 0) {
           control();
           const node = compiled.nodes[index];
           if (node.type === 'terminal') return node.payoffs[player];
           const row = node.type === 'chance' ? node.probabilities : policy[node.info];
           const isOwn = node.type === 'decision' && node.player === player;
-          const children = node.children.map((child, a) => traverse(child, ownReach * (isOwn ? row[a] : 1), othersReach * (isOwn ? 1 : row[a])));
-          const value = children.reduce((sum, child, a) => sum + row[a] * child, 0);
+          let children;
+          if (isOwn) {
+            if (!childScratch[depth] || childScratch[depth].length < row.length) childScratch[depth] = new Float64Array(row.length);
+            children = childScratch[depth];
+          }
+          let value = 0;
+          for (let a = 0; a < node.children.length; a++) {
+            const child = traverse(node.children[a], ownReach * (isOwn ? row[a] : 1), othersReach * (isOwn ? 1 : row[a]), depth + 1);
+            if (isOwn) children[a] = child;
+            value += row[a] * child;
+          }
           if (isOwn) {
             for (let a = 0; a < row.length; a++) deltas[node.info][a] += othersReach * (children[a] - value);
             // Perfect recall makes own reach identical across the histories in I.

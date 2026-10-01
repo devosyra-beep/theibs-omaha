@@ -69,7 +69,9 @@
       return manifestPromise;
     }
     function ownerId(owner) { if (typeof owner!=='string' || !owner.length || owner.length>240) throw Error('A current isolated solver owner is required.');return owner; }
-    function stats() {return {...metrics,memoryBytes:bytes,entries:cache.size,maxBytes,active:[...jobs.values()].filter(job=>!END_PHASES.has(job.phase)).length};}
+    function stats() {return {...metrics,memoryBytes:bytes,entries:cache.size,maxBytes,
+      retainedCheckpointJobs:[...jobs.values()].filter(job=>job.checkpoint!=null).length,
+      active:[...jobs.values()].filter(job=>!END_PHASES.has(job.phase)).length};}
     function view(job) {
       const readOnly=job.cacheHit && job.workerRuns===0 && END_PHASES.has(job.phase);
       return {status:job.result?.status || (END_PHASES.has(job.phase)?'NOT_SOLVED':'REFINING'),jobId:job.id,revisionKey:job.revisionKey,handId:job.handId,
@@ -87,7 +89,16 @@
         limits:{maxNodes:12000,maxWorlds:576,maxMemoryBytes:48*1024*1024,maxBuildMs:750}};
     }
     function changed(job) {job.updateVersion++;for(const wake of [...job.waiters])wake();options.onChange?.(view(job));}
-    function setPhase(job,phase) {job.phase=phase;if(END_PHASES.has(phase) && job.completionMs==null)job.completionMs=Math.max(0,Math.round(now()-job.started));changed(job);}
+    function setPhase(job,phase) {
+      job.phase=phase;
+      if(END_PHASES.has(phase)){
+        if(job.completionMs==null)job.completionMs=Math.max(0,Math.round(now()-job.started));
+        // Resume reads the bounded cache, never a terminal job's private state.
+        // Keep its public result while releasing the duplicate numerical arrays.
+        job.checkpoint=null;
+      }
+      changed(job);
+    }
     function ownerJob(owner,id) {ownerId(owner);const job=jobs.get(id);if(!job || job.owner!==owner)throw Error('Solver job was not found for this owner.');return job;}
     function current(job,slot) {return !closed && !END_PHASES.has(job.phase) && job.worker===slot && generations.get(job.owner)===job.generation;}
     function stopWorker(job) {if(job.watchdog!=null)clearDelay(job.watchdog);job.watchdog=null;const worker=job.worker;job.worker=null;if(worker){worker.onmessage=null;worker.onerror=null;worker.terminate();}}
@@ -163,7 +174,13 @@
       if(closed || generations.get(job.owner)!==job.generation || END_PHASES.has(job.phase))return;
       const iterationsCeiling=job.budget==='STANDARD' && job.continuations ? Math.min(20000,profiles.STANDARD.iterations*2) : profiles[job.budget].iterations;
       const remaining={timeMs:Math.min(5000,Math.max(0,job.ceilingMs-job.decision.consumedMs)),iterations:Math.max(0,iterationsCeiling-job.decision.workIterations)};
-      if(remaining.timeMs<=0 || remaining.iterations<=0){job.reason='Cumulative calculation budget reached; latest estimate retained.';finishPendingOutcome(job,remaining.timeMs<=0?'TIME_BUDGET_EXHAUSTED':'ITERATION_BUDGET_EXHAUSTED');setPhase(job,'COMPLETE');return;}
+      if(remaining.timeMs<=0 || remaining.iterations<=0){
+        // A foreground pause can occur after STANDARD has entered its adaptive
+        // allowance. A same-context resume must use that remaining allowance,
+        // while continuing to charge the original cumulative decision budget.
+        if(needsContinuation(job,true)){continueJob(job);return;}
+        job.reason='Cumulative calculation budget reached; latest estimate retained.';finishPendingOutcome(job,remaining.timeMs<=0?'TIME_BUDGET_EXHAUSTED':'ITERATION_BUDGET_EXHAUSTED');setPhase(job,'COMPLETE');return;
+      }
       job.runReportedMs=0;job.runStarted=null;job.currentRunCosts=null;job.runAccountedCosts={};setPhase(job,'BUILDING');
       let worker;
       try{worker=makeWorker(workerUrl);job.worker=worker;job.workerRuns++;}catch(error){fail(job,error.message);return;}
