@@ -13,7 +13,7 @@ const clone=value=>value==null?value:structuredClone(value);
 const finite=Number.isFinite;
 const hash=value=>createHash('sha256').update(JSON.stringify(value)).digest('hex');
 const workIterations=checkpoint=>Number.isSafeInteger(checkpoint?.workIterations)?checkpoint.workIterations:Number.isSafeInteger(checkpoint?.iterations)?checkpoint.iterations:0;
-function emptyCosts(){return {buildMs:0,globalSolveMs:0,globalEvaluationMs:0,actionSolveMs:0,totalComputeMs:0};}
+function emptyCosts(){return {buildMs:0,globalSolveMs:0,globalEvaluationMs:0,actionSolveMs:0,actionCertificateMs:0,totalComputeMs:0};}
 function validBounds(row){return row?.certified===true&&finite(row.lowerBB)&&finite(row.upperBB)&&row.lowerBB<=row.upperBB;}
 
 // Extra certificate work only: the original game and strategy retain every action.
@@ -56,6 +56,12 @@ function execute({input,budget,checkpoint,shouldCancel=()=>false,onProgress=()=>
   const built=build(input);runCosts.buildMs=now()-started;
   if(built.status!=='READY')return {result:{status:'NOT_SOLVED',reasons:built.reasons,actions:[],method:'CFR_PLUS',qualification:{gto:false},metrics:built.metrics},workerMs:now()-started,paused:shouldCancel()};
   const game=built.game,meta=game.meta,ids=meta.rootActions.map(action=>action.id);
+  // Trusted browser runtime opt-in, never request or checkpoint data. The Node
+  // default stays uncached; native SHA has no demonstrated app-level speedup.
+  // The capability belongs only to the owned tree built for this invocation.
+  const compilationContext=dependencies.compilationReuse===true&&typeof engine.createCompilationContext==='function'?engine.createCompilationContext(game):undefined;
+  const actionCompilation={compileCount:0,reuseCount:0,freezeMs:0,compileMs:0,peakRetainedBytes:0};
+  try {
   const baseContextKey=hash([meta.key,meta.heroInformationSet,engine.VERSION,certifier.VERSION]);
   const compatible=checkpoint?.version===VERSION&&checkpoint.baseContextKey===baseContextKey&&checkpoint.solverVersion===engine.VERSION&&checkpoint.certificateVersion===certifier.VERSION;
   let globalCheckpoint=compatible?checkpoint.global:checkpoint?.version===engine.VERSION?checkpoint:null;
@@ -90,6 +96,12 @@ function execute({input,budget,checkpoint,shouldCancel=()=>false,onProgress=()=>
       gameHash:null,conditionedHash:null,iterations:0,elapsedMs:0};
   });}
   function costs(){return Object.fromEntries(Object.keys(emptyCosts()).map(key=>[key,(cumulativeCosts[key]||0)+(runCosts[key]||0)]));}
+  function compilationMetrics(){
+    if(compilationContext===undefined)return {};
+    const base=engine.compilationContextStats(compilationContext);
+    return {compilation:{scope:'CURRENT_EXECUTION_ONLY',base,conditioned:{...actionCompilation},
+      peakRetainedBytes:Math.max(base.retainedBytes,actionCompilation.peakRetainedBytes),maxRetainedBytes:engine.MAX_RETAINED_COMPILATION_BYTES}};
+  }
   function saved(){return {version:VERSION,solverVersion:engine.VERSION,certificateVersion:certifier.VERSION,baseContextKey,baseGameHash,
     global:globalCheckpoint,actionCheckpoints:clone(actionCheckpoints),actionCertificates:clone(actionCertificates),actionCosts:clone(actionCosts),
     attempts:{...attempts},supportedGameClass:verifiedClass,iterations:globalCheckpoint?.iterations||0,workIterations:totalWork,
@@ -128,7 +140,7 @@ function execute({input,budget,checkpoint,shouldCancel=()=>false,onProgress=()=>
         scope:'CONDITIONAL_RETURNED_PROFILE_DIAGNOSTICS_NOT_CONVERGENCE_PROOF'}:null,
       stability:diagnostics?.stability?{...diagnostics.stability,maxActionEVChangeBB:diagnostics.stability.maxActionEVChange??null}:null,
       metrics:{...built.metrics,...solved.metrics,workerMs:now()-started,heapUsedBytes:process.memoryUsage().heapUsed,cacheHit:false,
-        costs:costs(),runCosts:{...runCosts},actionCosts:clone(actionCosts),stabilityCheckpoints:clone(stabilityHistory)},
+        costs:costs(),runCosts:{...runCosts},...compilationMetrics(),actionCosts:clone(actionCosts),stabilityCheckpoints:clone(stabilityHistory)},
       limitations:[...meta.limitations,'CFR+ has no general multiplayer Nash-convergence guarantee. Exact unilateral-deviation evaluation measures the returned profile.',
         'Action certificate intervals concern the ex-ante value of the original game with one private-information-set commitment, not the EV of that hand in the original equilibrium.',
         'Global strategy frequencies and conditional profile EV are kept separate from commitment-value certificates.',
@@ -139,14 +151,14 @@ function execute({input,budget,checkpoint,shouldCancel=()=>false,onProgress=()=>
   function publish(){runCosts.totalComputeMs=now()-started;const result=render(true);if(result){last=result;onProgress({type:'progress',result,checkpoint:saved(),workerMs:now()-started});}}
   function globalBatch(){
     const start=now(),before=globalCheckpoint?.iterations||0;
-    const next=engine.solve(game,{...LIMITS,checkpoint:globalCheckpoint,iterations:Math.min(50,Math.max(0,remainingIterations())),
+    const next=engine.solve(game,{...LIMITS,compilationContext,checkpoint:globalCheckpoint,iterations:Math.min(50,Math.max(0,remainingIterations())),
       timeBudgetMs:Math.max(0,Math.min(last?220:160,remainingMs())),targetNashConv:THRESHOLD_BB,checkEvery:10,shouldCancel});
     runCosts.globalSolveMs+=now()-start;
     if(!next?.strategy||!next.checkpoint)return false;
     if(shouldCancel())return false;
     const readStarted=now();
-    const nextDiagnostics=engine.rootDiagnostics?engine.rootDiagnostics(game,next.strategy,meta.heroSeat,meta.heroInformationSet,{...LIMITS,previous:previousDiagnostics}):
-      engine.actionValues(game,next.strategy,meta.heroSeat,meta.heroInformationSet,LIMITS);
+    const nextDiagnostics=engine.rootDiagnostics?engine.rootDiagnostics(game,next.strategy,meta.heroSeat,meta.heroInformationSet,{...LIMITS,compilationContext,previous:previousDiagnostics}):
+      engine.actionValues(game,next.strategy,meta.heroSeat,meta.heroInformationSet,{...LIMITS,compilationContext});
     runCosts.globalEvaluationMs+=now()-readStarted;
     // Commit the strategy, checkpoint and diagnostics atomically. A foreground
     // interruption must never pair a newer strategy with an older EV table.
@@ -164,10 +176,19 @@ function execute({input,budget,checkpoint,shouldCancel=()=>false,onProgress=()=>
     const selected=chooseFocus(ids,certificateRows(),attempts).id;if(!selected)return false;
     const start=now(),before=actionCheckpoints[selected]?.iterations||0;
     attempts[selected]=(attempts[selected]||0)+1;
-    const response=certifier.solveActionConditioned(game,{...LIMITS,player:meta.heroSeat,informationSet:meta.heroInformationSet,actionIds:[selected],
+    const response=certifier.solveActionConditioned(game,{...LIMITS,compilationContext,player:meta.heroSeat,informationSet:meta.heroInformationSet,actionIds:[selected],
       checkpoints:actionCheckpoints,iterations:Math.min(50,Math.max(0,remainingIterations())),timeBudgetMs:Math.max(0,Math.min(250,remainingMs())),shouldCancel});
     const elapsed=now()-start;runCosts.actionSolveMs+=elapsed;
     actionCosts[selected]??={elapsedMs:0,iterations:0,batches:0};actionCosts[selected].elapsedMs+=elapsed;actionCosts[selected].batches++;
+    if(response.metrics?.compilation){
+      const stats=response.metrics.compilation;
+      for(const key of ['compileCount','reuseCount','freezeMs','compileMs'])actionCompilation[key]+=stats[key];
+      actionCompilation.peakRetainedBytes=Math.max(actionCompilation.peakRetainedBytes,stats.peakRetainedBytes);
+    }
+    if(response.metrics?.costs){
+      for(const [key,value]of Object.entries(response.metrics.costs))if(finite(value))actionCosts[selected][key]=(actionCosts[selected][key]||0)+value;
+      runCosts.actionCertificateMs+=response.metrics.costs.certificateMs||0;
+    }
     if(!response.baseGameHash&&['CANCELLED','TIME_BUDGET'].includes(response.termination))return false;
     if(response.baseGameHash!==baseGameHash||response.player!==meta.heroSeat||response.informationSet!==meta.heroInformationSet||response.version!==certifier.VERSION)
       throw Error('The action-certificate context does not match the original game.');
@@ -218,6 +239,9 @@ function execute({input,budget,checkpoint,shouldCancel=()=>false,onProgress=()=>
   const final=render(false)||last||{status:'NOT_SOLVED',actions:[],qualification:{gto:false},reasons:[{code:'BUDGET_BEFORE_FIRST_STRATEGY',message:'Budget ended before a strategy could be evaluated.'}],
     adaptation:{version:VERSION,phase:shouldCancel()?'PAUSED':'STOPPED',stopReason,refinementRecommended:true,resourceCeiling:{timeMs:budget.timeMs,iterations:budget.iterations}}};
   return {result:final,checkpoint:saved(),workerMs:now()-started,paused:shouldCancel()};
+  } finally {
+    if(compilationContext!==undefined)engine.releaseCompilationContext(compilationContext);
+  }
 }
 
 if(parentPort)parentPort.on('message',({input,budget,checkpoint,cancel})=>{

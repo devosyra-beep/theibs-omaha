@@ -118,3 +118,79 @@ test('a result without its matching checkpoint cannot overwrite a coherent cache
     const warm=await client.start('owner',input(),{handId:'hand-1',revisionKey:'rev-1',budget:'FAST'});assert.equal(warm.cache.hit,true);assert.equal(warm.result.actions[0].evBB,2);
   }finally{client.close();}
 });
+
+test('progress telemetry separates first response, this job, worker slices and cumulative cached costs',async()=>{
+  let elapsed=0;const {client,workers}=harness(null,{now:()=>elapsed});
+  const costs=(total,action)=>({buildMs:10,globalSolveMs:total-action-10,globalEvaluationMs:0,actionSolveMs:action,actionCertificateMs:action/10,totalComputeMs:total});
+  function publish(worker,type,time,runCosts,cumulativeCosts,iterations){
+    elapsed=time;const message=worker.solve;
+    worker.send({type,jobId:message.jobId,generation:message.generation,buildFingerprint:fingerprint,handId:'hand-1',revisionKey:'rev-1',
+      result:{...result(),metrics:{runCosts,costs:cumulativeCosts}},checkpoint:{workIterations:iterations},workerMs:runCosts.totalComputeMs});
+  }
+  try{
+    const initial=await client.start('owner',input(),{handId:'hand-1',revisionKey:'rev-1',automatic:true});await tick();
+    assert.equal(client.get('owner',initial.jobId).timing.workerReadyMs,0);
+    publish(workers[0],'progress',100,costs(100,60),costs(100,60),1);
+    const early=client.get('owner',initial.jobId);assert.equal(early.timing.firstResponseMs,100);assert.equal(early.timing.firstValueMs,100);
+    assert.equal(early.phase,'REFINING');assert.equal(early.result.decisionPrecision.status,'INCONCLUSIVE');assert.equal(early.cache.source,'NONE');
+    publish(workers[0],'done',3000,costs(3000,2000),costs(3000,2000),1000);await tick();
+    publish(workers[1],'progress',3100,costs(100,70),{...costs(3100,2070),buildMs:20,globalSolveMs:1010},1001);
+    publish(workers[1],'done',5000,costs(2000,1500),{...costs(5000,3500),buildMs:20,globalSolveMs:1480},2000);
+    const final=client.get('owner',initial.jobId);
+    assert.equal(final.timing.jobElapsedMs,5000);assert.equal(final.timing.workerMs,5000);assert.equal(final.timing.decisionComputeMs,5000);
+    assert.equal(final.timing.firstResponseMs,100);assert.equal(final.timing.firstValueMs,100);assert.equal(final.timing.currentRunCosts.totalComputeMs,2000);
+    assert.equal(final.timing.jobCosts.totalComputeMs,5000);assert.equal(final.timing.jobCosts.actionSolveMs,3500);assert.equal(final.timing.jobCosts.buildMs,20);
+    assert.equal(final.timing.currentRunCosts.actionCertificateMs,150);assert.equal(final.timing.jobCosts.actionCertificateMs,350);assert.equal(final.timing.cumulativeCosts.actionCertificateMs,350);
+    assert.equal(final.timing.cumulativeCosts.totalComputeMs,5000);
+    elapsed=7000;const later=client.get('owner',initial.jobId);assert.equal(later.timing.totalMs,7000);assert.equal(later.timing.jobElapsedMs,5000);
+    const warm=await client.start('owner',input(),{handId:'hand-1',revisionKey:'rev-1',budget:'FAST'});
+    assert.equal(warm.cache.source,'MEMORY');assert.equal(warm.cache.readOnly,true);assert.equal(warm.timing.jobElapsedMs,0);assert.equal(warm.timing.workerMs,0);
+    assert.equal(warm.timing.firstValueMs,0);assert.equal(warm.timing.firstResponseMs,null);assert.equal(warm.timing.workerReadyMs,null);
+    assert.equal(warm.timing.currentRunCosts,null);assert.equal(warm.timing.jobCosts,null);assert.equal(warm.timing.cumulativeCosts.totalComputeMs,5000);
+    assert.deepEqual(warm.cache.originalTiming,{firstValueMs:100,snapshotMs:5000,workerMs:5000});assert.equal(workers.length,2);
+    warm.cache.originalTiming.workerMs=999;warm.timing.cumulativeCosts.actionSolveMs=999;
+    assert.equal(client.get('owner',warm.jobId).cache.originalTiming.workerMs,5000);assert.equal(client.get('owner',warm.jobId).timing.cumulativeCosts.actionSolveMs,3500);
+  }finally{client.close();}
+});
+
+test('a worker response without a usable value is measured without claiming first value or accepting invalid costs',async()=>{
+  let elapsed=0;const {client,workers}=harness(null,{now:()=>elapsed});
+  try{
+    const initial=await client.start('owner',input(),{handId:'hand-1',revisionKey:'rev-1'});await tick();elapsed=20;
+    const message=workers[0].solve;workers[0].send({type:'done',jobId:message.jobId,generation:message.generation,buildFingerprint:fingerprint,
+      handId:'hand-1',revisionKey:'rev-1',result:{status:'NOT_SOLVED',actions:[],metrics:{runCosts:{totalComputeMs:20,actionSolveMs:-1,notTiming:'text',globalSolveMs:Infinity},costs:{totalComputeMs:20}}},workerMs:20});
+    const final=client.get('owner',initial.jobId);assert.equal(final.phase,'UNSUPPORTED');assert.equal(final.timing.firstResponseMs,20);assert.equal(final.timing.firstValueMs,null);
+    assert.deepEqual(final.timing.jobCosts,{totalComputeMs:20});assert.deepEqual(final.timing.currentRunCosts,{totalComputeMs:20});assert.equal(final.cache.readOnly,false);
+  }finally{client.close();}
+});
+
+test('a cached refinement measures new work separately from the original cached snapshot',async()=>{
+  let elapsed=0;const {client,workers}=harness(null,{now:()=>elapsed});
+  function send(worker,workerMs,cumulativeMs,iterations){const message=worker.solve;worker.send({type:'done',jobId:message.jobId,generation:message.generation,
+    buildFingerprint:fingerprint,handId:'hand-1',revisionKey:'rev-1',result:{...result(false),metrics:{runCosts:{actionSolveMs:workerMs,totalComputeMs:workerMs},
+      costs:{actionSolveMs:cumulativeMs,totalComputeMs:cumulativeMs}}},checkpoint:{workIterations:iterations},workerMs});}
+  try{
+    const cold=await client.start('owner',input(),{handId:'hand-1',revisionKey:'rev-1'});await tick();elapsed=100;send(workers[0],100,100,1);
+    const warm=await client.start('owner',input(),{handId:'hand-1',revisionKey:'rev-1',budget:'DEEP'});await tick();
+    assert.equal(warm.cache.hit,true);assert.equal(warm.cache.readOnly,false);assert.equal(warm.timing.firstValueMs,0);
+    assert.equal(workers[1].solve.checkpoint.workIterations,1);elapsed=300;send(workers[1],200,300,2);
+    const final=client.get('owner',warm.jobId);assert.equal(final.timing.firstValueMs,0);assert.equal(final.timing.firstResponseMs,200);
+    assert.equal(final.timing.workerMs,200);assert.equal(final.timing.decisionComputeMs,300);assert.equal(final.timing.jobElapsedMs,200);
+    assert.deepEqual(final.timing.currentRunCosts,{actionSolveMs:200,totalComputeMs:200});assert.deepEqual(final.timing.jobCosts,final.timing.currentRunCosts);
+    assert.deepEqual(final.timing.cumulativeCosts,{actionSolveMs:300,totalComputeMs:300});assert.equal(final.cache.originalTiming.workerMs,100);
+    assert.equal(client.get('owner',cold.jobId).timing.workerMs,100);
+  }finally{client.close();}
+});
+
+test('delayed stale messages cannot alter cancellation timing or compute costs',async()=>{
+  let elapsed=0;const {client,workers}=harness(null,{now:()=>elapsed});
+  try{
+    const initial=await client.start('owner',input(),{handId:'hand-1',revisionKey:'rev-1'});await tick();const worker=workers[0],late=worker.onmessage,message=worker.solve;
+    elapsed=40;const stopped=client.cancel('owner',initial.jobId);elapsed=100;
+    late({data:{type:'done',jobId:message.jobId,generation:message.generation,buildFingerprint:fingerprint,handId:'hand-1',revisionKey:'rev-1',
+      result:{...result(),metrics:{runCosts:{totalComputeMs:3000,actionSolveMs:2000}}},checkpoint:{workIterations:1000},workerMs:3000}});
+    const later=client.get('owner',initial.jobId);assert.equal(later.timing.jobElapsedMs,40);assert.equal(later.timing.workerMs,40);
+    assert.equal(later.timing.firstResponseMs,null);assert.equal(later.timing.jobCosts,null);assert.equal(later.result,null);
+    assert.equal(later.timing.completionMs,stopped.timing.completionMs);assert.equal(client.stats().staleMessages,1);
+  }finally{client.close();}
+});

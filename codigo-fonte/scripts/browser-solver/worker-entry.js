@@ -3,8 +3,11 @@ const browserJob = requireBrowserModule('src/solver/job-worker.js');
 const browserSession = requireBrowserModule('src/multiway-session.js');
 const browserRiver = requireBrowserModule('src/solver/plo-river-game.js');
 const browserLimits = Object.freeze({maxNodes:12000,maxWorlds:144,maxMemoryBytes:48*1024*1024,maxBuildMs:750});
+// Trusted runtime capability, never a message/input/checkpoint preference.
+// Same mathematical solver; compilation reuse is enabled only in the browser.
+const executeBrowserJob = args => browserJob.execute(args, {compilationReuse:true});
 globalThis.TheibsBrowserSolver = Object.freeze({
-  manifest:browserSolverManifest, execute:browserJob.execute,
+  manifest:browserSolverManifest, execute:executeBrowserJob,
   core:requireBrowserModule('src/solver/extensive-solver.js'),
   actionConditioned:requireBrowserModule('src/solver/action-conditioned.js'),
   buildPloRiverGame:browserRiver.buildPloRiverGame,coverage:browserRiver.coverage,
@@ -33,7 +36,7 @@ if (typeof globalThis.addEventListener === 'function' && typeof globalThis.postM
       // Termination is owned by the host. A Web Worker cannot handle a queued
       // cancel message while this unchanged synchronous solver is computing.
       // The host keeps the last complete result/checkpoint pair before stopping.
-      const output = browserJob.execute({input,budget,checkpoint:message.checkpoint,shouldCancel:()=>false,onProgress:value=>send(value,context)});
+      const output = executeBrowserJob({input,budget,checkpoint:message.checkpoint,shouldCancel:()=>false,onProgress:value=>send(value,context)});
       send({type:'done',...output},context);
     } catch (error) { send({type:'error',error:error.message,workerMs:performance.now()-started},context); }
   });

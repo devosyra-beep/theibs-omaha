@@ -75,11 +75,13 @@ test('real river ledger, action certificates and compatible resume preserve Node
   const {api} = load();
   for (const source of [fixtures.riverCallInput(),fixtures.riverCallInput({blockers:true}),fixtures.riverMixedInput()]) {
     const input = structuredClone({...source,budget:plain(api.limits)}),budget = {timeMs:5000,iterations:128};
-    const node = job.execute({input,budget}),browser = plain(api.execute({input:structuredClone(input),budget}));
+    const node = job.execute({input,budget},{compilationReuse:true}),browser = plain(api.execute({input:structuredClone(input),budget}));
+    assert.equal(browser.result.metrics.compilation?.scope,'CURRENT_EXECUTION_ONLY');
+    assert.equal(browser.result.metrics.compilation.base.compileCount,1);
     assert.deepEqual(withoutObservationalTiming(browser),withoutObservationalTiming(node));
     assert.equal(browser.result.gameHash,browser.result.actionPrecision.baseGameHash);
     assert.equal(browser.result.qualification.gto,false);
-    const nodeResume = job.execute({input,budget,checkpoint:node.checkpoint});
+    const nodeResume = job.execute({input,budget,checkpoint:node.checkpoint},{compilationReuse:true});
     const browserResume = plain(api.execute({input:structuredClone(input),budget,checkpoint:browser.checkpoint}));
     assert.deepEqual(withoutObservationalTiming(browserResume),withoutObservationalTiming(nodeResume));
   }
@@ -92,6 +94,7 @@ test('worker transport binds build and canonical decision revisions, emits coher
     expectedBuildFingerprint:worker.api.manifest.buildFingerprint,expectedRevisionKey:observed.state.revisionKey});
   const progress = worker.messages.filter(message=>message.type==='progress'),done = worker.messages.at(-1);
   assert.ok(progress.length>0); assert.equal(done.type,'done'); assert.equal(done.paused,false);
+  assert.equal(done.result.metrics.compilation?.scope,'CURRENT_EXECUTION_ONLY');
   for (const message of [...progress,done]) {
     assert.equal(message.jobId,'parity-job');assert.equal(message.generation,3);
     assert.equal(message.handId,input.multiway.handId);assert.equal(message.revisionKey,observed.state.revisionKey);
@@ -99,7 +102,7 @@ test('worker transport binds build and canonical decision revisions, emits coher
     assert.equal(message.result.gameHash,message.checkpoint.baseGameHash);
     assert.equal(message.result.iterations,message.checkpoint.global.iterations);
   }
-  const node = job.execute({input:structuredClone({...input,budget:plain(worker.api.limits)}),budget:{timeMs:5000,iterations:128}});
+  const node = job.execute({input:structuredClone({...input,budget:plain(worker.api.limits)}),budget:{timeMs:5000,iterations:128}},{compilationReuse:true});
   assert.deepEqual(withoutObservationalTiming(done.result),withoutObservationalTiming(node.result));
   assert.deepEqual(withoutObservationalTiming(done.checkpoint),withoutObservationalTiming(node.checkpoint));
   worker.dispatch({type:'solve'});assert.match(worker.messages.at(-1).error,/new solver worker/);

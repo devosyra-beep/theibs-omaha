@@ -100,8 +100,9 @@
   }
   function failure(message, mine, bound) {
     if (!current(mine,bound)) return;
-    view.phase = 'FAILED'; view.error = message || 'Solver unavailable. The table and approximate EV remain available.'; emit();
+    view.phase = 'FAILED'; view.error = message || 'Solver unavailable.'; emit();
   }
+  const timeoutMessage = operation => `Solver ${operation} timed out.${usableResult(view.result)?' Latest completed estimate retained.':''}`;
   async function request(url, init, mine, bound, selected = null) {
     const controller = new AbortController(); pending = controller;
     controller.solverStart = url === '/api/multiway/solver/start';
@@ -165,7 +166,7 @@
       const data = await request(`/api/multiway/solver/jobs/${encodeURIComponent(view.jobId)}${suffix}`,{method:'GET'},mine,bound);
       if (!accept(data,mine,bound)) return;
       if (END_PHASES.has(view.phase)) await completed(mine,bound); else nextPoll(mine,bound);
-    } catch (error) { failure(error.name === 'AbortError' ? 'Solver status timed out. Approximate EV remains available.' : error.message,mine,bound); }
+    } catch (error) { failure(error.name === 'AbortError' ? timeoutMessage('status') : error.message,mine,bound); }
   }
   function feeFromPayload(payload) {
     const model = payload?.multiwayEvaluation || {};
@@ -219,7 +220,7 @@
       const data = await acknowledgement;
       if (!accept(data,mine,bound)) return getState();
       if (END_PHASES.has(view.phase)) await completed(mine,bound); else nextPoll(mine,bound);
-    } catch (error) { failure(error.name === 'AbortError' ? 'Solver request timed out. Approximate EV remains available.' : error.message,mine,bound); }
+    } catch (error) { failure(error.name === 'AbortError' ? timeoutMessage('request') : error.message,mine,bound); }
     return getState();
   }
   async function evaluate(payload,settings = {}) {

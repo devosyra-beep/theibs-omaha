@@ -10,6 +10,13 @@ execFileSync(process.execPath, [path.resolve(__dirname, '../../scripts/build-bro
 const source = path.resolve(__dirname, '../../public');
 const target = path.resolve(__dirname, '.output/assets');
 const version = require('../../package.json').version;
+const solverManifest = JSON.parse(fs.readFileSync(path.join(source, 'browser-solver-manifest.json'), 'utf8'));
+const solverReference = JSON.parse(fs.readFileSync(path.join(source, 'browser-solver-reference.json'), 'utf8'));
+if (solverReference.sourceBuildFingerprint !== solverManifest.buildFingerprint ||
+    solverReference.sourceJobWorkerSha256 !== solverManifest.sources.find(row => row.id === 'src/solver/job-worker.js')?.sha256 ||
+    solverReference.cases.some(row => row.mathematical?.checkpoint?.version !== solverManifest.versions.adaptive)) {
+  throw Error('Regenerate the matched-work solver reference before deploying this source graph.');
+}
 if (!fs.readFileSync(path.join(source, 'index.html'), 'utf8').includes(`THEIBS ${version}`)) {
   throw Error('Interface and engine versions differ. Preserve release parity before deploying.');
 }

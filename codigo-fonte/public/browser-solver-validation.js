@@ -29,6 +29,25 @@
     } else if (actual !== expected) issues.push(path + ': identity mismatch');
     return issues;
   }
+  // QA only. Compare supplied exact rational witnesses with binary64 endpoints
+  // without converting the witnesses to floating point or widening any bound.
+  function exactBinary64(value) {
+    if (!finite(value)) throw Error('Non-finite certificate endpoint.');
+    const view = new DataView(new ArrayBuffer(8)); view.setFloat64(0, value);
+    const bits = view.getBigUint64(0), exponent = Number((bits >> 52n) & 2047n);
+    let numerator = bits & ((1n << 52n) - 1n), denominator = 1n;
+    if (exponent) numerator += 1n << 52n;
+    const shift = (exponent ? exponent - 1023 : -1022) - 52;
+    if (shift >= 0) numerator <<= BigInt(shift); else denominator <<= BigInt(-shift);
+    if (bits >> 63n) numerator = -numerator;
+    return { numerator, denominator };
+  }
+  function rational(value) {
+    const numerator = BigInt(value.numerator), denominator = BigInt(value.denominator);
+    if (denominator <= 0n) throw Error('Invalid rational witness denominator.');
+    return { numerator, denominator };
+  }
+  function atMost(left, right) { return left.numerator * right.denominator <= right.numerator * left.denominator; }
   function assertions(result, expected = {}) {
     const issues = [], actions = result?.actions || [], roots = result?.abstraction?.rootActions || [];
     const certificate = result?.actionPrecision, cert = certificate?.actions || [], precision = result?.decisionPrecision;
@@ -51,6 +70,15 @@
       const row = cert.find(item => item.id === id);
       if (!row?.certified || value < row.lowerBB - tolerance || value > row.upperBB + tolerance) issues.push(id + ': independent value outside certified interval.');
     }
+    if (expected.exactBaseContextKey && certificate?.baseContextKey !== expected.exactBaseContextKey) issues.push('Independent reference base context differs.');
+    for (const [id, envelope] of Object.entries(expected.exactActionEnvelopes || {})) {
+      const row = cert.find(item => item.id === id);
+      try {
+        const low = rational(envelope.lower), high = rational(envelope.upper);
+        if (!row?.certified || !atMost(low, high) || !atMost(exactBinary64(row.lowerBB), low) || !atMost(high, exactBinary64(row.upperBB))) issues.push(id + ': exact rational reference envelope outside unchanged bounds.');
+        if (row?.conditionedHash !== expected.conditionedGameHashes[id]) issues.push(id + ': independent conditioned-game identity differs.');
+      } catch (error) { issues.push(id + ': rational reference check failed: ' + error.message); }
+    }
     if (expected.comparisonStatus && precision?.status !== expected.comparisonStatus) issues.push('Unexpected comparison status.');
     if (expected.bestActionId && precision?.bestActionId !== expected.bestActionId) issues.push('Unexpected commitment leader.');
     if (expected.globalStatus && result?.status !== expected.globalStatus) issues.push('Unexpected global solver qualification.');
@@ -71,15 +99,16 @@
       actionIterations: adaptation.actionIterations ?? null,
       tree: { ...pick(metrics, ['nodes', 'edges', 'terminalCount', 'informationSets', 'maxDepth', 'worlds', 'publicNodes', 'publicDecisionNodes', 'publicTerminals', 'reservedMemoryBytes']), compatibleWorlds: result?.abstraction?.compatibleWorlds ?? null, productWorlds: result?.abstraction?.productWorlds ?? null, originalTreeUnchanged: certificate.originalStrategyTreeUnchanged ?? null },
       memory: { estimatedWorkingBytes: metrics.estimatedWorkingBytes ?? null, reservedTreeBytes: metrics.reservedMemoryBytes ?? null, workerHeapUsedBytes: metrics.heapUsedBytes ?? null, actualWorkerHeapMeasurement: 'NOT_AVAILABLE_IN_WEB_WORKER', estimateSource: 'Original solver allocation/reservation formulas; not browser process or peak heap measurements.' },
-      costs: pick(metrics.costs, ['buildMs', 'globalSolveMs', 'globalEvaluationMs', 'actionSolveMs', 'totalComputeMs']),
-      runCosts: pick(metrics.runCosts, ['buildMs', 'globalSolveMs', 'globalEvaluationMs', 'actionSolveMs', 'totalComputeMs']),
+      costs: pick(metrics.costs, ['buildMs', 'globalSolveMs', 'globalEvaluationMs', 'actionSolveMs', 'actionCertificateMs', 'totalComputeMs']),
+      runCosts: pick(metrics.runCosts, ['buildMs', 'globalSolveMs', 'globalEvaluationMs', 'actionSolveMs', 'actionCertificateMs', 'totalComputeMs']),
       actionCosts: clone(metrics.actionCosts || {}),
+      compilation: clone(metrics.compilation || null),
       profileActions: (result?.actions || []).map(row => pick(row, ['id', 'action', 'size', 'frequency', 'evBB'])),
       commitment: { ...pick(certificate, ['target', 'scope', 'utility', 'baseGameHash', 'baseContextKey', 'fullPriorPreserved', 'originalHandActionEV']),
         intervals: (certificate.actions || []).map(row => ({ ...pick(row, ['id', 'certified', 'estimateBB', 'lowerBB', 'upperBB', 'iterations', 'elapsedMs', 'strategicDecisionCount', 'gameHash', 'conditionedHash']), widthBB: finite(row.lowerBB) && finite(row.upperBB) ? row.upperBB - row.lowerBB : null })) }
     };
   }
-  function compactMath(metrics) { return metrics ? { status: metrics.status, decisionStatus: metrics.decisionPrecision.status, nashConv: metrics.convergence.nashConv, stopReason: metrics.stopReason, nodes: metrics.tree.nodes, workIterations: metrics.workIterations, actionIterations: metrics.actionIterations, boundsCostMs: metrics.costs.actionSolveMs, estimatedWorkingBytes: metrics.memory.estimatedWorkingBytes, actualWorkerHeapMeasurement: metrics.memory.actualWorkerHeapMeasurement } : null; }
+  function compactMath(metrics) { return metrics ? { status: metrics.status, decisionStatus: metrics.decisionPrecision.status, nashConv: metrics.convergence.nashConv, stopReason: metrics.stopReason, nodes: metrics.tree.nodes, workIterations: metrics.workIterations, actionIterations: metrics.actionIterations, actionRefinementMs: metrics.costs.actionSolveMs, certificateMs: metrics.costs.actionCertificateMs, estimatedWorkingBytes: metrics.memory.estimatedWorkingBytes, actualWorkerHeapMeasurement: metrics.memory.actualWorkerHeapMeasurement } : null; }
   function render() {
     if (!report) return;
     report.interactions = interactionSnapshot();
@@ -121,7 +150,7 @@
       if (envelope.result) show(envelope.result);
     }
     if (envelope.revisionKey !== variant.expectedRevisionKey || envelope.handId !== variant.input.multiway.handId || envelope.buildFingerprint !== manifest.buildFingerprint) throw Error('Response context differs from the current fixture.');
-    return { data: envelope, acknowledgement, measurements: { wallMs: performance.now() - started, ackWallMs, firstObservedMs, observations, timing: envelope.timing, runtimeBudget: envelope.runtimeBudget, phase: envelope.phase, cacheHit: acknowledgement.cache?.hit === true, mathematicalMetrics: mathematicalMetrics(envelope.result) } };
+    return { data: envelope, acknowledgement, measurements: { wallMs: performance.now() - started, ackWallMs, firstObservedMs, observations, timing: envelope.timing, runtimeBudget: envelope.runtimeBudget, phase: envelope.phase, cacheHit: acknowledgement.cache?.hit === true, cache: clone(envelope.cache || null), mathematicalMetrics: mathematicalMetrics(envelope.result) } };
   }
   async function digest(value) { return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify(value)))), byte => byte.toString(16).padStart(2, '0')).join(''); }
   async function pair(scenario, variant, timeMs) {
@@ -134,6 +163,8 @@
     check(variant.id + ': real cold miss', before.entries === 0 && cold.acknowledgement.cache?.hit === false && cold.data.runtime === 'BROWSER');
     check(variant.id + ': complete result and mathematical contract', cold.data.phase === 'COMPLETE' && issues.length === 0, issues.join(' '));
     check(variant.id + ': warm snapshot hit', warm.acknowledgement.cache?.hit === true && warm.data.phase === 'COMPLETE' && coldDigest === warmDigest, 'FAST reads the identical completed ' + timeMs + ' ms-budget snapshot.');
+    check(variant.id + ': warm read does not charge new solver work', warm.data.cache?.source === 'MEMORY' && warm.data.cache?.readOnly === true && warm.data.timing?.workerMs === 0 && warm.data.timing?.jobElapsedMs === 0 && warm.data.timing?.firstResponseMs === null);
+    check(variant.id + ': cold timing separates first response and usable value', finite(cold.data.timing?.workerReadyMs) && finite(cold.data.timing?.firstResponseMs) && finite(cold.data.timing?.firstValueMs) && cold.data.timing.firstResponseMs <= cold.data.timing.firstValueMs && finite(cold.data.timing?.jobElapsedMs), 'Worker timing is distinct from acknowledgement and from the first usable EV.');
     check(variant.id + ': no automatic continuation', cold.data.runtimeBudget?.automatic === false && cold.data.runtimeBudget?.continuations === 0);
     show(warm.data.result); service.close(); activeClients.delete(service); render();
   }
@@ -244,7 +275,15 @@
     for (const variant of scenario.variants.slice(0, 3)) { if (stopped) throw Error('Validation stopped.'); await pair(scenario, variant, budget); }
     const rows = report.runs.slice(from).filter(row => row.kind === 'COLD_WARM_PAIR');
     const stats = numbers => { const sorted = numbers.filter(finite).sort((a, b) => a - b); return { count: sorted.length, p50Ms: sorted[Math.ceil(sorted.length * .5) - 1] ?? null, p95Ms: sorted[Math.ceil(sorted.length * .95) - 1] ?? null, minMs: sorted[0] ?? null, maxMs: sorted.at(-1) ?? null }; };
-    report.benchmarkGroups.push({ scenario: scenario.id, budgetMs: budget, sampleCount: rows.length, coldWall: stats(rows.map(row => row.cold.wallMs)), firstValue: stats(rows.map(row => row.cold.firstObservedMs)), warmWall: stats(rows.map(row => row.warm.wallMs)), allColdMisses: rows.every(row => !row.cold.cacheHit), allWarmHits: rows.every(row => row.warm.cacheHit), allSnapshotDigestsEqual: rows.every(row => row.coldResultSha256 === row.warmResultSha256), percentileNote: 'Small synthetic sample; these percentiles do not estimate population latency.' });
+    report.benchmarkGroups.push({ scenario: scenario.id, budgetMs: budget, sampleCount: rows.length,
+      coldWall: stats(rows.map(row => row.cold.wallMs)), firstResponse: stats(rows.map(row => row.cold.timing?.firstResponseMs)),
+      firstValue: stats(rows.map(row => row.cold.firstObservedMs)), workerReady: stats(rows.map(row => row.cold.timing?.workerReadyMs)),
+      workerCompute: stats(rows.map(row => row.cold.timing?.workerMs)), jobElapsed: stats(rows.map(row => row.cold.timing?.jobElapsedMs)),
+      actionRefinement: stats(rows.map(row => row.cold.mathematicalMetrics?.costs.actionSolveMs)),
+      certificates: stats(rows.map(row => row.cold.mathematicalMetrics?.costs.actionCertificateMs)),
+      warmWall: stats(rows.map(row => row.warm.wallMs)), allColdMisses: rows.every(row => !row.cold.cacheHit),
+      allWarmHits: rows.every(row => row.warm.cacheHit), allSnapshotDigestsEqual: rows.every(row => row.coldResultSha256 === row.warmResultSha256),
+      percentileNote: 'Small synthetic sample; these percentiles do not estimate population latency.' });
   }));
   $('self-test').addEventListener('click', () => run('Self-test', selfTest));
   $('parity').addEventListener('click', () => run('Fixed parity', fixedParity));
@@ -258,9 +297,12 @@
   async function load(url) { const response = await fetch(url, { cache: 'no-store', credentials: 'omit' }); if (!response.ok) throw Error('Could not load ' + url); return response.json(); }
   Promise.all(['/solver-validation-fixtures.json', '/solver-validation-growth-fixtures.json', '/browser-solver-reference.json', '/browser-solver-manifest.json'].map(load)).then(values => {
     [fixtures, growth, reference, manifest] = values;
+    const workerSource = manifest.sources?.find(row => row.id === 'src/solver/job-worker.js');
+    if (reference.sourceBuildFingerprint !== manifest.buildFingerprint || reference.sourceJobWorkerSha256 !== workerSource?.sha256 ||
+        reference.cases.some(row => row.mathematical?.checkpoint?.version !== manifest.versions.adaptive)) throw Error('The QA reference and browser solver builds differ. Refresh after the deployment completes.');
     scenarios = [...fixtures.cases, ...growth.cases, ...reference.cases.filter(row => row.id === 'lp_rich_4x4_5_sizes').map(row => ({ id: row.id, label: 'LP rich 4×4 · 5 sizes', expectation: row.independentExpectation, variants: [{ id: row.variantId, input: row.input, expectedRevisionKey: row.expectedRevisionKey }] }))];
     $('scenario').replaceChildren(...scenarios.map(row => { const option = document.createElement('option'); option.value = row.id; option.textContent = row.label || row.id; return option; })); variants();
-    report = { classification: 'BROWSER_WORKER_QA', startedAt: new Date().toISOString(), releaseVersion: reference.releaseVersion, runtime: { buildFingerprint: manifest.buildFingerprint, versions: manifest.versions }, environment: { userAgent: navigator.userAgent, hardwareConcurrency: navigator.hardwareConcurrency ?? null, deviceMemoryGB: navigator.deviceMemory ?? null }, methodology: 'Independent visible stopwatch; exact build and fixture context. Cold clears actual client memory, warm FAST returns the same completed cached snapshot. Fixed parity compares matching stopped work against Node. LP residual tolerance is for containment only, never for dominance. Timed point values are not expected to be identical across stopping times.', checks: [], runs: [], benchmarkGroups: [], uiResponsiveness: [], notExecuted: ['Authenticated account flows', 'Private workspace/history mutation', 'Hosted solver performance', 'Provider cancellation gate', 'Oracle persistence/data migration', 'Physical phone performance', 'Human speech recognition'] };
+    report = { classification: 'BROWSER_WORKER_QA', startedAt: new Date().toISOString(), releaseVersion: reference.releaseVersion, runtime: { buildFingerprint: manifest.buildFingerprint, versions: manifest.versions, referenceJobWorkerSha256: reference.sourceJobWorkerSha256 }, environment: { userAgent: navigator.userAgent, hardwareConcurrency: navigator.hardwareConcurrency ?? null, deviceMemoryGB: navigator.deviceMemory ?? null }, methodology: 'Independent visible stopwatch; exact build and fixture context. Cold clears actual client memory, warm FAST returns the same completed cached snapshot. Fixed parity compares matching stopped work against Node. Expanded cases require zero-tolerance containment of exact rational feasible-policy envelopes; their numerical LP values are provenance, not confidence bounds. Older LP residual tolerance is for containment only, never for dominance. Timed point values are not expected to be identical across stopping times.', checks: [], runs: [], benchmarkGroups: [], uiResponsiveness: [], notExecuted: ['Authenticated account flows', 'Private workspace/history mutation', 'Hosted server solver performance', 'Provider cancellation gate', 'Oracle persistence/data migration', 'Physical phone performance', 'Human speech recognition'] };
     $('runtime').textContent = 'Worker build ' + manifest.buildFingerprint + ' · fixture-only QA owner';
     $('status').textContent = 'Ready. Select a scenario and budget, or run self-test / fixed parity.';
     for (const id of buttons) $(id).disabled = false; render();

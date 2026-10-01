@@ -4,7 +4,7 @@
   "entry": "src/solver/job-worker.js",
   "builderSha256": "3ef82ca3f2d706e04137abb1dcebc16bc9ebddafdb573431d3865d7d5c075043",
   "versions": {
-    "adaptive": "THEIBS_HU_ADAPTIVE_V4",
+    "adaptive": "THEIBS_HU_ADAPTIVE_V5",
     "solver": "THEIBS_FULL_TREE_CFR_PLUS_V1",
     "river": "PLO5_FINITE_RIVER_V2",
     "rules": "OBSERVED_HAND_CENT_LEDGER_0148",
@@ -90,18 +90,18 @@
     },
     {
       "id": "src/solver/action-conditioned.js",
-      "sha256": "acc9de765fb93347c2fe9ccd4c4cd025f7128982c53d1807703c4cfced4a59c4",
-      "bytes": 8650
+      "sha256": "e79a3c4bab00b6d9eaa66fd1d42ab6cf7f0795f96dce6a1b6a50b06b66f55b01",
+      "bytes": 10485
     },
     {
       "id": "src/solver/extensive-solver.js",
-      "sha256": "5c4862bff3bfb7079c41bd2cf0d6bbc826b483538c83e44cab2ca9f490bacf38",
-      "bytes": 30444
+      "sha256": "5622613b33cb9265b936ff35673b159363f770524d81f69ad6cffa9c23b76cac",
+      "bytes": 36525
     },
     {
       "id": "src/solver/job-worker.js",
-      "sha256": "6287ee73e90d229d5fa29d06524fec675133cd127a1d78004edd44b9db6d9523",
-      "bytes": 19945
+      "sha256": "508a22af120a6f240930cadc153187ba870b413e8c8695444a2ca05b7c783e11",
+      "bytes": 21676
     },
     {
       "id": "src/solver/plo-river-game.js",
@@ -115,8 +115,8 @@
     },
     {
       "id": "src/solver/versions.js",
-      "sha256": "338960084c072bac2a30bac2754c64a065c2a45d5e7addaba2a0253389e739a8",
-      "bytes": 392
+      "sha256": "395005aaba06119cc871440ce0bc4051cb74192d267f8514687dd4917be64b5f",
+      "bytes": 383
     },
     {
       "id": "src/strategy-engine.js",
@@ -136,7 +136,7 @@
     },
     {
       "id": "scripts/browser-solver/worker-entry.js",
-      "sha256": "f238598ce294e651d9d66eb05d3891d051b7fe94b88b82fee7ce7e9c73644628"
+      "sha256": "24969598a00dff59de9ff4b1f10275de593ac1e8437e7c083800f132219810fe"
     }
   ],
   "nodeAdapters": [
@@ -147,5 +147,5 @@
   "cancellation": "HOST_WORKER_TERMINATE_WITH_COMPLETE_CHECKPOINT_RESUME",
   "memoryMetric": "UNAVAILABLE_IN_BROWSER",
   "sourceNormalization": "LF",
-  "buildFingerprint": "7cc1aa41fa10684cf2d3da8123a76007fffb87138c286345c5ee6eba3536a501"
+  "buildFingerprint": "f280932b2d80b1b49f96fe0c5e9ac15e15aa9b06dfb68c1c3dcdd2f8ddc93aed"
 }

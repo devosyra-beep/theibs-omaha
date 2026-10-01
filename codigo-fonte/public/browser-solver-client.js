@@ -11,6 +11,11 @@
   const REUSABLE_STOPS = new Set(['GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION','FIXED_CONTINUATIONS_FULLY_EVALUATED','GLOBAL_CONVERGENCE_ACTION_CERTIFICATES_NOT_COVERED']);
   const clone = value => value == null ? value : typeof root.structuredClone === 'function' ? root.structuredClone(value) : JSON.parse(JSON.stringify(value));
   const workIterations = checkpoint => Number.isSafeInteger(checkpoint?.workIterations) ? checkpoint.workIterations : Number.isSafeInteger(checkpoint?.iterations) ? checkpoint.iterations : 0;
+  function costSnapshot(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+    const entries = Object.entries(value).filter(([key,ms])=>/^[a-z][a-zA-Z0-9]{0,45}Ms$/.test(key) && Number.isFinite(ms) && ms>=0);
+    return entries.length ? Object.fromEntries(entries) : null;
+  }
   function stable(value) {
     if (Array.isArray(value)) return '[' + Array.from(value,stable).join(',') + ']';
     if (value && typeof value === 'object') return '{' + Object.keys(value).sort().filter(key=>value[key]!==undefined).map(key=>JSON.stringify(key)+':'+stable(value[key])).join(',') + '}';
@@ -58,11 +63,17 @@
     function ownerId(owner) { if (typeof owner!=='string' || !owner.length || owner.length>240) throw Error('A current isolated solver owner is required.');return owner; }
     function stats() {return {...metrics,memoryBytes:bytes,entries:cache.size,maxBytes,active:[...jobs.values()].filter(job=>!END_PHASES.has(job.phase)).length};}
     function view(job) {
+      const readOnly=job.cacheHit && job.workerRuns===0 && END_PHASES.has(job.phase);
       return {status:job.result?.status || (END_PHASES.has(job.phase)?'NOT_SOLVED':'REFINING'),jobId:job.id,revisionKey:job.revisionKey,handId:job.handId,
         budget:job.budget,phase:job.phase,updateVersion:job.updateVersion,result:clone(job.result),reason:job.reason || null,runtime:'BROWSER',runtimeLabel:'Browser compute',
-        buildFingerprint:job.buildFingerprint,cache:{hit:job.cacheHit,...stats()},
-        timing:{acknowledgementMs:job.ackMs,firstValueMs:job.firstValueMs ?? null,completionMs:job.completionMs ?? null,totalMs:Math.max(0,Math.round(now()-job.started)),
-          workerMs:job.workerMs,decisionComputeMs:job.decision.consumedMs,decisionWorkIterations:job.decision.workIterations},
+        buildFingerprint:job.buildFingerprint,cache:{hit:job.cacheHit,source:job.cacheHit?'MEMORY':'NONE',readOnly,
+          originalTiming:clone(job.cachedTiming),...stats()},
+        timing:{acknowledgementMs:job.ackMs,workerReadyMs:job.workerReadyMs ?? null,firstResponseMs:job.firstResponseMs ?? null,
+          firstValueMs:job.firstValueMs ?? null,completionMs:job.completionMs ?? null,totalMs:Math.max(0,Math.round(now()-job.started)),
+          // totalMs remains job age; this lifecycle duration stops at termination and excludes request preparation.
+          jobElapsedMs:readOnly?0:Math.max(0,(job.completionMs ?? Math.round(now()-job.started))-job.ackMs),
+          workerMs:job.workerMs,decisionComputeMs:job.decision.consumedMs,decisionWorkIterations:job.decision.workIterations,
+          currentRunCosts:clone(job.currentRunCosts),jobCosts:clone(job.jobCosts),cumulativeCosts:costSnapshot(job.result?.metrics?.costs)},
         runtimeBudget:{initialMs:profiles[job.budget].timeMs,ceilingMs:job.ceilingMs,continuations:job.continuations,automatic:job.automatic},
         limits:{maxNodes:12000,maxWorlds:144,maxMemoryBytes:48*1024*1024,maxBuildMs:750}};
     }
@@ -76,9 +87,20 @@
       const delta=Math.max(0,reported-job.runReportedMs);job.runReportedMs=Math.max(job.runReportedMs,reported);
       job.workerMs+=delta;job.decision.consumedMs+=delta;
     }
+    function accountCosts(job,result) {
+      const costs=costSnapshot(result?.metrics?.runCosts);if(!costs)return;
+      job.currentRunCosts=costs;job.jobCosts ||= {};
+      for(const [key,ms] of Object.entries(costs)){
+        const previous=job.runAccountedCosts[key] || 0;
+        job.jobCosts[key]=(job.jobCosts[key] || 0)+Math.max(0,ms-previous);
+        job.runAccountedCosts[key]=Math.max(previous,ms);
+      }
+    }
     function remember(job) {
       if(!job.checkpoint || !hasStrategy(job.result))return;
-      const value={owner:job.owner,key:job.key,result:clone(job.result),checkpoint:clone(job.checkpoint)},size=encoder.encode(JSON.stringify(value)).byteLength;
+      const value={owner:job.owner,key:job.key,result:clone(job.result),checkpoint:clone(job.checkpoint),
+        originalTiming:{firstValueMs:job.firstValueMs ?? null,snapshotMs:Math.max(0,Math.round(now()-job.started)),workerMs:job.workerMs}},
+        size=encoder.encode(JSON.stringify(value)).byteLength;
       if(size>maxEntryBytes)return;
       const id=job.ownerHash+'.'+job.key;if(cache.has(id)){bytes-=cache.get(id).size;cache.delete(id);}
       cache.set(id,{...value,size});bytes+=size;metrics.writes++;
@@ -122,9 +144,9 @@
       const iterationsCeiling=job.budget==='STANDARD' && job.continuations ? Math.min(20000,profiles.STANDARD.iterations*2) : profiles[job.budget].iterations;
       const remaining={timeMs:Math.min(5000,Math.max(0,job.ceilingMs-job.decision.consumedMs)),iterations:Math.max(0,iterationsCeiling-job.decision.workIterations)};
       if(remaining.timeMs<=0 || remaining.iterations<=0){job.reason='Cumulative calculation budget reached; latest estimate retained.';setPhase(job,'COMPLETE');return;}
-      job.runReportedMs=0;job.runStarted=null;setPhase(job,'BUILDING');
+      job.runReportedMs=0;job.runStarted=null;job.currentRunCosts=null;job.runAccountedCosts={};setPhase(job,'BUILDING');
       let worker;
-      try{worker=makeWorker(workerUrl);job.worker=worker;}catch(error){fail(job,error.message);return;}
+      try{worker=makeWorker(workerUrl);job.worker=worker;job.workerRuns++;}catch(error){fail(job,error.message);return;}
       const handshake=delay(()=>{if(current(job,worker))fail(job,'Browser solver initialization timed out. Reload or choose Server compute.');},3000);
       job.watchdog=handshake;
       worker.onerror=event=>{if(current(job,worker)){if(job.runStarted!=null)account(job,now()-job.runStarted);fail(job,event.message || 'Browser solver worker stopped.');}};
@@ -133,7 +155,7 @@
         if(!current(job,worker)){metrics.staleMessages++;return;}
         if(message?.type==='ready'){
           if(message.schemaVersion!==SCHEMA_VERSION || message.buildFingerprint!==job.buildFingerprint){fail(job,'Browser solver build changed. Reload this page.');return;}
-          clearDelay(job.watchdog);job.runStarted=now();
+          clearDelay(job.watchdog);job.workerReadyMs ??= Math.max(0,Math.round(now()-job.started));job.runStarted=now();
           job.watchdog=delay(()=>{
             if(!current(job,worker))return;account(job,now()-job.runStarted);stopWorker(job);
             if(needsContinuation(job,true)){continueJob(job);}
@@ -144,9 +166,10 @@
           return;
         }
         if(message?.jobId!==job.id || message.generation!==job.generation || message.buildFingerprint!==job.buildFingerprint){metrics.staleMessages++;return;}
-        if(message.type==='error'){account(job,message.workerMs);fail(job,message.error,message.code);return;}
+        if(message.type==='error'){job.firstResponseMs ??= Math.max(0,Math.round(now()-job.started));account(job,message.workerMs);fail(job,message.error,message.code);return;}
         if(message.handId!==job.handId || message.revisionKey!==job.revisionKey){fail(job,'Browser solver response does not match this decision.');return;}
         if(message.type!=='progress' && message.type!=='done')return;
+        job.firstResponseMs ??= Math.max(0,Math.round(now()-job.started));accountCosts(job,message.result);
         save(job,message);
         if(message.type==='progress'){job.phase='REFINING';changed(job);return;}
         stopWorker(job);
@@ -176,7 +199,8 @@
       const reusable=automatic && hasStrategy(found?.result) && found.result.adaptation?.phase==='STOPPED' && found.result.adaptation.refinementRecommended===false && REUSABLE_STOPS.has(found.result.adaptation.stopReason);
       const job={id:crypto.randomUUID?.() || `browser-${Date.now()}-${++sequence}`,owner,ownerHash,key,exactInput,input:detached,generation,handId,revisionKey,budget,automatic:automatic===true,
         decisionKey,decision,started,ackMs:Math.max(0,Math.round(now()-started)),buildFingerprint:build.buildFingerprint,ceilingMs:profiles[budget].timeMs,continuations:0,
-        result:clone(found?.result || null),checkpoint:clone(found?.checkpoint || null),lastWorkIterations:workIterations(found?.checkpoint),cacheHit:Boolean(found),workerMs:0,runReportedMs:0,
+        result:clone(found?.result || null),checkpoint:clone(found?.checkpoint || null),lastWorkIterations:workIterations(found?.checkpoint),cacheHit:Boolean(found),
+        cachedTiming:clone(found?.originalTiming || null),workerMs:0,workerRuns:0,runReportedMs:0,currentRunCosts:null,jobCosts:null,runAccountedCosts:{},
         phase:found && (budget==='FAST' || reusable)?'COMPLETE':'QUEUED',updateVersion:0,waiters:new Set(),worker:null,watchdog:null};
       if(found)job.firstValueMs=job.ackMs;jobs.set(job.id,job);metrics.started++;changed(job);
       if(job.phase==='COMPLETE')setPhase(job,'COMPLETE');else run(job);

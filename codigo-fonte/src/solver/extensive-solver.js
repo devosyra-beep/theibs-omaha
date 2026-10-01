@@ -12,6 +12,101 @@ const STOP = Symbol('solver-budget');
 const DEFAULT_LIMITS = Object.freeze({ maxNodes: 250000, maxInformationSets: 100000, maxDepth: 512, maxWorkingBytes: 256 * 1024 * 1024 });
 const own = (object, key) => Object.prototype.hasOwnProperty.call(object, key);
 const finite = value => typeof value === 'number' && Number.isFinite(value);
+const compilationContexts = new WeakMap();
+const MAX_RETAINED_COMPILATION_BYTES = 8 * 1024 * 1024;
+
+// An execution-local capability, never checkpoint data. Initialization happens
+// inside the caller's existing compilation deadline/cancellation control.
+function createCompilationContext(game, { maxRetainedBytes = MAX_RETAINED_COMPILATION_BYTES, immutableSourceContext } = {}) {
+  if (!game || typeof game !== 'object') throw Error('A compilation context requires an owned game.');
+  if (!Number.isSafeInteger(maxRetainedBytes) || maxRetainedBytes < 0 || maxRetainedBytes > MAX_RETAINED_COMPILATION_BYTES)
+    throw Error('Compilation retention must be between zero and 8 MiB.');
+  const source = immutableSourceContext === undefined ? null : compilationContexts.get(immutableSourceContext);
+  if (immutableSourceContext !== undefined && !source?.frozen) throw Error('The immutable source context is invalid or unprepared.');
+  const context = Object.freeze({});
+  compilationContexts.set(context, { game, limitsKey: null, frozen: false, compiled: null, disabled: false,
+    deeplyFrozen: new WeakSet(), immutableSources: source ? [source.deeplyFrozen, ...source.immutableSources] : [],
+    stats: { compileCount: 0, reuseCount: 0, freezeMs: 0, compileMs: 0, retainedBytes: 0, maxRetainedBytes } });
+  return context;
+}
+function compilationContextStats(context) {
+  const state = compilationContexts.get(context);
+  if (!state) throw Error('The compilation context is invalid or released.');
+  return { ...state.stats };
+}
+function releaseCompilationContext(context) {
+  const state = compilationContexts.get(context);
+  if (state) { state.game = null; state.compiled = null; state.deeplyFrozen = null; state.immutableSources = null; }
+  compilationContexts.delete(context);
+}
+function plainPrototype(prototype) {
+  if (prototype === null || prototype === Object.prototype) return true;
+  // A browser/VM structured clone may belong to another realm. Accept its
+  // native Object prototype, never a class/custom prototype or an accessor.
+  const constructor = Object.getOwnPropertyDescriptor(prototype, 'constructor');
+  return Object.getPrototypeOf(prototype) === null && typeof constructor?.value === 'function' &&
+    constructor.value.prototype === prototype && Function.prototype.toString.call(constructor.value) === 'function Object() { [native code] }';
+}
+function plainArrayPrototype(prototype) {
+  if (prototype === Array.prototype) return true;
+  if (!prototype) return false;
+  const constructor = Object.getOwnPropertyDescriptor(prototype, 'constructor');
+  return plainPrototype(Object.getPrototypeOf(prototype)) && typeof constructor?.value === 'function' &&
+    constructor.value.prototype === prototype && Function.prototype.toString.call(constructor.value) === 'function Array() { [native code] }';
+}
+function freezeOwnedGame(game, control, deeplyFrozen, immutableSources) {
+  const pending = [game], seen = new Set();
+  function alreadyVerified(value) {
+    if (deeplyFrozen.has(value)) return true;
+    for (const source of immutableSources) if (source.has(value)) return true;
+    return false;
+  }
+  while (pending.length) {
+    control();
+    const value = pending.pop();
+    if (!value || typeof value !== 'object' || seen.has(value) || alreadyVerified(value)) continue;
+    seen.add(value);
+    const prototype = Object.getPrototypeOf(value);
+    if (!(Array.isArray(value) ? plainArrayPrototype(prototype) : plainPrototype(prototype)))
+      throw Error('Prepared games require plain owned data.');
+    for (const key of Reflect.ownKeys(value)) {
+      const descriptor = Object.getOwnPropertyDescriptor(value, key);
+      if (descriptor.get || descriptor.set) throw Error('Prepared games cannot contain mutable accessor fields.');
+      if (typeof descriptor.value === 'function') throw Error('Prepared games cannot contain executable fields.');
+      if (descriptor.value && typeof descriptor.value === 'object') pending.push(descriptor.value);
+    }
+    // Freeze parents before walking children, so a control callback cannot
+    // replace a not-yet-frozen branch while preparation is in progress.
+    Object.freeze(value);
+  }
+  // Certify only after the entire reachable walk succeeds. A shallow freeze or
+  // an interrupted walk never permits skipping a mutable descendant later.
+  for (const value of seen) deeplyFrozen.add(value);
+}
+function compiledGame(game, options = {}, control = () => {}) {
+  if (options.compilationContext === undefined) return compile(game, options, control);
+  const state = compilationContexts.get(options.compilationContext);
+  if (!state || state.game !== game) throw Error('The compilation context does not match this owned game.');
+  const limitsKey = JSON.stringify(Object.entries(DEFAULT_LIMITS).map(([key, fallback]) => [key, positiveInteger(options[key], fallback, key)]));
+  if (state.limitsKey !== null && state.limitsKey !== limitsKey) throw Error('The compilation context limits changed.');
+  state.limitsKey = limitsKey;
+  control(true);
+  if (state.compiled) { state.stats.reuseCount++; return state.compiled; }
+  if (!state.frozen) {
+    const started = performance.now();
+    try { freezeOwnedGame(game, control, state.deeplyFrozen, state.immutableSources); state.frozen = true; }
+    finally { state.stats.freezeMs += performance.now() - started; }
+  }
+  const started = performance.now(); let compiled;
+  try { state.stats.compileCount++; compiled = compile(game, options, control); }
+  finally { state.stats.compileMs += performance.now() - started; }
+  // A retention ceiling is an optimization gate, never an admission rule.
+  // Oversized contexts keep the original uncached numerical path.
+  if (!state.disabled && compiled.metrics.estimatedWorkingBytes <= state.stats.maxRetainedBytes) {
+    state.compiled = compiled; state.stats.retainedBytes = compiled.metrics.estimatedWorkingBytes;
+  } else state.disabled = true;
+  return compiled;
+}
 
 function positiveInteger(value, fallback, name) {
   if (value === undefined) return fallback;
@@ -96,7 +191,7 @@ function compile(game, options = {}, control = () => {}) {
 }
 
 function validateGame(game, options, control) {
-  const compiled = compile(game, options, control);
+  const compiled = compiledGame(game, options, control);
   return { gameHash: compiled.hash, ...compiled.metrics };
 }
 
@@ -209,18 +304,18 @@ function evaluateCompiled(compiled, policy, control = () => {}) {
 }
 
 function evaluate(game, strategy, options = {}) {
-  const compiled = compile(game, options);
+  const compiled = compiledGame(game, options);
   return evaluateCompiled(compiled, readStrategy(compiled, strategy));
 }
 
 function bestResponse(game, strategy, player, options = {}) {
-  const compiled = compile(game, options);
+  const compiled = compiledGame(game, options);
   if (!Number.isSafeInteger(player) || player < 0 || player >= compiled.playerCount) throw new Error('Best-response player is invalid.');
   return exactBestResponse(compiled, readStrategy(compiled, strategy), player);
 }
 
 function actionValues(game, strategy, player, informationSet, options = {}) {
-  const compiled = compile(game, options), policy = readStrategy(compiled, strategy);
+  const compiled = compiledGame(game, options), policy = readStrategy(compiled, strategy);
   const info = compiled.informationSets.find(candidate => candidate.player === player && candidate.key === informationSet);
   if (!info) throw new Error('The requested information set is not in this game.');
   const reach = counterfactualReach(compiled, policy, player);
@@ -234,7 +329,7 @@ function actionValues(game, strategy, player, informationSet, options = {}) {
 }
 
 function evaluateInformationSet(game, strategy, informationSet, options = {}) {
-  const compiled = compile(game, options);
+  const compiled = compiledGame(game, options);
   const matching = compiled.informationSets.filter(info => info.key === informationSet);
   if (matching.length !== 1) throw new Error('The requested information set must identify exactly one player.');
   return actionValues(game, strategy, matching[0].player, informationSet, options);
@@ -327,7 +422,7 @@ function saddleBounds(game, strategy, player, options = {}) {
   }
   try {
     control(true);
-    const compiled = compile(game, options, control);
+    const compiled = compiledGame(game, options, control);
     if (compiled.playerCount !== 2 || compiled.metrics.constantSum === null || game.meta?.constantSum === false) throw new Error('Saddle certificates require a two-player constant-sum game.');
     if (player !== 0 && player !== 1) throw new Error('Saddle certificate player is invalid.');
     const policy = readStrategy(compiled, strategy);
@@ -366,7 +461,7 @@ function saddleBounds(game, strategy, player, options = {}) {
 }
 
 function rootDiagnostics(game, strategy, player, informationSet, options = {}) {
-  const compiled = compile(game, options), policy = readStrategy(compiled, strategy);
+  const compiled = compiledGame(game, options), policy = readStrategy(compiled, strategy);
   const info = compiled.informationSets.find(candidate => candidate.player === player && candidate.key === informationSet);
   if (!info || info.ownDepth !== 0) throw new Error('Root diagnostics require a first own information set.');
   const reach = counterfactualReach(compiled, policy, player);
@@ -406,7 +501,7 @@ function solve(game, options = {}) {
     if (performance.now() - started >= timeBudgetMs) { termination = 'TIME_BUDGET'; throw STOP; }
   }
   let compiled;
-  try { compiled = compile(game, options, control); }
+  try { compiled = compiledGame(game, options, control); }
   catch (error) {
     if (error !== STOP) throw error;
     return { method: 'ALTERNATING_CFR_PLUS_LINEAR_AVERAGE', solverVersion: VERSION, gameHash: null, strategy: null, iterations: options.checkpoint?.iterations ?? 0, additionalIterations: 0, termination, stopReason: termination, values: null, convergence: { exact: false, nashConv: null, reason: 'GAME_VALIDATION_BUDGET_OR_CANCELLATION' }, checkpoint: null, metrics: { elapsedMs: performance.now() - started, traversalVisits: visits } };
@@ -493,4 +588,5 @@ function solve(game, options = {}) {
   };
 }
 
-module.exports = { VERSION, DEFAULT_LIMITS, validateGame, solve, evaluate, bestResponse, actionValues, evaluateInformationSet, saddleBounds, rootDiagnostics };
+module.exports = { VERSION, DEFAULT_LIMITS, MAX_RETAINED_COMPILATION_BYTES, createCompilationContext, compilationContextStats, releaseCompilationContext,
+  validateGame, solve, evaluate, bestResponse, actionValues, evaluateInformationSet, saddleBounds, rootDiagnostics };

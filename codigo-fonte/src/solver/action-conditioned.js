@@ -46,7 +46,8 @@ function buildActionConditionedGame(game, { player, informationSet, actionId, co
 
 function evaluateActionConditioned(game, strategy, options = {}) {
   const conditioned = buildActionConditionedGame(game, options);
-  const bounds = core.saddleBounds(conditioned, strategy, options.player, options);
+  // A base-game capability cannot authorize a freshly conditioned tree.
+  const bounds = core.saddleBounds(conditioned, strategy, options.player, { ...options, compilationContext: undefined });
   return { ...bounds, version: VERSION, target: TARGET, origin: ORIGIN,
     actionId: options.actionId, informationSet: options.informationSet,
     supportedGameClass: bounds.certified ? SUPPORTED_GAME_CLASS : null,
@@ -64,6 +65,8 @@ function solveActionConditioned(game, options = {}) {
     utility: { unit: 'BB', basis: 'INCREMENTAL_TERMINAL_PAYOFF_FROM_ORIGINAL_DECISION', scope: 'FULL_PRIOR_EX_ANTE' },
     originalHandActionEV: false, fullPriorPreserved: true, actions };
   let termination = 'COMPLETE', visits = 0;
+  const compilation = { compileCount: 0, reuseCount: 0, freezeMs: 0, compileMs: 0, peakRetainedBytes: 0 };
+  const costs = { validationMs: 0, treeBuildMs: 0, iterationSolveMs: 0, certificateMs: 0 };
   const remaining = () => Math.max(0, timeBudgetMs - (performance.now() - started));
   function control(force = false) {
     if (!force && ++visits % 128 !== 0) return;
@@ -72,7 +75,10 @@ function solveActionConditioned(game, options = {}) {
   }
   try {
     control(true);
-    const validation = core.validateGame(game, options, control);
+    const validationStarted = performance.now();
+    let validation;
+    try { validation = core.validateGame(game, options, control); }
+    finally { costs.validationMs += performance.now() - validationStarted; }
     if (game.playerCount !== 2 || validation.constantSum === null) throw new Error('Action certificates require a two-player constant-sum game.');
     envelope.baseGameHash = validation.gameHash;
     const requestedIds = options.actionIds;
@@ -80,12 +86,20 @@ function solveActionConditioned(game, options = {}) {
     for (const id of requestedIds) {
       control(true);
       const actionStarted = performance.now();
-      const conditioned = buildActionConditionedGame(game, { player, informationSet, actionId: id, control });
+      let conditioned;
+      try { conditioned = buildActionConditionedGame(game, { player, informationSet, actionId: id, control }); }
+      finally { costs.treeBuildMs += performance.now() - actionStarted; }
+      const retainedBase = options.compilationContext === undefined ? 0 : core.compilationContextStats(options.compilationContext).retainedBytes;
+      const conditionedContext = options.compilationContext === undefined ? undefined : core.createCompilationContext(conditioned,
+        { maxRetainedBytes: Math.max(0, core.MAX_RETAINED_COMPILATION_BYTES - retainedBase), immutableSourceContext: options.compilationContext });
+      try {
       const prior = options.checkpoints?.[id];
       // Reserve time for the independent best-response certificate instead of
       // spending the entire chunk on an uncertified last CFR iteration.
       const iterationBudgetMs = remaining() === Infinity ? Infinity : remaining() * .65;
-      const solved = core.solve(conditioned, { ...options, checkpoint: prior, timeBudgetMs: iterationBudgetMs });
+      const solveStarted = performance.now();
+      const solved = core.solve(conditioned, { ...options, compilationContext: conditionedContext, checkpoint: prior, timeBudgetMs: iterationBudgetMs });
+      costs.iterationSolveMs += performance.now() - solveStarted;
       // An interrupted validation cannot certify a supplied checkpoint's game
       // identity. The caller may retain an already validated cached checkpoint,
       // but this function never reexports an unvalidated incoming checkpoint.
@@ -100,7 +114,9 @@ function solveActionConditioned(game, options = {}) {
         originalHandActionEV: false, fullPriorPreserved: true, supportedGameClass: null,
         rootActionFixed: id, utility: envelope.utility };
       if (solved.strategy && remaining() > 0 && !options.shouldCancel?.()) {
-        const certified = core.saddleBounds(conditioned, solved.strategy, player, { ...options, timeBudgetMs: remaining() });
+        const certified = core.saddleBounds(conditioned, solved.strategy, player, { ...options, compilationContext: conditionedContext, timeBudgetMs: remaining() });
+        costs.certificateMs += certified.elapsedMs;
+        result.certificateElapsedMs = certified.elapsedMs;
         if (certified.certified) {
           Object.assign(result, { certified: true, lowerBB: certified.lower, upperBB: certified.upper,
             boundsBB: certified.bounds, estimateBB: certified.lower / 2 + certified.upper / 2,
@@ -119,13 +135,23 @@ function solveActionConditioned(game, options = {}) {
       result.elapsedMs = performance.now() - actionStarted;
       actions.push(result);
       if (['TIME_BUDGET', 'CANCELLED'].includes(result.termination)) termination = result.termination;
+      } finally {
+        if (conditionedContext !== undefined) {
+          const stats = core.compilationContextStats(conditionedContext);
+          for (const key of ['compileCount','reuseCount','freezeMs','compileMs']) compilation[key] += stats[key];
+          compilation.peakRetainedBytes = Math.max(compilation.peakRetainedBytes, retainedBase + stats.retainedBytes);
+          core.releaseCompilationContext(conditionedContext);
+        }
+      }
     }
   } catch (error) {
     if (error !== STOP) throw error;
   }
   return { ...envelope, termination, metrics: { elapsedMs: performance.now() - started,
+    costs,
     actionCount: actions.length, certifiedActionCount: actions.filter(action => action.certified).length,
-    additionalIterations: actions.reduce((sum, action) => sum + action.additionalIterations, 0) } };
+    additionalIterations: actions.reduce((sum, action) => sum + action.additionalIterations, 0),
+    ...(options.compilationContext === undefined ? {} : { compilation }) } };
 }
 
 module.exports = { VERSION, TARGET, ORIGIN, SUPPORTED_GAME_CLASS, buildActionConditionedGame, evaluateActionConditioned, solveActionConditioned };

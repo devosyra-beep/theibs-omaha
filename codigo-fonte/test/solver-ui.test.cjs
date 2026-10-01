@@ -234,3 +234,26 @@ test('AUTO preserves the existing three-seat server coverage while explicit Brow
   api.setRuntime('BROWSER');await api.evaluate(payload(current));assert.equal(api.getState().phase,'FAILED');assert.match(api.getState().error,/two original seats.*Choose Server/);
   assert.equal(browserCalls,0);assert.equal(serverCalls,1);api.invalidate();
 });
+
+test('terminal browser progress preserves timing, cache provenance and original inconclusive precision',async()=>{
+  const api=createUI(),current=context(),received=response('STANDARD',{runtime:'BROWSER',runtimeLabel:'Browser compute',reason:'Browser compute time limit reached; latest completed estimate retained.',
+    timing:{acknowledgementMs:2,workerReadyMs:10,firstResponseMs:100,firstValueMs:100,completionMs:4002,jobElapsedMs:4000,workerMs:4000,
+      currentRunCosts:{actionSolveMs:300},jobCosts:{actionSolveMs:300},cumulativeCosts:{actionSolveMs:300}},cache:{hit:false,source:'NONE',readOnly:false,originalTiming:null},
+    result:{...result(),decisionPrecision:{status:'INCONCLUSIVE',leaderConclusive:false},adaptation:{phase:'REFINING',stopReason:null,refinementRecommended:true},metrics:{costs:{actionSolveMs:300}}}});
+  api.init({getContext:()=>current,browserClient:{supported:true,start:async()=>copy(received),cancelOwner(){}}});
+  await api.evaluate(payload(current),{automatic:false});const snapshot=api.decisionSnapshot();
+  assert.equal(snapshot.phase,'COMPLETE');assert.equal(snapshot.adaptation.phase,'REFINING');assert.equal(snapshot.adaptation.stopReason,null);
+  assert.equal(snapshot.decisionPrecision.status,'INCONCLUSIVE');assert.equal(snapshot.runtimeLabel,'Browser compute');assert.equal(snapshot.cache.source,'NONE');
+  assert.deepEqual(copy(snapshot.timing),received.timing);assert.match(api.getState().error,/time limit/);
+  snapshot.timing.jobCosts.actionSolveMs=999;assert.equal(api.decisionSnapshot().timing.jobCosts.actionSolveMs,300);api.invalidate();
+});
+
+test('timeout copy claims a retained estimate only when this decision has a usable prior result',async()=>{
+  const aborted=()=>Object.assign(Error('Request aborted.'),{name:'AbortError'});
+  const empty=createUI(),current=context();empty.init({getContext:()=>current,request:async()=>{throw aborted();}});
+  await empty.evaluate(payload(current),{automatic:false});assert.equal(empty.getState().error,'Solver request timed out.');assert.equal(empty.decisionSnapshot(),null);empty.invalidate();
+  const retained=createUI();let calls=0;
+  retained.init({getContext:()=>current,request:async()=>{if(++calls===1)return response('STANDARD');throw aborted();}});
+  await retained.evaluate(payload(current),{automatic:false});await retained.evaluate(payload(current),{budget:'DEEP',automatic:false});
+  assert.equal(retained.getState().error,'Solver request timed out. Latest completed estimate retained.');assert.equal(retained.decisionSnapshot().status,'APPROXIMATE');retained.invalidate();
+});
