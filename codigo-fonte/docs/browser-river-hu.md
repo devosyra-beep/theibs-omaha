@@ -48,4 +48,30 @@ The actual Chromium browser worker passed separated, true-tie, non-tie overlappi
 
 Each row has three synthetic variants on this Windows Chromium computer (12 logical processors reported by the browser). Nearest-rank p95 is the largest of only three observations, not an SLA or a population estimate. Every warm snapshot was a hit with an identical result digest; every cold request was a miss. `COMPLETE` is the job lifecycle stop, not a claim of solver precision. These growth results stay `APPROXIMATE` because their sizing/depth abstraction omits legal continuations. Actual worker peak heap cannot be measured with this browser API; reservation/allocation estimates are labelled as estimates.
 
-The largest fixture does not justify a promise of conclusive answers in 3, 4 or 5 seconds. Its valid partial result is retained and the reason remains visible. The usable interactive path is progressive computation, an exact-key warm cache, certified candidate refinement and bounded deeper work. Production evidence remains pending until the deployed assets and actual worker are checked on the online URL. A successful Cloudflare build alone is not production mathematical or authenticated-flow validation.
+The largest fixture does not justify a promise of conclusive answers in 3, 4 or 5 seconds. Its valid partial result is retained and the reason remains visible. The usable interactive path is progressive computation, an exact-key warm cache, certified candidate refinement and bounded deeper work. The production worker evidence below validates this computation path separately from authenticated gameplay. A successful Cloudflare build alone is not production mathematical or authenticated-flow validation.
+
+## Online evidence, 2026-10-01
+
+Implementation commit `603e7863bb0a1af5a87b810baea0b5ff9dd42509` was deployed automatically from `hosting/cloudflare-oracle-migration`, by Cloudflare build `75fc2990-a969-40f9-a823-140825626d24` (successful; 38 seconds). The public QA page and manifest on `https://theibs-omaha.theibs.workers.dev` loaded the exact expected worker fingerprint `7cc1aa41fa10684cf2d3da8123a76007fffb87138c286345c5ee6eba3536a501`. The capture metadata and raw-report digest are in `benchmarks/browser-river-hu-production.json`.
+
+The real online browser worker passed 105 assertions in 36 recorded runs: separated actions, exact tie, non-tied overlapping best-response bounds, five fixed-work Node/browser reference cases (including the independently validated LP game), nine mathematically relevant cache changes, owner isolation, obsolete cancellation and 15 growth cold/warm pairs. The selected Node regression gate passed 140 tests. This is not a claim that the whole repository test suite was run.
+
+| Declared scenario | Cold budget | Cold final p50 / p95 | First strategy p50 / p95 | Warm p50 / p95 | Bounds cost p50 / p95 | Comparison |
+| --- | --- | --- | --- | --- | --- | --- |
+| 4x4 / 5 sizes | 3 s | 446 / 522 ms | 222 / 307 ms | 2.4 / 4.4 ms | 182 / 200 ms | CONCLUSIVE within supplied abstraction |
+| 8x8 / 8 sizes | 3 s | 1460 / 1770 ms | 337 / 597 ms | 3.8 / 4.9 ms | 1081 / 1101 ms | CONCLUSIVE within supplied abstraction |
+| 12x12 / 12 sizes | 3 s | 3218 / 3252 ms | 463 / 511 ms | 5.3 / 8.9 ms | 2484 / 2498 ms | INCONCLUSIVE; action certificates incomplete |
+| 12x12 / 12 sizes | 4 s | 4266 / 4303 ms | 510 / 543 ms | 6.7 / 8.6 ms | 3465 / 3516 ms | INCONCLUSIVE; action certificates incomplete |
+| 12x12 / 12 sizes | 5 s | 5276 / 5333 ms | 533 / 566 ms | 8.8 / 10.7 ms | 4424 / 4488 ms | INCONCLUSIVE; action certificates incomplete |
+
+Cold/warm refers to the solver result cache, not an empty browser HTTP cache, first page load or a cold Render instance. First-strategy wall time is measured from the requested study job. Existing non-river-HU calculations and APIs still run on Render and are not covered by this browser latency evidence.
+
+The same Windows Chromium device was used locally and online. Each row has three synthetic variants; nearest-rank p95 is their maximum and cannot establish a device-independent SLA. All growth cold requests missed and every warm request hit an identical snapshot. Their global NashConv stayed below 0.01 BB at the returned checkpoint, but the 12x12 tree still had missing action certificates; global convergence did not override comparison uncertainty. Growth games remain APPROXIMATE because of explicit continuation/sizing restrictions.
+
+The obsolete active worker was terminated in 0.3 ms at the client; its phase/update version remained CANCELLED/3 when the replacement finished. This measures browser job cancellation, not provider-side server cancellation. Text entry and a touch-like button click remained available during online compute; the heartbeat sampler did not establish hard real-time scheduling or actual microphone contention. Peak worker heap is unavailable; retained allocation/reservation estimates are labelled accordingly.
+
+### Deployment boundary and remaining gate
+
+The public worker runs online without Oracle, a credit card or a Llama dependency. Render is still the API/auth/history service. Its free storage remains ephemeral; stopping it would interrupt those functions and is not safe in this delivery.
+
+The authenticated app gate on the new origin is PENDING: Google authentication returned to the old Render URL, and the Supabase project administration session requires human sign-in before the exact new redirect can be configured and checked. No tokens were copied across origins, no authentication bypass was added and no private history migration is claimed. The local actual app already passed card keyboard entry, hand progression, study setup and desktop/mobile composition, but that is explicitly separate from authenticated Cloudflare gameplay. Physical phone performance and human microphone recognition were not executed.
