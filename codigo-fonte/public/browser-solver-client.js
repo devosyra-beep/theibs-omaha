@@ -84,7 +84,7 @@
           workerMs:job.workerMs,decisionComputeMs:job.decision.consumedMs,decisionWorkIterations:job.decision.workIterations,
           currentRunCosts:clone(job.currentRunCosts),jobCosts:clone(job.jobCosts),cumulativeCosts:costSnapshot(job.result?.metrics?.costs)},
         runtimeBudget:{initialMs:profiles[job.budget].timeMs,ceilingMs:job.ceilingMs,continuations:job.continuations,automatic:job.automatic},
-        limits:{maxNodes:12000,maxWorlds:144,maxMemoryBytes:48*1024*1024,maxBuildMs:750}};
+        limits:{maxNodes:12000,maxWorlds:576,maxMemoryBytes:48*1024*1024,maxBuildMs:750}};
     }
     function changed(job) {job.updateVersion++;for(const wake of [...job.waiters])wake();options.onChange?.(view(job));}
     function setPhase(job,phase) {job.phase=phase;if(END_PHASES.has(phase) && job.completionMs==null)job.completionMs=Math.max(0,Math.round(now()-job.started));changed(job);}

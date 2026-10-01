@@ -3,7 +3,7 @@ const browserJob = requireBrowserModule('src/solver/job-worker.js');
 const browserSession = requireBrowserModule('src/multiway-session.js');
 const browserRiver = requireBrowserModule('src/solver/plo-river-game.js');
 const browserOutcome = requireBrowserModule('src/solver/decision-outcome.js');
-const browserLimits = Object.freeze({maxNodes:12000,maxWorlds:144,maxMemoryBytes:48*1024*1024,maxBuildMs:750});
+const browserLimits = Object.freeze({maxNodes:12000,maxWorlds:browserRiver.HU_SUPPORT.maxWorlds,maxMemoryBytes:48*1024*1024,maxBuildMs:750});
 // Trusted runtime capability, never a message/input/checkpoint preference.
 // Same mathematical solver; compilation reuse is enabled only in the browser.
 const executeBrowserJob = args => browserJob.execute(args, {compilationReuse:true});

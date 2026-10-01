@@ -5,7 +5,7 @@
   "methodology": "Current Node adaptive pipeline, unchanged mathematical core, fixed maximum 512 work iterations and 5000 ms. Cases must stop before a time ceiling. Browser comparison requires identical game/context hashes, comparison policy, action identities, stopped work count, and numeric values within 1e-10. The richer 4x4 input is checked against the stored LP game key before extracting containment values; LP residual tolerance never declares dominance. Timed benchmarks do not require identical point values across different stopping work.",
   "independentReference": "Terminal values use exact ledger/showdown arithmetic; four-world commitment values independently verified by sequence-form LP. Tolerance1e-7 is for comparing the numeric reference, never for declaring dominance.",
   "sourceJobWorkerSha256": "1a91246c36ae3ca2326ee6c850a257b96bc2a734b161c88eaf345fe6862c6ebf",
-  "sourceBuildFingerprint": "309aafd9b23d540fddabaf552357bd9b633301d935a0f6e39f597e7e19bc29b6",
+  "sourceBuildFingerprint": "d5e45edc95f89f4bc5384e0cb492db55ce74521c8b44eda0421aea70030a862b",
   "cases": [
     {
       "id": "separated_terminal_call",

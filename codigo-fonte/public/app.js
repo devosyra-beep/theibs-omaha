@@ -44,6 +44,7 @@
   FIELD_IDS.push('rake-mode','rake-rate','rake-cap','rake-no-flop','rake-rounding','analysis-big-blind','analysis-equivalence');
   FIELD_IDS.push('study-mode','study-hero-contribution','study-min-raise','study-min-bet','study-accept',...Array.from({length:9},(_,i)=>['study-contribution-'+i,'study-probability-'+i]).flat());
   let activeView = 'analyze', inputRevision = 0, analysisBusy = false, trainingBusy = false;
+  let browserMultiwayClient = null, browserMultiwayOwner = null;
   let lastAnalysis = null, trainingSession = null, trainingDecisions = [], replayGeneration = 0;
   let loaded = false, revision = 0, saveTimer = null, saveBusy = false, saveDirty = false, saveBlocked = false;
   let legacyHandFlow = null;
@@ -333,7 +334,7 @@
   function renderEngineDetails() {
     const data=lastAnalysis?.data, perf=data?.performance, timing=data?.clientTiming;
     const measured=n=>Number.isFinite(n)?(n/1000).toFixed(3)+' s':'—';
-    $('#engine-details').innerHTML=`<section class="engine-card"><span class="eyebrow">LATEST ANALYSIS</span><h3>${data?comparisonLabel(data):'Waiting for measurement'}</h3><dl class="engine-metrics"><div><dt>Input to display proxy</dt><dd>${measured(timing?.inputToFrameMs)}</dd></div><div><dt>HTTP round trip</dt><dd>${measured(timing?.httpElapsedMs)}</dd></div><div><dt>Worker calculation</dt><dd>${measured(perf?.workerExecutionMs)}</dd></div><div><dt>Actual samples</dt><dd>${numberLabel(data?.equity?.samples)}</dd></div><div><dt>Cached result</dt><dd>${perf?perf.cacheHit?'Yes · original calculation reused':'No':'—'}</dd></div></dl><p class="micro">Display timing ends at the second animation frame after rendering; it is a proxy, not a hardware paint measurement. Cache hits do not run new simulations. Sampling intervals do not include errors in opponent assumptions.</p></section><section class="engine-card"><h3>Coach & learning</h3><p>Calculated facts are available without waiting for a language model. Optional Llama selects verified facts; it cannot change EV or equity.</p><p>History supports reviews. It does not train weights, learn optimal play or prove profit. Comparisons remain conditional on ranges, future play and costs.</p></section>`;
+    $('#engine-details').innerHTML=`<section class="engine-card"><span class="eyebrow">LATEST ANALYSIS</span><h3>${data?comparisonLabel(data):'Waiting for measurement'}</h3><dl class="engine-metrics"><div><dt>Input to display proxy</dt><dd>${measured(timing?.inputToFrameMs)}</dd></div><div><dt>${timing?.runtime==='BROWSER'?'Worker round trip':'HTTP round trip'}</dt><dd>${measured(timing?.runtime==='BROWSER'?timing.computeElapsedMs:timing?.httpElapsedMs)}</dd></div><div><dt>Compute location</dt><dd>${esc(perf?.runtimeLabel || 'Server compute')}</dd></div><div><dt>Worker calculation</dt><dd>${measured(perf?.workerExecutionMs)}</dd></div><div><dt>Actual samples</dt><dd>${numberLabel(data?.equity?.samples)}</dd></div><div><dt>Cached result</dt><dd>${perf?perf.cacheHit?'Yes · original calculation reused':'No':'—'}</dd></div></dl><p class="micro">Display timing ends at the second animation frame after rendering; it is a proxy, not a hardware paint measurement. Cache hits do not run new simulations. Sampling intervals do not include errors in opponent assumptions.</p></section><section class="engine-card"><h3>Coach & learning</h3><p>Calculated facts are available without waiting for a language model. Optional Llama selects verified facts; it cannot change EV or equity.</p><p>History supports reviews. It does not train weights, learn optimal play or prove profit. Comparisons remain conditional on ranges, future play and costs.</p></section>`;
   }
 
   function toast(text) {
@@ -486,7 +487,7 @@ function renderResult(data, street) {
   const equity = data.equity || {}; const math = data.potMath || {};
   if(data.multiwayEvaluation) {
     const model=data.multiwayEvaluation;
-      result.innerHTML=`<div class="result-label">ACTION EV · ${esc(streetName(street))}</div>${data.refinement ? `<p class="result-warning" role="status">${esc(data.refinement.reason)}</p>` : ''}<details class="result-disclosure"><summary>Model & assumptions</summary><div><p>${esc(data.reason)}</p><p>Contextual continuation model · ${esc(model.samples)} joint simulations · ${Number(model.effectiveSamples).toFixed(1)} effective samples.</p><p>Hero follows the reference continuation policy. This is a heuristic model, not a solved or GTO strategy.</p><p>Intervals measure numerical uncertainty under the declared model; they do not include uncertainty about opponent behavior.</p>${(data.assumptions || []).map(item=>`<p>${esc(item)}</p>`).join('')}${(data.warnings || []).map(item=>`<p class="result-warning">${esc(item)}</p>`).join('')}</div></details>`;
+      result.innerHTML=`<div class="result-label">ACTION EV · ${esc(streetName(street))}${data.performance?.runtimeLabel?' · '+esc(data.performance.runtimeLabel):''}</div>${data.refinement ? `<p class="result-warning" role="status">${esc(data.refinement.reason)}</p>` : ''}<details class="result-disclosure"><summary>Model & assumptions</summary><div>${data.performance?.runtimeReason?`<p>${esc(data.performance.runtimeReason)}</p>`:''}<p>${esc(data.reason)}</p><p>Contextual continuation model · ${esc(model.samples)} joint simulations · ${Number(model.effectiveSamples).toFixed(1)} effective samples.</p><p>Hero follows the reference continuation policy. This is a heuristic model, not a solved or GTO strategy.</p><p>Intervals measure numerical uncertainty under the declared model; they do not include uncertainty about opponent behavior.</p>${(data.assumptions || []).map(item=>`<p>${esc(item)}</p>`).join('')}${(data.warnings || []).map(item=>`<p class="result-warning">${esc(item)}</p>`).join('')}</div></details>`;
     return;
   }
   const modeledCall = data.ev?.actions?.CALL?.status === 'MODELED' ? data.ev.actions.CALL.ev : null;
@@ -757,28 +758,43 @@ function renderResult(data, street) {
     if(entryView!==activeView||entryRevision!==inputRevision||activeView!=='analyze')return;
     if (analysisBusy) {analysisQueued=true;return;}
     let payload;
-    try { payload = multiway?buildAnalysisPayload():buildQuickEquityPayload(); }
+    try { payload = multiway?buildAnalysisPayload():buildQuickEquityPayload(); if(payload.multiwayEvaluation)payload=structuredClone(payload); }
     catch (error) { const data = { status: 'NO_DECISION', reason: error.message }; renderResult(data, currentStreet()); quickAction(data); cards.announce(error.message, true); return; }
     const requestedRevision = inputRevision, inputAt = event?.type ? performance.now() : inputChangedAt;
     const requestedSignature = snapshotModel.stable(payload), requestedSession = JSON.stringify(window.theibsVoiceSessionContext?.());
     const requestedHandId = payload.multiway?.handId, requestedDecisionKey = multiwayState?.revisionKey;
-    let publishedSnapshot = null, publishedAnalysis = null;
+    const contextual=payload.multiway?.enabled===true && payload.multiwayEvaluation && typeof payload.multiwayEvaluation==='object';
+    const requestedOwnerKey=contextual?window.theibsPlayersUI?.getOwnerKey?.():null;
+    let publishedSnapshot = null, publishedAnalysis = null, contextualRuntime='SERVER', contextualRuntimeReason=null, solverMayRun=false;
     analysisBusy = true; const controller = analysisController = new AbortController();
     if(multiway)renderMultiway();
     analyzeButton.disabled = true; $('#quick-analyze').disabled = true;
     analyzeButton.textContent = 'Calculating…'; $('#quick-analyze').textContent = 'Calculating…';
     quickAction(null, 'The engine is calculating this hand…');
-    if(payload.multiwayEvaluation)void window.TheibsMultiwaySolverUI?.evaluate?.(payload);
     if(!multiway)$('#equity-range').textContent='Calculating…';
     const computationFailure = error => ['TIME_BUDGET','WORKER_TIMEOUT','WORKER_FAILED','ENGINE_BUSY'].includes(error?.code) && ![401,403,409].includes(error.status);
     const currentRequest = () => {
       if(requestedRevision!==inputRevision || controller.signal.aborted || activeView!==entryView ||
         requestedSession!==JSON.stringify(window.theibsVoiceSessionContext?.()) || window.theibsVoiceSessionContext?.().expired)return false;
       if(payload.multiway){
-        if(requestedHandId!==multiway?.handId || requestedDecisionKey!==multiwayState?.revisionKey)return false;
+        if(requestedHandId!==multiway?.handId || requestedDecisionKey!==multiwayState?.revisionKey ||
+          contextual && requestedOwnerKey!==window.theibsPlayersUI?.getOwnerKey?.())return false;
         try{return requestedSignature===snapshotModel.stable(buildAnalysisPayload());}catch{return false;}
       }
       return true;
+    };
+    const requestAnalysis = async phase => {
+      if(contextualRuntime==='BROWSER'){
+        await window.theibsAuth?.ensureSession?.();
+        if(!currentRequest())throw Object.assign(Error('The analysis context changed.'),{name:'AbortError'});
+        const browserPayload=structuredClone(payload);browserPayload.multiwayEvaluation.revisionKey=requestedDecisionKey;
+        try{return await browserMultiwayClient.analyze(browserPayload,{phase,signal:controller.signal,owner:browserMultiwayOwner});}
+        catch(error){
+          if(error.code!=='BROWSER_RUNTIME_UNAVAILABLE' || !currentRequest())throw error;
+          contextualRuntime='SERVER';contextualRuntimeReason='Browser compute is unavailable; using Server compute.';
+        }
+      }
+      return requestJson('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...payload,analysisPhase:phase}),signal:controller.signal});
     };
     const publish = async (data, started, phase) => {
       if (!currentRequest()) return false;
@@ -788,7 +804,11 @@ function renderResult(data, street) {
         data.refinement={status:timeout?'TIME_BUDGET':'FAILED',reason:timeout?'Calculation reached its time budget; available values remain preliminary.':'Calculation stopped; available values remain preliminary.'};
       }
       if(data.refinement?.reasonEnglish && !data.refinement.reason)data.refinement={...data.refinement,reason:data.refinement.reasonEnglish};
-      data.clientTiming={httpElapsedMs:performance.now()-started,scope:'HTTP_ROUND_TRIP_AND_SECOND_FRAME_PROXY',refinementPending:phase==='PREVIEW' && data.status==='OK' && data.analysisStage==='PROVISIONAL'};
+      if(contextual)data.performance={...data.performance,runtime:contextualRuntime,runtimeLabel:contextualRuntime==='BROWSER'?'Browser compute':'Server compute',
+        runtimeReason:contextualRuntimeReason,origin:data.performance?.origin || (contextualRuntime==='BROWSER'?'BROWSER_WEB_WORKER':'SERVER_ANALYZE')};
+      const computeElapsedMs=performance.now()-started;
+      data.clientTiming={httpElapsedMs:contextualRuntime==='BROWSER'?null:computeElapsedMs,computeElapsedMs,runtime:contextualRuntime,
+        scope:contextualRuntime==='BROWSER'?'BROWSER_WORKER_ROUND_TRIP_AND_SECOND_FRAME_PROXY':'HTTP_ROUND_TRIP_AND_SECOND_FRAME_PROXY',refinementPending:phase==='PREVIEW' && data.status==='OK' && data.analysisStage==='PROVISIONAL'};
       renderResult(data, payload.street); quickAction(data);
       const snapshot=data.status==='OK'?snapshotModel.create(data,payload):null;
       if (phase==='FINAL' || payload.multiwayEvaluation) {
@@ -806,7 +826,7 @@ function renderResult(data, street) {
         renderStreetCards();renderCharts(snapshot);
       }
       data.clientTiming.inputToFrameMs=performance.now()-inputAt;
-      data.clientTiming.responseToFrameMs=performance.now()-started-data.clientTiming.httpElapsedMs;
+      data.clientTiming.responseToFrameMs=performance.now()-started-data.clientTiming.computeElapsedMs;
       metrics.analyses.push({analysisId:data.analysisId,phase,status:data.status,...data.clientTiming});
       if(metrics.analyses.length>1000)metrics.analyses.shift();
       document.dispatchEvent(new CustomEvent('theibs:analysis-painted',{detail:metrics.analyses.at(-1)}));
@@ -830,12 +850,27 @@ function renderResult(data, street) {
         }else{renderResult(data,payload.street);quickAction(data);renderCharts();}
         return;
       }
+      if(contextual){
+        const capabilities=await requestJson('/api/multiway/capabilities',{signal:controller.signal});
+        if(!currentRequest())return;
+        if(capabilities.status!=='OK' || !/^[a-f0-9]{64}$/i.test(requestedOwnerKey || '') || capabilities.ownerKey!==requestedOwnerKey)throw Error('The verified player account changed. Reload before analyzing.');
+        try{if(window.TheibsBrowserMultiwayClient?.create && !browserMultiwayClient)browserMultiwayClient=window.TheibsBrowserMultiwayClient.create();}
+        catch(error){if(error.code!=='BROWSER_RUNTIME_UNAVAILABLE')throw error;}
+        if(browserMultiwayClient && typeof browserMultiwayClient.supported!=='boolean')throw Error('The browser calculation interface changed. Reload the app.');
+        if(browserMultiwayClient?.supported){
+          const owner=JSON.stringify([requestedOwnerKey,window.theibsVoiceSessionContext?.().epoch ?? 0]);
+          if(browserMultiwayOwner && browserMultiwayOwner!==owner)browserMultiwayClient.clearOwner(browserMultiwayOwner);
+          browserMultiwayOwner=owner;contextualRuntime='BROWSER';
+          const solverState=window.TheibsMultiwaySolverUI?.getState?.();
+          if(solverState?.runtime==='BROWSER' && ['QUEUED','BUILDING','REFINING'].includes(solverState.phase))window.TheibsMultiwaySolverUI.invalidate();
+        } else contextualRuntimeReason='Browser compute is unavailable in this browser; using Server compute.';
+      }
       // A short, explicitly provisional calculation never supplies an imperative action.
       // Full study branches retain their specified budgets, so skip duplicate study work.
       if (payload.multiwayEvaluation || !payload.aggressionStudy && (payload.samplingMode==='ADAPTIVE' || Number(payload.samples)>512)) {
         const started=performance.now();
         try {
-          const preview=await requestJson('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...payload,analysisPhase:'PREVIEW'}),signal:controller.signal});
+          const preview=await requestAnalysis('PREVIEW');
           if((preview.status==='OK' || !computationFailure(preview)) && (!await publish(preview,started,'PREVIEW') || preview.status!=='OK'))return;
         } catch(error) {
           // A short cold preview can expire before its first complete world.
@@ -845,11 +880,12 @@ function renderResult(data, street) {
       }
       if(!currentRequest())return;
       const started=performance.now();
-      const data=await requestJson('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...payload,analysisPhase:'FINAL'}),signal:controller.signal});
-      await publish(data,started,'FINAL');
+      const data=await requestAnalysis('FINAL');
+      solverMayRun=await publish(data,started,'FINAL') && (data.status==='OK' || computationFailure(data));
     } catch (error) {
       if(error.name==='AbortError' || controller.signal.aborted)return;
       if(currentRequest()){
+        solverMayRun=computationFailure(error);
         let sameInput = false;
         if (computationFailure(error) && publishedSnapshot && activeView === 'analyze' &&
           requestedSession === JSON.stringify(window.theibsVoiceSessionContext?.()) && !window.theibsVoiceSessionContext?.().expired &&
@@ -879,6 +915,7 @@ function renderResult(data, street) {
       analysisBusy=false;analysisController=null;analyzeButton.disabled=false;$('#quick-analyze').disabled=false;
       if(multiway)renderMultiway();
       analyzeButton.innerHTML='Analyze street <span>↗</span>';$('#quick-analyze').innerHTML=multiway?'Analyze hand <span>↗</span>':'Calculate equity <span>↗</span>';
+      if(solverMayRun && contextual && currentRequest())void window.TheibsMultiwaySolverUI?.evaluate?.(payload);
       if(analysisQueued){analysisQueued=false;scheduleAnalysis();}
     }
   }
@@ -1190,6 +1227,8 @@ function renderResult(data, street) {
     multiwayRevision++;clearTimeout(multiwayCardTimer);clearTimeout(saveTimer);
     saveDirty=false;
     analysisController?.abort();cancelCoach();
+    if(browserMultiwayOwner)browserMultiwayClient?.clearOwner?.(browserMultiwayOwner);
+    browserMultiwayOwner=null;
     window.theibsPlayersUI?.clearOwner?.();
     if(loaded)invalidateAnalysis();
   });

@@ -200,21 +200,12 @@ async function analyzeManual(payload, response, owner = 'local') {
   const started = performance.now(), input = buildInput(payload);
   const preview = payload.analysisPhase === 'PREVIEW';
   const contextual = payload.multiway?.enabled === true && payload.multiwayEvaluation && typeof payload.multiwayEvaluation === 'object';
-  const observed = contextual ? multiway.envelope(payload.multiway) : null;
+  const contextualRequest = contextual ? require('./src/multiway-compute-request').prepare(payload) : null;
+  const observed = contextualRequest?.observed || null;
   const prepared = !contextual && payload.multiway?.enabled === true ? multiway.prepareAnalysis(payload.multiway, input) : null;
   if (prepared && !prepared.available) return attachAnalysisContract(multiway.blockedResult(prepared), { ...prepared.input, multiway: payload.multiway });
-  if(observed){
-    const coverage=observed.continuationAnalysis || {...observed.analysis,reasons:observed.analysis.reasons.filter(item=>!['SIDE_POTS_UNSUPPORTED','ALL_IN_UNSUPPORTED','CALL_REACHES_ALL_IN'].includes(item.code))};
-    if(coverage.reasons.length)return attachAnalysisContract(multiway.blockedResult({...coverage,available:false,observed,opponentHypotheses:[],warnings:[]}),{...coverage.input,multiway:observed.multiway});
-  }
-  const computeInput = observed ? {...input,multiwayEvaluation:{
-    profileSnapshot:payload.multiwayEvaluation.profileSnapshot,ranges:payload.multiwayEvaluation.ranges,
-    chosenSize:payload.multiwayEvaluation.chosenSize,rake:payload.multiwayEvaluation.rake,
-    rakeSchedule:payload.multiwayEvaluation.rakeSchedule,assumeNoRake:payload.multiwayEvaluation.assumeNoRake===true,
-    feeBasis:payload.multiwayEvaluation.feeBasis==='BEFORE_FEES' && payload.multiwayEvaluation.assumeNoRake===true ? 'BEFORE_FEES' : undefined,
-    config:observed.multiway.config,events:observed.multiway.events,handId:observed.multiway.handId,
-    revisionKey:observed.state.revisionKey,samples:preview?32:128,timeBudgetMs:preview?350:1800
-  }} : { ...(prepared?.input || prepareOpponentOverrides(input)) };
+  if(contextualRequest?.blocked)return contextualRequest.blocked;
+  const computeInput = observed ? {...input,...contextualRequest.input} : { ...(prepared?.input || prepareOpponentOverrides(input)) };
   if (preview) {
     if(!Number.isInteger(computeInput.samples)||computeInput.samples<1||computeInput.samples>50000)throw Error('samples must be an integer between 1 and 50000.');
     computeInput.samplingMode = 'FIXED';

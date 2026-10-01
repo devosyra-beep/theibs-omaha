@@ -1,24 +1,24 @@
 {
   "schemaVersion": 1,
-  "runtimeVersion": "THEIBS_BROWSER_SOLVER_V1",
-  "entry": "src/solver/job-worker.js",
-  "builderSha256": "d3d76595e5df9915e38bfd37cccbdf602ef9c015b7180d5c88eaf079bc7cdce1",
-  "versions": {
-    "adaptive": "THEIBS_HU_ADAPTIVE_V6",
-    "solver": "THEIBS_FULL_TREE_CFR_PLUS_V1",
-    "river": "PLO5_FINITE_RIVER_V2",
-    "rules": "OBSERVED_HAND_CENT_LEDGER_0148",
-    "qualification": "THEIBS_SOLUTION_QUALIFICATION_V1",
-    "precision": "THEIBS_DECISION_PRECISION_V2",
-    "certificate": "THEIBS_ACTION_CONDITIONED_V1",
-    "decisionOutcome": "THEIBS_DECISION_OUTCOME_V1",
-    "comparisonPolicy": "THEIBS_COMPARISON_POLICY_V1"
-  },
+  "runtimeVersion": "THEIBS_BROWSER_MULTIWAY_V1",
+  "engineBuild": "0.14.10",
+  "model": "MULTIWAY_CONTEXT_POLICY_V1",
+  "builderSha256": "fa58645d9d2dfd7380aeecb2df8a7aaebd6853a9f428013fb6824c2b438d9998",
   "sources": [
+    {
+      "id": "package.json",
+      "sha256": "f0f9546af2d44bbd6378aea982e33a1d38a953c455c99ad56de2b95f267d1394",
+      "bytes": 1724
+    },
     {
       "id": "public/card-voice.js",
       "sha256": "4e7155781cca3d2ce08f93355922510db57e75be4cbb930648900bf28bd8c26e",
       "bytes": 38130
+    },
+    {
+      "id": "public/player-profile-model.js",
+      "sha256": "9fb671ea75863a72c46f3451e4f146a9dda5aba610560c4c8d70d4a5cbd0a194",
+      "bytes": 11944
     },
     {
       "id": "src/action-ev-presentation.js",
@@ -31,9 +31,29 @@
       "bytes": 7197
     },
     {
+      "id": "src/analysis-contract.js",
+      "sha256": "da50a0abab922f16f4ec1b7498da2683b96486351bb73c8294fdc2174520e9f1",
+      "bytes": 5177
+    },
+    {
+      "id": "src/analyze-inference.js",
+      "sha256": "73da2159167bc01d542468cdd8ac0a0da489e873d922a83b1fac098352d231e0",
+      "bytes": 5831
+    },
+    {
       "id": "src/cards.js",
       "sha256": "01add6b9be28e2d188648b8c54335ef78d524ff322c990c3ce6d4e5a6527cee0",
       "bytes": 2446
+    },
+    {
+      "id": "src/continuation-assessment.js",
+      "sha256": "8a107721dec372325629a760fe6f3e10abf45dc2af3207988af3bcb9153a6924",
+      "bytes": 4360
+    },
+    {
+      "id": "src/continuation-strategy.js",
+      "sha256": "648cc4ca9c87a712e110a9862c4dc137c3f3feb1b5bec018ebb47cece33275b9",
+      "bytes": 1412
     },
     {
       "id": "src/decision-precision.js",
@@ -66,9 +86,24 @@
       "bytes": 18942
     },
     {
+      "id": "src/hand-insights.js",
+      "sha256": "892146c7ed29dbe2547d556a886114187d2a3d21b77c23f3cd9db187e412ae3a",
+      "bytes": 7799
+    },
+    {
       "id": "src/joint-range-sampler.js",
       "sha256": "f0da62a7c19255b96a884882ed9c3538d2aef57ca3f5e808dc69deecdc7375e8",
       "bytes": 2922
+    },
+    {
+      "id": "src/multiway-compute-request.js",
+      "sha256": "71ae53df82bcc2b43a8bd18c8cd603f16c7c36bce1ae51bc5c1eebbeeca7e00c",
+      "bytes": 1692
+    },
+    {
+      "id": "src/multiway-evaluator.js",
+      "sha256": "6f3363bab15a63231f61c9d2594d7c30bbd0f3b32f70a9e7d4b2cd59d4cfd9c9",
+      "bytes": 29027
     },
     {
       "id": "src/multiway-session.js",
@@ -81,6 +116,16 @@
       "bytes": 7083
     },
     {
+      "id": "src/opponent-policy.js",
+      "sha256": "0c83a110aa7b0f775b8efd2b0c8ad8f06c5c40f6cf181203032b1da690199a48",
+      "bytes": 2325
+    },
+    {
+      "id": "src/player-profiles.js",
+      "sha256": "5ba4fa6fc37c6de55211a1aaa3638633768b32449b62f99bfd050badc1f1cc7e",
+      "bytes": 2017
+    },
+    {
       "id": "src/rake-model.js",
       "sha256": "7ef20b9e5be6be4f13a10f7b8eaecde90f198f1964f828840a924a7da58dcbb3",
       "bytes": 1971
@@ -89,41 +134,6 @@
       "id": "src/range-engine.js",
       "sha256": "af4c92fda8690de0d1daf2f679b3356010749f018fa1d56dbc92b4b59b32283f",
       "bytes": 9581
-    },
-    {
-      "id": "src/solver/action-conditioned.js",
-      "sha256": "e79a3c4bab00b6d9eaa66fd1d42ab6cf7f0795f96dce6a1b6a50b06b66f55b01",
-      "bytes": 10485
-    },
-    {
-      "id": "src/solver/decision-outcome.js",
-      "sha256": "27a130ef2da41ff76879e214c3f87ccc7bb292297b6a4946a4c35dcc6c4e7a50",
-      "bytes": 11737
-    },
-    {
-      "id": "src/solver/extensive-solver.js",
-      "sha256": "5622613b33cb9265b936ff35673b159363f770524d81f69ad6cffa9c23b76cac",
-      "bytes": 36525
-    },
-    {
-      "id": "src/solver/job-worker.js",
-      "sha256": "1a91246c36ae3ca2326ee6c850a257b96bc2a734b161c88eaf345fe6862c6ebf",
-      "bytes": 24716
-    },
-    {
-      "id": "src/solver/plo-river-game.js",
-      "sha256": "80bd514deb6f7c223712313d90347355d8b64981584d49445c807049f56c384e",
-      "bytes": 22585
-    },
-    {
-      "id": "src/solver/solution-status.js",
-      "sha256": "03142bab5ba95cd852c8d3bf691a0d74d993a380bb7bf1904a0e6e3df7975a22",
-      "bytes": 8497
-    },
-    {
-      "id": "src/solver/versions.js",
-      "sha256": "16a57fda32f5e069dfaced026af9d59e8f1ddda7a983fac8f54ee146d0a7be64",
-      "bytes": 387
     },
     {
       "id": "src/strategy-engine.js",
@@ -142,17 +152,15 @@
       "sha256": "30bfb6a3e34ec12a4f53b2d302f3067aaa87fad1194dda6c6c5f5c03595b0a93"
     },
     {
-      "id": "scripts/browser-solver/worker-entry.js",
-      "sha256": "cf669698819cedfc18308488be1a4a3975a3777207d58ecfe385b31e4a6a8da9"
+      "id": "scripts/browser-multiway/worker-entry.js",
+      "sha256": "be372d6381c9f1263d51f377fae272c3c97ce477e9ea17af8ff71f32a28a6d73"
     }
   ],
   "nodeAdapters": [
-    "node:crypto",
-    "node:perf_hooks",
-    "node:worker_threads"
+    "node:crypto"
   ],
-  "cancellation": "HOST_WORKER_TERMINATE_WITH_COMPLETE_CHECKPOINT_RESUME",
-  "memoryMetric": "UNAVAILABLE_IN_BROWSER",
+  "cancellation": "HOST_WORKER_TERMINATE",
+  "cache": "OWNER_BUILD_FULL_INPUT_COMPLETE_ONLY",
   "sourceNormalization": "LF",
-  "buildFingerprint": "d5e45edc95f89f4bc5384e0cb492db55ce74521c8b44eda0421aea70030a862b"
+  "buildFingerprint": "06a019f6b5a78d67645fd0d048f39d197895d6e0e37d30bb35e4b65a7f88d4cd"
 }

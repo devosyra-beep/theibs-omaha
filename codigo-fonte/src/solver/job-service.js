@@ -5,7 +5,7 @@ const {createSolutionCache,keyFor}=require('./solution-cache');
 const {normalizePolicy}=require('./decision-outcome');
 const BUDGETS={FAST:{timeMs:500,iterations:50},STANDARD:{timeMs:3000,iterations:1000},DEEP:{timeMs:30000,iterations:20000}};
 const LIMITS={maxNodes:12000,maxWorlds:27,maxMemoryBytes:48*1024*1024,maxBuildMs:750};
-const HU_LIMITS=Object.freeze({...LIMITS,maxWorlds:144});
+const HU_LIMITS=Object.freeze({...LIMITS,maxWorlds:require('./plo-river-game').HU_SUPPORT.maxWorlds});
 const TERMINAL_PHASES=new Set(['COMPLETE','FAILED','UNSUPPORTED','CANCELLED']);
 const REUSABLE_STOPS=new Set(['GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION','GLOBAL_CONVERGENCE_AND_CERTIFIED_NEAR_EQUIVALENCE','FIXED_CONTINUATIONS_FULLY_EVALUATED','GLOBAL_CONVERGENCE_ACTION_CERTIFICATES_NOT_COVERED']);
 const workIterations=checkpoint=>Number.isSafeInteger(checkpoint?.workIterations)?checkpoint.workIterations:Number.isSafeInteger(checkpoint?.iterations)?checkpoint.iterations:0;

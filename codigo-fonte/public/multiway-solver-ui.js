@@ -7,7 +7,7 @@
   const clone = value => value == null ? value : JSON.parse(JSON.stringify(value));
   const esc = value => String(value ?? '').replace(/[&<>"']/g, character => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[character]));
   const END_PHASES = new Set(['COMPLETE','UNSUPPORTED','FAILED','CANCELLED']);
-  const rangeLimit = seats => seats === 2 ? 12 : 3;
+  const rangeLimit = seats => seats === 2 ? 24 : 3;
   const levelLimit = seats => seats === 2 ? 12 : 8;
   function normalizeComparisonPolicy(value) {
     if(root.TheibsBrowserSolverClient?.normalizeComparisonPolicy)return root.TheibsBrowserSolverClient.normalizeComparisonPolicy(clone(value));

@@ -23,11 +23,12 @@ function preview() {
     recommendation: { status: 'INCONCLUSIVE', action: null }, multiwayEvaluation: { samples: 8 } };
 }
 function harness(responses, onRequest = () => {}, { quickSurface = false } = {}) {
-  const rendered = [], charts = [], calls = [], nodes = new Map();
+  const rendered = [], charts = [], calls = [], urls=[],events=[],nodes = new Map();
   const node = selector => { if (!nodes.has(selector)) nodes.set(selector, { classList: { add() {}, remove() {}, toggle() {} }, dataset: {}, children: [], replaceChildren() {} }); return nodes.get(selector); };
   const context = { AbortController, structuredClone, performance, JSON, Promise,
     activeView: 'analyze', inputRevision: 1, inputChangedAt: performance.now(), analysisBusy: false, analysisQueued: false,
     analysisController: null, lastAnalysis: null, snapshots: [], metrics: { analyses: [] }, snapshotModel: snapshots,
+    browserMultiwayClient:null,browserMultiwayOwner:null,ownerKey:'b'.repeat(64),capabilityCalls:0,solverCalls:0,
     multiway: { enabled: true, handId: 'hand-1' }, multiwayState: { handId: 'hand-1', revisionKey: 'decision-1' },
     analyzeButton: node('#analyze-button'), emptyState: node('#empty'), result: node('#result'), $: node,
     cards: { announce() {}, isManualInvalid: () => false, state: { count: 4, slots: ['As','Ah','Kd','Qc'] } },
@@ -38,13 +39,21 @@ function harness(responses, onRequest = () => {}, { quickSurface = false } = {})
     value: id => ({ potBeforeAction: '3.5', amountToCall: '1', players: '3' })[id] || '',
     money: value => Number(value).toFixed(2), esc: value => String(value), renderHandScope() {},
     feedback: require('../public/analyze-feedback'),
-    window: { theibsAuth: { ensureSession: async () => {} }, theibsVoiceSessionContext: () => context.session,
-      TheibsMultiwaySolverUI: { evaluate: async () => {} }, TheibsContinuationView: require('../public/continuation-view') },
-    session: { owner: 'owner-1', expired: false } };
+    window: { theibsAuth: { ensureSession: async () => {events.push('AUTH');} }, theibsVoiceSessionContext: () => context.session,
+      theibsPlayersUI:{getOwnerKey:()=>context.ownerKey},
+      TheibsMultiwaySolverUI: { evaluate: async () => {context.solverCalls++;events.push('SOLVER');} }, TheibsContinuationView: require('../public/continuation-view') },
+    session: { owner: 'owner-1', epoch:1, expired: false } };
   context.payload = { street: 'PREFLOP', multiway: structuredClone(context.multiway),
     multiwayEvaluation: { assumeNoRake: true, feeBasis: 'BEFORE_FEES', ranges: [] } };
   context.fetch = async (url, options) => {
+    urls.push(url);
+    if(url==='/api/multiway/capabilities'){
+      context.capabilityCalls++;events.push('ACCESS');context.onCapabilities?.();
+      const response=context.capabilitiesResponse || reply({status:'OK',ownerKey:context.ownerKey});
+      return {ok:response.ok,status:response.status,json:async()=>structuredClone(response.data)};
+    }
     const payload = JSON.parse(options.body); calls.push(payload.analysisPhase);
+    events.push(payload.analysisPhase);
     onRequest(context, payload, calls.length);
     const response = responses[calls.length - 1];
     if (response instanceof Error) throw response;
@@ -52,7 +61,7 @@ function harness(responses, onRequest = () => {}, { quickSurface = false } = {})
   };
   vm.createContext(context);
   vm.runInContext(`${stoppedDisplaySource}\n${requestSource}\n${analyzeSource}${quickSurface ? '\n'+quickCallSource+'\n'+quickActionSource : ''}`, context, { filename: 'app-analysis-flow.js' });
-  return { context, calls, rendered, charts, nodes, run: () => context.analyze({ type: 'submit', preventDefault() {} }) };
+  return { context, calls, urls,events,rendered, charts, nodes, run: () => context.analyze({ type: 'submit', preventDefault() {} }) };
 }
 
 test('FINAL time exhaustion retains only this invocation\'s valid preview and its exact uncertainty', async () => {
@@ -179,6 +188,127 @@ test('context changes during display frames discard this invocation and cannot a
     h.context.requestAnimationFrame=callback=>{frames++;if(frames===(changedPhase==='PREVIEW'?1:3))h.context.payload.multiwayEvaluation.feeBasis='DECLARED_FEES';callback();};
     await h.run();assert.deepEqual(h.calls,changedPhase==='PREVIEW'?['PREVIEW']:['PREVIEW','FINAL']);assert.equal(h.context.lastAnalysis,null);
     assert.equal(h.context.snapshots.length,0);assert.equal(h.context.analysisBusy,false);assert.equal(h.charts.at(-1),undefined);
+  }
+});
+
+function useBrowser(h,responses,onAnalyze=()=>{}){
+  const calls=[],cleared=[];let creations=0;
+  const client={supported:true,analyze:async(payload,settings)=>{
+    calls.push({payload:structuredClone(payload),...settings});h.events.push('BROWSER_'+settings.phase);onAnalyze(h.context,payload,settings,calls.length);
+    const response=responses[calls.length-1];if(response instanceof Error)throw response;return structuredClone(response);
+  },clearOwner:owner=>cleared.push(owner),close(){}};
+  h.context.window.TheibsBrowserMultiwayClient={create:()=>{creations++;return client;}};
+  return {client,calls,cleared,get creations(){return creations;}};
+}
+
+test('contextual Browser compute preserves both phases, verified owner, frozen profiles and metadata while deferring the river study',async()=>{
+  const final={...preview(),analysisStage:'FINAL',performance:{workerExecutionMs:12,origin:'BROWSER_WEB_WORKER'}},h=harness([]),browser=useBrowser(h,[preview(),final]);
+  h.context.payload.multiwayEvaluation.profileSnapshot={schemaVersion:1,handId:'hand-1',source:'PRE_HAND_OBSERVATIONS',players:{opponent:{playerId:'opponent',contexts:{},observations:3}}};
+  await h.run();assert.equal(h.context.capabilityCalls,1);assert.deepEqual(h.calls,[]);assert.deepEqual(browser.calls.map(call=>call.phase),['PREVIEW','FINAL']);
+  assert.equal(browser.creations,1);assert.ok(browser.calls.every(call=>call.owner===JSON.stringify([h.context.ownerKey,1])));
+  assert.equal(browser.calls[0].signal,browser.calls[1].signal);assert.equal(browser.calls[0].signal.aborted,false);
+  assert.deepEqual(browser.calls[0].payload.multiwayEvaluation.profileSnapshot,h.context.payload.multiwayEvaluation.profileSnapshot);
+  assert.deepEqual(browser.calls[1].payload,browser.calls[0].payload);assert.equal(h.context.solverCalls,1);
+  assert.ok(browser.calls.every(call=>call.payload.multiwayEvaluation.revisionKey==='decision-1'));assert.equal(h.context.payload.multiwayEvaluation.revisionKey,undefined);
+  assert.equal(h.context.lastAnalysis.input.multiwayEvaluation.revisionKey,undefined);assert.equal(h.context.lastAnalysis.signature,snapshots.stable(h.context.payload));
+  assert.ok(h.events.indexOf('ACCESS')<h.events.indexOf('BROWSER_PREVIEW'));assert.ok(h.events.indexOf('SOLVER')>h.events.indexOf('BROWSER_FINAL'));
+  const kept=h.context.lastAnalysis.data;assert.deepEqual(kept.ev,final.ev);assert.equal(kept.performance.workerExecutionMs,12);
+  assert.equal(kept.performance.runtimeLabel,'Browser compute');assert.equal(kept.performance.origin,'BROWSER_WEB_WORKER');
+  assert.equal(kept.clientTiming.httpElapsedMs,null);assert.equal(kept.clientTiming.scope,'BROWSER_WORKER_ROUND_TRIP_AND_SECOND_FRAME_PROXY');
+  assert.ok(Number.isFinite(kept.clientTiming.computeElapsedMs));
+});
+
+test('active Browser river study is preempted before contextual EV and restarts only after FINAL',async()=>{
+  for(const phase of ['QUEUED','BUILDING','REFINING']){
+    const h=harness([]),browser=useBrowser(h,[preview(),{...preview(),analysisStage:'FINAL'}]);let invalidations=0;
+    const originalHand=structuredClone(h.context.multiway);
+    const state={runtime:'BROWSER',phase};h.context.window.TheibsMultiwaySolverUI.getState=()=>state;
+    h.context.window.TheibsMultiwaySolverUI.invalidate=()=>{invalidations++;state.phase='IDLE';h.events.push('STUDY_PAUSED');};
+    await h.run();assert.equal(invalidations,1);assert.deepEqual(browser.calls.map(call=>call.phase),['PREVIEW','FINAL']);
+    assert.ok(h.events.indexOf('ACCESS')<h.events.indexOf('STUDY_PAUSED'));assert.ok(h.events.indexOf('STUDY_PAUSED')<h.events.indexOf('BROWSER_PREVIEW'));
+    assert.ok(h.events.indexOf('BROWSER_FINAL')<h.events.indexOf('SOLVER'));assert.equal(h.context.solverCalls,1);
+    assert.deepEqual(h.context.multiway,originalHand);
+  }
+  for(const {runtime,phase,supported} of [{runtime:'BROWSER',phase:'COMPLETE',supported:true},{runtime:'SERVER',phase:'REFINING',supported:true},{runtime:'BROWSER',phase:'REFINING',supported:false}]){
+    const h=harness([reply(preview()),reply({...preview(),analysisStage:'FINAL'})]),browser=useBrowser(h,[preview(),{...preview(),analysisStage:'FINAL'}]);let invalidations=0;
+    browser.client.supported=supported;h.context.window.TheibsMultiwaySolverUI.getState=()=>({runtime,phase});
+    h.context.window.TheibsMultiwaySolverUI.invalidate=()=>{invalidations++;};await h.run();assert.equal(invalidations,0);assert.equal(h.context.solverCalls,1);
+  }
+});
+
+test('only an unsupported or explicitly unavailable browser runtime falls back visibly to Server compute',async()=>{
+  for(const mode of ['UNSUPPORTED','UNAVAILABLE','CREATION_UNAVAILABLE']){
+    const h=harness([reply(preview()),reply({...preview(),analysisStage:'FINAL'})]),browser=useBrowser(h,[Object.assign(Error('No runtime.'),{code:'BROWSER_RUNTIME_UNAVAILABLE'})]);
+    if(mode==='UNSUPPORTED')browser.client.supported=false;
+    if(mode==='CREATION_UNAVAILABLE')h.context.window.TheibsBrowserMultiwayClient.create=()=>{throw Object.assign(Error('No worker API.'),{code:'BROWSER_RUNTIME_UNAVAILABLE'});};
+    await h.run();assert.deepEqual(h.calls,['PREVIEW','FINAL']);
+    assert.equal(browser.calls.length,mode==='UNAVAILABLE'?1:0);assert.equal(h.context.lastAnalysis.data.performance.runtimeLabel,'Server compute');
+    assert.match(h.context.lastAnalysis.data.performance.runtimeReason,/using Server compute/);assert.equal(h.context.capabilityCalls,1);assert.equal(h.context.solverCalls,1);
+  }
+});
+
+test('browser computation errors retain useful current data and never route calculations to the server',async()=>{
+  const h=harness([]),browser=useBrowser(h,[preview(),Object.assign(Error('Worker stopped.'),{code:'WORKER_FAILED'})]);await h.run();
+  assert.deepEqual(h.calls,[]);assert.equal(browser.calls.length,2);assert.equal(h.context.lastAnalysis.data.refinement.status,'FAILED');
+  assert.equal(h.context.lastAnalysis.data.performance.runtimeLabel,'Browser compute');assert.equal(h.context.solverCalls,1);
+  const cold=harness([]),coldBrowser=useBrowser(cold,[Object.assign(Error('Cold budget.'),{code:'TIME_BUDGET'}),{...preview(),analysisStage:'FINAL'}]);
+  await cold.run();assert.deepEqual(cold.calls,[]);assert.deepEqual(coldBrowser.calls.map(call=>call.phase),['PREVIEW','FINAL']);assert.equal(cold.context.lastAnalysis.data.analysisStage,'FINAL');
+});
+
+test('browser malformed results, auth failures and stale results cannot trigger server fallback',async()=>{
+  for(const response of [{...preview(),observedState:{handId:'stale',revisionKey:'decision-1'}},null,
+    Object.assign(Error('Session rejected.'),{code:'AUTH_REQUIRED'}),Object.assign(Error('Invalid inputs.'),{code:'INVALID_RANGE'})]){
+    const h=harness([]),browser=useBrowser(h,[response]);await h.run();assert.deepEqual(h.calls,[]);assert.equal(browser.calls.length,1);
+    assert.equal(h.context.lastAnalysis.data.status,'ERROR');assert.equal(h.context.solverCalls,0);
+  }
+  const malformed=harness([]);malformed.context.window.TheibsBrowserMultiwayClient={create:()=>({})};await malformed.run();
+  assert.deepEqual(malformed.calls,[]);assert.equal(malformed.context.lastAnalysis.data.status,'ERROR');assert.equal(malformed.context.solverCalls,0);
+});
+
+test('contextual capabilities revalidation rejects payment, auth, changed owner and changed session before local compute',async()=>{
+  for(const changed of ['PAYMENT','AUTH','OWNER','SESSION']){
+    const h=harness([]),browser=useBrowser(h,[preview()]);
+    if(changed==='PAYMENT'||changed==='AUTH')h.context.capabilitiesResponse={ok:false,status:changed==='PAYMENT'?402:401,data:{reason:'Access denied.'}};
+    if(changed==='OWNER')h.context.capabilitiesResponse=reply({status:'OK',ownerKey:'c'.repeat(64)});
+    if(changed==='SESSION')h.context.onCapabilities=()=>{h.context.session.epoch++;};
+    await h.run();assert.equal(browser.calls.length,0);assert.deepEqual(h.calls,[]);assert.equal(h.context.solverCalls,0);assert.equal(h.context.capabilityCalls,1);
+  }
+});
+
+test('owner changes and cancellation between browser phases cannot publish or start a second phase',async()=>{
+  for(const mutation of [c=>{c.ownerKey='c'.repeat(64);},c=>c.analysisController.abort(),c=>{c.multiwayState.revisionKey='new';}]){
+    const h=harness([]),browser=useBrowser(h,[preview()],mutation);await h.run();assert.equal(browser.calls.length,1);assert.equal(h.context.lastAnalysis,null);
+    assert.deepEqual(h.calls,[]);assert.equal(h.context.solverCalls,0);
+  }
+});
+
+test('simple Analyze remains the one existing equity request without browser compute, access probe or river study',async()=>{
+  const h=harness([reply(preview())]),browser=useBrowser(h,[]);h.context.multiway=null;h.context.payload={street:'PREFLOP',seed:'42'};
+  h.context.buildQuickEquityPayload=()=>structuredClone(h.context.payload);h.context.percent=value=>String(value);
+  h.context.quickEquityPrecision=()=>({preliminary:true,range:'controlled range'});h.context.streetName=street=>street;
+  await h.run();assert.deepEqual(h.urls,['/api/equity']);assert.equal(browser.creations,0);assert.equal(browser.calls.length,0);
+  assert.equal(h.context.capabilityCalls,0);assert.equal(h.context.solverCalls,0);
+});
+
+test('session change clears the previous browser owner and aborts contextual work before clearing Players',async()=>{
+  const h=harness([]),browser=useBrowser(h,[preview(),{...preview(),analysisStage:'FINAL'}]);await h.run();
+  const owner=h.context.browserMultiwayOwner,controller=new AbortController();h.context.analysisController=controller;
+  let onChange;h.context.document.addEventListener=(_name,handler)=>{onChange=handler;};h.context.clearTimeout=clearTimeout;h.context.multiwayRevision=0;
+  h.context.multiwayCardTimer=null;h.context.saveTimer=null;h.context.loaded=false;h.context.cancelCoach=()=>{};
+  h.context.window.theibsPlayersUI.clearOwner=()=>{assert.deepEqual(browser.cleared,[owner]);h.context.ownerKey=null;};
+  vm.runInContext(extract("  document.addEventListener('theibs:voice-session-changed'", "\n  form.addEventListener('input'"),h.context);onChange();
+  assert.equal(controller.signal.aborted,true);assert.equal(h.context.browserMultiwayOwner,null);assert.deepEqual(browser.cleared,[owner]);
+});
+
+test('runtime labels are visible in the existing contextual result and timing labels distinguish worker from HTTP',()=>{
+  const nodes=new Map(),node=selector=>{if(!nodes.has(selector))nodes.set(selector,{classList:{add(){},remove(){}}});return nodes.get(selector);};
+  for(const runtime of ['BROWSER','SERVER']){
+    const data={...preview(),analysisStage:'FINAL',performance:{runtimeLabel:runtime==='BROWSER'?'Browser compute':'Server compute',runtimeReason:runtime==='SERVER'?'Using Server compute.':null},
+      clientTiming:{runtime,computeElapsedMs:10,httpElapsedMs:runtime==='BROWSER'?null:20}};
+    const context={lastAnalysis:{data},$:node,emptyState:node('#empty'),result:node('#result'),esc:String,streetName:String,numberLabel:String,comparisonLabel:()=>''};
+    vm.createContext(context);vm.runInContext(extract('function renderResult(', '\n  function updateTableContext')+'\n'+extract('  function renderEngineDetails()', '\n  function toast'),context);
+    context.renderResult(data,'PREFLOP');context.renderEngineDetails();assert.match(context.result.innerHTML,new RegExp(data.performance.runtimeLabel));
+    assert.match(node('#engine-details').innerHTML,new RegExp(runtime==='BROWSER'?'Worker round trip':'HTTP round trip'));
   }
 });
 

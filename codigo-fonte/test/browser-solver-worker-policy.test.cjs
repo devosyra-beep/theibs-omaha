@@ -7,7 +7,7 @@ function fixture(){
   const modules={
     'src/solver/job-worker.js':{execute:(args,dependencies)=>{calls.push({args,dependencies});return {result:{status:'NOT_SOLVED'},workerMs:0};}},
     'src/multiway-session.js':{envelope:multiway=>({multiway,state:{revisionKey:'revision'}})},
-    'src/solver/decision-outcome.js':comparison,'src/solver/plo-river-game.js':{},'src/solver/extensive-solver.js':{},'src/solver/action-conditioned.js':{},
+    'src/solver/decision-outcome.js':comparison,'src/solver/plo-river-game.js':{HU_SUPPORT:require('../src/solver/plo-river-game').HU_SUPPORT},'src/solver/extensive-solver.js':{},'src/solver/action-conditioned.js':{},
   };
   vm.runInNewContext(source,{requireBrowserModule:name=>modules[name],browserSolverManifest:{schemaVersion:1,buildFingerprint:fingerprint},
     browserNodeAdapters:{'node:crypto':{}},structuredClone,performance:{now:()=>0},addEventListener:(_name,handler)=>{receive=handler;},postMessage:message=>sent.push(message)});

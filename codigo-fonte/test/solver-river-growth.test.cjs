@@ -6,6 +6,7 @@ const solver=require('../src/solver/extensive-solver');
 const session=require('../src/multiway-session');
 const {replay}=require('../src/hand-flow');
 const {expandedRiverInput}=require('./helpers/solver-river-growth-fixtures.cjs');
+const {capacityRiverInput}=require('./helpers/river-hu-capacity-fixtures.cjs');
 const {omahaRank,compareRanks}=require('./helpers/solver-reference-fixtures.cjs');
 
 function ready(input){const result=buildPloRiverGame(input);assert.equal(result.status,'READY',JSON.stringify(result));return result;}
@@ -56,8 +57,7 @@ test('memoized winners match independent Omaha ranking and the authoritative cen
 });
 
 test('new bounds reject oversized declarations and deep expensive trees atomically',()=>{
-  const many=expandedRiverInput({combos:12,sizings:12});
-  many.ranges[0].combos.push({cards:['Ac','Ad','Qs','Jh','Th'],weight:1});
+  const many=capacityRiverInput({combos:25,sizings:2});
   assert.equal(coverage(many).reasons[0].code,'RANGE_BUDGET');
   const sizes=expandedRiverInput({combos:2,sizings:12});sizes.sizing.levels.push(1.99);
   assert.equal(coverage(sizes).reasons[0].code,'INVALID_SIZING');
@@ -65,7 +65,7 @@ test('new bounds reject oversized declarations and deep expensive trees atomical
   stress.sizing.levels=[1,1.5,2,2.5,3,4,5,6,8,10,12,16];
   const rejected=buildPloRiverGame(stress);assert.equal(rejected.status,'NOT_SOLVED');assert.equal(rejected.game,null);
   assert.ok(['MEMORY_BUDGET','NODE_BUDGET','BUILD_TIME_BUDGET'].includes(rejected.reasons[0].code));
-  assert.equal(HU_SUPPORT.maxCombosPerSeat,12);assert.equal(THREE_SEAT_SUPPORT.maxCombosPerSeat,3);
+  assert.equal(HU_SUPPORT.maxCombosPerSeat,24);assert.equal(HU_SUPPORT.maxWorlds,576);assert.equal(THREE_SEAT_SUPPORT.maxCombosPerSeat,3);
   assert.equal(THREE_SEAT_SUPPORT.maxWorlds,27);assert.equal(THREE_SEAT_SUPPORT.maxSizingLevels,8);
 });
 
