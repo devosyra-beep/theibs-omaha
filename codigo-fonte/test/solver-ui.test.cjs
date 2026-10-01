@@ -183,3 +183,54 @@ test('stale payloads do not schedule a solver and snapshots are immutable',async
   current.state.revisionKey='revision-1';await api.evaluate(payload(current));const snapshot=api.decisionSnapshot();snapshot.actions[0].evBB=999;
   assert.equal(api.decisionSnapshot().actions[0].evBB,2);api.invalidate();
 });
+
+test('available Browser compute is preferred and owns its bounded automatic continuation',async()=>{
+  const api=createUI(),current=context(),starts=[],server=[];
+  const browser={supported:true,start:async(owner,input,settings)=>{starts.push({owner,input,settings});return response(settings.budget,{runtime:'BROWSER',runtimeLabel:'Browser compute',
+    runtimeBudget:{initialMs:3000,ceilingMs:5000,continuations:1},buildFingerprint:'a'.repeat(64),
+    result:{...result('SOLVED'),adaptation:{stopReason:'TIME_RESOURCE_CEILING',refinementRecommended:true}}});},cancelOwner(){},clearOwner(){},cancel:async()=>({})};
+  api.init({getContext:()=>current,getOwner:()=>JSON.stringify(['user-1','session-1']),browserClient:browser,request:async(url,options)=>{server.push(url);return response(JSON.parse(options.body).budget);}});
+  api.restore(study());await api.evaluate(payload(current));
+  assert.equal(starts.length,1);assert.equal(server.length,0);assert.equal(starts[0].settings.budget,'STANDARD');assert.equal(starts[0].settings.automatic,true);
+  assert.equal(JSON.stringify(starts[0].input).includes('never-send'),false);
+  assert.equal(api.getState().runtime,'BROWSER');assert.equal(api.decisionSnapshot().runtimeBudget.ceilingMs,5000);assert.equal(api.decisionSnapshot().buildFingerprint,'a'.repeat(64));
+  api.setRuntime('SERVER');await api.evaluate(payload(current),{automatic:false});assert.equal(server.length,1);assert.equal(api.getState().runtime,'SERVER');api.invalidate();
+});
+
+test('unsupported browser fallback is visible and browser runtime failure never silently sends study ranges',async()=>{
+  const api=createUI(),current=context();let serverCalls=0;
+  api.init({getContext:()=>current,browserClient:{supported:false},request:async()=>{serverCalls++;return response('STANDARD');}});
+  await api.evaluate(payload(current));assert.equal(serverCalls,1);assert.equal(api.getState().runtime,'SERVER');assert.match(api.getState().runtimeReason,/Browser compute is unavailable/);api.invalidate();
+  const available=createUI();available.init({getContext:()=>current,browserClient:{supported:true,start:async()=>{throw Error('Browser solver build changed.');},cancelOwner(){}},request:async()=>{serverCalls++;return response('STANDARD');}});
+  await available.evaluate(payload(current));assert.equal(available.getState().phase,'FAILED');assert.equal(available.getState().runtime,'BROWSER');assert.match(available.getState().error,/build changed/);assert.equal(serverCalls,1);available.invalidate();
+});
+
+test('hand and owner changes synchronously cancel browser work and cannot publish stale progress',async()=>{
+  const api=createUI(),current=context(),cancelled=[];let owner='owner-1',resolveStart;
+  const browser={supported:true,start:()=>new Promise(resolve=>resolveStart=resolve),cancelOwner:value=>cancelled.push(value),clearOwner:value=>cancelled.push('clear:'+value),cancel:async()=>({})};
+  api.init({getContext:()=>current,getOwner:()=>owner,browserClient:browser});
+  const running=api.evaluate(payload(current));await tick();current.state.revisionKey='revision-2';api.getState();assert.ok(cancelled.includes('owner-1'));
+  api.invalidate();resolveStart(response('STANDARD',{phase:'REFINING',runtime:'BROWSER'}));await running;assert.equal(api.getState().phase,'IDLE');assert.equal(api.decisionSnapshot(),null);
+  current.state.revisionKey='revision-1';const next=api.evaluate(payload(current));await tick();owner='owner-2';api.getState();assert.equal(cancelled.at(-1),'clear:owner-1');
+  api.clearOwner();resolveStart(response('STANDARD',{runtime:'BROWSER'}));await next;assert.ok(cancelled.includes('clear:owner-1'));assert.equal(api.decisionSnapshot(),null);
+});
+
+test('changing the fee basis cannot retain the previous decision value while a new study starts',async()=>{
+  const api=createUI(),current=context();let resolveChanged;
+  api.init({getContext:()=>current,request:async(url,options)=>{const body=options.body && JSON.parse(options.body);if(url.endsWith('/cancel'))return {};
+    if(body.rake.basis==='NO_FEES')return new Promise(resolve=>resolveChanged=resolve);return response(body.budget);}});
+  await api.evaluate(payload(current));assert.ok(api.decisionSnapshot());
+  const changed=payload(current);changed.multiwayEvaluation.feeBasis='NO_FEES';const running=api.evaluate(changed);await tick();
+  assert.equal(api.getState().phase,'QUEUED');assert.equal(api.getState().result,null);assert.equal(api.decisionSnapshot(),null);
+  resolveChanged(response('STANDARD'));await running;api.invalidate();
+});
+
+test('AUTO preserves the existing three-seat server coverage while explicit Browser compute stays local',async()=>{
+  const api=createUI(),current=context();current.multiway.config.playerCount=3;let browserCalls=0,serverCalls=0;
+  const browser={supported:true,start:async()=>{browserCalls++;return response('STANDARD');},cancelOwner(){}};
+  api.init({getContext:()=>current,browserClient:browser,request:async()=>{serverCalls++;return response('STANDARD');}});
+  await api.evaluate(payload(current));assert.equal(browserCalls,0);assert.equal(serverCalls,1);assert.equal(api.getState().runtime,'SERVER');
+  assert.equal(api.getState().runtimeReason,'Browser compute covers two original seats; using Server compute.');
+  api.setRuntime('BROWSER');await api.evaluate(payload(current));assert.equal(api.getState().phase,'FAILED');assert.match(api.getState().error,/two original seats.*Choose Server/);
+  assert.equal(browserCalls,0);assert.equal(serverCalls,1);api.invalidate();
+});

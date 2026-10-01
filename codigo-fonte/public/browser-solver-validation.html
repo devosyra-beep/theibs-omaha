@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>THEIBS · Browser solver validation</title><link rel="stylesheet" href="/browser-solver-validation.css"></head>
+<body><main>
+  <header><p class="eyebrow">THEIBS · Isolated synthetic studies</p><h1>Browser solver validation</h1><p>This page runs public fixtures in a dedicated browser Worker. It does not read or change a game workspace, account, player library or training history.</p></header>
+  <section aria-labelledby="controls-title"><h2 id="controls-title">Run a bounded check</h2>
+    <div class="controls"><label>Scenario<select id="scenario"></select></label><label>Variant<select id="variant"></select></label><label>Cold computation budget<select id="budget"><option value="3000">3 seconds</option><option value="4000">4 seconds</option><option value="5000">5 seconds</option></select></label></div>
+    <div class="buttons"><button id="pair" disabled>Run cold + warm</button><button id="group" disabled>Run 3 variants</button><button id="self-test" disabled>Run self-test</button><button id="parity" disabled>Run fixed parity</button><button id="cache" disabled>Run cache checks</button><button id="stale" disabled>Run cancel + replacement</button><button id="stop" disabled>Stop</button><button id="export" disabled>Download report</button></div>
+    <p class="hint">Each 3-variant group tests one scenario and one budget. Run groups separately for 3, 4 and 5 seconds. Cold requires an empty client cache; warm reads the identical completed snapshot through FAST. A cache hit is recorded explicitly.</p>
+    <p id="status" role="status" aria-live="polite">Loading fixtures and runtime manifest…</p><p id="runtime" class="hint"></p>
+    <pre id="qa-summary" aria-label="Compact QA summary">{ "classification": "NOT_EXECUTED" }</pre>
+    <div class="controls"><label>Responsiveness text<input id="responsiveness-text" type="text" autocomplete="off" placeholder="Type while the Worker is computing"></label></div><div class="buttons"><button id="pulse">Tap while computing</button><output id="pulse-count" aria-live="polite">0 taps</output></div>
+  </section>
+  <section aria-labelledby="current-title"><h2 id="current-title">Current result</h2><p id="summary">No result yet.</p>
+    <div class="table-wrap"><table><thead><tr><th>Action</th><th>Current profile EV · BB</th><th>Commitment bounds · BB</th><th>Strategy</th></tr></thead><tbody id="actions"></tbody></table></div>
+    <p class="hint">Current profile EV concerns the current hand combination against the returned profile. Commitment bounds concern the full original prior with one private information-set action fixed. Their separation does not certify equilibrium EV for the current hand.</p>
+    <p id="convergence" class="hint">NashConv is a returned-profile convergence measurement. It is not an action-EV confidence interval.</p>
+  </section>
+  <section aria-labelledby="checks-title"><h2 id="checks-title">Assertions</h2><ol id="checks"><li>No checks executed.</li></ol></section>
+  <section aria-labelledby="report-title"><h2 id="report-title">Visible report</h2><p class="hint">Synthetic inputs only. Browser performance and runtime checks are reported separately from Node references. Authentication, hosted solver performance, durable persistence and human voice recognition are outside this instrument.</p><pre id="report">{ "classification": "NOT_EXECUTED" }</pre></section>
+</main><script src="/browser-solver-client.js" defer></script><script src="/browser-solver-validation.js" defer></script></body>
+</html>

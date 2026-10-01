@@ -1,0 +1,151 @@
+{
+  "schemaVersion": 1,
+  "runtimeVersion": "THEIBS_BROWSER_SOLVER_V1",
+  "entry": "src/solver/job-worker.js",
+  "builderSha256": "3ef82ca3f2d706e04137abb1dcebc16bc9ebddafdb573431d3865d7d5c075043",
+  "versions": {
+    "adaptive": "THEIBS_HU_ADAPTIVE_V4",
+    "solver": "THEIBS_FULL_TREE_CFR_PLUS_V1",
+    "river": "PLO5_FINITE_RIVER_V2",
+    "rules": "OBSERVED_HAND_CENT_LEDGER_0148",
+    "qualification": "THEIBS_SOLUTION_QUALIFICATION_V1",
+    "precision": "THEIBS_DECISION_PRECISION_V2",
+    "certificate": "THEIBS_ACTION_CONDITIONED_V1"
+  },
+  "sources": [
+    {
+      "id": "public/card-voice.js",
+      "sha256": "4e7155781cca3d2ce08f93355922510db57e75be4cbb930648900bf28bd8c26e",
+      "bytes": 38130
+    },
+    {
+      "id": "src/action-ev-presentation.js",
+      "sha256": "9a23cd3719901b58ecf7c01a28124df1ad385f5ebebf06e9942f1af5f1546273",
+      "bytes": 8549
+    },
+    {
+      "id": "src/aggression-scenarios.js",
+      "sha256": "f4c2a115eab74f91ae59840e0ed790080dbf90179ff0b55a81d30e893a7c85eb",
+      "bytes": 7197
+    },
+    {
+      "id": "src/cards.js",
+      "sha256": "01add6b9be28e2d188648b8c54335ef78d524ff322c990c3ce6d4e5a6527cee0",
+      "bytes": 2446
+    },
+    {
+      "id": "src/decision-precision.js",
+      "sha256": "f1f18258581e87d0ca4b4314180513224e04201f0c2c658e5193bc9cb6d43041",
+      "bytes": 13158
+    },
+    {
+      "id": "src/equity-engine.js",
+      "sha256": "6ff506b8ea96bf31faa04cd8b27b0949aee3e402f77e5886100aa4024f8b6d5b",
+      "bytes": 12676
+    },
+    {
+      "id": "src/evaluator.js",
+      "sha256": "2d863f781dbafde30d61c11295c2ecf5139b77b3149abf7b6e34f5b27273e049",
+      "bytes": 3386
+    },
+    {
+      "id": "src/exploit-engine.js",
+      "sha256": "68075f9527371cfa3a015d5c4c2619d390849f9114959fe3e0786ff133a3b4ea",
+      "bytes": 7394
+    },
+    {
+      "id": "src/fast-evaluator.js",
+      "sha256": "8345b390d2f8b13defa08afbcdda5ec8e2f5d41f111dd3889e0667ebfc502d8c",
+      "bytes": 6456
+    },
+    {
+      "id": "src/hand-flow.js",
+      "sha256": "e9c8dfc90408fbe189bd5b040cfdf60dbe9eca8133d833d4f590c0c1bd9930b8",
+      "bytes": 18942
+    },
+    {
+      "id": "src/joint-range-sampler.js",
+      "sha256": "f0da62a7c19255b96a884882ed9c3538d2aef57ca3f5e808dc69deecdc7375e8",
+      "bytes": 2922
+    },
+    {
+      "id": "src/multiway-session.js",
+      "sha256": "144f6742298c13e761cb51aaf4e0ced98a9a4ccc8cd601212fb5d62d6f1f16f6",
+      "bytes": 31492
+    },
+    {
+      "id": "src/opponent-overrides.js",
+      "sha256": "85f983d122d53c9bedb550935007528426fda4d31ead23b62faa4ba606c0621c",
+      "bytes": 7083
+    },
+    {
+      "id": "src/rake-model.js",
+      "sha256": "7ef20b9e5be6be4f13a10f7b8eaecde90f198f1964f828840a924a7da58dcbb3",
+      "bytes": 1971
+    },
+    {
+      "id": "src/range-engine.js",
+      "sha256": "af4c92fda8690de0d1daf2f679b3356010749f018fa1d56dbc92b4b59b32283f",
+      "bytes": 9581
+    },
+    {
+      "id": "src/solver/action-conditioned.js",
+      "sha256": "acc9de765fb93347c2fe9ccd4c4cd025f7128982c53d1807703c4cfced4a59c4",
+      "bytes": 8650
+    },
+    {
+      "id": "src/solver/extensive-solver.js",
+      "sha256": "5c4862bff3bfb7079c41bd2cf0d6bbc826b483538c83e44cab2ca9f490bacf38",
+      "bytes": 30444
+    },
+    {
+      "id": "src/solver/job-worker.js",
+      "sha256": "6287ee73e90d229d5fa29d06524fec675133cd127a1d78004edd44b9db6d9523",
+      "bytes": 19945
+    },
+    {
+      "id": "src/solver/plo-river-game.js",
+      "sha256": "e689750b5040eb0113168e02183dd2698a2d9315fc1fd2f1622f793bf82a67b7",
+      "bytes": 22436
+    },
+    {
+      "id": "src/solver/solution-status.js",
+      "sha256": "03142bab5ba95cd852c8d3bf691a0d74d993a380bb7bf1904a0e6e3df7975a22",
+      "bytes": 8497
+    },
+    {
+      "id": "src/solver/versions.js",
+      "sha256": "338960084c072bac2a30bac2754c64a065c2a45d5e7addaba2a0253389e739a8",
+      "bytes": 392
+    },
+    {
+      "id": "src/strategy-engine.js",
+      "sha256": "ed88d9fb4675a5f2754a8dc0c44998d37bfee3aa9cd1e8732a824fbf25998ad4",
+      "bytes": 10171
+    },
+    {
+      "id": "src/variants.js",
+      "sha256": "4540926b6583258f9db5f7c0f854e0aba952dfcfc7ba3ba4fb0cf6ded9e95b8c",
+      "bytes": 506
+    }
+  ],
+  "runtimeSources": [
+    {
+      "id": "scripts/browser-solver/runtime-adapters.js",
+      "sha256": "30bfb6a3e34ec12a4f53b2d302f3067aaa87fad1194dda6c6c5f5c03595b0a93"
+    },
+    {
+      "id": "scripts/browser-solver/worker-entry.js",
+      "sha256": "f238598ce294e651d9d66eb05d3891d051b7fe94b88b82fee7ce7e9c73644628"
+    }
+  ],
+  "nodeAdapters": [
+    "node:crypto",
+    "node:perf_hooks",
+    "node:worker_threads"
+  ],
+  "cancellation": "HOST_WORKER_TERMINATE_WITH_COMPLETE_CHECKPOINT_RESUME",
+  "memoryMetric": "UNAVAILABLE_IN_BROWSER",
+  "sourceNormalization": "LF",
+  "buildFingerprint": "7cc1aa41fa10684cf2d3da8123a76007fffb87138c286345c5ee6eba3536a501"
+}

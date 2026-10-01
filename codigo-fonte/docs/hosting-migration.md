@@ -2,7 +2,7 @@
 
 ## Current status
 
-Frontend staging is deployed on Cloudflare, with Render still serving the API. No Oracle VM is provisioned and the backend/data migration is incomplete. Render must remain available until all cutover gates pass.
+Frontend staging is deployed on Cloudflare, with Render still serving the API. The user cancelled the Oracle route because no credit card is available. No Oracle VM is provisioned. Browser execution of the existing river HU solver is the next delivery, documented in [browser-river-hu.md](browser-river-hu.md). The backend/data migration remains incomplete; Render must remain available until replacement and data-preservation gates pass. Oracle templates below are historical preparation, not an active provisioning plan.
 
 The in-app browser has an authenticated Cloudflare session. A separate account named `THEIBS` was created at the user's request, with free-tier defaults and without inheriting other accounts' payment methods or plans. Brandi and Osyra were not changed. The user connected `devosyra-beep/theibs-omaha` and created Worker `theibs-omaha` in that account. Its first build used `main`, root `/`, no build command and `npx wrangler deploy`, and failed before publishing because it could not detect static assets. After aligning the Wrangler name and correcting the provider branch, commands, root and four build variables, commit `2c47b99a6699e667e054b1d4a3dc3f510caf05a2` automatically produced successful build `956ad8ec-4c3d-419a-b7ae-e09063d78bc3` in 53 seconds. The provider settings persisted across reload. Authenticated gameplay, data portability, deployed cancellation and Oracle performance gates remain open. Oracle still requires user sign-in and its eligibility/capacity remain unverified.
 

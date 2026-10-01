@@ -1168,12 +1168,14 @@ function renderResult(data, street) {
   });
   form.addEventListener('input', (event) => {
     if(event.target.closest('#opponent-input-panel') || event.target.id==='mw-size')return;
-    if (['heroCards','board','paste-cards'].includes(event.target.id)) return;
+    // The card adapter owns variant changes. Rendering from the native input
+    // event would reset the select before its change handler updates the model.
+    if (['heroCards','board','paste-cards','variant-select'].includes(event.target.id)) return;
     invalidateAnalysis(); updateTableContext(); scheduleSave();
   });
   form.addEventListener('change', (event) => {
     if(event.target.closest('#opponent-input-panel') || event.target.id==='mw-size')return;
-    if (['heroCards','board','paste-cards'].includes(event.target.id)) return;
+    if (['heroCards','board','paste-cards','variant-select'].includes(event.target.id)) return;
     invalidateAnalysis(); updateTableContext(); scheduleSave();
   });
   document.addEventListener('theibs:cards-changed', (event) => {
@@ -1319,7 +1321,11 @@ function renderResult(data, street) {
   }});
   window.theibsMultiwayImage.init();
   let savedSolverStudy = null;
-  window.TheibsMultiwaySolverUI?.init({request:requestJson,onChange:()=>{
+  window.TheibsMultiwaySolverUI?.init({request:requestJson,getOwner:()=>{
+    const session = window.theibsVoiceSessionContext?.();
+    if (session?.expired) return null;
+    return JSON.stringify([window.theibsPlayersUI?.getOwnerKey?.() || 'isolated-page',session?.epoch ?? 0]);
+  },onChange:()=>{
     renderMultiway();
     const study=JSON.stringify(window.TheibsMultiwaySolverUI.serialize());
     if(study!==savedSolverStudy){savedSolverStudy=study;scheduleSave();}

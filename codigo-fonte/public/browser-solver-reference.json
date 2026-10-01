@@ -1,0 +1,1574 @@
+{
+  "schemaVersion": 1,
+  "classification": "NODE_MATH_REFERENCE",
+  "releaseVersion": "0.14.10",
+  "methodology": "Same unchanged Node job-worker execute, fixed maximum 512 work iterations and 5000 ms. Cases must stop before a time ceiling. Browser comparison requires identical game/context hashes, action identities, stopped work count, and numeric values within 1e-10. The richer 4x4 input is checked against the stored LP game key before extracting containment values; LP residual tolerance never declares dominance. Timed benchmarks do not require identical point values across different stopping work.",
+  "independentReference": "Terminal values use exact ledger/showdown arithmetic; four-world commitment values independently verified by sequence-form LP. Tolerance1e-7 is for comparing the numeric reference, never for declaring dominance.",
+  "sourceJobWorkerSha256": "6287ee73e90d229d5fa29d06524fec675133cd127a1d78004edd44b9db6d9523",
+  "cases": [
+    {
+      "id": "separated_terminal_call",
+      "variantId": "separated_terminal_call-1",
+      "expectedRevisionKey": "1624a5f3a7dd931f195de7e30114d061ffb7490baebf8766406705accb87a18b",
+      "budget": {
+        "timeMs": 5000,
+        "iterations": 512
+      },
+      "independentExpectation": {
+        "comparisonStatus": "CONCLUSIVE",
+        "bestActionId": "CALL",
+        "actionValues": {
+          "FOLD": 0,
+          "CALL": 3
+        },
+        "globalStatus": "SOLVED"
+      },
+      "mathematical": {
+        "status": "SOLVED",
+        "method": "ALTERNATING_CFR_PLUS_LINEAR_AVERAGE",
+        "solverVersion": "THEIBS_FULL_TREE_CFR_PLUS_V1",
+        "gameHash": "884e304da5c76ce231c506ec0362c097abcb0f36e8297f1e728cd6d701ef2b10",
+        "scope": "DECLARED_FINITE_RIVER_SUBGAME",
+        "strategyScope": "CURRENT_HAND_COMBINATION",
+        "iterations": 20,
+        "actions": [
+          {
+            "id": "FOLD",
+            "action": "FOLD",
+            "size": null,
+            "frequency": 0.002380952380952381,
+            "evBB": 0
+          },
+          {
+            "id": "CALL",
+            "action": "CALL",
+            "size": null,
+            "frequency": 0.9976190476190476,
+            "evBB": 3
+          }
+        ],
+        "convergence": {
+          "metric": "EXACT_NASH_CONV",
+          "exact": true,
+          "nashConv": 0.0071428571428571175,
+          "maxUnilateralGain": 0.0071428571428571175,
+          "unilateralGains": [
+            0.0071428571428571175,
+            0
+          ],
+          "bestResponseValues": [
+            3,
+            0.0071428571428571435
+          ],
+          "scope": "SUPPLIED_FINITE_GAME",
+          "thresholdMet": true,
+          "thresholdBB": 0.01
+        },
+        "qualification": {
+          "gto": false,
+          "fullHandEquilibrium": false,
+          "solvedSubgame": true,
+          "strategyFrequenciesSupported": true
+        },
+        "actionPrecision": {
+          "version": "THEIBS_ACTION_CONDITIONED_V1",
+          "target": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+          "origin": "OUTWARD_ROUNDED_INFORMATION_SET_BEST_RESPONSE_SADDLE_BOUNDS",
+          "solverVersion": "THEIBS_FULL_TREE_CFR_PLUS_V1",
+          "baseGameHash": "884e304da5c76ce231c506ec0362c097abcb0f36e8297f1e728cd6d701ef2b10",
+          "baseContextKey": "65e7676b15f5068c281978d9ea9fad477fa30237583882f82f39be5e5d4615a4",
+          "scope": "EX_ANTE_VALUE_OF_ORIGINAL_PRIOR_WITH_PRIVATE_INFORMATION_SET_COMMITMENT",
+          "utility": {
+            "unit": "BB",
+            "basis": "INCREMENTAL_TERMINAL_PAYOFF_FROM_ORIGINAL_DECISION",
+            "scope": "FULL_PRIOR_EX_ANTE"
+          },
+          "supportedGameClass": true,
+          "fullPriorPreserved": true,
+          "originalHandActionEV": false,
+          "actions": [
+            {
+              "id": "FOLD",
+              "certified": true,
+              "estimateBB": -8.881784197001254e-16,
+              "lowerBB": -1.776356839400251e-15,
+              "upperBB": 0,
+              "baseGameHash": "884e304da5c76ce231c506ec0362c097abcb0f36e8297f1e728cd6d701ef2b10",
+              "baseContextKey": "65e7676b15f5068c281978d9ea9fad477fa30237583882f82f39be5e5d4615a4",
+              "gameHash": "4a0aef13c1d1519c50f7d31bd5fec34a89411a2ec46cee56346418309ee769b3",
+              "conditionedHash": "4a0aef13c1d1519c50f7d31bd5fec34a89411a2ec46cee56346418309ee769b3",
+              "rootActionFixed": "FOLD",
+              "target": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+              "utility": {
+                "unit": "BB",
+                "basis": "INCREMENTAL_TERMINAL_PAYOFF_FROM_ORIGINAL_DECISION",
+                "scope": "FULL_PRIOR_EX_ANTE"
+              },
+              "iterations": 50,
+              "strategicDecisionCount": 0
+            },
+            {
+              "id": "CALL",
+              "certified": true,
+              "estimateBB": 3.0000000000000004,
+              "lowerBB": 2.9999999999999996,
+              "upperBB": 3.0000000000000013,
+              "baseGameHash": "884e304da5c76ce231c506ec0362c097abcb0f36e8297f1e728cd6d701ef2b10",
+              "baseContextKey": "65e7676b15f5068c281978d9ea9fad477fa30237583882f82f39be5e5d4615a4",
+              "gameHash": "ff0c3e6c922a036eb45b6d9fb3fe2c9ba1c09ac434d2d6b3b2d0c519f48971ea",
+              "conditionedHash": "ff0c3e6c922a036eb45b6d9fb3fe2c9ba1c09ac434d2d6b3b2d0c519f48971ea",
+              "rootActionFixed": "CALL",
+              "target": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+              "utility": {
+                "unit": "BB",
+                "basis": "INCREMENTAL_TERMINAL_PAYOFF_FROM_ORIGINAL_DECISION",
+                "scope": "FULL_PRIOR_EX_ANTE"
+              },
+              "iterations": 50,
+              "strategicDecisionCount": 0
+            }
+          ]
+        },
+        "decisionPrecision": {
+          "status": "CONCLUSIVE",
+          "target": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+          "bestActionId": "CALL",
+          "secondActionId": "FOLD",
+          "leaderConclusive": true,
+          "globalBestSupported": false,
+          "reasonCode": "SEPARATED_ACTION_COMMITMENT_BOUNDS",
+          "separationToleranceBB": 1.0658141036401508e-14,
+          "uncertaintyMethod": "OUTWARD_ROUNDED_INFORMATION_SET_BEST_RESPONSE_SADDLE_BOUNDS",
+          "uncertaintyScope": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+          "confidenceLevel": null
+        },
+        "adaptation": {
+          "stopReason": "GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION",
+          "workIterations": 120,
+          "globalIterations": 20,
+          "actionIterations": 100
+        },
+        "checkpoint": {
+          "version": "THEIBS_HU_ADAPTIVE_V4",
+          "solverVersion": "THEIBS_FULL_TREE_CFR_PLUS_V1",
+          "certificateVersion": "THEIBS_ACTION_CONDITIONED_V1",
+          "baseContextKey": "65e7676b15f5068c281978d9ea9fad477fa30237583882f82f39be5e5d4615a4",
+          "baseGameHash": "884e304da5c76ce231c506ec0362c097abcb0f36e8297f1e728cd6d701ef2b10",
+          "iterations": 20,
+          "workIterations": 120
+        }
+      },
+      "evidence": "NODE_REFERENCE_NOT_BROWSER_EXECUTION"
+    },
+    {
+      "id": "overlapping_terminal_call",
+      "variantId": "overlapping_terminal_call-1",
+      "expectedRevisionKey": "cf3dcce5a3fd2fdbf2bf28722c64e1cdf28b9ca7101304d6c92d7e6c75e3f90d",
+      "budget": {
+        "timeMs": 5000,
+        "iterations": 512
+      },
+      "independentExpectation": {
+        "comparisonStatus": "INCONCLUSIVE",
+        "requireOverlap": true,
+        "actionValues": {
+          "FOLD": 0,
+          "CALL": 0
+        },
+        "globalStatus": "SOLVED"
+      },
+      "mathematical": {
+        "status": "SOLVED",
+        "method": "ALTERNATING_CFR_PLUS_LINEAR_AVERAGE",
+        "solverVersion": "THEIBS_FULL_TREE_CFR_PLUS_V1",
+        "gameHash": "92cea1ee73ff4685aa59b6a35d17cc849ccd44552cf939eea72a4cdb5025d54b",
+        "scope": "DECLARED_FINITE_RIVER_SUBGAME",
+        "strategyScope": "CURRENT_HAND_COMBINATION",
+        "iterations": 10,
+        "actions": [
+          {
+            "id": "FOLD",
+            "action": "FOLD",
+            "size": null,
+            "frequency": 0.5,
+            "evBB": 0
+          },
+          {
+            "id": "CALL",
+            "action": "CALL",
+            "size": null,
+            "frequency": 0.5,
+            "evBB": 0
+          }
+        ],
+        "convergence": {
+          "metric": "EXACT_NASH_CONV",
+          "exact": true,
+          "nashConv": 0,
+          "maxUnilateralGain": 0,
+          "unilateralGains": [
+            0,
+            0
+          ],
+          "bestResponseValues": [
+            0,
+            3
+          ],
+          "scope": "SUPPLIED_FINITE_GAME",
+          "thresholdMet": true,
+          "thresholdBB": 0.01
+        },
+        "qualification": {
+          "gto": false,
+          "fullHandEquilibrium": false,
+          "solvedSubgame": true,
+          "strategyFrequenciesSupported": true
+        },
+        "actionPrecision": {
+          "version": "THEIBS_ACTION_CONDITIONED_V1",
+          "target": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+          "origin": "OUTWARD_ROUNDED_INFORMATION_SET_BEST_RESPONSE_SADDLE_BOUNDS",
+          "solverVersion": "THEIBS_FULL_TREE_CFR_PLUS_V1",
+          "baseGameHash": "92cea1ee73ff4685aa59b6a35d17cc849ccd44552cf939eea72a4cdb5025d54b",
+          "baseContextKey": "3b290d5cb585a4dfeaf9de04692d8110be737058554ac526fd3ae7fd7783c1e7",
+          "scope": "EX_ANTE_VALUE_OF_ORIGINAL_PRIOR_WITH_PRIVATE_INFORMATION_SET_COMMITMENT",
+          "utility": {
+            "unit": "BB",
+            "basis": "INCREMENTAL_TERMINAL_PAYOFF_FROM_ORIGINAL_DECISION",
+            "scope": "FULL_PRIOR_EX_ANTE"
+          },
+          "supportedGameClass": true,
+          "fullPriorPreserved": true,
+          "originalHandActionEV": false,
+          "actions": [
+            {
+              "id": "FOLD",
+              "certified": true,
+              "estimateBB": -1.5543122344752194e-15,
+              "lowerBB": -3.1086244689504387e-15,
+              "upperBB": 0,
+              "baseGameHash": "92cea1ee73ff4685aa59b6a35d17cc849ccd44552cf939eea72a4cdb5025d54b",
+              "baseContextKey": "3b290d5cb585a4dfeaf9de04692d8110be737058554ac526fd3ae7fd7783c1e7",
+              "gameHash": "fb50d2b7cfa4986fd07e86ef3009f278f9fd46b0714c3d60062b744f6d2806f5",
+              "conditionedHash": "fb50d2b7cfa4986fd07e86ef3009f278f9fd46b0714c3d60062b744f6d2806f5",
+              "rootActionFixed": "FOLD",
+              "target": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+              "utility": {
+                "unit": "BB",
+                "basis": "INCREMENTAL_TERMINAL_PAYOFF_FROM_ORIGINAL_DECISION",
+                "scope": "FULL_PRIOR_EX_ANTE"
+              },
+              "iterations": 50,
+              "strategicDecisionCount": 0
+            },
+            {
+              "id": "CALL",
+              "certified": true,
+              "estimateBB": -1.2767564783189304e-15,
+              "lowerBB": -3.552713678800502e-15,
+              "upperBB": 9.99200722162641e-16,
+              "baseGameHash": "92cea1ee73ff4685aa59b6a35d17cc849ccd44552cf939eea72a4cdb5025d54b",
+              "baseContextKey": "3b290d5cb585a4dfeaf9de04692d8110be737058554ac526fd3ae7fd7783c1e7",
+              "gameHash": "a97741a5fc39334cc1cdc0d4c3b104e2ead1f437dbe5a8b72b71ace84b3f093a",
+              "conditionedHash": "a97741a5fc39334cc1cdc0d4c3b104e2ead1f437dbe5a8b72b71ace84b3f093a",
+              "rootActionFixed": "CALL",
+              "target": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+              "utility": {
+                "unit": "BB",
+                "basis": "INCREMENTAL_TERMINAL_PAYOFF_FROM_ORIGINAL_DECISION",
+                "scope": "FULL_PRIOR_EX_ANTE"
+              },
+              "iterations": 50,
+              "strategicDecisionCount": 0
+            }
+          ]
+        },
+        "decisionPrecision": {
+          "status": "INCONCLUSIVE",
+          "target": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+          "bestActionId": "CALL",
+          "secondActionId": "FOLD",
+          "leaderConclusive": false,
+          "globalBestSupported": false,
+          "reasonCode": "BEST_SECOND_INTERVALS_OVERLAP",
+          "separationToleranceBB": 3.552713678800501e-15,
+          "uncertaintyMethod": "OUTWARD_ROUNDED_INFORMATION_SET_BEST_RESPONSE_SADDLE_BOUNDS",
+          "uncertaintyScope": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+          "confidenceLevel": null
+        },
+        "adaptation": {
+          "stopReason": "FIXED_CONTINUATIONS_FULLY_EVALUATED",
+          "workIterations": 110,
+          "globalIterations": 10,
+          "actionIterations": 100
+        },
+        "checkpoint": {
+          "version": "THEIBS_HU_ADAPTIVE_V4",
+          "solverVersion": "THEIBS_FULL_TREE_CFR_PLUS_V1",
+          "certificateVersion": "THEIBS_ACTION_CONDITIONED_V1",
+          "baseContextKey": "3b290d5cb585a4dfeaf9de04692d8110be737058554ac526fd3ae7fd7783c1e7",
+          "baseGameHash": "92cea1ee73ff4685aa59b6a35d17cc849ccd44552cf939eea72a4cdb5025d54b",
+          "iterations": 10,
+          "workIterations": 110
+        }
+      },
+      "evidence": "NODE_REFERENCE_NOT_BROWSER_EXECUTION"
+    },
+    {
+      "id": "four_world_five_actions",
+      "variantId": "four_world_five_actions-1",
+      "expectedRevisionKey": "14a2a07f0388df4678062e76d08fd1540816ac0496e199832006a9b6184173db",
+      "budget": {
+        "timeMs": 5000,
+        "iterations": 512
+      },
+      "independentExpectation": {
+        "comparisonStatus": "CONCLUSIVE",
+        "bestActionId": "CHECK",
+        "actionValues": {
+          "FOLD": 0.75,
+          "CHECK": 1.25,
+          "BET:1.00": 1,
+          "BET:1.50": 0.875,
+          "BET:2.00": 0.75
+        },
+        "globalStatus": "APPROXIMATE"
+      },
+      "mathematical": {
+        "status": "APPROXIMATE",
+        "method": "ALTERNATING_CFR_PLUS_LINEAR_AVERAGE",
+        "solverVersion": "THEIBS_FULL_TREE_CFR_PLUS_V1",
+        "gameHash": "bab17238c3739cb0885cf3acb027d4fa3d9d1c6ce1488f6bd7a2929658002d90",
+        "scope": "DECLARED_FINITE_RIVER_SUBGAME",
+        "strategyScope": "CURRENT_HAND_COMBINATION",
+        "iterations": 30,
+        "actions": [
+          {
+            "id": "FOLD",
+            "action": "FOLD",
+            "size": null,
+            "frequency": 0.00043010752688172043,
+            "evBB": 0
+          },
+          {
+            "id": "CHECK",
+            "action": "CHECK",
+            "size": null,
+            "frequency": 0.985510602260497,
+            "evBB": 1
+          },
+          {
+            "id": "BET:1.00",
+            "action": "BET",
+            "size": 1,
+            "frequency": 0.008277804653310489,
+            "evBB": 0.5021505376344086
+          },
+          {
+            "id": "BET:1.50",
+            "action": "BET",
+            "size": 1.5,
+            "frequency": 0.0034214083605239335,
+            "evBB": 0.25268817204301075
+          },
+          {
+            "id": "BET:2.00",
+            "action": "BET",
+            "size": 2,
+            "frequency": 0.0023600771987868758,
+            "evBB": 0.003225806451612856
+          }
+        ],
+        "convergence": {
+          "metric": "EXACT_NASH_CONV",
+          "exact": true,
+          "nashConv": 0.005876603919422685,
+          "maxUnilateralGain": 0.005167511757537158,
+          "unilateralGains": [
+            0.005167511757537158,
+            0.0007090921618855273
+          ],
+          "bestResponseValues": [
+            1.2508064516129032,
+            0.7550701523065197
+          ],
+          "scope": "SUPPLIED_FINITE_GAME",
+          "thresholdMet": true,
+          "thresholdBB": 0.01
+        },
+        "qualification": {
+          "gto": false,
+          "fullHandEquilibrium": false,
+          "solvedSubgame": false,
+          "strategyFrequenciesSupported": true
+        },
+        "actionPrecision": {
+          "version": "THEIBS_ACTION_CONDITIONED_V1",
+          "target": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+          "origin": "OUTWARD_ROUNDED_INFORMATION_SET_BEST_RESPONSE_SADDLE_BOUNDS",
+          "solverVersion": "THEIBS_FULL_TREE_CFR_PLUS_V1",
+          "baseGameHash": "bab17238c3739cb0885cf3acb027d4fa3d9d1c6ce1488f6bd7a2929658002d90",
+          "baseContextKey": "4c8cf3613eae8301ece776692461ce9e67006733929d0273352183b968011566",
+          "scope": "EX_ANTE_VALUE_OF_ORIGINAL_PRIOR_WITH_PRIVATE_INFORMATION_SET_COMMITMENT",
+          "utility": {
+            "unit": "BB",
+            "basis": "INCREMENTAL_TERMINAL_PAYOFF_FROM_ORIGINAL_DECISION",
+            "scope": "FULL_PRIOR_EX_ANTE"
+          },
+          "supportedGameClass": true,
+          "fullPriorPreserved": true,
+          "originalHandActionEV": false,
+          "actions": [
+            {
+              "id": "FOLD",
+              "certified": true,
+              "estimateBB": 0.7500882352941167,
+              "lowerBB": 0.7498823529411734,
+              "upperBB": 0.75029411764706,
+              "baseGameHash": "bab17238c3739cb0885cf3acb027d4fa3d9d1c6ce1488f6bd7a2929658002d90",
+              "baseContextKey": "4c8cf3613eae8301ece776692461ce9e67006733929d0273352183b968011566",
+              "gameHash": "7e3f551c24f713d65970bb3a4b95ce8f076cebdb1cada7a0d998cdb40fd495c9",
+              "conditionedHash": "7e3f551c24f713d65970bb3a4b95ce8f076cebdb1cada7a0d998cdb40fd495c9",
+              "rootActionFixed": "FOLD",
+              "target": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+              "utility": {
+                "unit": "BB",
+                "basis": "INCREMENTAL_TERMINAL_PAYOFF_FROM_ORIGINAL_DECISION",
+                "scope": "FULL_PRIOR_EX_ANTE"
+              },
+              "iterations": 50,
+              "strategicDecisionCount": 7
+            },
+            {
+              "id": "CHECK",
+              "certified": true,
+              "estimateBB": 1.2500882352941174,
+              "lowerBB": 1.2498823529411742,
+              "upperBB": 1.2502941176470606,
+              "baseGameHash": "bab17238c3739cb0885cf3acb027d4fa3d9d1c6ce1488f6bd7a2929658002d90",
+              "baseContextKey": "4c8cf3613eae8301ece776692461ce9e67006733929d0273352183b968011566",
+              "gameHash": "12a8acc947018aa2d5e87e820fe0864ca6a7039c1e46245b755c90f0580aaccc",
+              "conditionedHash": "12a8acc947018aa2d5e87e820fe0864ca6a7039c1e46245b755c90f0580aaccc",
+              "rootActionFixed": "CHECK",
+              "target": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+              "utility": {
+                "unit": "BB",
+                "basis": "INCREMENTAL_TERMINAL_PAYOFF_FROM_ORIGINAL_DECISION",
+                "scope": "FULL_PRIOR_EX_ANTE"
+              },
+              "iterations": 50,
+              "strategicDecisionCount": 7
+            },
+            {
+              "id": "BET:1.00",
+              "certified": true,
+              "estimateBB": 1.00028431372549,
+              "lowerBB": 0.9998823529411737,
+              "upperBB": 1.0006862745098064,
+              "baseGameHash": "bab17238c3739cb0885cf3acb027d4fa3d9d1c6ce1488f6bd7a2929658002d90",
+              "baseContextKey": "4c8cf3613eae8301ece776692461ce9e67006733929d0273352183b968011566",
+              "gameHash": "3a1a59ba19e81dab5f94bb2c289a28fca1ef19e7e7c9d3b3105752285b2392f8",
+              "conditionedHash": "3a1a59ba19e81dab5f94bb2c289a28fca1ef19e7e7c9d3b3105752285b2392f8",
+              "rootActionFixed": "BET:1.00",
+              "target": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+              "utility": {
+                "unit": "BB",
+                "basis": "INCREMENTAL_TERMINAL_PAYOFF_FROM_ORIGINAL_DECISION",
+                "scope": "FULL_PRIOR_EX_ANTE"
+              },
+              "iterations": 50,
+              "strategicDecisionCount": 7
+            },
+            {
+              "id": "BET:1.50",
+              "certified": true,
+              "estimateBB": 0.8753333333333331,
+              "lowerBB": 0.8748823529411737,
+              "upperBB": 0.8757843137254926,
+              "baseGameHash": "bab17238c3739cb0885cf3acb027d4fa3d9d1c6ce1488f6bd7a2929658002d90",
+              "baseContextKey": "4c8cf3613eae8301ece776692461ce9e67006733929d0273352183b968011566",
+              "gameHash": "7473bbbcb7953f29714f01bd52963e1e284e38d79ee893e1f5a84956d96212eb",
+              "conditionedHash": "7473bbbcb7953f29714f01bd52963e1e284e38d79ee893e1f5a84956d96212eb",
+              "rootActionFixed": "BET:1.50",
+              "target": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+              "utility": {
+                "unit": "BB",
+                "basis": "INCREMENTAL_TERMINAL_PAYOFF_FROM_ORIGINAL_DECISION",
+                "scope": "FULL_PRIOR_EX_ANTE"
+              },
+              "iterations": 50,
+              "strategicDecisionCount": 7
+            },
+            {
+              "id": "BET:2.00",
+              "certified": true,
+              "estimateBB": 0.7503823529411762,
+              "lowerBB": 0.7498823529411734,
+              "upperBB": 0.750882352941179,
+              "baseGameHash": "bab17238c3739cb0885cf3acb027d4fa3d9d1c6ce1488f6bd7a2929658002d90",
+              "baseContextKey": "4c8cf3613eae8301ece776692461ce9e67006733929d0273352183b968011566",
+              "gameHash": "e6e34cce70656ece23afcaa9973e80a396abfefcbee78d6b5ae2efe5ecd1cd7f",
+              "conditionedHash": "e6e34cce70656ece23afcaa9973e80a396abfefcbee78d6b5ae2efe5ecd1cd7f",
+              "rootActionFixed": "BET:2.00",
+              "target": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+              "utility": {
+                "unit": "BB",
+                "basis": "INCREMENTAL_TERMINAL_PAYOFF_FROM_ORIGINAL_DECISION",
+                "scope": "FULL_PRIOR_EX_ANTE"
+              },
+              "iterations": 50,
+              "strategicDecisionCount": 7
+            }
+          ]
+        },
+        "decisionPrecision": {
+          "status": "CONCLUSIVE",
+          "target": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+          "bestActionId": "CHECK",
+          "secondActionId": "BET:1.00",
+          "leaderConclusive": true,
+          "globalBestSupported": false,
+          "reasonCode": "SEPARATED_ACTION_COMMITMENT_BOUNDS",
+          "separationToleranceBB": 4.441937014288515e-15,
+          "uncertaintyMethod": "OUTWARD_ROUNDED_INFORMATION_SET_BEST_RESPONSE_SADDLE_BOUNDS",
+          "uncertaintyScope": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+          "confidenceLevel": null
+        },
+        "adaptation": {
+          "stopReason": "GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION",
+          "workIterations": 280,
+          "globalIterations": 30,
+          "actionIterations": 250
+        },
+        "checkpoint": {
+          "version": "THEIBS_HU_ADAPTIVE_V4",
+          "solverVersion": "THEIBS_FULL_TREE_CFR_PLUS_V1",
+          "certificateVersion": "THEIBS_ACTION_CONDITIONED_V1",
+          "baseContextKey": "4c8cf3613eae8301ece776692461ce9e67006733929d0273352183b968011566",
+          "baseGameHash": "bab17238c3739cb0885cf3acb027d4fa3d9d1c6ce1488f6bd7a2929658002d90",
+          "iterations": 30,
+          "workIterations": 280
+        }
+      },
+      "evidence": "NODE_REFERENCE_NOT_BROWSER_EXECUTION"
+    },
+    {
+      "id": "lp_rich_4x4_5_sizes",
+      "variantId": "lp-rich-4x4-fixed",
+      "input": {
+        "multiway": {
+          "schemaVersion": 1,
+          "enabled": true,
+          "config": {
+            "variant": "PLO5_HIGH",
+            "playerCount": 2,
+            "heroPosition": "SB",
+            "startingStack": 20,
+            "smallBlind": 0.5,
+            "bigBlind": 1,
+            "heroCards": [
+              "As",
+              "Ah",
+              "Qd",
+              "Jc",
+              "Tc"
+            ],
+            "players": [
+              {
+                "playerId": "e24e43fe-a13f-4727-b8fb-aa12c170ccc3",
+                "name": "You"
+              },
+              {
+                "playerId": "b7671d37-1b6a-467a-a3cd-4af3d0f9222b",
+                "name": "A1"
+              }
+            ]
+          },
+          "events": [
+            {
+              "type": "ACT",
+              "actor": 0,
+              "action": "CALL",
+              "eventId": "8daa6714-c713-4a17-96ba-8d3e364be6ee"
+            },
+            {
+              "type": "ACT",
+              "actor": 1,
+              "action": "CHECK",
+              "eventId": "031e4e50-da07-4919-ada9-e076189d7f1e"
+            },
+            {
+              "type": "BOARD",
+              "cards": [
+                "2s",
+                "3h",
+                "4d"
+              ],
+              "eventId": "b359aab5-f8b7-4457-8d03-c22b41f40cbd"
+            },
+            {
+              "type": "ACT",
+              "actor": 1,
+              "action": "CHECK",
+              "eventId": "c0be4d8a-6b98-4184-b530-e99201139bbe"
+            },
+            {
+              "type": "ACT",
+              "actor": 0,
+              "action": "CHECK",
+              "eventId": "d4ec6112-0370-42b0-961d-44c4aa3aca41"
+            },
+            {
+              "type": "BOARD",
+              "cards": [
+                "2s",
+                "3h",
+                "4d",
+                "8c"
+              ],
+              "eventId": "63cda45c-3af1-4ac1-9270-7e3eb166c34f"
+            },
+            {
+              "type": "ACT",
+              "actor": 1,
+              "action": "CHECK",
+              "eventId": "2f8640dc-8e27-42b9-b6c9-1ff71aa1bf70"
+            },
+            {
+              "type": "ACT",
+              "actor": 0,
+              "action": "CHECK",
+              "eventId": "b324e722-b57a-4cb2-8ab8-bcf5e6061288"
+            },
+            {
+              "type": "BOARD",
+              "cards": [
+                "2s",
+                "3h",
+                "4d",
+                "8c",
+                "9s"
+              ],
+              "eventId": "46fb1047-0c83-4e31-8476-5ec6b289d777"
+            },
+            {
+              "type": "ACT",
+              "actor": 1,
+              "action": "CHECK",
+              "eventId": "175703e0-b2ba-4a73-83f4-2749782c746d"
+            }
+          ],
+          "handId": "d15cf62f-d1e0-6bf4-deb8-034de59cf011",
+          "editEpoch": 0
+        },
+        "ranges": [
+          {
+            "seatId": 0,
+            "complete": true,
+            "source": "EXPLICIT_PRIVATE_TYPE_LP_GROWTH_QA",
+            "combos": [
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Jc",
+                  "Tc"
+                ],
+                "weight": 1
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Jc",
+                  "9c"
+                ],
+                "weight": 2
+              },
+              {
+                "cards": [
+                  "5s",
+                  "6s",
+                  "Qd",
+                  "Jc",
+                  "Tc"
+                ],
+                "weight": 3
+              },
+              {
+                "cards": [
+                  "5s",
+                  "6s",
+                  "Qd",
+                  "Jc",
+                  "9c"
+                ],
+                "weight": 4
+              }
+            ]
+          },
+          {
+            "seatId": 1,
+            "complete": true,
+            "source": "EXPLICIT_PRIVATE_TYPE_LP_GROWTH_QA",
+            "combos": [
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "7c",
+                  "8h"
+                ],
+                "weight": 1
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "7c",
+                  "9h"
+                ],
+                "weight": 2
+              },
+              {
+                "cards": [
+                  "5h",
+                  "6h",
+                  "Kd",
+                  "7c",
+                  "8h"
+                ],
+                "weight": 3
+              },
+              {
+                "cards": [
+                  "5h",
+                  "6h",
+                  "Kd",
+                  "7c",
+                  "9h"
+                ],
+                "weight": 4
+              }
+            ]
+          }
+        ],
+        "sizing": {
+          "type": "EXPLICIT_TOTALS",
+          "levels": [
+            1,
+            1.25,
+            1.5,
+            1.75,
+            2
+          ],
+          "maxAggressions": 1
+        },
+        "rake": {
+          "type": "NONE",
+          "basis": "BEFORE_FEES"
+        }
+      },
+      "expectedRevisionKey": "b0d1c2b4026e1e4aae4212f171a2fe1d3001b32b961a47351dcbe1c7122628d8",
+      "budget": {
+        "timeMs": 5000,
+        "iterations": 512
+      },
+      "independentExpectation": {
+        "actionValues": {
+          "FOLD": 1.03,
+          "CHECK": 1.09,
+          "BET:1.00": 1.02,
+          "BET:1.25": 1.0025,
+          "BET:1.50": 0.985,
+          "BET:1.75": 0.9675,
+          "BET:2.00": 0.9500000000000001
+        },
+        "referenceToleranceBB": 2e-8,
+        "referenceMethod": "SPARSE_SEQUENCE_FORM_PRIMAL_DUAL_HIGHS_DUAL_SIMPLEX",
+        "source": "docs/benchmarks/river-hu-expanded-lp-reference.json",
+        "exactGameKey": "b43f3be2b2de39d281c3639bdbe404b10834bba584fbc11b71550bb4a0f59653",
+        "numericalReferenceOnly": true
+      },
+      "mathematical": {
+        "status": "APPROXIMATE",
+        "method": "ALTERNATING_CFR_PLUS_LINEAR_AVERAGE",
+        "solverVersion": "THEIBS_FULL_TREE_CFR_PLUS_V1",
+        "gameHash": "5f6fbe067acffe5b8b3ef2ed802928a017c474e4283ff267e4913b4b67308437",
+        "scope": "DECLARED_FINITE_RIVER_SUBGAME",
+        "strategyScope": "CURRENT_HAND_COMBINATION",
+        "iterations": 20,
+        "actions": [
+          {
+            "id": "FOLD",
+            "action": "FOLD",
+            "size": null,
+            "frequency": 0.004906668681340622,
+            "evBB": 0
+          },
+          {
+            "id": "CHECK",
+            "action": "CHECK",
+            "size": null,
+            "frequency": 0.9729681339563193,
+            "evBB": 0.6000000000000001
+          },
+          {
+            "id": "BET:1.00",
+            "action": "BET",
+            "size": 1,
+            "frequency": 0.009987251274814047,
+            "evBB": -0.09428571428571435
+          },
+          {
+            "id": "BET:1.25",
+            "action": "BET",
+            "size": 1.25,
+            "frequency": 0.005123867728909747,
+            "evBB": -0.26869047619047615
+          },
+          {
+            "id": "BET:1.50",
+            "action": "BET",
+            "size": 1.5,
+            "frequency": 0.00327258175997672,
+            "evBB": -0.4430952380952381
+          },
+          {
+            "id": "BET:1.75",
+            "action": "BET",
+            "size": 1.75,
+            "frequency": 0.0021088435374149663,
+            "evBB": -0.6174999999999998
+          },
+          {
+            "id": "BET:2.00",
+            "action": "BET",
+            "size": 2,
+            "frequency": 0.0016326530612244905,
+            "evBB": -0.791904761904762
+          }
+        ],
+        "convergence": {
+          "metric": "EXACT_NASH_CONV",
+          "exact": true,
+          "nashConv": 0.009602830235012627,
+          "maxUnilateralGain": 0.007619804531119545,
+          "unilateralGains": [
+            0.007619804531119545,
+            0.001983025703893082
+          ],
+          "bestResponseValues": [
+            1.0921666666666663,
+            0.9174361635683455
+          ],
+          "scope": "SUPPLIED_FINITE_GAME",
+          "thresholdMet": true,
+          "thresholdBB": 0.01
+        },
+        "qualification": {
+          "gto": false,
+          "fullHandEquilibrium": false,
+          "solvedSubgame": false,
+          "strategyFrequenciesSupported": true
+        },
+        "actionPrecision": {
+          "version": "THEIBS_ACTION_CONDITIONED_V1",
+          "target": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+          "origin": "OUTWARD_ROUNDED_INFORMATION_SET_BEST_RESPONSE_SADDLE_BOUNDS",
+          "solverVersion": "THEIBS_FULL_TREE_CFR_PLUS_V1",
+          "baseGameHash": "5f6fbe067acffe5b8b3ef2ed802928a017c474e4283ff267e4913b4b67308437",
+          "baseContextKey": "b11ad9b19a8bb78c50985f909dee1da8d0b4b3995b9c00b750a1bd8c664a6b5d",
+          "scope": "EX_ANTE_VALUE_OF_ORIGINAL_PRIOR_WITH_PRIVATE_INFORMATION_SET_COMMITMENT",
+          "utility": {
+            "unit": "BB",
+            "basis": "INCREMENTAL_TERMINAL_PAYOFF_FROM_ORIGINAL_DECISION",
+            "scope": "FULL_PRIOR_EX_ANTE"
+          },
+          "supportedGameClass": true,
+          "fullPriorPreserved": true,
+          "originalHandActionEV": false,
+          "actions": [
+            {
+              "id": "FOLD",
+              "certified": true,
+              "estimateBB": 1.0297531779478806,
+              "lowerBB": 1.02914949315066,
+              "upperBB": 1.0303568627451012,
+              "baseGameHash": "5f6fbe067acffe5b8b3ef2ed802928a017c474e4283ff267e4913b4b67308437",
+              "baseContextKey": "b11ad9b19a8bb78c50985f909dee1da8d0b4b3995b9c00b750a1bd8c664a6b5d",
+              "gameHash": "522b77c0c908f0b6e2e3333b0070867332fda2f0852baa4ee2e93a0bc97ac4fd",
+              "conditionedHash": "522b77c0c908f0b6e2e3333b0070867332fda2f0852baa4ee2e93a0bc97ac4fd",
+              "rootActionFixed": "FOLD",
+              "target": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+              "utility": {
+                "unit": "BB",
+                "basis": "INCREMENTAL_TERMINAL_PAYOFF_FROM_ORIGINAL_DECISION",
+                "scope": "FULL_PRIOR_EX_ANTE"
+              },
+              "iterations": 50,
+              "strategicDecisionCount": 23
+            },
+            {
+              "id": "CHECK",
+              "certified": true,
+              "estimateBB": 1.0897531779478808,
+              "lowerBB": 1.08914949315066,
+              "upperBB": 1.0903568627451015,
+              "baseGameHash": "5f6fbe067acffe5b8b3ef2ed802928a017c474e4283ff267e4913b4b67308437",
+              "baseContextKey": "b11ad9b19a8bb78c50985f909dee1da8d0b4b3995b9c00b750a1bd8c664a6b5d",
+              "gameHash": "68df47b1e30488e9f835788a81c5aed8ec48dfbaa27bd31bd2c2d9d59d1a65ec",
+              "conditionedHash": "68df47b1e30488e9f835788a81c5aed8ec48dfbaa27bd31bd2c2d9d59d1a65ec",
+              "rootActionFixed": "CHECK",
+              "target": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+              "utility": {
+                "unit": "BB",
+                "basis": "INCREMENTAL_TERMINAL_PAYOFF_FROM_ORIGINAL_DECISION",
+                "scope": "FULL_PRIOR_EX_ANTE"
+              },
+              "iterations": 50,
+              "strategicDecisionCount": 23
+            },
+            {
+              "id": "BET:1.00",
+              "certified": true,
+              "estimateBB": 1.0198002367714105,
+              "lowerBB": 1.0191494931506602,
+              "upperBB": 1.0204509803921606,
+              "baseGameHash": "5f6fbe067acffe5b8b3ef2ed802928a017c474e4283ff267e4913b4b67308437",
+              "baseContextKey": "b11ad9b19a8bb78c50985f909dee1da8d0b4b3995b9c00b750a1bd8c664a6b5d",
+              "gameHash": "de56b1b89638d5a1266638f9772c6c9e078c2dcb00f48ebc69fccc069f2804ce",
+              "conditionedHash": "de56b1b89638d5a1266638f9772c6c9e078c2dcb00f48ebc69fccc069f2804ce",
+              "rootActionFixed": "BET:1.00",
+              "target": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+              "utility": {
+                "unit": "BB",
+                "basis": "INCREMENTAL_TERMINAL_PAYOFF_FROM_ORIGINAL_DECISION",
+                "scope": "FULL_PRIOR_EX_ANTE"
+              },
+              "iterations": 50,
+              "strategicDecisionCount": 23
+            },
+            {
+              "id": "BET:1.25",
+              "certified": true,
+              "estimateBB": 1.0023051387321948,
+              "lowerBB": 1.00164949315066,
+              "upperBB": 1.0029607843137294,
+              "baseGameHash": "5f6fbe067acffe5b8b3ef2ed802928a017c474e4283ff267e4913b4b67308437",
+              "baseContextKey": "b11ad9b19a8bb78c50985f909dee1da8d0b4b3995b9c00b750a1bd8c664a6b5d",
+              "gameHash": "38a2ac0fa5b459b2cc4d445d05adc39df9fcf8ebfe7450dfe2a9dffbed007090",
+              "conditionedHash": "38a2ac0fa5b459b2cc4d445d05adc39df9fcf8ebfe7450dfe2a9dffbed007090",
+              "rootActionFixed": "BET:1.25",
+              "target": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+              "utility": {
+                "unit": "BB",
+                "basis": "INCREMENTAL_TERMINAL_PAYOFF_FROM_ORIGINAL_DECISION",
+                "scope": "FULL_PRIOR_EX_ANTE"
+              },
+              "iterations": 50,
+              "strategicDecisionCount": 23
+            },
+            {
+              "id": "BET:1.50",
+              "certified": true,
+              "estimateBB": 0.9848100406929785,
+              "lowerBB": 0.984149493150659,
+              "upperBB": 0.9854705882352979,
+              "baseGameHash": "5f6fbe067acffe5b8b3ef2ed802928a017c474e4283ff267e4913b4b67308437",
+              "baseContextKey": "b11ad9b19a8bb78c50985f909dee1da8d0b4b3995b9c00b750a1bd8c664a6b5d",
+              "gameHash": "075c4d9dc4f1638ab1b702533880353f3d5d695f64cff16492e3cdf9028ae43c",
+              "conditionedHash": "075c4d9dc4f1638ab1b702533880353f3d5d695f64cff16492e3cdf9028ae43c",
+              "rootActionFixed": "BET:1.50",
+              "target": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+              "utility": {
+                "unit": "BB",
+                "basis": "INCREMENTAL_TERMINAL_PAYOFF_FROM_ORIGINAL_DECISION",
+                "scope": "FULL_PRIOR_EX_ANTE"
+              },
+              "iterations": 50,
+              "strategicDecisionCount": 23
+            },
+            {
+              "id": "BET:1.75",
+              "certified": true,
+              "estimateBB": 0.9673149426537628,
+              "lowerBB": 0.966649493150659,
+              "upperBB": 0.9679803921568666,
+              "baseGameHash": "5f6fbe067acffe5b8b3ef2ed802928a017c474e4283ff267e4913b4b67308437",
+              "baseContextKey": "b11ad9b19a8bb78c50985f909dee1da8d0b4b3995b9c00b750a1bd8c664a6b5d",
+              "gameHash": "206507c915da1046aa8aca4189dc1342ee7d8f708710b32ee3041d8886d1be49",
+              "conditionedHash": "206507c915da1046aa8aca4189dc1342ee7d8f708710b32ee3041d8886d1be49",
+              "rootActionFixed": "BET:1.75",
+              "target": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+              "utility": {
+                "unit": "BB",
+                "basis": "INCREMENTAL_TERMINAL_PAYOFF_FROM_ORIGINAL_DECISION",
+                "scope": "FULL_PRIOR_EX_ANTE"
+              },
+              "iterations": 50,
+              "strategicDecisionCount": 23
+            },
+            {
+              "id": "BET:2.00",
+              "certified": true,
+              "estimateBB": 0.9498198446145472,
+              "lowerBB": 0.9491494931506591,
+              "upperBB": 0.9504901960784352,
+              "baseGameHash": "5f6fbe067acffe5b8b3ef2ed802928a017c474e4283ff267e4913b4b67308437",
+              "baseContextKey": "b11ad9b19a8bb78c50985f909dee1da8d0b4b3995b9c00b750a1bd8c664a6b5d",
+              "gameHash": "7174d9c5815e1675ce9f6b12db382be991580cc09e44443d69d52c2813069832",
+              "conditionedHash": "7174d9c5815e1675ce9f6b12db382be991580cc09e44443d69d52c2813069832",
+              "rootActionFixed": "BET:2.00",
+              "target": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+              "utility": {
+                "unit": "BB",
+                "basis": "INCREMENTAL_TERMINAL_PAYOFF_FROM_ORIGINAL_DECISION",
+                "scope": "FULL_PRIOR_EX_ANTE"
+              },
+              "iterations": 50,
+              "strategicDecisionCount": 23
+            }
+          ]
+        },
+        "decisionPrecision": {
+          "status": "CONCLUSIVE",
+          "target": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+          "bestActionId": "CHECK",
+          "secondActionId": "FOLD",
+          "leaderConclusive": true,
+          "globalBestSupported": false,
+          "reasonCode": "SEPARATED_ACTION_COMMITMENT_BOUNDS",
+          "separationToleranceBB": 3.873725741048522e-15,
+          "uncertaintyMethod": "OUTWARD_ROUNDED_INFORMATION_SET_BEST_RESPONSE_SADDLE_BOUNDS",
+          "uncertaintyScope": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+          "confidenceLevel": null
+        },
+        "adaptation": {
+          "stopReason": "GLOBAL_CONVERGENCE_AND_CERTIFIED_SEPARATION",
+          "workIterations": 370,
+          "globalIterations": 20,
+          "actionIterations": 350
+        },
+        "checkpoint": {
+          "version": "THEIBS_HU_ADAPTIVE_V4",
+          "solverVersion": "THEIBS_FULL_TREE_CFR_PLUS_V1",
+          "certificateVersion": "THEIBS_ACTION_CONDITIONED_V1",
+          "baseContextKey": "b11ad9b19a8bb78c50985f909dee1da8d0b4b3995b9c00b750a1bd8c664a6b5d",
+          "baseGameHash": "5f6fbe067acffe5b8b3ef2ed802928a017c474e4283ff267e4913b4b67308437",
+          "iterations": 20,
+          "workIterations": 370
+        }
+      },
+      "evidence": "NODE_REFERENCE_WITH_STORED_INDEPENDENT_LP_CONTAINMENT_NOT_BROWSER_EXECUTION"
+    },
+    {
+      "id": "non_tied_overlapping_4x4",
+      "variantId": "non-tied-overlap-fixed",
+      "input": {
+        "multiway": {
+          "schemaVersion": 1,
+          "enabled": true,
+          "config": {
+            "variant": "PLO5_HIGH",
+            "playerCount": 2,
+            "heroPosition": "SB",
+            "startingStack": 20,
+            "smallBlind": 0.5,
+            "bigBlind": 1,
+            "heroCards": [
+              "As",
+              "Ah",
+              "Qd",
+              "Jc",
+              "Tc"
+            ],
+            "players": [
+              {
+                "playerId": "e24e43fe-a13f-4727-b8fb-aa12c170ccc3",
+                "name": "You"
+              },
+              {
+                "playerId": "b7671d37-1b6a-467a-a3cd-4af3d0f9222b",
+                "name": "A1"
+              }
+            ]
+          },
+          "events": [
+            {
+              "type": "ACT",
+              "actor": 0,
+              "action": "CALL",
+              "eventId": "8daa6714-c713-4a17-96ba-8d3e364be6ee"
+            },
+            {
+              "type": "ACT",
+              "actor": 1,
+              "action": "CHECK",
+              "eventId": "031e4e50-da07-4919-ada9-e076189d7f1e"
+            },
+            {
+              "type": "BOARD",
+              "cards": [
+                "2s",
+                "3h",
+                "4d"
+              ],
+              "eventId": "b359aab5-f8b7-4457-8d03-c22b41f40cbd"
+            },
+            {
+              "type": "ACT",
+              "actor": 1,
+              "action": "CHECK",
+              "eventId": "c0be4d8a-6b98-4184-b530-e99201139bbe"
+            },
+            {
+              "type": "ACT",
+              "actor": 0,
+              "action": "CHECK",
+              "eventId": "d4ec6112-0370-42b0-961d-44c4aa3aca41"
+            },
+            {
+              "type": "BOARD",
+              "cards": [
+                "2s",
+                "3h",
+                "4d",
+                "8c"
+              ],
+              "eventId": "63cda45c-3af1-4ac1-9270-7e3eb166c34f"
+            },
+            {
+              "type": "ACT",
+              "actor": 1,
+              "action": "CHECK",
+              "eventId": "2f8640dc-8e27-42b9-b6c9-1ff71aa1bf70"
+            },
+            {
+              "type": "ACT",
+              "actor": 0,
+              "action": "CHECK",
+              "eventId": "b324e722-b57a-4cb2-8ab8-bcf5e6061288"
+            },
+            {
+              "type": "BOARD",
+              "cards": [
+                "2s",
+                "3h",
+                "4d",
+                "8c",
+                "9s"
+              ],
+              "eventId": "46fb1047-0c83-4e31-8476-5ec6b289d777"
+            },
+            {
+              "type": "ACT",
+              "actor": 1,
+              "action": "CHECK",
+              "eventId": "175703e0-b2ba-4a73-83f4-2749782c746d"
+            }
+          ],
+          "handId": "d15cf62f-d1e0-6bf4-deb8-034de59cf011",
+          "editEpoch": 0
+        },
+        "ranges": [
+          {
+            "seatId": 0,
+            "complete": true,
+            "source": "EXPLICIT_PRIVATE_TYPE_LP_GROWTH_QA",
+            "combos": [
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Jc",
+                  "Tc"
+                ],
+                "weight": 0.001
+              },
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Jc",
+                  "9c"
+                ],
+                "weight": 2
+              },
+              {
+                "cards": [
+                  "5s",
+                  "6s",
+                  "Qd",
+                  "Jc",
+                  "Tc"
+                ],
+                "weight": 3
+              },
+              {
+                "cards": [
+                  "5s",
+                  "6s",
+                  "Qd",
+                  "Jc",
+                  "9c"
+                ],
+                "weight": 4
+              }
+            ]
+          },
+          {
+            "seatId": 1,
+            "complete": true,
+            "source": "EXPLICIT_PRIVATE_TYPE_LP_GROWTH_QA",
+            "combos": [
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "7c",
+                  "8h"
+                ],
+                "weight": 1
+              },
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "7c",
+                  "9h"
+                ],
+                "weight": 2
+              },
+              {
+                "cards": [
+                  "5h",
+                  "6h",
+                  "Kd",
+                  "7c",
+                  "8h"
+                ],
+                "weight": 3
+              },
+              {
+                "cards": [
+                  "5h",
+                  "6h",
+                  "Kd",
+                  "7c",
+                  "9h"
+                ],
+                "weight": 4
+              }
+            ]
+          }
+        ],
+        "sizing": {
+          "type": "EXPLICIT_TOTALS",
+          "levels": [
+            1,
+            1.25,
+            1.5,
+            1.75,
+            2
+          ],
+          "maxAggressions": 1
+        },
+        "rake": {
+          "type": "NONE",
+          "basis": "BEFORE_FEES"
+        }
+      },
+      "expectedRevisionKey": "b0d1c2b4026e1e4aae4212f171a2fe1d3001b32b961a47351dcbe1c7122628d8",
+      "budget": {
+        "timeMs": 5000,
+        "iterations": 512
+      },
+      "independentExpectation": {
+        "comparisonStatus": "INCONCLUSIVE",
+        "requireOverlap": true,
+        "requireNonTiedPointEstimates": true,
+        "referenceKind": "MATCHED_NODE_PARITY_AND_CERTIFICATE_SELF_CONSISTENCY_ONLY"
+      },
+      "mathematical": {
+        "status": "APPROXIMATE",
+        "method": "ALTERNATING_CFR_PLUS_LINEAR_AVERAGE",
+        "solverVersion": "THEIBS_FULL_TREE_CFR_PLUS_V1",
+        "gameHash": "73332e8fb3dc843e25564ba298bff38ed220eb3d7fe9f4dc03febeba9be8aa7b",
+        "scope": "DECLARED_FINITE_RIVER_SUBGAME",
+        "strategyScope": "CURRENT_HAND_COMBINATION",
+        "iterations": 20,
+        "actions": [
+          {
+            "id": "FOLD",
+            "action": "FOLD",
+            "size": null,
+            "frequency": 0.004906668681340621,
+            "evBB": 0
+          },
+          {
+            "id": "CHECK",
+            "action": "CHECK",
+            "size": null,
+            "frequency": 0.9729681339563193,
+            "evBB": 0.6
+          },
+          {
+            "id": "BET:1.00",
+            "action": "BET",
+            "size": 1,
+            "frequency": 0.009987251274814047,
+            "evBB": -0.09428571428571436
+          },
+          {
+            "id": "BET:1.25",
+            "action": "BET",
+            "size": 1.25,
+            "frequency": 0.005123867728909747,
+            "evBB": -0.2686904761904761
+          },
+          {
+            "id": "BET:1.50",
+            "action": "BET",
+            "size": 1.5,
+            "frequency": 0.0032725817599767192,
+            "evBB": -0.44309523809523793
+          },
+          {
+            "id": "BET:1.75",
+            "action": "BET",
+            "size": 1.75,
+            "frequency": 0.0021088435374149663,
+            "evBB": -0.6174999999999997
+          },
+          {
+            "id": "BET:2.00",
+            "action": "BET",
+            "size": 2,
+            "frequency": 0.0016326530612244903,
+            "evBB": -0.791904761904762
+          }
+        ],
+        "convergence": {
+          "metric": "EXACT_NASH_CONV",
+          "exact": true,
+          "nashConv": 0.008146573296185289,
+          "maxUnilateralGain": 0.005959108630573473,
+          "unilateralGains": [
+            0.005959108630573473,
+            0.0021874646656118157
+          ],
+          "bestResponseValues": [
+            1.1467910972854867,
+            0.8613554760106983
+          ],
+          "scope": "SUPPLIED_FINITE_GAME",
+          "thresholdMet": true,
+          "thresholdBB": 0.01
+        },
+        "qualification": {
+          "gto": false,
+          "fullHandEquilibrium": false,
+          "solvedSubgame": false,
+          "strategyFrequenciesSupported": true
+        },
+        "actionPrecision": {
+          "version": "THEIBS_ACTION_CONDITIONED_V1",
+          "target": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+          "origin": "OUTWARD_ROUNDED_INFORMATION_SET_BEST_RESPONSE_SADDLE_BOUNDS",
+          "solverVersion": "THEIBS_FULL_TREE_CFR_PLUS_V1",
+          "baseGameHash": "73332e8fb3dc843e25564ba298bff38ed220eb3d7fe9f4dc03febeba9be8aa7b",
+          "baseContextKey": "069d516627c6675a4ae03c39d99497c2371b1f41bfdd400a3145569df91d6c96",
+          "scope": "EX_ANTE_VALUE_OF_ORIGINAL_PRIOR_WITH_PRIVATE_INFORMATION_SET_COMMITMENT",
+          "utility": {
+            "unit": "BB",
+            "basis": "INCREMENTAL_TERMINAL_PAYOFF_FROM_ORIGINAL_DECISION",
+            "scope": "FULL_PRIOR_EX_ANTE"
+          },
+          "supportedGameClass": true,
+          "fullPriorPreserved": true,
+          "originalHandActionEV": false,
+          "actions": [
+            {
+              "id": "FOLD",
+              "certified": true,
+              "estimateBB": 1.1442480652608555,
+              "lowerBB": 1.144078733554814,
+              "upperBB": 1.1444173969668974,
+              "baseGameHash": "73332e8fb3dc843e25564ba298bff38ed220eb3d7fe9f4dc03febeba9be8aa7b",
+              "baseContextKey": "069d516627c6675a4ae03c39d99497c2371b1f41bfdd400a3145569df91d6c96",
+              "gameHash": "676f296ad8777c0677bf7179e9d52aa60bb894c81818498724a79962f7e7fce8",
+              "conditionedHash": "676f296ad8777c0677bf7179e9d52aa60bb894c81818498724a79962f7e7fce8",
+              "rootActionFixed": "FOLD",
+              "target": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+              "utility": {
+                "unit": "BB",
+                "basis": "INCREMENTAL_TERMINAL_PAYOFF_FROM_ORIGINAL_DECISION",
+                "scope": "FULL_PRIOR_EX_ANTE"
+              },
+              "iterations": 100,
+              "strategicDecisionCount": 23
+            },
+            {
+              "id": "CHECK",
+              "certified": true,
+              "estimateBB": 1.144314724520938,
+              "lowerBB": 1.144145392814896,
+              "upperBB": 1.1444840562269798,
+              "baseGameHash": "73332e8fb3dc843e25564ba298bff38ed220eb3d7fe9f4dc03febeba9be8aa7b",
+              "baseContextKey": "069d516627c6675a4ae03c39d99497c2371b1f41bfdd400a3145569df91d6c96",
+              "gameHash": "d88092cae1acce35a98dd23510ca8cd635fc520113b9a40251484847f167e1f4",
+              "conditionedHash": "d88092cae1acce35a98dd23510ca8cd635fc520113b9a40251484847f167e1f4",
+              "rootActionFixed": "CHECK",
+              "target": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+              "utility": {
+                "unit": "BB",
+                "basis": "INCREMENTAL_TERMINAL_PAYOFF_FROM_ORIGINAL_DECISION",
+                "scope": "FULL_PRIOR_EX_ANTE"
+              },
+              "iterations": 100,
+              "strategicDecisionCount": 23
+            },
+            {
+              "id": "BET:1.00",
+              "certified": true,
+              "estimateBB": 1.144224477339396,
+              "lowerBB": 1.144024572763714,
+              "upperBB": 1.144424381915078,
+              "baseGameHash": "73332e8fb3dc843e25564ba298bff38ed220eb3d7fe9f4dc03febeba9be8aa7b",
+              "baseContextKey": "069d516627c6675a4ae03c39d99497c2371b1f41bfdd400a3145569df91d6c96",
+              "gameHash": "8ebff985598dbf9b3216bdaea8aa6e812eed0e88ec4b6b0a843a0e9ddf90fa08",
+              "conditionedHash": "8ebff985598dbf9b3216bdaea8aa6e812eed0e88ec4b6b0a843a0e9ddf90fa08",
+              "rootActionFixed": "BET:1.00",
+              "target": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+              "utility": {
+                "unit": "BB",
+                "basis": "INCREMENTAL_TERMINAL_PAYOFF_FROM_ORIGINAL_DECISION",
+                "scope": "FULL_PRIOR_EX_ANTE"
+              },
+              "iterations": 92,
+              "strategicDecisionCount": 23
+            },
+            {
+              "id": "BET:1.25",
+              "certified": true,
+              "estimateBB": 1.1440125873888074,
+              "lowerBB": 1.1433418432959235,
+              "upperBB": 1.1446833314816913,
+              "baseGameHash": "73332e8fb3dc843e25564ba298bff38ed220eb3d7fe9f4dc03febeba9be8aa7b",
+              "baseContextKey": "069d516627c6675a4ae03c39d99497c2371b1f41bfdd400a3145569df91d6c96",
+              "gameHash": "640c111c69c43156ba645bfbb9bacdb8ced583d931e5281bd961352aeb8408fe",
+              "conditionedHash": "640c111c69c43156ba645bfbb9bacdb8ced583d931e5281bd961352aeb8408fe",
+              "rootActionFixed": "BET:1.25",
+              "target": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+              "utility": {
+                "unit": "BB",
+                "basis": "INCREMENTAL_TERMINAL_PAYOFF_FROM_ORIGINAL_DECISION",
+                "scope": "FULL_PRIOR_EX_ANTE"
+              },
+              "iterations": 50,
+              "strategicDecisionCount": 23
+            },
+            {
+              "id": "BET:1.50",
+              "certified": true,
+              "estimateBB": 1.1439931505506347,
+              "lowerBB": 1.1433224010117329,
+              "upperBB": 1.1446639000895367,
+              "baseGameHash": "73332e8fb3dc843e25564ba298bff38ed220eb3d7fe9f4dc03febeba9be8aa7b",
+              "baseContextKey": "069d516627c6675a4ae03c39d99497c2371b1f41bfdd400a3145569df91d6c96",
+              "gameHash": "b8b7100c65b3c96a60679e40422cd8bd8dc851e9ef1226d8a484710e3930ad9f",
+              "conditionedHash": "b8b7100c65b3c96a60679e40422cd8bd8dc851e9ef1226d8a484710e3930ad9f",
+              "rootActionFixed": "BET:1.50",
+              "target": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+              "utility": {
+                "unit": "BB",
+                "basis": "INCREMENTAL_TERMINAL_PAYOFF_FROM_ORIGINAL_DECISION",
+                "scope": "FULL_PRIOR_EX_ANTE"
+              },
+              "iterations": 50,
+              "strategicDecisionCount": 23
+            },
+            {
+              "id": "BET:1.75",
+              "certified": true,
+              "estimateBB": 1.1439737137124621,
+              "lowerBB": 1.1433029587275423,
+              "upperBB": 1.144644468697382,
+              "baseGameHash": "73332e8fb3dc843e25564ba298bff38ed220eb3d7fe9f4dc03febeba9be8aa7b",
+              "baseContextKey": "069d516627c6675a4ae03c39d99497c2371b1f41bfdd400a3145569df91d6c96",
+              "gameHash": "10be0a0100a5c90658b601102640eeb205dc8edd8d145c20cd40aa8089d50af9",
+              "conditionedHash": "10be0a0100a5c90658b601102640eeb205dc8edd8d145c20cd40aa8089d50af9",
+              "rootActionFixed": "BET:1.75",
+              "target": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+              "utility": {
+                "unit": "BB",
+                "basis": "INCREMENTAL_TERMINAL_PAYOFF_FROM_ORIGINAL_DECISION",
+                "scope": "FULL_PRIOR_EX_ANTE"
+              },
+              "iterations": 50,
+              "strategicDecisionCount": 23
+            },
+            {
+              "id": "BET:2.00",
+              "certified": true,
+              "estimateBB": 1.1439542768742896,
+              "lowerBB": 1.1432835164433517,
+              "upperBB": 1.1446250373052274,
+              "baseGameHash": "73332e8fb3dc843e25564ba298bff38ed220eb3d7fe9f4dc03febeba9be8aa7b",
+              "baseContextKey": "069d516627c6675a4ae03c39d99497c2371b1f41bfdd400a3145569df91d6c96",
+              "gameHash": "eb47cafaf3cf8b647b828ca3e0932f299d646117c2d15d01c2af4f49a55a437d",
+              "conditionedHash": "eb47cafaf3cf8b647b828ca3e0932f299d646117c2d15d01c2af4f49a55a437d",
+              "rootActionFixed": "BET:2.00",
+              "target": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+              "utility": {
+                "unit": "BB",
+                "basis": "INCREMENTAL_TERMINAL_PAYOFF_FROM_ORIGINAL_DECISION",
+                "scope": "FULL_PRIOR_EX_ANTE"
+              },
+              "iterations": 50,
+              "strategicDecisionCount": 23
+            }
+          ]
+        },
+        "decisionPrecision": {
+          "status": "INCONCLUSIVE",
+          "target": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+          "bestActionId": "CHECK",
+          "secondActionId": "FOLD",
+          "leaderConclusive": false,
+          "globalBestSupported": false,
+          "reasonCode": "BEST_SECOND_INTERVALS_OVERLAP",
+          "separationToleranceBB": 4.066732129649933e-15,
+          "uncertaintyMethod": "OUTWARD_ROUNDED_INFORMATION_SET_BEST_RESPONSE_SADDLE_BOUNDS",
+          "uncertaintyScope": "PRIVATE_INFORMATION_SET_COMMITMENT_VALUE",
+          "confidenceLevel": null
+        },
+        "adaptation": {
+          "stopReason": "ITERATION_RESOURCE_CEILING",
+          "workIterations": 512,
+          "globalIterations": 20,
+          "actionIterations": 492
+        },
+        "checkpoint": {
+          "version": "THEIBS_HU_ADAPTIVE_V4",
+          "solverVersion": "THEIBS_FULL_TREE_CFR_PLUS_V1",
+          "certificateVersion": "THEIBS_ACTION_CONDITIONED_V1",
+          "baseContextKey": "069d516627c6675a4ae03c39d99497c2371b1f41bfdd400a3145569df91d6c96",
+          "baseGameHash": "73332e8fb3dc843e25564ba298bff38ed220eb3d7fe9f4dc03febeba9be8aa7b",
+          "iterations": 20,
+          "workIterations": 512
+        }
+      },
+      "evidence": "NODE_REFERENCE_NOT_INDEPENDENT_LP_FOR_CHANGED_WEIGHTS_NOT_BROWSER_EXECUTION"
+    }
+  ]
+}

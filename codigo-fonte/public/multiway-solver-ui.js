@@ -9,11 +9,15 @@
   const END_PHASES = new Set(['COMPLETE','UNSUPPORTED','FAILED','CANCELLED']);
   const rangeLimit = seats => seats === 2 ? 12 : 3;
   const levelLimit = seats => seats === 2 ? 12 : 8;
-  const blank = () => ({ phase:'IDLE',result:null,jobId:null,revisionKey:null,handId:null,budget:null,cache:null,timing:null,error:null,configured:false,updateVersion:null });
+  const blank = () => ({ phase:'IDLE',result:null,jobId:null,revisionKey:null,handId:null,budget:null,cache:null,timing:null,error:null,configured:false,updateVersion:null,
+    runtime:null,runtimeLabel:null,runtimeReason:null,runtimeBudget:null,buildFingerprint:null });
   let options = {}, initialized = false, study = null, view = blank(), generation = 0, pollTimer = null, pending = null;
   let lastPayload = null, lastBinding = null, lastSignature = null, dialog = null, openedHand = null, autoRefined = false,
     cancellation = Promise.resolve(), startAcknowledgement = Promise.resolve(), pendingRestore = false, automaticStandard = false;
   const automaticDeepAttempts = new Set();
+  const transports = new Map();
+  const isolatedOwner = `solver-page-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  let browserClient = null, browserOwner = null, activeTransport = null, viewBinding = null, computePreference = null;
   function reserveAutomaticDeep(signature) {
     if (!signature || automaticDeepAttempts.has(signature)) return false;
     automaticDeepAttempts.add(signature);
@@ -22,15 +26,51 @@
   }
   const context = () => options.getContext?.() || {};
   const handId = value => value?.multiway?.handId || value?.state?.handId || null;
-  const binding = value => JSON.stringify([handId(value),value?.state?.revisionKey || null]);
+  const ownerBinding = () => typeof options.getOwner === 'function' ? options.getOwner() : isolatedOwner;
+  const binding = value => JSON.stringify([handId(value),value?.state?.revisionKey || null,ownerBinding()]);
   const configured = value => Boolean(study?.handId && study.handId === handId(value) && study.ranges?.length === value?.multiway?.config?.playerCount);
   function current(mine, bound) { return mine === generation && binding(context()) === bound; }
   function emit() { view.configured = configured(context()); options.onChange?.(getState()); }
   function clearPoll() { if (pollTimer != null) root.clearTimeout(pollTimer); pollTimer = null; }
+  function browserTransport(owner) {
+    return {runtime:'BROWSER',runtimeLabel:'Browser compute',runtimeReason:null,request:async(url,init={})=>{
+      if(init.signal?.aborted)throw Object.assign(Error('Solver request cancelled.'),{name:'AbortError'});
+      const body=init.body ? JSON.parse(init.body) : {};
+      if(url==='/api/multiway/solver/start')return browserClient.start(owner,{multiway:body.multiway,ranges:body.ranges,sizing:body.sizing,rake:body.rake},
+        {budget:body.budget,revisionKey:body.expectedRevisionKey,handId:body.multiway?.handId,automatic:body.automatic===true});
+      if(url==='/api/multiway/solver/cancel')return browserClient.cancel(owner,body.jobId);
+      const match=url.match(/^\/api\/multiway\/solver\/jobs\/([^?]+)(?:\?(.*))?$/);
+      if(!match)throw Error('Browser solver operation is unavailable.');
+      const id=decodeURIComponent(match[1]),version=match[2]?.match(/(?:^|&)afterVersion=(\d+)/),wait=match[2]?.match(/(?:^|&)waitMs=(\d+)/);
+      return version ? browserClient.wait(owner,id,{afterVersion:Number(version[1]),waitMs:wait?Number(wait[1]):1000,signal:init.signal}) : browserClient.get(owner,id);
+    }};
+  }
+  function clearChangedOwner() {
+    if(!browserOwner || browserOwner===ownerBinding())return false;
+    browserClient?.clearOwner?.(browserOwner);browserOwner=null;computePreference=null;return true;
+  }
+  function selectTransport() {
+    clearChangedOwner();
+    const preference=String(computePreference || options.runtime || 'AUTO').toUpperCase();
+    const browserCoverage=context().multiway?.config?.playerCount===2;
+    if(preference==='BROWSER' && !browserCoverage)throw Error('Browser compute covers two original seats. Choose Server compute for this table.');
+    if(preference!=='SERVER' && browserClient?.supported && browserCoverage){
+      const owner=ownerBinding();
+      if(typeof owner!=='string' || !owner.length)throw Error('The session changed. Sign in again before starting Browser compute.');
+      if(browserOwner && browserOwner!==owner)browserClient.clearOwner(browserOwner);
+      browserOwner=owner;
+      return browserTransport(owner);
+    }
+    if(preference==='BROWSER')throw Error('Browser compute is unavailable in this browser. Choose Server compute.');
+    if(typeof options.request!=='function')throw Error('Server compute is unavailable.');
+    return {runtime:'SERVER',runtimeLabel:'Server compute',runtimeReason:preference==='SERVER'?null:browserClient?.supported && !browserCoverage
+      ? 'Browser compute covers two original seats; using Server compute.' : 'Browser compute is unavailable; using Server compute.',request:options.request};
+  }
   async function cancelRemote(jobId) {
-    if (!jobId || !options.request) return;
+    const transport=transports.get(jobId) || activeTransport;
+    if (!jobId || !transport) return;
     const controller = new AbortController(),timer = root.setTimeout(()=>controller.abort(),3000);
-    try { await options.request('/api/multiway/solver/cancel', { method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({jobId}),signal:controller.signal }); } catch {}
+    try { await transport.request('/api/multiway/solver/cancel', { method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({jobId}),signal:controller.signal }); } catch {}
     finally { root.clearTimeout(timer); }
   }
   function queueCancel(jobId) { cancellation = Promise.all([cancellation,cancelRemote(jobId)]).then(()=>{}); }
@@ -43,34 +83,40 @@
   }
   function invalidate() {
     generation++; clearPoll(); stopRequest();
+    if(!clearChangedOwner() && browserOwner)browserClient?.cancelOwner?.(browserOwner);
     const oldJob = view.jobId, oldPhase = view.phase;
-    view = blank(); lastPayload = null; lastBinding = null; lastSignature = null; autoRefined = false; automaticStandard = false;
+    view = blank();viewBinding=null;lastPayload = null; lastBinding = null; lastSignature = null; autoRefined = false; automaticStandard = false;
     synchronizeStudy();
     if (oldJob && !END_PHASES.has(oldPhase)) queueCancel(oldJob);
     emit();
   }
   function getState() {
     const now = context();
-    if (view.revisionKey && (view.revisionKey !== now.state?.revisionKey || view.handId !== handId(now))) return { ...blank(),configured:configured(now) };
+    if (view.revisionKey && (view.revisionKey !== now.state?.revisionKey || view.handId !== handId(now) || viewBinding!==binding(now))) {
+      if(!clearChangedOwner() && view.runtime==='BROWSER' && browserOwner)browserClient?.cancelOwner?.(browserOwner);
+      return { ...blank(),configured:configured(now) };
+    }
     return { ...clone(view),configured:configured(now) };
   }
   function failure(message, mine, bound) {
     if (!current(mine,bound)) return;
     view.phase = 'FAILED'; view.error = message || 'Solver unavailable. The table and approximate EV remain available.'; emit();
   }
-  async function request(url, init, mine, bound) {
+  async function request(url, init, mine, bound, selected = null) {
     const controller = new AbortController(); pending = controller;
     controller.solverStart = url === '/api/multiway/solver/start';
     const timer = root.setTimeout(() => controller.abort(), 10000);
     try {
-      const result = await options.request(url,{...init,signal:controller.signal});
+      const transport=selected || transports.get(view.jobId) || activeTransport || selectTransport();
+      const result = await transport.request(url,{...init,signal:controller.signal});
+      if(controller.solverStart && result?.jobId){transports.set(result.jobId,transport);while(transports.size>64)transports.delete(transports.keys().next().value);}
       if (!current(mine,bound)) {
         // An HTTP abort cannot cancel a worker created before its acknowledgement
         // arrived. Capture that old job identity and stop it, without rendering.
         if (controller.solverStart && result?.jobId) queueCancel(result.jobId);
         return null;
       }
-      return result;
+      return result ? {...result,runtime:result.runtime || transport.runtime,runtimeLabel:result.runtimeLabel || transport.runtimeLabel,runtimeReason:transport.runtimeReason} : null;
     } finally { root.clearTimeout(timer); if (pending === controller) pending = null; }
   }
   function accept(data, mine, bound) {
@@ -79,6 +125,8 @@
     if (data.handId !== handId(now) || data.revisionKey !== now.state?.revisionKey || typeof data.jobId !== 'string') throw Error('Solver response does not match this decision.');
     view = { ...view,phase:data.phase,result:data.result || view.result,jobId:data.jobId,revisionKey:data.revisionKey,handId:data.handId,
       budget:data.budget,cache:data.cache || null,timing:data.timing || null,error:data.reason || null,
+      runtime:data.runtime || view.runtime,runtimeLabel:data.runtimeLabel || view.runtimeLabel,runtimeReason:data.runtimeReason || null,
+      runtimeBudget:data.runtimeBudget || null,buildFingerprint:data.buildFingerprint || null,
       updateVersion:Number.isSafeInteger(data.updateVersion) && data.updateVersion >= 0 ? data.updateVersion : null };
     emit();
     return true;
@@ -96,7 +144,7 @@
       // have already completed their immediate work before evaluate is called.
       const payload = clone(lastPayload);
       await launch(payload,'STANDARD',true);
-    } else if (view.phase === 'COMPLETE' && view.budget === 'STANDARD' && automaticStandard &&
+    } else if (view.runtime!=='BROWSER' && view.phase === 'COMPLETE' && view.budget === 'STANDARD' && automaticStandard &&
       context().multiway?.config?.playerCount === 2 && usableResult(view.result) &&
       ['TIME_RESOURCE_CEILING','ITERATION_RESOURCE_CEILING'].includes(view.result?.adaptation?.stopReason) &&
       view.result?.adaptation?.refinementRecommended === true && configured(context()) &&
@@ -128,12 +176,15 @@
   }
   async function launch(payload,budget,refinement = false,force = false,automatic = false) {
     const now = context(), bound = binding(now);
-    if (!initialized || !options.request || !now.multiway?.enabled || !now.state?.revisionKey) return getState();
+    if (!initialized || !now.multiway?.enabled || !now.state?.revisionKey) return getState();
     if (!payload?.multiway || JSON.stringify(payload.multiway) !== JSON.stringify(now.multiway)) return getState();
     if (!['FAST','STANDARD','DEEP'].includes(budget)) throw Error('Choose FAST, STANDARD or DEEP.');
+    let transport;
+    try{transport=selectTransport();}catch(error){view.phase='FAILED';view.error=error.message;emit();return getState();}
     synchronizeStudy();
-    const signature = JSON.stringify([bound,configured(now) ? study : null,feeFromPayload(payload)]);
+    const signature = JSON.stringify([bound,configured(now) ? study : null,feeFromPayload(payload),transport.runtime]);
     if (!force && signature === lastSignature && (budget === view.budget || budget === 'FAST' || automatic && budget === 'STANDARD' && view.budget === 'DEEP') && !['IDLE','FAILED','CANCELLED'].includes(view.phase)) return getState();
+    const samePreviousContext=signature===lastSignature && viewBinding===bound;
     lastSignature = signature;
     automaticStandard = automatic === true && budget === 'STANDARD' && !refinement;
     const oldJob = view.jobId, oldPhase = view.phase;
@@ -149,8 +200,10 @@
       ...(payload.multiwayEvaluation?.assumeNoRake === true ? {assumeNoRake:true} : {}),
       ...(payload.multiwayEvaluation?.feeBasis ? {feeBasis:payload.multiwayEvaluation.feeBasis} : {})}};
     lastBinding = bound;
-    const previous = view.revisionKey === now.state.revisionKey && view.handId === handId(now) ? view.result : null;
-    view = {...blank(),phase:'QUEUED',result:previous,revisionKey:now.state.revisionKey,handId:handId(now),budget}; emit();
+    const previous = samePreviousContext && view.revisionKey === now.state.revisionKey && view.handId === handId(now) ? view.result : null;
+    viewBinding=bound;activeTransport=transport;
+    view = {...blank(),phase:'QUEUED',result:previous,revisionKey:now.state.revisionKey,handId:handId(now),budget,
+      runtime:transport.runtime,runtimeLabel:transport.runtimeLabel,runtimeReason:transport.runtimeReason}; emit();
     try {
       // Finish cancellation before starting an identical cache-key job; an
       // outstanding cancel must never stop a newly deduplicated request.
@@ -161,7 +214,7 @@
       const acknowledgement = request('/api/multiway/solver/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
         multiway:lastPayload.multiway,expectedRevisionKey:now.state.revisionKey,ranges:declared ? clone(study.ranges) : [],
         sizing:declared ? clone(study.sizing) : null,rake:feeFromPayload(lastPayload),budget,automatic
-      })},mine,bound);
+      })},mine,bound,transport);
       startAcknowledgement = acknowledgement.then(()=>{},()=>{});
       const data = await acknowledgement;
       if (!accept(data,mine,bound)) return getState();
@@ -192,12 +245,13 @@
     const currentView = getState();
     if (!usableResult(currentView.result)) return null;
     return clone({handId:currentView.handId,revisionKey:currentView.revisionKey,budget:currentView.budget,phase:currentView.phase,
-      ...currentView.result,cache:currentView.cache,timing:currentView.timing});
+      ...currentView.result,cache:currentView.cache,timing:currentView.timing,runtime:currentView.runtime,runtimeLabel:currentView.runtimeLabel,
+      runtimeReason:currentView.runtimeReason,runtimeBudget:currentView.runtimeBudget,buildFingerprint:currentView.buildFingerprint});
   }
   function serialize() { return study && (configured(context()) || pendingRestore) ? clone(study) : null; }
   function restore(saved) {
     if (!saved) { study = null;pendingRestore=false; return; }
-    // Full domain and blocker checks remain authoritative on the server.
+    // Full domain, ledger and blocker checks run in the selected solver runtime.
     if (saved.schemaVersion !== 1 || typeof saved.handId !== 'string' || !['KEYBOARD','CANONICAL'].includes(saved.notation) ||
       !Array.isArray(saved.ranges) || saved.ranges.length < 2 || saved.ranges.length > 3 || !saved.sizing) return;
     if (saved.ranges.some(range => !Number.isInteger(range.seatId) || range.complete !== true || !Array.isArray(range.combos) ||
@@ -252,17 +306,20 @@
       dialog.setAttribute('aria-labelledby','mw-solver-title');root.document.body.append(dialog);
     }
     const supported = now.multiway.config.variant === 'PLO5_HIGH' && seats.length >= 2 && seats.length <= 3;
+    const browserAvailable=browserClient?.supported===true && seats.length===2;
+    const selectedCompute=String(computePreference || options.runtime || (browserAvailable?'BROWSER':'SERVER')).toUpperCase()==='SERVER'?'SERVER':browserAvailable?'BROWSER':'SERVER';
     const maxCombos = rangeLimit(seats.length), maxLevels = levelLimit(seats.length);
     dialog.innerHTML = `<div class="multiway-dialog-head"><h2 id="mw-solver-title">Solver study</h2><button type="button" class="text-button" data-solver-close aria-label="Close solver study">×</button></div>
       <form data-solver-form><p class="mw-solver-intro">A finite PLO5 river study for two or three seats. Your normal game and approximate EV remain available.</p>
       ${supported ? '' : '<p class="multiway-error">This table is outside the current solver coverage. Use PLO5 with two or three original seats.</p>'}
+      <label>Compute location<select name="compute"><option value="BROWSER"${selectedCompute==='BROWSER'?' selected':''}${browserAvailable?'':' disabled'}>Browser compute · this device</option><option value="SERVER"${selectedCompute==='SERVER'?' selected':''}>Server compute · sends study ranges</option></select></label>
       <label>Card notation<select name="notation"><option value="KEYBOARD"${notation==='KEYBOARD'?' selected':''}>Keyboard · E / C / O / P</option><option value="CANONICAL"${notation==='CANONICAL'?' selected':''}>Standard · s / h / d / c</option></select></label>
       <p class="mw-solver-hint" data-solver-notation></p>
       <div class="mw-solver-ranges">${seats.map(seat=>`<label><span>${esc(seat.hero?'You':seat.name || seat.seatName || `Seat ${seat.id+1}`)} <small>${esc(seat.position)}${seat.folded?' · folded':''}</small></span><textarea rows="${seats.length===2?5:3}" data-solver-range="${seat.id}" aria-label="${esc(seat.hero?'Your':seat.name || `Seat ${seat.id+1}`)} complete study range" autocomplete="off" autocapitalize="characters" spellcheck="false" required${supported?'':' disabled'}>${esc(rangeText(matches ? study.ranges.find(range=>range.seatId===seat.id) : null,notation))}</textarea></label>`).join('')}</div>
       <p class="mw-solver-hint">One five-card combination per line, up to ${maxCombos} per seat. Add <code>| weight</code> if needed; omitted weights are 1. Include your current cards within your declared range. The declared tree may still exceed the solver's safety limits.</p>
       <div class="mw-solver-grid"><label>Sizing abstraction<select name="sizing"><option value="MIN_MID_MAX">Minimum / middle / maximum</option><option value="EXPLICIT_TOTALS">Specific street totals</option></select></label><label>Additional bets / raises<select name="aggressions"><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></label></div>
       <label data-solver-levels hidden>Street totals · chips<input name="levels" type="text" inputmode="decimal" placeholder="2, 4, 6" autocomplete="off"></label>
-      <details class="mw-solver-limits"><summary>Study scope & privacy</summary><p>These are explicitly chosen study ranges, including folded seats. They are not observed cards or learned statistics. Every player knows the declared ranges; a one-combination range reveals that seat’s hand within the study.</p><p>The sizing selection and aggression limit restrict the tree. Convergence applies to this river subgame only, not a full-hand GTO solution. Room fees follow the current calculation basis.</p><p>The server receives the entered combinations and public hand ledger. No voice transcripts, profile notes or inferred ranges are included. This setup resets with the next hand.</p></details>
+      <details class="mw-solver-limits"><summary>Study scope & privacy</summary><p>These are explicitly chosen study ranges, including folded seats. They are not observed cards or learned statistics. Every player knows the declared ranges; a one-combination range reveals that seat’s hand within the study.</p><p>The sizing selection and aggression limit restrict the tree. Convergence applies to this river subgame only, not a full-hand GTO solution. Room fees follow the current calculation basis.</p><p>Browser compute runs the river study on this device and currently covers two original seats. Server compute sends the entered combinations and public hand ledger to the server and covers two or three original seats. No voice transcripts, profile notes or inferred ranges are included. This setup resets with the next hand.</p></details>
       <label class="mw-solver-confirm"><input name="complete" type="checkbox" required><span>I define these as the complete ranges for this study.</span></label>
       <p class="multiway-error" data-solver-error role="alert" hidden></p><div class="mw-solver-actions"><button type="button" class="ghost-button" data-solver-clear${matches?'':' hidden'}>Clear study</button><button type="submit" class="primary-button"${supported?'':' disabled'}>Save study</button></div></form>`;
     const form = dialog.querySelector('form');
@@ -287,7 +344,7 @@
         }
         if (!form.elements.complete.checked) throw Error('Confirm that these are the complete ranges for this study.');
         const payload = lastBinding === binding(context()) ? clone(lastPayload) : null;
-        invalidate();study = {schemaVersion:1,handId:openedHand,notation:form.elements.notation.value,ranges,sizing};emit();dialog.close();
+        invalidate();computePreference=form.elements.compute.value;study = {schemaVersion:1,handId:openedHand,notation:form.elements.notation.value,ranges,sizing};emit();dialog.close();
         if (payload) void evaluate(payload);
       } catch (error) { dialogError(error.message); }
     };
@@ -303,9 +360,13 @@
     if (automaticStandard) reserveAutomaticDeep(lastSignature);
     automaticStandard=false;
     view.phase='CANCELLED';view.error=null;autoRefined=true;emit();queueCancel(id);
+    if(browserOwner)browserClient?.cancelOwner?.(browserOwner);
   }
+  function clearOwner() {if(browserOwner)browserClient?.clearOwner?.(browserOwner);browserOwner=null;computePreference=null;transports.clear();activeTransport=null;invalidate();}
+  function setRuntime(runtime) {if(!['BROWSER','SERVER','AUTO'].includes(String(runtime).toUpperCase()))throw Error('Choose Browser compute or Server compute.');invalidate();computePreference=String(runtime).toUpperCase();}
   function init(next = {}) {
     options = {...options,...next};
+    if(!browserClient)browserClient=options.browserClient || root.TheibsBrowserSolverClient?.create?.(options.browserOptions || {});
     if (initialized) return api;
     initialized = true;
     root.document?.addEventListener('click',event=>{
@@ -319,7 +380,7 @@
     });
     return api;
   }
-  const api = {init,evaluate,invalidate,getState,decisionSnapshot,serialize,restore,openSetup,
+  const api = {init,evaluate,invalidate,getState,decisionSnapshot,serialize,restore,openSetup,clearOwner,setRuntime,
     _testing:{parseRange,rangeText,feeFromPayload,binding,usableResult,cancel}};
   return api;
 });

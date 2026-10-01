@@ -2,6 +2,11 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
+const { execFileSync } = require('node:child_process');
+// The browser runtime is generated from the authoritative solver source.
+// Build it before copying assets so Git-connected Linux deployments cannot
+// publish a stale worker alongside a newer client.
+execFileSync(process.execPath, [path.resolve(__dirname, '../../scripts/build-browser-solver.cjs')], { stdio: 'inherit' });
 const source = path.resolve(__dirname, '../../public');
 const target = path.resolve(__dirname, '.output/assets');
 const version = require('../../package.json').version;
