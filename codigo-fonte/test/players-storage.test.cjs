@@ -13,6 +13,28 @@ const adapter=storage=>createStorage({storage,idFactory:()=>`revision-${++sequen
 const library=()=>({schemaVersion:1,store:{schemaVersion:1,revision:1,players:{p1:{playerId:'p1',nickname:'One',notes:[],contexts:{},observations:0}},
   hands:{h1:{handId:'h1',playerIds:['p1'],observations:[]}}},archive:{old1:{multiway:{handId:'old1'},history:'x'.repeat(50000)}},decisions:{h1:[]}});
 function seed(storage=new Storage()){const api=adapter(storage);assert.equal(api.open(owner).library,null);const current=library(),result=api.commit(current,{expectedRevision:null});return {storage,api,current,result};}
+
+test('backup origin receipt survives reload without rewriting original hand bodies and remains idempotent',()=>{
+  const {storage,api,current,result}=seed(),next=structuredClone(current);
+  next.backupOrigins={schemaVersion:1,handIds:['h1','old1']};storage.log=[];
+  const saved=api.commit(next,{expectedRevision:result.revision,dirty:{}});
+  assert.notEqual(saved.revision,result.revision);assert.equal(saved.changedChunks,0);
+  assert.equal(storage.log.some(([action,key])=>action==='set'&&key.includes(':record:')),false);
+  assert.deepEqual(adapter(storage).open(owner).library,next);
+  storage.log=[];assert.equal(api.commit(next,{expectedRevision:saved.revision,dirty:{}}).revision,saved.revision);
+  assert.equal(storage.log.some(([action])=>action==='set'),false);
+});
+
+test('invalid or quota-failed provenance receipts cannot overwrite either complete recovery revision',()=>{
+  const {storage,api,current,result}=seed(),next=structuredClone(current);
+  next.backupOrigins={schemaVersion:1,handIds:['h1','h1']};
+  assert.throws(()=>api.commit(next,{expectedRevision:result.revision,dirty:{}}),/origin/);
+  next.backupOrigins.handIds=['h1'];const before=[...storage.data];
+  storage.beforeSet=key=>{if(key.endsWith(':head'))throw Error('Quota exceeded');};
+  assert.throws(()=>api.commit(next,{expectedRevision:result.revision,dirty:{}}),/Quota/);
+  storage.beforeSet=null;assert.deepEqual([...storage.data],before);
+  assert.deepEqual(adapter(storage).open(owner).library,current);
+});
 const nextPlayer=current=>{const next=structuredClone(current);next.store.revision++;next.store.players.p1.nickname='Two';return next;};
 
 test('first write and reopen preserve every record with an account-specific namespace',()=>{

@@ -13,6 +13,25 @@
   const empty = () => ({schemaVersion:1, store:model.createStore(), archive:{}, decisions:{}});
   const ready = () => Boolean(ownerKey && library);
   function requireReady() { if (!ready()) throw Error(error || 'The player library is not available for this account.'); }
+  function backupContext() {
+    requireReady();
+    const session=window.theibsVoiceSessionContext?.() || null;
+    if(session?.expired)throw Error('Sign in again before using Backup.');
+    if(revealBusy)throw Error('Wait for the shown-card update before using Backup.');
+    return {ownerKey,revision:savedRevision,session,library:structuredClone(library)};
+  }
+  function restoreBackup({incoming,capturedOwner,capturedRevision,capturedSession}) {
+    const current=backupContext();
+    if(current.ownerKey!==capturedOwner || current.revision!==capturedRevision || JSON.stringify(current.session)!==JSON.stringify(capturedSession))
+      throw Object.assign(Error('The account or player library changed. Close and reopen Backup. Saved data was left untouched.'),{code:'BACKUP_STALE_CONTEXT'});
+    // Revalidate against the live library immediately before the synchronous
+    // storage publication. Imported snapshots never become a live decision.
+    const checked=window.TheibsPlayersBackup.planImport({current:library,incoming});
+    commit(checked.library,checked.dirty);
+    clearInsights();selectedId=null;render();
+    if(checked.summary.recordsChanged>0)document.dispatchEvent(new CustomEvent('theibs:players-backup-restored'));
+    return checked.summary;
+  }
   function commit(next, dirty) {
     requireReady();
     model.validateStore(next.store);
@@ -45,6 +64,7 @@
   function init(key) {
     if (!/^[a-f0-9]{64}$/i.test(String(key))) throw Error('A verified account key is required for local player storage.');
     if (ownerKey === key && ready()) return;
+    window.TheibsPlayersBackupUI?.close();
     clearRevealEditor();
     clearInsights();
     ownerKey = key; selectedId = null;historyView=false;
@@ -63,6 +83,7 @@
     render();
   }
   function clearOwner() {
+    window.TheibsPlayersBackupUI?.close();
     clearInsights();
     clearRevealEditor();ownerKey=null;library=null;savedRevision=null;selectedId=null;historyView=false;error='';
     if(host)host.replaceChildren();render();
@@ -212,7 +233,7 @@
     const outcome = result?.status === 'PENDING' ? 'Result pending' : result?.reason === 'ALL_FOLDED' ? 'Uncontested pot' : 'Reported showdown';
     const savedTime=hand.archivedAt ? new Date(hand.archivedAt).toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : 'Earlier hand';
     const awards = result?.pots?.map((pot,index)=>`<li>${index ? 'Side pot '+index : 'Main pot'} · ${esc(amount(pot.amount))} chips${pot.awards?.length ? ' · '+pot.awards.map(award=>esc(playerLabel(record,award.player))+' '+esc(amount(award.amount))).join(', ') : ' · pending'}</li>`).join('') || '';
-    return `<li><details data-player-detail="hand-${esc(record.handId)}"><summary><strong>${esc(record.config.variant.replace('_HIGH',''))} · ${record.config.playerCount} players</strong> · ${outcome}<small class="players-hand-time">${esc(savedTime)}</small></summary><ul class="players-pot-results">${awards}</ul>${hand.reconciliation?.rakeObserved === false && hand.reconciliation.source !== 'USER_CONFIRMED_STACKS' ? '<p class="micro">Balances before unrecorded rake.</p>' : ''}${allPlayers ? state.players.map(player => `<p class="micro">${esc(playerLabel(record,player.id))}: ${esc((player.shownCards || []).join(' ') || 'No shown cards')} <button type="button" class="text-button" data-archive-reveal="${esc(record.handId)}" data-archive-seat="${player.id}">Edit shown cards</button></p>`).join('') : `<p class="micro">Shown cards: ${esc(shown.join(' ') || 'Not recorded')}</p><button type="button" class="ghost-button" data-archive-reveal="${esc(record.handId)}" data-archive-seat="${seat}">Record shown cards</button>`}<details class="players-section"><summary>Confirmed actions · ${record.events.length}</summary><table class="players-log-table"><thead><tr><th>Street</th><th>Player</th><th>Action</th><th>Chips</th></tr></thead><tbody>${log}</tbody></table></details>${(hand.decisions || []).length ? `<details class="players-section"><summary>Decision review · ${hand.decisions.length}</summary>${hand.decisions.map(renderDecision).join('')}</details>` : ''}</details></li>`;
+    return `<li><details data-player-detail="hand-${esc(record.handId)}"><summary><strong>${esc(record.config.variant.replace('_HIGH',''))} · ${record.config.playerCount} players</strong> · ${outcome}<small class="players-hand-time">${esc(savedTime)}</small></summary>${library.backupOrigins?.handIds.includes(record.handId) ? '<p class="micro">Restored backup · file origin not authenticated.</p>' : ''}<ul class="players-pot-results">${awards}</ul>${hand.reconciliation?.rakeObserved === false && hand.reconciliation.source !== 'USER_CONFIRMED_STACKS' ? '<p class="micro">Balances before unrecorded rake.</p>' : ''}${allPlayers ? state.players.map(player => `<p class="micro">${esc(playerLabel(record,player.id))}: ${esc((player.shownCards || []).join(' ') || 'No shown cards')} <button type="button" class="text-button" data-archive-reveal="${esc(record.handId)}" data-archive-seat="${player.id}">Edit shown cards</button></p>`).join('') : `<p class="micro">Shown cards: ${esc(shown.join(' ') || 'Not recorded')}</p><button type="button" class="ghost-button" data-archive-reveal="${esc(record.handId)}" data-archive-seat="${seat}">Record shown cards</button>`}<details class="players-section"><summary>Confirmed actions · ${record.events.length}</summary><table class="players-log-table"><thead><tr><th>Street</th><th>Player</th><th>Action</th><th>Chips</th></tr></thead><tbody>${log}</tbody></table></details>${(hand.decisions || []).length ? `<details class="players-section"><summary>Decision review · ${hand.decisions.length}</summary>${hand.decisions.map(renderDecision).join('')}</details>` : ''}</details></li>`;
   }
   function insightBundle() {
     if(!ready() || !library.store.players[selectedId])return null;
@@ -231,9 +252,10 @@
     const helper=insightsHelper(),reports=[];
     let unavailable=!helper;
     if(helper)for(const cell of contexts){try{reports.push(helper.report({snapshot,playerId:selectedId,context:cell.context,binding}));}catch{unavailable=true;}}
-    const forecastOrigin=frozen?library.store.hands[frozen.handId]?.forecastOrigin:null;
+    const imported=Boolean(frozen && library.backupOrigins?.handIds.includes(frozen.handId));
+    const forecastOrigin=frozen && !imported?library.store.hands[frozen.handId]?.forecastOrigin:null;
     const bundle={key,playerId:selectedId,binding,origin:{source:snapshot.source,libraryRevision:snapshot.libraryRevision,frozenAt:snapshot.frozenAt},
-      reports,unavailable,forecastOrigin:forecastOrigin?.version==='THEIBS_FORECAST_ORIGIN_V1' && forecastOrigin.createdAt===snapshot.frozenAt?forecastOrigin.status:null,
+      reports,unavailable,imported,forecastOrigin:forecastOrigin?.version==='THEIBS_FORECAST_ORIGIN_V1' && forecastOrigin.createdAt===snapshot.frozenAt?forecastOrigin.status:null,
       diagnostics:null,diagnosticsEvaluated:false,diagnosticsError:null};
     insightCache.set(key,bundle);while(insightCache.size>8)insightCache.delete(insightCache.keys().next().value);
     return bundle;
@@ -244,7 +266,9 @@
     const helper=insightsHelper();
     if(!helper){bundle.diagnosticsError='Forecast diagnostics are unavailable. Reload the app.';return;}
     try {
-      const hands=Object.values(library.store.hands).map(hand=>({...hand,archive:library.archive[hand.handId] || null}));
+      const restored=new Set(library.backupOrigins?.handIds || []);
+      const hands=Object.values(library.store.hands).map(hand=>({...hand,archive:library.archive[hand.handId] || null,
+        ...(restored.has(hand.handId)?{forecastOrigin:null}:{})}));
       const diagnostics=helper.evaluatePrequential({hands,playerIds:[bundle.playerId],currentHandId:bundle.binding.handId,
         currentFrozenAt:bundle.binding.scope==='FROZEN_PRE_HAND'?bundle.origin.frozenAt:undefined});
       // Keep the on-demand UI cache bounded; detailed forecast rows remain in
@@ -257,7 +281,7 @@
   function renderInsightReport(bundle) {
     if(!bundle)return '<p class="micro">Choose a saved player to view evidence.</p>';
     const frozen=bundle.binding?.scope==='FROZEN_PRE_HAND';
-    const origin=`${frozen?`Captured hand ${bundle.binding.handId} · ${bundle.forecastOrigin==='FROZEN_BEFORE_FIRST_ACTION'?'evidence frozen before the first action':'saved snapshot · original forecast timing unverified'}`:'Current library · confirmed recorded decisions'}${Number.isSafeInteger(bundle.origin?.libraryRevision)?' · revision '+bundle.origin.libraryRevision:''}`;
+    const origin=`${bundle.imported?'Restored backup · file origin not authenticated · ':''}${frozen?`Captured hand ${bundle.binding.handId} · ${bundle.forecastOrigin==='FROZEN_BEFORE_FIRST_ACTION'?'evidence frozen before the first action':'saved snapshot · original forecast timing unverified'}`:'Current library · confirmed recorded decisions'}${Number.isSafeInteger(bundle.origin?.libraryRevision)?' · revision '+bundle.origin.libraryRevision:''}`;
     const reports=(bundle.reports || []).slice(0,3).map(item=>{
       const context=item.context || {},label=[String(context.variant || '').replace('_HIGH',''),context.street,context.position].filter(Boolean).join(' · ');
       const scope=[context.tableFormat?.replaceAll('_',' ').toLowerCase(),context.initialParticipants?`${context.initialParticipants} original seats`:null,
@@ -319,7 +343,7 @@
       const estimates = Object.entries(item.estimates || {}).map(([action, estimate]) => `<tr><th scope="row">${esc(action)}</th><td>${estimate.observed}/${estimate.opportunities}</td><td>${probability(estimate.mean)}</td><td>${estimate.credibleInterval95.map(probability).join('–')}</td></tr>`).join('');
       return `<li><details><summary>${esc(context.variant.replace('_HIGH',''))} · ${esc(context.street)} · ${esc(context.position)} · ${item.sampleSize} observed</summary><p class="micro">${esc(context.tableFormat.replaceAll('_',' ').toLowerCase())} · ${esc(context.participants.replaceAll('_',' ').toLowerCase())} · ${esc(context.priceBand.replaceAll('_',' ').toLowerCase())}</p><table class="players-observations-table"><thead><tr><th>Action</th><th>Observed</th><th>Estimate</th><th>95% interval</th></tr></thead><tbody>${estimates}</tbody></table><p class="micro">Dirichlet reference prior; conservative marginal posterior intervals. These estimates describe recorded opportunities, not strategy frequencies or GTO.</p></details></li>`;
     }).join('');
-    host.innerHTML = `<header class="players-heading"><div><p class="eyebrow">TABLE LIBRARY</p><h1 id="players-title">Players</h1><p>Saved on this device for this account.</p></div><button type="button" class="ghost-button" id="players-all-hands" aria-pressed="${historyView}">Recorded hands · ${allHands.length}</button></header>
+    host.innerHTML = `<header class="players-heading"><div><p class="eyebrow">TABLE LIBRARY</p><h1 id="players-title">Players</h1><p>Saved on this device for this account.</p></div><div class="players-heading-actions"><button type="button" class="ghost-button" id="players-all-hands" aria-pressed="${historyView}">Recorded hands · ${allHands.length}</button><button type="button" class="ghost-button" id="players-backup-open">Backup</button></div></header>
       <div class="players-layout"><section class="players-directory" aria-label="Player directory"><form id="players-create"><label for="players-new-name">Add player</label><div class="players-inline"><input id="players-new-name" maxlength="80" autocomplete="off" placeholder="Nickname" required><button class="primary-button" type="submit">Add</button></div></form>
       <div class="players-list" role="group" aria-label="Saved players">${players.length ? players.map(item => `<button type="button" class="${item.playerId === selectedId ? 'selected' : ''}" data-player-select="${esc(item.playerId)}"><strong>${esc(item.nickname)}</strong><small>${esc(item.playerId.slice(-6).toUpperCase())} · ${item.observations} actions · ${item.handCount} ${item.handCount === 1 ? 'hand' : 'hands'}</small></button>`).join('') : '<p class="micro">No players saved yet. Unknown seats get separate identities when a table starts.</p>'}</div></section>
       <section class="players-detail" aria-label="Selected player">${selected ? `<div class="players-detail-head"><div><p class="eyebrow">PLAYER</p><h2>${esc(selected.nickname)}</h2><small>Player ${esc(selected.playerId.slice(-6).toUpperCase())}</small></div></div>
@@ -416,6 +440,7 @@
     finally {revealBusy=false;revealDialog.querySelector('[type="submit"]').disabled=false;}
   });
   host?.addEventListener('click', event => {
+    if(event.target.closest('#players-backup-open')){try{window.TheibsPlayersBackupUI.open();}catch(cause){message(cause.message);}return;}
     if(event.target.closest('[data-insights-evaluate]')){refreshInsights(true);return;}
     if(event.target.closest('#players-all-hands')){historyView=!historyView;render();return;}
     const select = event.target.closest('[data-player-select]');
@@ -460,6 +485,7 @@
       }
     } catch (cause) { message(cause.message); }
   });
+  window.TheibsPlayersBackupUI?.init({getContext:backupContext,onImport:restoreBackup});
   render();
   window.theibsPlayersUI = { init, clearOwner, getOwnerKey:()=>ownerKey, ready, list, byId, nameFor, heroId, freshId, beginHand, syncObservations,
     profileSnapshot, archiveHand, recordDecision, getArchivedHand, archivedHands, getStore: () => ready() ? structuredClone(library.store) : null,

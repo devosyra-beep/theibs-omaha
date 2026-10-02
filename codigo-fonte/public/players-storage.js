@@ -12,11 +12,18 @@
   const bytes = text => new TextEncoder().encode(text).byteLength;
   const emptyRefs = () => Object.fromEntries(kinds.map(kind => [kind,{}]));
   function conflict() { const error = Error('Player data changed in another tab. Review the latest data before saving.'); error.code='STORAGE_CONFLICT';error.statusCode=409;return error; }
+  function validateOrigins(value) {
+    if (value === undefined) return;
+    if (!object(value) || value.schemaVersion !== 1 || Object.keys(value).some(key=>!['schemaVersion','handIds'].includes(key)) ||
+        !Array.isArray(value.handIds) || value.handIds.some(id=>!identifier(id)) || new Set(value.handIds).size !== value.handIds.length)
+      throw Error('Invalid backup origin metadata.');
+  }
   function validateLibrary(library) {
     if (!object(library) || library.schemaVersion !== 1 || !object(library.store) || library.store.schemaVersion !== 1 ||
         !Number.isSafeInteger(library.store.revision) || library.store.revision < 0 ||
         !object(library.store.players) || !object(library.store.hands) || !object(library.archive) ||
         library.decisions !== undefined && !object(library.decisions)) throw Error('Invalid local player library.');
+    validateOrigins(library.backupOrigins);
   }
   function collection(library,kind) { return (kind === 'players' || kind === 'hands' ? library.store[kind] : library[kind]) || {}; }
   function validateValue(kind,id,value) {
@@ -39,10 +46,12 @@
         if (!object(value.refs[kind])) throw Error('Invalid player storage index.');
         for (const [id,version] of Object.entries(value.refs[kind])) if (!identifier(id) || !identifier(version)) throw Error('Invalid player storage reference.');
       }
+      validateOrigins(value.backupOrigins);
       return value;
     }
     function loadRecords(index) {
       const library={schemaVersion:1,store:{schemaVersion:1,revision:index.storeRevision,players:{},hands:{}},archive:{},decisions:{}};
+      if(index.backupOrigins)library.backupOrigins=structuredClone(index.backupOrigins);
       const cache=new Map();
       for (const kind of kinds) for (const [id,version] of Object.entries(index.refs[kind])) {
         const text=storage.getItem(recordKey(kind,id,version));
@@ -118,6 +127,7 @@
       if (!identifier(revision) || revision === currentHeadRevision()) throw Error('Invalid new player storage revision.');
       const refs=manifest ? Object.fromEntries(kinds.map(kind=>[kind,{...manifest.refs[kind]}])) : emptyRefs();
       const index={schemaVersion:2,revision,storeRevision:library.store.revision,refs};
+      if(library.backupOrigins)index.backupOrigins=structuredClone(library.backupOrigins);
       const staged=[],cacheUpdates=new Map();let serializedBytes=0,changedChunks=0,deletedRecords=0,published=false;
       try {
         for (const kind of kinds) for (const id of changed[kind]) {
@@ -131,7 +141,8 @@
           storage.setItem(key,text);staged.push(key);changedChunks++;serializedBytes+=bytes(text);
           refs[kind][id]=revision;cacheUpdates.set(cacheKey,text);
         }
-        if (!changedChunks && !deletedRecords && manifest?.storeRevision === library.store.revision) {
+        if (!changedChunks && !deletedRecords && manifest?.storeRevision === library.store.revision &&
+            JSON.stringify(manifest?.backupOrigins) === JSON.stringify(index.backupOrigins)) {
           unchanged(expectedRevision);
           return {revision:currentHeadRevision(),changedChunks:0,deletedRecords:0,serializedBytes:0,manifestBytes:0,byteUnit:'UTF8'};
         }

@@ -676,6 +676,7 @@ function renderResult(data, street) {
       analyze();
     },80);
   }
+  document.addEventListener('theibs:players-backup-restored',()=>{invalidateAnalysis();});
   function invalidateAnalysis() {
     inputRevision += 1; lastAnalysis = null; inputChangedAt = performance.now();
     window.TheibsMultiwaySolverUI?.invalidate?.();

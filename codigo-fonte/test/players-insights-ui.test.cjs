@@ -35,19 +35,23 @@ function harness({initial=library(),visible=true}={}){
     commit:value=>{if(failed)throw Error('Storage quota exceeded');accounts.set(currentOwner,copy(value));return {revision:'r'+(++revision)};}};
   const calls={reports:[],diagnostics:[],removed:[]};
   const localStorage={};
+  let backupOptions=null,backupClosed=0,session={epoch:1,required:true,expired:false};const events=[];
   const window={TheibsPlayerProfiles:model,TheibsPlayersStorage:storage,localStorage,
+    TheibsPlayersBackupUI:{init:options=>{backupOptions=options;},close:()=>{backupClosed++;}},
+    theibsVoiceSessionContext:()=>copy(session),
     TheibsPlayerProfileInsights:{...helper,report:options=>{calls.reports.push(copy(options));return helper.report(options);},
       evaluatePrequential:options=>{calls.diagnostics.push(copy(options));return helper.evaluatePrequential(options);}},
     TheibsRangeTemplates:{removePlayer:(...args)=>calls.removed.push(args)}};
-  const document={querySelector:()=>host,createElement:()=>dialog,body:{append(){}},dispatchEvent(){}};
+  const document={querySelector:()=>host,createElement:()=>dialog,body:{append(){}},dispatchEvent(event){events.push(event.type);}};
   const source=fs.readFileSync(require.resolve('../public/players-ui'),'utf8').replace('window.theibsPlayersUI =',
     'window.__insightsTest={insightBundle,evaluateInsightDiagnostics,renderInsightReport};window.theibsPlayersUI =');
-  vm.runInNewContext(source,{window,document,structuredClone,CustomEvent:class{},crypto:require('node:crypto').webcrypto,
+  vm.runInNewContext(source,{window,document,structuredClone,CustomEvent:class{constructor(type){this.type=type;}},crypto:require('node:crypto').webcrypto,
     confirm:()=>true,setInterval:()=>1,clearInterval(){}});
   window.theibsPlayersUI.init(owner);
   const flush=()=>{while(pending.length)host.listeners.toggle?.({target:pending.shift()});};
   const click=selector=>host.listeners.click({target:{closest:value=>value===selector?{}:null}});
   return {api:window.theibsPlayersUI,testing:window.__insightsTest,window,host,calls,accounts,localStorage,message,
+    get backup(){return backupOptions;},get backupClosed(){return backupClosed;},events,setSession:value=>{session=copy(value);},
     get details(){return insights;},get content(){return content;},flush,click,failCommit:()=>{failed=true;}};
 }
 
@@ -59,6 +63,37 @@ test('Insights is collapsed, reports at most three exact contexts and renders br
   assert.match(html,/0\.0%–100\.0%/);assert.match(html,/No automatic card-range inference/);assert.match(html,/calibration is not established/);
   assert.doesNotMatch(html,/PRIVATE_NOTE/);assert.equal('notes' in h.calls.reports[0].snapshot.players.opponent,false);
   assert.equal(h.calls.reports.every(row=>row.context.position==='SB'),true);
+});
+
+test('backup integration binds owner, revision and session before synchronous publication and does not execute imported decisions',()=>{
+  const h=harness(),captured=h.backup.getContext(),next=copy(captured.library);next.store.revision++;next.store.players.opponent.nickname='Restored';
+  let plans=0;h.window.TheibsPlayersBackup={planImport:()=>{plans++;return {library:next,dirty:{players:['opponent']},summary:{recordsChanged:1}};}};
+  const request={plan:{library:next},capturedOwner:captured.ownerKey,capturedRevision:captured.revision,capturedSession:captured.session};
+  h.setSession({epoch:2,required:true,expired:false});
+  assert.throws(()=>h.backup.onImport(request),/changed/);assert.equal(plans,0);assert.equal(h.api.byId('opponent').nickname,'<Opponent>');
+  h.setSession(captured.session);h.backup.onImport(request);assert.equal(plans,1);assert.equal(h.api.byId('opponent').nickname,'Restored');
+  assert.deepEqual(h.events,['theibs:players-changed','theibs:players-backup-restored']);
+  assert.throws(()=>h.backup.onImport(request),/changed/);assert.equal(plans,1);
+  h.api.clearOwner();assert.ok(h.backupClosed>=2);assert.throws(()=>h.backup.getContext(),/not available/);
+});
+
+test('failed restore publication does not invalidate a live decision or replace the library',()=>{
+  const h=harness(),captured=h.backup.getContext(),next=copy(captured.library);next.store.players.opponent.nickname='Not saved';
+  h.window.TheibsPlayersBackup={planImport:()=>({library:next,dirty:{players:['opponent']},summary:{recordsChanged:1}})};
+  h.failCommit();assert.throws(()=>h.backup.onImport({plan:{library:next},capturedOwner:captured.ownerKey,capturedRevision:captured.revision,capturedSession:captured.session}),/quota/);
+  assert.equal(h.api.byId('opponent').nickname,'<Opponent>');assert.deepEqual(h.events,[]);
+  h.setSession({epoch:1,required:true,expired:true});assert.throws(()=>h.backup.getContext(),/Sign in/);
+});
+
+test('file-restored hands preserve original snapshots but cannot certify forecast origin or enter forecast scoring',()=>{
+  const initial=library(),snapshot=model.beginHand(initial.store,record()).profileSnapshot;
+  initial.store.hands['hand-one'].forecastOrigin={version:'THEIBS_FORECAST_ORIGIN_V1',status:'FROZEN_BEFORE_FIRST_ACTION',createdAt:snapshot.frozenAt};
+  initial.backupOrigins={schemaVersion:1,handIds:['hand-one']};const h=harness({initial});
+  h.api.openInsights('opponent',{profileSnapshot:snapshot,handId:'hand-one',revisionKey:'root'});h.flush();
+  assert.match(h.content.innerHTML,/Restored backup · file origin not authenticated/);
+  assert.match(h.content.innerHTML,/original forecast timing unverified/);assert.doesNotMatch(h.content.innerHTML,/evidence frozen before the first action/);
+  h.click('[data-insights-evaluate]');assert.equal(h.calls.diagnostics[0].hands[0].forecastOrigin,null);
+  assert.deepEqual(h.api.getStore().hands['hand-one'],initial.store.hands['hand-one']);
 });
 
 test('history diagnostics run only on demand and are cached until the saved revision changes',()=>{

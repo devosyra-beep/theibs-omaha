@@ -4,6 +4,8 @@
 .players-heading h1 { margin:3px 0 6px; font-size:28px; line-height:1.2; }
 .players-heading p { margin:0; color:var(--muted); }
 .players-heading .eyebrow { color:var(--primary); }
+.players-heading-actions { display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end; gap:8px; max-width:100%; }
+.players-heading-actions>button { max-width:100%; }
 .players-layout { display:grid; grid-template-columns:minmax(230px,280px) minmax(0,1fr); gap:32px; align-items:start; }
 .players-directory,.players-detail { min-width:0; }
 .players-directory label,.players-detail label { display:block; margin-bottom:7px; color:var(--muted); font-size:13px; }
@@ -55,10 +57,26 @@
 #players-all-hands[aria-pressed=true] { border-color:var(--primary); color:var(--primary); background:var(--gold-soft); }
 #players-reveal-dialog { max-height:calc(100dvh - 32px); overflow-y:auto; }
 #players-reveal-dialog [data-reveal-close] { min-width:44px; min-height:44px; font-size:24px; }
+.players-backup-dialog { max-height:calc(100dvh - 32px); overflow:auto; }
+.players-backup-dialog [data-backup-close] { min-width:44px; min-height:44px; font-size:24px; }
+.players-backup-dialog>.players-backup-help { margin-top:10px; color:var(--muted); font-size:12px; }
+.players-backup-dialog>[data-backup-download] { margin-block:18px; min-height:44px; }
+.players-backup-dialog .players-backup-file { display:grid; gap:8px; font-size:14px; }
+.players-backup-dialog [data-backup-file] { width:100%; min-width:0; min-height:44px; padding:8px; font-size:14px; }
+.players-backup-dialog [data-backup-preview] { margin-top:18px; }
+.players-backup-dialog [data-backup-preview] h3 { margin:0; font-size:15px; }
+.players-backup-dialog [data-backup-preview] p { margin-top:10px; font-size:12px; }
+.players-backup-dialog .players-backup-counts { width:100%; margin-top:10px; border-collapse:collapse; table-layout:fixed; font-size:12px; font-variant-numeric:tabular-nums; }
+.players-backup-dialog .players-backup-counts th,.players-backup-dialog .players-backup-counts td { padding:9px 6px; text-align:left; vertical-align:top; border-bottom:1px solid var(--border); overflow-wrap:anywhere; }
+.players-backup-dialog .players-backup-counts th:first-child { width:42%; }
+.players-backup-dialog [data-backup-status] { margin-top:14px; min-height:21px; font-size:13px; overflow-wrap:anywhere; }
+.players-backup-dialog .players-backup-actions { display:flex; justify-content:flex-end; flex-wrap:wrap; gap:10px; margin-top:18px; }
+.players-backup-dialog .players-backup-actions>button { min-height:44px; }
 @media(max-width:720px) {
   .players-workspace { padding:16px; }
   .players-heading { align-items:flex-start; flex-wrap:wrap; margin-bottom:20px; }
   .players-heading h1 { font-size:24px; }
+  .players-heading-actions { justify-content:flex-start; }
   .players-layout { grid-template-columns:minmax(0,1fr); gap:24px; }
   .players-list { grid-template-columns:repeat(2,minmax(0,1fr)); }
   .players-list>button { padding:10px; }
