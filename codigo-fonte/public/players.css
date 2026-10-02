@@ -42,6 +42,15 @@
 .players-log-table th,.players-log-table td,.players-observations-table th,.players-observations-table td,.players-workspace .mw-ev-table th,.players-workspace .mw-ev-table td { padding:9px 6px; text-align:left; vertical-align:top; border-bottom:1px solid var(--border); overflow-wrap:anywhere; }
 .players-log-table th,.players-observations-table th,.players-workspace .mw-ev-table th { color:var(--muted); font-weight:600; }
 .players-error { color:var(--bad); margin:16px 0 0; font-size:13px; overflow-wrap:anywhere; }
+.players-insights h3 { margin:20px 0 8px; font-size:14px; }
+.players-insight-origin { margin:12px 0 8px; font-size:13px; line-height:1.5; color:var(--primary); overflow-wrap:anywhere; }
+.players-insight-contexts { list-style:none; padding:0; margin:0; }
+.players-insight-contexts>li { padding:12px 0; border-bottom:1px solid var(--border); min-width:0; }
+.players-insight-contexts>li>strong { font-size:13px; overflow-wrap:anywhere; }
+.players-insight-scores { border-collapse:collapse; width:100%; table-layout:fixed; margin:12px 0; font-size:12px; font-variant-numeric:tabular-nums; }
+.players-insight-scores th,.players-insight-scores td { padding:9px 6px; text-align:left; vertical-align:top; border-bottom:1px solid var(--border); overflow-wrap:anywhere; }
+.players-insight-scores th { color:var(--muted); font-weight:600; }
+.players-insights pre { max-height:320px; overflow:auto; white-space:pre-wrap; overflow-wrap:anywhere; font:12px/1.5 var(--font-mono); }
 .players-danger>.text-button { margin-left:10px; }
 #players-all-hands[aria-pressed=true] { border-color:var(--primary); color:var(--primary); background:var(--gold-soft); }
 #players-reveal-dialog { max-height:calc(100dvh - 32px); overflow-y:auto; }

@@ -6,6 +6,10 @@
   const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   let ownerKey = null, library = null, savedRevision = null, selectedId = null, error = '', request = null;
   let revealDraft = null, revealBusy = false, historyView = false;
+  let insightRequest = null, openInsightRequested = false;
+  const insightCache = new Map(), restoredInsightToggles = new WeakSet();
+  const insightsHelper = () => window.TheibsPlayerProfileInsights;
+  function clearInsights() { insightRequest=null;openInsightRequested=false;insightCache.clear(); }
   const empty = () => ({schemaVersion:1, store:model.createStore(), archive:{}, decisions:{}});
   const ready = () => Boolean(ownerKey && library);
   function requireReady() { if (!ready()) throw Error(error || 'The player library is not available for this account.'); }
@@ -42,6 +46,7 @@
     if (!/^[a-f0-9]{64}$/i.test(String(key))) throw Error('A verified account key is required for local player storage.');
     if (ownerKey === key && ready()) return;
     clearRevealEditor();
+    clearInsights();
     ownerKey = key; selectedId = null;historyView=false;
     try {
       const opened = storage.open(key);
@@ -58,6 +63,7 @@
     render();
   }
   function clearOwner() {
+    clearInsights();
     clearRevealEditor();ownerKey=null;library=null;savedRevision=null;selectedId=null;historyView=false;error='';
     if(host)host.replaceChildren();render();
   }
@@ -69,15 +75,21 @@
   function beginHand(record) {
     requireReady();
     const dirty={hands:[record.handId],players:record.config.players.map(player=>player.playerId)};
-    const next = cloneChanged(dirty), before = next.store.revision;
+    const next = cloneChanged(dirty), before = next.store.revision, existed=Boolean(next.store.hands[record.handId]);
     const result = model.beginHand(next.store, record);
+    if(!existed)next.store.hands[record.handId].forecastOrigin={version:'THEIBS_FORECAST_ORIGIN_V1',
+      status:Array.isArray(record.events) && !record.events.some(event=>event.type==='ACT')?'FROZEN_BEFORE_FIRST_ACTION':'RECONSTRUCTED_AFTER_ACTION',createdAt:result.profileSnapshot.frozenAt};
     if (next.store.revision !== before) commit(next,dirty);
     return result.profileSnapshot;
   }
   function syncObservations(payload) {
     requireReady();
     const confirmed=structuredClone(payload);
-    const result=update(next => model.applyObservations(next.store, confirmed),{hands:[confirmed.handId],players:confirmed.playerIds || confirmed.config.players.map(player=>player.playerId)});
+    const result=update(next => {
+      const existed=Boolean(next.store.hands[confirmed.handId]),applied=model.applyObservations(next.store, confirmed);
+      if(!existed)next.store.hands[confirmed.handId].forecastOrigin={version:'THEIBS_FORECAST_ORIGIN_V1',status:'RECONSTRUCTED_AFTER_ACTION',createdAt:applied.profileSnapshot.frozenAt};
+      return applied;
+    },{hands:[confirmed.handId],players:confirmed.playerIds || confirmed.config.players.map(player=>player.playerId)});
     return {profileSnapshot:result.profileSnapshot,observationsAdded:result.observationsAdded,observationsRemoved:result.observationsRemoved};
   }
   function profileSnapshot(record) {
@@ -202,6 +214,91 @@
     const awards = result?.pots?.map((pot,index)=>`<li>${index ? 'Side pot '+index : 'Main pot'} · ${esc(amount(pot.amount))} chips${pot.awards?.length ? ' · '+pot.awards.map(award=>esc(playerLabel(record,award.player))+' '+esc(amount(award.amount))).join(', ') : ' · pending'}</li>`).join('') || '';
     return `<li><details data-player-detail="hand-${esc(record.handId)}"><summary><strong>${esc(record.config.variant.replace('_HIGH',''))} · ${record.config.playerCount} players</strong> · ${outcome}<small class="players-hand-time">${esc(savedTime)}</small></summary><ul class="players-pot-results">${awards}</ul>${hand.reconciliation?.rakeObserved === false && hand.reconciliation.source !== 'USER_CONFIRMED_STACKS' ? '<p class="micro">Balances before unrecorded rake.</p>' : ''}${allPlayers ? state.players.map(player => `<p class="micro">${esc(playerLabel(record,player.id))}: ${esc((player.shownCards || []).join(' ') || 'No shown cards')} <button type="button" class="text-button" data-archive-reveal="${esc(record.handId)}" data-archive-seat="${player.id}">Edit shown cards</button></p>`).join('') : `<p class="micro">Shown cards: ${esc(shown.join(' ') || 'Not recorded')}</p><button type="button" class="ghost-button" data-archive-reveal="${esc(record.handId)}" data-archive-seat="${seat}">Record shown cards</button>`}<details class="players-section"><summary>Confirmed actions · ${record.events.length}</summary><table class="players-log-table"><thead><tr><th>Street</th><th>Player</th><th>Action</th><th>Chips</th></tr></thead><tbody>${log}</tbody></table></details>${(hand.decisions || []).length ? `<details class="players-section"><summary>Decision review · ${hand.decisions.length}</summary>${hand.decisions.map(renderDecision).join('')}</details>` : ''}</details></li>`;
   }
+  function insightBundle() {
+    if(!ready() || !library.store.players[selectedId])return null;
+    const frozen=insightRequest?.ownerKey===ownerKey && insightRequest.playerId===selectedId ? insightRequest : null;
+    const key=JSON.stringify([ownerKey,savedRevision,selectedId,frozen?.key || 'CURRENT_LIBRARY']);
+    if(insightCache.has(key))return insightCache.get(key);
+    const profile=library.store.players[selectedId];
+    const snapshot=frozen?structuredClone(frozen.profileSnapshot):{schemaVersion:1,handId:'library-insights',source:'LIBRARY_OBSERVATIONS',
+      model:model.VERSION,libraryRevision:library.store.revision,frozenAt:new Date().toISOString(),
+      players:{[selectedId]:{playerId:selectedId,contexts:structuredClone(profile.contexts),observations:profile.observations}}};
+    const binding={scope:frozen?'FROZEN_PRE_HAND':'CURRENT_LIBRARY',playerId:selectedId,handId:frozen?.handId || null,
+      revisionKey:frozen?.revisionKey || null,libraryRevision:snapshot.libraryRevision};
+    const contexts=Object.values(snapshot.players?.[selectedId]?.contexts || {}).filter(cell=>cell.context && cell.counts)
+      .sort((a,b)=>Object.values(b.counts).reduce((sum,count)=>sum+count,0)-Object.values(a.counts).reduce((sum,count)=>sum+count,0) || model.contextKey(a.context).localeCompare(model.contextKey(b.context)))
+      .slice(0,3);
+    const helper=insightsHelper(),reports=[];
+    let unavailable=!helper;
+    if(helper)for(const cell of contexts){try{reports.push(helper.report({snapshot,playerId:selectedId,context:cell.context,binding}));}catch{unavailable=true;}}
+    const forecastOrigin=frozen?library.store.hands[frozen.handId]?.forecastOrigin:null;
+    const bundle={key,playerId:selectedId,binding,origin:{source:snapshot.source,libraryRevision:snapshot.libraryRevision,frozenAt:snapshot.frozenAt},
+      reports,unavailable,forecastOrigin:forecastOrigin?.version==='THEIBS_FORECAST_ORIGIN_V1' && forecastOrigin.createdAt===snapshot.frozenAt?forecastOrigin.status:null,
+      diagnostics:null,diagnosticsEvaluated:false,diagnosticsError:null};
+    insightCache.set(key,bundle);while(insightCache.size>8)insightCache.delete(insightCache.keys().next().value);
+    return bundle;
+  }
+  function evaluateInsightDiagnostics(bundle) {
+    if(!bundle || bundle.diagnosticsEvaluated)return;
+    bundle.diagnosticsEvaluated=true;
+    const helper=insightsHelper();
+    if(!helper){bundle.diagnosticsError='Forecast diagnostics are unavailable. Reload the app.';return;}
+    try {
+      const hands=Object.values(library.store.hands).map(hand=>({...hand,archive:library.archive[hand.handId] || null}));
+      const diagnostics=helper.evaluatePrequential({hands,playerIds:[bundle.playerId],currentHandId:bundle.binding.handId,
+        currentFrozenAt:bundle.binding.scope==='FROZEN_PRE_HAND'?bundle.origin.frozenAt:undefined});
+      // Keep the on-demand UI cache bounded; detailed forecast rows remain in
+      // the pure helper's audit API and do not become eight copies of history.
+      bundle.diagnostics=structuredClone({version:diagnostics.version,status:diagnostics.status,protocol:diagnostics.protocol,
+        cutoff:diagnostics.cutoff,counts:diagnostics.counts,metrics:diagnostics.metrics,reasonCodes:diagnostics.reasonCodes,
+        exclusions:diagnostics.exclusions?.slice(0,20),totalExclusions:diagnostics.exclusions?.length || 0});
+    } catch {bundle.diagnosticsError='Recorded forecasts could not be evaluated. No validation claim is available.';}
+  }
+  function renderInsightReport(bundle) {
+    if(!bundle)return '<p class="micro">Choose a saved player to view evidence.</p>';
+    const frozen=bundle.binding?.scope==='FROZEN_PRE_HAND';
+    const origin=`${frozen?`Captured hand ${bundle.binding.handId} · ${bundle.forecastOrigin==='FROZEN_BEFORE_FIRST_ACTION'?'evidence frozen before the first action':'saved snapshot · original forecast timing unverified'}`:'Current library · confirmed recorded decisions'}${Number.isSafeInteger(bundle.origin?.libraryRevision)?' · revision '+bundle.origin.libraryRevision:''}`;
+    const reports=(bundle.reports || []).slice(0,3).map(item=>{
+      const context=item.context || {},label=[String(context.variant || '').replace('_HIGH',''),context.street,context.position].filter(Boolean).join(' · ');
+      const scope=[context.tableFormat?.replaceAll('_',' ').toLowerCase(),context.initialParticipants?`${context.initialParticipants} original seats`:null,
+        context.participants?.replaceAll('_',' ').toLowerCase(),context.priceBand?.replaceAll('_',' ').toLowerCase()].filter(Boolean).join(' · ');
+      const evidence=item.evidence==='CONFIRMED_ACTIONS'?'Confirmed actions + reference prior':item.evidence==='REFERENCE_PRIOR_ONLY'?'Reference prior only · no recorded opportunities':'Unknown evidence';
+      const rows=(item.actions || []).map(row=>`<tr><th scope="row">${esc(row.action)}</th><td>${Number.isSafeInteger(row.observed)?row.observed:'—'}/${Number.isSafeInteger(item.opportunities)?item.opportunities:'—'}</td><td>${probability(row.mean)}</td><td>${Array.isArray(row.credibleInterval95)?row.credibleInterval95.map(probability).join('–'):'Unknown'}</td></tr>`).join('');
+      return `<li><strong>${esc(label || 'Context unavailable')}</strong><p class="micro">${esc(scope)} · Legal actions: ${esc(context.legalActions?.join(', ') || 'Unknown')}.</p><p class="micro">${esc(evidence)} · ${Number.isSafeInteger(item.opportunities)?item.opportunities:'Unknown'} recorded opportunities.</p>${rows?`<table class="players-observations-table"><thead><tr><th>Action</th><th>Observed</th><th>Model estimate</th><th>95% posterior interval</th></tr></thead><tbody>${rows}</tbody></table>`:''}<p class="micro">${esc(item.model || 'Model unavailable')} · posterior uncertainty only; calibration is not established.</p></li>`;
+    }).join('');
+    const diagnostics=bundle.diagnostics,counts=diagnostics?.counts,metrics=diagnostics?.metrics;
+    const measured=counts?.forecasts>0 && metrics;
+    const number=value=>typeof value==='number' && Number.isFinite(value)?value.toLocaleString('en-US',{maximumFractionDigits:4}):'Not measured';
+    const scores=measured?`<p class="micro">${counts.forecasts} scored forecasts across ${counts.scoredHands} archived hands. Lower scores indicate better predictions in these records.</p><table class="players-insight-scores"><thead><tr><th>Score</th><th>Profile model</th><th>Reference</th><th>Difference</th></tr></thead><tbody>${[['Log loss',metrics.logLoss],['Brier',metrics.brier]].map(([name,row])=>`<tr><th scope="row">${name}</th><td>${number(row?.model)}</td><td>${number(row?.reference)}</td><td>${number(row?.modelMinusReference)}</td></tr>`).join('')}</tbody></table>`:'<p class="micro">Not evaluated: no eligible, measured forecasts are available for this selection.</p>';
+    const receipt=diagnostics?{version:diagnostics.version,protocol:diagnostics.protocol,cutoff:diagnostics.cutoff,counts:diagnostics.counts,
+      metrics:diagnostics.metrics,reasonCodes:diagnostics.reasonCodes,exclusions:diagnostics.exclusions?.slice(0,20),
+      exclusionsShown:Math.min(diagnostics.exclusions?.length || 0,20),totalExclusions:diagnostics.totalExclusions ?? diagnostics.exclusions?.length ?? 0}:null;
+    const validation=bundle.diagnosticsEvaluated?`${bundle.diagnosticsError?`<p class="players-error">${esc(bundle.diagnosticsError)}</p>`:scores}${receipt?`<details><summary>Forecast audit receipt</summary><pre>${esc(JSON.stringify(receipt,null,2))}</pre></details>`:''}`:
+      '<p class="micro">Forecast diagnostics run on demand from eligible archived hands and their original frozen profiles.</p><button type="button" class="text-button" data-insights-evaluate>Evaluate recorded forecasts</button>';
+    return `<p class="players-insight-origin">${esc(origin)}</p>${frozen?`<p class="micro">Newer observations do not change this captured hand’s evidence snapshot. ${bundle.forecastOrigin==='FROZEN_BEFORE_FIRST_ACTION'?'Captured before the first confirmed action.':bundle.forecastOrigin==='RECONSTRUCTED_AFTER_ACTION'?'Reconstructed after actions were recorded; excluded from forecast scoring.':'Forecast origin is unknown; excluded from forecast scoring.'}</p>`:''}<h3>Recorded behavior</h3>${bundle.unavailable?'<p class="micro">Insights are unavailable. Reload the app to load the evidence helper.</p>':''}<ul class="players-insight-contexts">${reports || '<li class="micro">Unknown · no confirmed context evidence is available. No opponent behavior or card range is inferred.</li>'}</ul><p class="micro">At most three explicitly identified contexts are shown, ordered by recorded opportunities. Contexts are not pooled; action opportunities are not a count of every hand played. Notes and shown cards do not create action observations.</p><h3>Forecast diagnostics</h3>${validation}<p class="micro">These are descriptive checks of recorded action forecasts, not a calibration, card-range, EV or profit guarantee. Unknown eligibility and reconstructed profiles are excluded.</p><h3>Range prior</h3><p class="micro">No automatic card-range inference; reviewed study hypotheses remain separate. A matching finite range draft must be reviewed before it is used.</p>`;
+  }
+  function refreshInsights(evaluate = false) {
+    const node=host?.querySelector('[data-player-insight-content]');
+    if(!node || host.hidden || host.classList.contains('hidden'))return;
+    const bundle=insightBundle();if(evaluate)evaluateInsightDiagnostics(bundle);
+    node.innerHTML=renderInsightReport(bundle);
+  }
+  function openInsights(playerId, {profileSnapshot:snapshot,handId,revisionKey} = {}) {
+    requireReady();if(!library.store.players[playerId])throw Error('Choose a saved player for insights.');
+    let nextRequest=null;
+    if(snapshot){
+      const saved=library.store.hands[handId]?.profileSnapshot;
+      if(snapshot.source!=='PRE_HAND_OBSERVATIONS' || snapshot.handId!==handId || typeof revisionKey!=='string' || !revisionKey ||
+        !saved || !snapshot.players?.[playerId] || JSON.stringify(snapshot)!==JSON.stringify(saved))throw Error('The frozen player evidence does not match this hand.');
+      nextRequest={ownerKey,playerId,handId,revisionKey,profileSnapshot:structuredClone(snapshot),key:JSON.stringify([handId,revisionKey,snapshot])};
+    }
+    insightRequest=nextRequest;
+    historyView=false;selectedId=playerId;openInsightRequested=true;render();return true;
+  }
+  function selectPlayer(id) {
+    openInsightRequested=Boolean(host?.querySelector('[data-player-insights]')?.open);
+    insightRequest=null;historyView=false;selectedId=id;render();
+  }
   function render() {
     if (!host) return;
     if(host.classList.contains('hidden') || host.hidden)return;
@@ -227,6 +324,7 @@
       <div class="players-list" role="group" aria-label="Saved players">${players.length ? players.map(item => `<button type="button" class="${item.playerId === selectedId ? 'selected' : ''}" data-player-select="${esc(item.playerId)}"><strong>${esc(item.nickname)}</strong><small>${esc(item.playerId.slice(-6).toUpperCase())} · ${item.observations} actions · ${item.handCount} ${item.handCount === 1 ? 'hand' : 'hands'}</small></button>`).join('') : '<p class="micro">No players saved yet. Unknown seats get separate identities when a table starts.</p>'}</div></section>
       <section class="players-detail" aria-label="Selected player">${selected ? `<div class="players-detail-head"><div><p class="eyebrow">PLAYER</p><h2>${esc(selected.nickname)}</h2><small>Player ${esc(selected.playerId.slice(-6).toUpperCase())}</small></div></div>
         <form id="players-rename"><label for="players-rename-name">Nickname</label><div class="players-inline"><input id="players-rename-name" maxlength="80" value="${esc(selected.nickname)}" required><button type="submit" class="ghost-button">Save name</button></div></form>
+        <details class="players-section players-insights" data-player-detail="insights" data-player-insights><summary>Insights <span>· recorded decisions</span></summary><div data-player-insight-content></div></details>
         <details class="players-section" open><summary>Notes <span>· manual</span></summary><form id="players-add-note"><label for="players-note-text" class="sr-only">New note</label><textarea id="players-note-text" rows="3" maxlength="2000" placeholder="Your own observation or reminder" required></textarea><button class="ghost-button" type="submit">Add note</button></form><ul class="players-notes">${notes.map(note => `<li><p>${esc(note.text)}</p><small>${esc(new Date(note.createdAt).toLocaleDateString('en-US'))} · your note</small><button type="button" data-note-remove="${esc(note.id)}" aria-label="Remove note" class="text-button">Remove</button></li>`).join('') || '<li class="micro">No notes yet.</li>'}</ul></details>
         <details class="players-section"><summary>Observed actions <span>· ${selected.observations}</span></summary><p class="micro">Only confirmed actions count. Rates include a reference prior; intervals may be broad with little data.</p><ul class="players-contexts">${contextRows || '<li class="micro">No confirmed actions yet.</li>'}</ul></details>
         <details class="players-section" data-player-detail="history"><summary>Recorded hands <span>· ${history.length}</span></summary><ul class="players-hand-list">${history.map(hand => renderArchivedHand(hand,selected.playerId)).join('') || '<li class="micro">No archived hands yet.</li>'}</ul></details>
@@ -236,6 +334,11 @@
       detail.innerHTML='<h2>Recorded hands</h2><ul class="players-hand-list">'+(allHands.map(hand=>renderArchivedHand(hand,hand.multiway.config.players[hand.state.heroId]?.playerId,true)).join('') || '<li class="micro">No archived hands yet.</li>')+'</ul>';
     }
     for (const node of host.querySelectorAll('details[data-player-detail]')) if (openDetails.has(node.dataset.playerDetail)) node.open = true;
+    const insights=host.querySelector('[data-player-insights]');
+    if(insights){
+      if(openInsightRequested){restoredInsightToggles.add(insights);insights.open=true;openInsightRequested=false;refreshInsights();}
+      else if(insights.open){restoredInsightToggles.add(insights);refreshInsights();}
+    }
   }
   function message(text) { const node = host?.querySelector('#players-message'); if(node){node.textContent=text;node.hidden=false;} }
   const revealDialog = document.createElement('dialog');
@@ -313,9 +416,10 @@
     finally {revealBusy=false;revealDialog.querySelector('[type="submit"]').disabled=false;}
   });
   host?.addEventListener('click', event => {
+    if(event.target.closest('[data-insights-evaluate]')){refreshInsights(true);return;}
     if(event.target.closest('#players-all-hands')){historyView=!historyView;render();return;}
     const select = event.target.closest('[data-player-select]');
-    if (select) { historyView=false;selectedId = select.dataset.playerSelect; render(); return; }
+    if (select) { selectPlayer(select.dataset.playerSelect); return; }
     const reveal = event.target.closest('[data-archive-reveal]');
     if (reveal) { try {openArchivedReveal(reveal.dataset.archiveReveal,Number(reveal.dataset.archiveSeat));} catch(cause){message(cause.message);} return; }
     if (!selectedId || !ready()) return;
@@ -327,11 +431,21 @@
       }
       if (event.target.closest('#players-delete')) {
         if (confirm('Remove this player and their notes from the current library? Recorded hands and one local recovery snapshot remain.')) {
-          update(next => model.deletePlayer(next.store, selectedId),{players:[selectedId],hands:Object.keys(library.store.hands)}); selectedId = null; render();
+          const deletedId=selectedId,deletedOwner=ownerKey;
+          update(next => model.deletePlayer(next.store, deletedId),{players:[deletedId],hands:Object.keys(library.store.hands)});
+          selectedId=null;clearInsights();render();
+          try{window.TheibsRangeTemplates?.removePlayer?.(window.localStorage,deletedOwner,deletedId);}
+          catch{message('Player deleted. Saved range templates could not be removed; review local storage before reusing that player identity.');}
         }
       }
     } catch (cause) { message(cause.message); }
   });
+  host?.addEventListener('toggle',event=>{
+    const node=event.target;
+    if(!node.matches?.('[data-player-insights]') || !node.open)return;
+    if(restoredInsightToggles.has(node)){restoredInsightToggles.delete(node);return;}
+    refreshInsights();
+  },true);
   host?.addEventListener('submit', event => {
     event.preventDefault();
     try {
@@ -349,6 +463,6 @@
   render();
   window.theibsPlayersUI = { init, clearOwner, getOwnerKey:()=>ownerKey, ready, list, byId, nameFor, heroId, freshId, beginHand, syncObservations,
     profileSnapshot, archiveHand, recordDecision, getArchivedHand, archivedHands, getStore: () => ready() ? structuredClone(library.store) : null,
-    configure: options => {request=options?.request || request;},voiceRevealContext,commitVoiceReveal,openArchivedReveal,
-    select: id => { historyView=false;selectedId = id; render(); }, render };
+    configure: options => {request=options?.request || request;},voiceRevealContext,commitVoiceReveal,openArchivedReveal,openInsights,
+    select:selectPlayer, render };
 })();

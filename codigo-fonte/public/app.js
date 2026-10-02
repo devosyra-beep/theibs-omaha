@@ -235,6 +235,10 @@
     const ownerKey = window.theibsPlayersUI.getOwnerKey(), session = JSON.stringify(window.theibsVoiceSessionContext?.());
     const expected = { handId: record.handId, revisionKey: multiwayState?.revisionKey };
     if (record !== multiway || !expected.revisionKey) throw Error('The hand changed before local observations could be saved.');
+    // Capture chronology from the validated ledger before the observations
+    // endpoint strips its events. An unseen restored hand with ACT events is
+    // explicitly reconstructed, never presented as a pre-action forecast.
+    window.theibsPlayersUI.beginHand(record);
     const payload = await postJson('/api/multiway/observations',{multiway:record});
     if (ownerKey !== window.theibsPlayersUI.getOwnerKey() || session !== JSON.stringify(window.theibsVoiceSessionContext?.()) ||
       multiway !== record || multiway?.handId !== expected.handId || multiwayState?.revisionKey !== expected.revisionKey ||
@@ -1382,6 +1386,12 @@ function renderResult(data, street) {
     previewSequence:previewMultiwaySequence,
     batchSequence:batchMultiwaySequence,
     evaluationChanged:()=>{invalidateAnalysis();scheduleSave();},
+    playerInsights:({playerId})=>{
+      const snapshot=window.theibsPlayersUI?.profileSnapshot(multiway);
+      if(!snapshot || !snapshot.players?.[playerId])return;
+      showView('players');
+      window.theibsPlayersUI.openInsights(playerId,{profileSnapshot:snapshot,handId:multiway.handId,revisionKey:multiwayState?.revisionKey});
+    },
     undo:()=>runMultiway(()=>postJson('/api/multiway/undo',{multiway,expectedRevisionKey:multiwayState?.revisionKey}),()=>{multiwayDecisionFeedback=null;}),
     exit:exitMultiway
   }});

@@ -46,7 +46,7 @@
   function studyProvenance() {
     const active=activeScenario();
     return active && configured(context()) ? clone({scenarioId:active.id,name:active.name,treeName:active.treeName,
-      rationaleBySeat:active.rationaleBySeat,scenarioCount:study.scenarios.length,source:'USER_DECLARED_HYPOTHESIS'}) : null;
+      rationaleBySeat:active.rationaleBySeat,...(active.rangeOriginsBySeat?{rangeOriginsBySeat:active.rangeOriginsBySeat}:{}),scenarioCount:study.scenarios.length,source:'USER_DECLARED_HYPOTHESIS'}) : null;
   }
   function comparisonCurrent(value) {
     return Boolean(value && comparisonBinding && value.token===comparisonBinding.token && value.handId===handId(context()) &&
@@ -331,7 +331,24 @@
         item.sizing.type==='EXPLICIT_TOTALS' && (!Array.isArray(item.sizing.levels) || !item.sizing.levels.length || item.sizing.levels.length>levelLimit(seats) || item.sizing.levels.some(value=>!Number.isFinite(value) || value<=0)))throw Error('Use a valid sizing tree for every scenario.');
       const sizing={type:item.sizing.type,maxAggressions:item.sizing.maxAggressions,...(item.sizing.type==='EXPLICIT_TOTALS'?{levels:clone(item.sizing.levels)}:{})};
       const rationaleBySeat={};for(const range of ranges)rationaleBySeat[range.seatId]=text(item.rationaleBySeat?.[range.seatId],500);
-      return {id,name:text(item.name,80,`Scenario ${index+1}`),treeName:text(item.treeName,80,`Tree ${index+1}`),rationaleBySeat,ranges,sizing};
+      const rangeOriginsBySeat={};
+      for(const range of ranges){
+        const origin=item.rangeOriginsBySeat?.[range.seatId];if(!origin)continue;
+        const validId=value=>typeof value==='string' && /^[a-zA-Z0-9_-]{1,100}$/.test(value);
+        if(origin.model!=='REVIEWED_DECISION_RANGE_V1' || origin.conditioningScope!=='CONDITIONAL_AT_DECISION' ||
+          !validId(origin.playerId) || !validId(origin.sourceHandId) || typeof origin.sourceRevisionKey!=='string' ||
+          !origin.sourceRevisionKey || origin.sourceRevisionKey.length>200 || !Array.isArray(origin.sourceBoard) || origin.sourceBoard.length!==5 ||
+          origin.sourceBoard.some(card=>typeof card!=='string' || !/^[2-9TJQKA][shdc]$/.test(card)) ||
+          !Array.isArray(origin.sourceCombos) || !origin.sourceCombos.length || origin.sourceCombos.length>rangeLimit(seats) ||
+          origin.sourceCombos.some(combo=>!Array.isArray(combo.cards) || combo.cards.length!==5 || combo.cards.some(card=>typeof card!=='string' || !/^[2-9TJQKA][shdc]$/.test(card)) ||
+            new Set(combo.cards).size!==5 || !Number.isFinite(combo.weight) || combo.weight<=0 || combo.weight>1e12))throw Error('The saved template origin is invalid. Review the range again.');
+        rangeOriginsBySeat[range.seatId]={model:origin.model,conditioningScope:origin.conditioningScope,playerId:origin.playerId,
+          sourceHandId:origin.sourceHandId,sourceRevisionKey:origin.sourceRevisionKey,sourceScenarioId:text(origin.sourceScenarioId,100),
+          sourceBoard:clone(origin.sourceBoard),sourceContextKey:text(origin.sourceContextKey,500),sourceCombos:clone(origin.sourceCombos),
+          edited:JSON.stringify(origin.sourceCombos)!==JSON.stringify(range.combos)};
+      }
+      return {id,name:text(item.name,80,`Scenario ${index+1}`),treeName:text(item.treeName,80,`Tree ${index+1}`),rationaleBySeat,ranges,sizing,
+        ...(Object.keys(rangeOriginsBySeat).length?{rangeOriginsBySeat}:{})};
     });
     if(saved.activeScenarioId!==undefined && !ids.has(saved.activeScenarioId))throw Error('Select a saved scenario.');
     return normalized;
@@ -469,6 +486,19 @@
     const browserAvailable=browserClient?.supported===true && seats.length===2;
     const selectedCompute=String(computePreference || options.runtime || (browserAvailable?'BROWSER':'SERVER')).toUpperCase()==='SERVER'?'SERVER':browserAvailable?'BROWSER':'SERVER';
     const maxCombos = rangeLimit(seats.length), maxLevels = levelLimit(seats.length);
+    const templates=root.TheibsRangeTemplates;
+    const templateOwner=root.theibsPlayersUI?.getOwnerKey?.();
+    let templateLibrary=null,templateError='';
+    if(templates && root.theibsPlayersUI?.ready?.()){
+      try{templateLibrary=templates.load(root.localStorage,templateOwner);}
+      catch(error){templateError=error.message;}
+    }
+    const rangeSuggestions=seats.map(seat=>{
+      const templateContext=templates?.contextFor(now.state,seat);
+      if(!templateContext || !templateLibrary)return null;
+      try{return {seat,context:templateContext,candidates:templates.candidates(templateLibrary,{playerId:seat.playerId,context:templateContext,board:now.state.board})};}
+      catch{return null;}
+    }).filter(item=>item?.candidates.length);
     dialog.innerHTML = `<div class="multiway-dialog-head"><h2 id="mw-solver-title">Solver study</h2><button type="button" class="text-button" data-solver-close aria-label="Close solver study">×</button></div>
       <form data-solver-form><p class="mw-solver-intro">A finite PLO5 river study for two or three seats. Your normal game and approximate EV remain available.</p>
       ${supported ? '' : '<p class="multiway-error">This table is outside the current solver coverage. Use PLO5 with two or three original seats.</p>'}
@@ -479,6 +509,11 @@
       <label>Card notation<select name="notation"><option value="KEYBOARD"${notation==='KEYBOARD'?' selected':''}>Keyboard · E / C / O / P</option><option value="CANONICAL"${notation==='CANONICAL'?' selected':''}>Standard · s / h / d / c</option></select></label>
       <p class="mw-solver-hint" data-solver-notation></p>
       <div class="mw-solver-ranges">${seats.map(seat=>`<label><span>${esc(seat.hero?'You':seat.name || seat.seatName || `Seat ${seat.id+1}`)} <small>${esc(seat.position)}${seat.folded?' · folded':''}</small></span><textarea rows="${seats.length===2?5:3}" data-solver-range="${seat.id}" aria-label="${esc(seat.hero?'Your':seat.name || `Seat ${seat.id+1}`)} complete study range" autocomplete="off" autocapitalize="characters" spellcheck="false" required${supported?'':' disabled'}>${esc(rangeText(matches ? study.ranges.find(range=>range.seatId===seat.id) : null,notation))}</textarea></label>`).join('')}</div>
+      <details class="mw-solver-limits"><summary>Reviewed opponent ranges${rangeSuggestions.length?' · '+rangeSuggestions.length+' available':''}</summary>
+        <p>Saved hypotheses are offered for the same player, river, positions, seat counts and available action set. This is a coarse context match, not mathematical equivalence. Card combinations and weights are unchanged; action rates do not generate a card range. Review the board, public actions, price and stacks before using a draft. Nothing is applied to your normal game.</p>
+        ${templateError?`<p class="multiway-error">${esc(templateError)}</p>`:rangeSuggestions.length?rangeSuggestions.map(item=>{const candidate=item.candidates[0],saved=candidate.template;return `<p><strong>${esc(item.seat.name || `Seat ${item.seat.id+1}`)}</strong> · ${esc(saved.name)} · ${saved.range.combos.length} combinations<br><small>Source board: ${esc(saved.board.join(' '))}. ${candidate.boardChanged?'Board differs. ':''}${candidate.blockedCombinations?candidate.blockedCombinations+' combinations conflict with this board; edit them explicitly.':'No board blockers.'}</small><br><button type="button" class="text-button" data-solver-template="${item.seat.id}">Load for review</button></p>`;}).join(''):'<p>No reviewed template matches this player and decision context.</p>'}
+        <label class="mw-solver-confirm"><input name="rememberRanges" type="checkbox"${templateLibrary && now.state?.street==='RIVER'?'':' disabled'}><span>Remember the active opponent ranges as reviewed hypotheses on this device.</span></label>
+        <p>One template per player/context; a later approval replaces it. These finite study hypotheses are separate from observed actions and are never fed into the heuristic evaluator’s history conditioning.</p></details>
       <p class="mw-solver-hint">One five-card combination per line, up to ${maxCombos} per seat. Add <code>| weight</code> if needed; omitted weights are 1. Weights are relative within each seat; compatible joint assignments are renormalized after card blockers. Include your current cards within your declared range. The declared tree may still exceed the solver's safety limits.</p>
       <details class="mw-solver-limits"><summary>Range source & rationale · optional</summary><p>Record where each hypothesis came from and the context you assumed. These notes are not observations or learned statistics and are not sent to the solver.</p>${seats.map(seat=>`<label>${esc(seat.hero?'You':seat.name || `Seat ${seat.id+1}`)} · source / rationale<textarea rows="2" maxlength="500" data-solver-rationale="${seat.id}" autocomplete="off"></textarea></label>`).join('')}</details>
       <div class="mw-solver-grid"><label>Sizing abstraction<select name="sizing"><option value="MIN_MID_MAX">Minimum / middle / maximum</option><option value="EXPLICIT_TOTALS">Specific street totals</option></select></label><label>Additional bets / raises<select name="aggressions"><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></label></div>
@@ -510,6 +545,21 @@
       dialog.querySelector('[data-solver-remove]').disabled=drafts.length===1;
     };
     const nextId=()=>`scenario-${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
+    for(const button of dialog.querySelectorAll('[data-solver-template]'))button.onclick=()=>{
+      if(binding(context())!==openedBinding){dialogError('The decision or account changed. Reopen Solver study.');return;}
+      const suggestion=rangeSuggestions.find(item=>item.seat.id===Number(button.dataset.solverTemplate));
+      if(!suggestion)return;
+      const saved=suggestion.candidates[0].template;
+      captureDraft();
+      const draft=drafts.find(item=>item.id===selectedId);draft.rangeOriginsBySeat ||= {};
+      draft.rangeOriginsBySeat[suggestion.seat.id]={model:saved.model,conditioningScope:saved.conditioningScope,playerId:saved.playerId,
+        sourceHandId:saved.origin.handId,sourceRevisionKey:saved.origin.revisionKey,sourceScenarioId:saved.origin.scenarioId,
+        sourceBoard:clone(saved.board),sourceContextKey:templates.contextKey(saved.context),sourceCombos:clone(saved.range.combos)};
+      dialog.querySelector(`[data-solver-range="${suggestion.seat.id}"]`).value=rangeText(saved.range,form.elements.notation.value);
+      dialog.querySelector(`[data-solver-rationale="${suggestion.seat.id}"]`).value=text(`Reviewed template: ${saved.name}. Source board ${saved.board.join(' ')}; ${saved.origin.rationale || 'user-defined finite hypothesis'}. Review for this decision.`,500);
+      form.elements.complete.checked=false;
+      dialogError('Draft loaded only. Review all ranges and blockers, then confirm before saving.');
+    };
     form.elements.scenario.onchange=()=>{const next=form.elements.scenario.value;captureDraft();selectedId=next;fillDraft();};
     dialog.querySelector('[data-solver-duplicate]').onclick=()=>{if(drafts.length>=MAX_SCENARIOS)return;captureDraft();const draft=clone(drafts.find(item=>item.id===selectedId));draft.id=nextId();draft.name=text(draft.name,70,'Scenario')+' copy';drafts.push(draft);selectedId=draft.id;fillDraft();};
     dialog.querySelector('[data-solver-new]').onclick=()=>{if(drafts.length>=MAX_SCENARIOS)return;captureDraft();const draft={id:nextId(),name:`Scenario ${drafts.length+1}`,treeName:`Tree ${drafts.length+1}`,rationaleBySeat:{},ranges:[],sizing:{type:'MIN_MID_MAX',maxAggressions:1}};drafts.push(draft);selectedId=draft.id;fillDraft();};
@@ -527,20 +577,31 @@
         captureDraft();
         const scenarios=drafts.map(draft=>{
           const ranges=seats.map(seat=>({seatId:seat.id,complete:true,source:draft.ranges.find(range=>range.seatId===seat.id)?.source || 'USER_DEFINED_COMPLETE_STUDY',combos:parseRange(draft._texts?.[seat.id] ?? rangeText(draft.ranges.find(range=>range.seatId===seat.id),draft._notation || notation),draft._notation || notation,maxCombos)}));
+          if(ranges.some(range=>range.combos.some(combo=>combo.cards.some(card=>now.state.board?.includes(card)))))throw Error('A study range contains a board blocker. Edit that combination explicitly before saving.');
           const sizing=clone(draft.sizing);
           if(sizing.type==='EXPLICIT_TOTALS'){
             const levels=String(draft._levels ?? sizing.levels?.join(', ') ?? '').split(/[\s,;]+/).filter(Boolean).map(Number);
             if(!levels.length || levels.length>maxLevels || levels.some(value=>!Number.isFinite(value)||value<=0||Math.abs(value*100-Math.round(value*100))>1e-7))throw Error(`Enter one to ${maxLevels} positive street totals with at most two decimals.`);
             sizing.levels=[...new Set(levels)].sort((a,b)=>a-b);
           }
-          return {id:draft.id,name:draft.name,treeName:draft.treeName,rationaleBySeat:draft.rationaleBySeat,ranges,sizing};
+          return {id:draft.id,name:draft.name,treeName:draft.treeName,rationaleBySeat:draft.rationaleBySeat,ranges,sizing,
+            ...(draft.rangeOriginsBySeat?{rangeOriginsBySeat:draft.rangeOriginsBySeat}:{})};
         });
         if (!form.elements.complete.checked) throw Error('Confirm complete ranges for every saved scenario.');
         if(!form.elements.nearEquivalenceBB.value.trim())throw Error('Enter a near-equivalence threshold of zero or more bb.');
         const comparisonPolicy=normalizeComparisonPolicy({nearEquivalenceBB:Number(form.elements.nearEquivalenceBB.value)});
-        const selected=scenarios.find(item=>item.id===selectedId);
+        const preparedScenarios=normalizeScenarios({ranges:scenarios[0].ranges,scenarios,activeScenarioId:selectedId});
+        const selected=preparedScenarios.find(item=>item.id===selectedId);
+        if(form.elements.rememberRanges.checked){
+          if(!templateLibrary || !templates || root.theibsPlayersUI.getOwnerKey()!==templateOwner)throw Error('Reopen the study with a verified player library before saving templates.');
+          const approved=seats.filter(seat=>!seat.hero && !seat.folded).map(seat=>({playerId:seat.playerId,name:selected.name,
+            context:templates.contextFor(now.state,seat),range:selected.ranges.find(range=>range.seatId===seat.id),board:now.state.board,
+            handId:openedHand,revisionKey:now.state.revisionKey,scenarioId:selected.id,rationale:selected.rationaleBySeat[seat.id]}));
+          approved.forEach(item=>templates.create(item));
+          templateLibrary=templates.save(root.localStorage,templateOwner,approved,templateLibrary.revision);
+        }
         saveStudy({schemaVersion:1,handId:openedHand,notation:form.elements.notation.value,ranges:selected.ranges,sizing:selected.sizing,
-          comparisonPolicy,scenarios,activeScenarioId:selectedId},openedBinding,form.elements.compute.value);dialog.close();
+          comparisonPolicy,scenarios:preparedScenarios,activeScenarioId:selectedId},openedBinding,form.elements.compute.value);dialog.close();
       } catch (error) { dialogError(error.message); }
     };
     dialog.showModal();
