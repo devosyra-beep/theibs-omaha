@@ -14,6 +14,7 @@ const { importHands } = require('./src/hand-importer');
 const { readWorkspace, saveWorkspace } = require('./src/workspace-store');
 const analyzeInWorker = require('./src/analysis-worker');
 const multiway = require('./src/multiway-session');
+const simulation = require('./src/multiway-simulation').createService();
 const multiwayAssistant = require('./src/multiway-assistant');
 const playerProfiles = require('./src/player-profiles');
 const solverJobs = require('./src/multiway-strategy').createStrategyService({cacheDirectory:process.env.THEIBS_SOLVER_CACHE_PATH || path.join(__dirname,'data','solver-cache')});
@@ -421,6 +422,21 @@ const server = http.createServer(async (request, response) => {
       if (route === '/api/workspace') return json(response, 200, { status: 'OK', ...saveWorkspace(payload.workspace, payload.expectedRevision, userStoragePath(auth, 'workspace.json')) });
       if (route === '/api/analyze') return json(response, 200, await analyzeManual(payload, response, auth.user.id));
       if (route === '/api/equity') return json(response, 200, await priorityCalculation(()=>analyzeInWorker.equity(prepareOpponentOverrides(buildInput(payload)), response)));
+      if (route === '/api/simulation/start') return json(response,200,{status:'OK',session:simulation.start(auth.user.id,payload.config)});
+      if (route === '/api/simulation/state') return json(response,200,{status:'OK',session:simulation.read(auth.user.id,payload.id)});
+      if (route === '/api/simulation/step') return json(response,200,{status:'OK',session:simulation.mutate(auth.user.id,payload)});
+      if (route === '/api/simulation/next') return json(response,200,{status:'OK',...simulation.next(auth.user.id,payload)});
+      if (route === '/api/simulation/replay') return json(response,200,{status:'OK',...simulation.replay(auth.user.id,payload)});
+      if (route === '/api/simulation/release') {simulation.release(auth.user.id,payload.id);return json(response,200,{status:'OK'});}
+      if (route === '/api/simulation/input') return json(response,200,{status:'OK',input:simulation.evaluation(auth.user.id,payload.id,payload.revision,payload.chosenSize)});
+      if (route === '/api/simulation/analyze') {
+        const input=simulation.evaluation(auth.user.id,payload.id,payload.revision,payload.chosenSize);
+        const result=await analyzeManual({...input,analysisPhase:payload.analysisPhase==='PREVIEW'?'PREVIEW':'FINAL'},response,auth.user.id);
+        // The projection was frozen at request time; an obsolete evaluation is
+        // never attached to a newer simulation revision.
+        simulation.evaluation(auth.user.id,payload.id,payload.revision,payload.chosenSize);
+        return json(response,200,result);
+      }
       if (route === '/api/multiway/start') return json(response, 200, multiway.start(payload.config, payload.previousMultiway, payload.expectedRevisionKey));
       if (route === '/api/multiway/solver/start') {
         const observed=multiway.envelope(payload.multiway);
@@ -585,5 +601,5 @@ if (require.main === module) {
   }
 }
 
-server.on('close',()=>{manualCache.clear();coachTickets.clear();closeHistoryService().catch(()=>{});solverJobs.close().catch(()=>{});});
+server.on('close',()=>{simulation.close();manualCache.clear();coachTickets.clear();closeHistoryService().catch(()=>{});solverJobs.close().catch(()=>{});});
 module.exports = { server, buildInput, userStoragePath };

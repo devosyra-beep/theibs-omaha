@@ -998,10 +998,11 @@ function renderResult(data, street) {
   }
   function showView(view, save = true) {
     if (view !== 'analyze') cancelProfileComparison();
-    if (!['analyze', 'train', 'history', 'players'].includes(view)) return;
+    if (!['analyze', 'train', 'history', 'players', 'simulation'].includes(view)) return;
     if(view!=='analyze'&&simpleSeatDialog.open)simpleSeatDialog.close();
     const changed = view !== activeView;
     if (changed) {
+      if(activeView==='simulation')window.TheibsSimulationUI?.leave();
       multiwayRevision++; inputRevision++;
       clearTimeout(multiwayCardTimer); clearTimeout(analysisTimer);
       analysisController?.abort(); analysisQueued=false;
@@ -1013,16 +1014,17 @@ function renderResult(data, street) {
     $('#new-hand').setAttribute('aria-label',newHandLabel.replace(/^\+\s*/,''));
     $('#new-hand').title=view==='analyze'?'New game · shortcut: apostrophe':'New hand';
     $('.analysis-rail').classList.toggle('hidden', view !== 'analyze');
-    ['analyze', 'train', 'history', 'players'].forEach((name) => document.getElementById(`${name}-workspace`).classList.toggle('hidden', name !== view));
+    ['analyze', 'train', 'history', 'players', 'simulation'].forEach((name) => document.getElementById(`${name}-workspace`).classList.toggle('hidden', name !== view));
     document.querySelectorAll('.nav-tab').forEach((button) => {
       const selected = button.dataset.view === view; button.classList.toggle('active', selected);
       if (selected) button.setAttribute('aria-current', 'page'); else button.removeAttribute('aria-current');
     });
-    $('#view-title').textContent = { analyze: 'Hand analysis', train: 'Practice & review', history: 'Training history', players: 'Players' }[view];
+    $('#view-title').textContent = { analyze: 'Hand analysis', train: 'Practice & review', history: 'Training history', players: 'Players', simulation: 'Simulation' }[view];
     syncMultiwayBoardKeyboard();
     if (view === 'history') renderHistory();
     if (view === 'players') window.theibsPlayersUI?.render();
     if (view === 'train') renderTrainingSession();
+    if (view === 'simulation') window.TheibsSimulationUI?.enter();
     if (save) scheduleSave();
     if(changed&&view==='analyze')scheduleAnalysis();
   }
@@ -1289,6 +1291,7 @@ function renderResult(data, street) {
     if(browserMultiwayOwner)browserMultiwayClient?.clearOwner?.(browserMultiwayOwner);
     browserMultiwayOwner=null;
     window.theibsPlayersUI?.clearOwner?.();
+    window.TheibsSimulationUI?.clearOwner();
     if(loaded)invalidateAnalysis();
   });
   form.addEventListener('input', (event) => {
@@ -1338,7 +1341,7 @@ function renderResult(data, street) {
     cards.select(({ PREFLOP: 0, FLOP: cards.state.count, TURN: cards.state.count + 3, RIVER: cards.state.count + 4 })[button.dataset.street]);
     toast(`Selected input: ${streetName(button.dataset.street)}. The analyzed street is defined by the completed board.`);
   }));
-  $('#new-hand').addEventListener('click', () => { if (activeView === 'train') startTraining(); else { showView('analyze'); newAnalysisHand(true, true); } });
+  $('#new-hand').addEventListener('click', () => { if (activeView === 'simulation') window.TheibsSimulationUI.configure(); else if (activeView === 'train') startTraining(); else { showView('analyze'); newAnalysisHand(true, true); } });
   $('#clear').addEventListener('click', () => newAnalysisHand());
   // A modifier is to shortcut only on release, if it was never part of to chord.
   const heldHandKeys=new Set();let soloHandShift=null;
@@ -1467,5 +1470,6 @@ function renderResult(data, street) {
   },getContext:()=>({multiway,state:multiwayState})});
    window.theibsOpponentInputs.init({getContext:()=>({mode:multiway?'MULTIWAY':'SIMPLE',variant:`PLO${cards.state.count}_HIGH`,count:cards.state.count,position:multiway?multiway.config.heroPosition:value('position'),busy:multiwayBusy,players:multiwayState&&multiway?multiwayState.players.filter(p=>!p.hero).map((p,index)=>({seatId:p.id,label:`OPP. ${index+1} · ${p.position}`,folded:p.folded})):Array.from({length:simpleSeatCount()},(_,seatId)=>({seatId,label:`OPP. ${seatId+1}`,folded:simpleFoldedSeats.has(seatId)}))}),onChange:()=>{invalidateAnalysis();scheduleSave();}});
   updateTableContext(); renderMultiway();renderStreetCards(); renderCharts(); quickAction(null); updateBoardHelp(); renderTrainingSession();
+   window.TheibsSimulationUI.init({request:requestJson,getOwner:()=>window.theibsPlayersUI?.getOwnerKey?.()});
    window.theibsApp = { ready: initialize(), getState: () => ({ activeView, analysisBusy, trainingBusy, lastAnalysis, trainingSession, multiway,multiwayState,multiwayAnalysis,multiwayBusy,simpleFoldedSeats:[...simpleFoldedSeats],snapshots: [...snapshots], saveBusy, saveDirty, saveBlocked }), flushSave, showView, requestJson, getAnalysisInput: buildAnalysisPayload, getVoiceContext: () => ({ activeView, inputRevision, multiwayRevision, loaded, session: window.theibsVoiceSessionContext?.(), accessVisible: !document.getElementById('app-shell').hidden && !document.getElementById('app-shell').inert }), renderCoachAnswer };
 })();

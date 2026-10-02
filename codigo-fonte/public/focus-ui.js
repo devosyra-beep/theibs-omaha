@@ -8,6 +8,7 @@
     target:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
     history:'<path d="M3 10a9 9 0 1 1 2 8M3 4v6h6m3-3v5l3 2"/>',
     players:'<circle cx="12" cy="8" r="3"/><path d="M5 21v-2a7 7 0 0 1 14 0v2M4 5h3m10 0h3"/>',
+    simulation:'<rect x="3" y="3" width="18" height="18" rx="4"/><path d="m10 8 6 4-6 4z"/>',
     settings:'<path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="3" fill="var(--background)"/><circle cx="15" cy="17" r="3" fill="var(--background)"/>',
     calculation:'<rect x="5" y="2" width="14" height="20" rx="2"/><path d="M8 6h8M8 11h1m6 0h1m-8 4h1m6 0h1m-8 4h1m6 0h1"/>',
     assistant:'<path d="M20 11V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h2v4l5-4h2m4-5v8m-4-4h8"/>',
@@ -54,7 +55,7 @@
     }
   });
   header.append($('.brand'),mobileNavToggle,toggle);rail.prepend(header);
-  for(const [view,icon,label]of [['analyze','cards','Analyze'],['train','target','Train'],['history','history','History'],['players','players','Players']]){
+  for(const [view,icon,label]of [['analyze','cards','Analyze'],['train','target','Train'],['history','history','History'],['players','players','Players'],['simulation','simulation','Simulation']]){
     const button=$(`.nav-tab[data-view="${view}"]`);button.innerHTML=svg(icon)+`<span class="nav-label">${label}</span>`;button.title=label;button.setAttribute('aria-label',label);
   }
   const railWidth=$('#analysis-rail-width'), secondary=$('#analysis-secondary-expanded');
