@@ -45,6 +45,7 @@
   FIELD_IDS.push('study-mode','study-hero-contribution','study-min-raise','study-min-bet','study-accept',...Array.from({length:9},(_,i)=>['study-contribution-'+i,'study-probability-'+i]).flat());
   let activeView = 'analyze', inputRevision = 0, analysisBusy = false, trainingBusy = false;
   let browserMultiwayClient = null, browserMultiwayOwner = null;
+  let profileComparison = null, profileComparisonController = null, profileComparisonClient = null;
   let lastAnalysis = null, trainingSession = null, trainingDecisions = [], replayGeneration = 0;
   let loaded = false, revision = 0, saveTimer = null, saveBusy = false, saveDirty = false, saveBlocked = false;
   let legacyHandFlow = null;
@@ -158,7 +159,7 @@
     document.body.dataset.multiwayBusy=String(multiwayBusy);
     for(const id of ['hero-slots','card-grid'])document.getElementById(id).inert=multiwayBusy;
     window.theibsMultiwayUI.render({enabled:!!multiway,state:multiwayState,config:multiway?.config,busy:multiwayBusy||multiwayCardSyncPending,heroDraftReady,
-      analysis:lastAnalysis?.data || null,analysisBusy,decisionFeedback:multiwayDecisionFeedback});
+      analysis:lastAnalysis?.data || null,analysisBusy,decisionFeedback:multiwayDecisionFeedback,profileComparison});
     syncMultiwayBoardKeyboard();
     cards.render();
     placeAnalysisFeedback();
@@ -692,6 +693,7 @@ function renderResult(data, street) {
   }
   document.addEventListener('theibs:players-backup-restored',()=>{invalidateAnalysis();});
   function invalidateAnalysis() {
+    cancelProfileComparison();
     inputRevision += 1; lastAnalysis = null; inputChangedAt = performance.now();
     window.TheibsMultiwaySolverUI?.invalidate?.();
     if(multiway)renderMultiway();
@@ -770,12 +772,51 @@ function renderResult(data, street) {
       // The returned interval and preliminary label expose any precision loss.
       samplingMode:'ADAPTIVE',adaptiveBudget:{timeBudgetMs:1700},seed:value('seed')||'42'};
   }
+  function cancelProfileComparison() {
+    profileComparisonController?.abort(); profileComparisonController = null;
+    profileComparisonClient?.close?.(); profileComparisonClient = null; profileComparison = null;
+  }
+  async function comparePlayerProfiles() {
+    if (analysisBusy || multiwayBusy || profileComparisonController || !multiway || !lastAnalysis?.data?.multiwayEvaluation) return;
+    if (['QUEUED','BUILDING','REFINING'].includes(window.TheibsMultiwaySolverUI?.getState?.().phase)) {
+      profileComparison = { phase:'UNAVAILABLE', reason:'Wait for the active river study before comparing profiles.' }; renderMultiway(); return;
+    }
+    const helper = window.TheibsPlayerDecisionReview, payload = structuredClone(lastAnalysis.input), baseline = structuredClone(lastAnalysis.data);
+    const handId = multiway.handId, revisionKey = multiwayState.revisionKey, ownerKey = window.theibsPlayersUI.getOwnerKey(), revision = inputRevision;
+    payload.multiwayEvaluation.revisionKey = revisionKey;
+    const current = () => revision === inputRevision && handId === multiway?.handId && revisionKey === multiwayState?.revisionKey &&
+      ownerKey === window.theibsPlayersUI?.getOwnerKey?.() && activeView === 'analyze' && !window.theibsVoiceSessionContext?.().expired;
+    const controller = profileComparisonController = new AbortController();
+    profileComparison = { phase:'RUNNING' }; renderMultiway();
+    let timer;
+    try {
+      await window.theibsAuth?.ensureSession?.();
+      if (!current() || controller.signal.aborted) return;
+      if (!Object.entries(payload.multiwayEvaluation.profileSnapshot.players).some(([id,player]) => !id.startsWith('hero_') && player.observations > 0)) {
+        profileComparison = { phase:'UNAVAILABLE', reason:'No earlier recorded opponent actions. The current profiles use the reference prior.' }; return;
+      }
+      const reference = helper.referencePayload(payload);
+      const client = profileComparisonClient = window.TheibsBrowserMultiwayClient.create();
+      if (!client.supported) throw Error('Profile comparison requires Browser compute on this device. The main EV remains available.');
+      timer = setTimeout(() => controller.abort(),2800);
+      const result = await client.analyze(reference,{ phase:'FINAL', signal:controller.signal, owner:ownerKey });
+      if (!current() || controller.signal.aborted) return;
+      const report = helper.compare(payload,baseline,result);
+      profileComparison = report.status === 'READY' ? { phase:'READY', report } : { phase:'UNAVAILABLE', reason:report.reason || 'No comparable sampled EV estimates.' };
+    } catch (error) {
+      if (current()) profileComparison = { phase:'UNAVAILABLE', reason:controller.signal.aborted ? 'Comparison time limit reached. The main EV is unchanged.' : error.message };
+    } finally {
+      clearTimeout(timer);
+      if (profileComparisonController === controller) { profileComparisonController = null; profileComparisonClient?.close?.(); profileComparisonClient = null; if (current()) renderMultiway(); }
+    }
+  }
   async function analyze(event) {
     event?.preventDefault();
     const entryView=activeView, entryRevision=inputRevision;
     try { await window.theibsAuth?.ensureSession?.(); } catch(error) { if(entryView===activeView&&entryRevision===inputRevision)quickAction({status:'ERROR',reason:error.message}); return; }
     if(entryView!==activeView||entryRevision!==inputRevision||activeView!=='analyze')return;
     if (analysisBusy) {analysisQueued=true;return;}
+    cancelProfileComparison();
     let payload;
     try { payload = multiway?buildAnalysisPayload():buildQuickEquityPayload(); if(payload.multiwayEvaluation)payload=structuredClone(payload); }
     catch (error) { const data = { status: 'NO_DECISION', reason: error.message }; renderResult(data, currentStreet()); quickAction(data); cards.announce(error.message, true); return; }
@@ -956,6 +997,7 @@ function renderResult(data, street) {
     quickAction(null); scheduleSave();
   }
   function showView(view, save = true) {
+    if (view !== 'analyze') cancelProfileComparison();
     if (!['analyze', 'train', 'history', 'players'].includes(view)) return;
     if(view!=='analyze'&&simpleSeatDialog.open)simpleSeatDialog.close();
     const changed = view !== activeView;
@@ -1243,7 +1285,7 @@ function renderResult(data, street) {
   document.addEventListener('theibs:voice-session-changed',()=>{
     multiwayRevision++;clearTimeout(multiwayCardTimer);clearTimeout(saveTimer);
     saveDirty=false;
-    analysisController?.abort();cancelCoach();
+    analysisController?.abort();cancelProfileComparison();cancelCoach();
     if(browserMultiwayOwner)browserMultiwayClient?.clearOwner?.(browserMultiwayOwner);
     browserMultiwayOwner=null;
     window.theibsPlayersUI?.clearOwner?.();
@@ -1402,6 +1444,7 @@ function renderResult(data, street) {
     previewSequence:previewMultiwaySequence,
     batchSequence:batchMultiwaySequence,
     evaluationChanged:()=>{invalidateAnalysis();scheduleSave();},
+    profileComparison:comparePlayerProfiles,
     playerInsights:({playerId})=>{
       const snapshot=window.theibsPlayersUI?.profileSnapshot(multiway);
       if(!snapshot || !snapshot.players?.[playerId])return;

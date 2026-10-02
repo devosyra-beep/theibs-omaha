@@ -293,6 +293,13 @@
     const runtimeNotice=view.analysis?.performance?.runtimeReason ? `<p class="mw-ev-limit" role="status">${esc(view.analysis.performance.runtimeReason)}</p>` : '';
     const solverPending = ['QUEUED','BUILDING','REFINING'].includes(solverJob?.phase) ? '<p class="mw-ev-limit" role="status">River study refining · current table uses heuristic EV.</p>' : '';
     host.innerHTML = `<div class="mw-ev-heading"><strong>Decision EV</strong><span class="mw-ev-badge" data-status="${decision.stage.toLowerCase()}">${badge}</span></div><p class="mw-ev-context">${pot} · ${price} · ${decision.bigBlind ? `1 bb = ${money(decision.bigBlind)} chips` : 'Big blind unavailable'}</p><table class="mw-ev-table"><thead><tr><th scope="col">Action</th><th scope="col">EV · bb</th><th scope="col">Below leader · bb</th></tr></thead><tbody>${rows}</tbody></table><div class="mw-ev-conclusion">${leader}${gap}</div>${runtimeNotice}${refinementStatus}${solverPending}${needsRake ? '<button type="button" class="ghost-button" data-mw-rake>Set fee basis</button>' : ''}${decision.missingLegalActions.length && decision.modeledCount > 1 ? '<p class="mw-ev-limit">Some legal actions are not modeled; no overall best action.</p>' : ''}<details class="mw-ev-details"${priorDetails ? ' open' : ''}><summary>Methods & limits</summary><button type="button" class="text-button" data-mw-rake>Room fees · optional</button>${solverControls()}<ul>${details}</ul></details>`;
+    if (typeof options.handlers?.profileComparison === 'function') {
+      const comparison = view.profileComparison || {}, report = comparison.report;
+      const ready = !view.analysisBusy && !busy() && decision.estimateCount > 0 && comparison.phase !== 'RUNNING';
+      const comparisonRows = (report?.rows || []).map(row => `<tr><th scope="row">${esc(ACTIONS[row.action]?.label || row.action)}${row.size === null ? '' : ` to ${money(row.size)}`}</th><td>${row.profileEVBB === null ? '—' : bb(row.profileEVBB)}</td><td>${row.referenceEVBB === null ? '—' : bb(row.referenceEVBB)}</td><td>${row.changeBB === null ? '—' : bb(row.changeBB)}</td></tr>`).join('');
+      host.querySelector('.mw-ev-details').insertAdjacentHTML('beforeend', `<section class="mw-profile-review" aria-label="Player profile sensitivity"><button type="button" class="ghost-button" data-mw-profile-compare${ready ? '' : ' disabled'}>${comparison.phase === 'RUNNING' ? 'Comparing profiles…' : 'Compare player profiles'}</button><p role="status">${esc(comparison.reason || (report ? 'HEURISTIC · model sensitivity, not a certified EV gain.' : 'Compare saved player evidence with the reference policy for this decision.'))}</p>${report ? `<table class="mw-ev-table"><thead><tr><th>Action</th><th>Profiles · bb</th><th>Reference · bb</th><th>Change · bb</th></tr></thead><tbody>${comparisonRows}</tbody></table><p>Same decision, fees, declared card priors and sizes. Profiles affect responses and action-history conditioning; the resulting card distributions can differ. Numerical sampling and profile uncertainty remain. This does not measure the gain of an adapted strategy against a fixed opponent.</p><p>Samples: profiles ${money(report.samples.profile)}, reference ${money(report.samples.reference)}. Reference compute: ${money(report.elapsedMs.reference)} ms.</p>` : ''}</section>`);
+      if (report) host.querySelector('.mw-profile-review table').insertAdjacentHTML('beforebegin', `<p>${money(report.priorRecordedActions)} recorded opponent actions before this hand, across separate contexts. Point estimates can change with sparse evidence or sampling; a changed leader is not certified superiority.</p>`);
+    }
   }
   function refreshDecisionFeedback() {
     const host = $('#mw-decision-feedback'), result = view.decisionFeedback;
@@ -341,11 +348,23 @@
     const count = Number($('#mw-player-count').value);
     const saved = new Map([...list.querySelectorAll('[data-mw-assign]')].map(node => [Number(node.dataset.mwAssign),node.value]));
     const known = window.theibsPlayersUI?.list?.() || [];
+    const hero = POSITIONS[count].indexOf($('#mw-hero-position').value);
     list.innerHTML = Array.from({length:count-1},(_,index) => {
       const seat = index+1;
-      return `<label>A${seat}<select data-mw-assign="${seat}"><option value="">New unknown player</option>${known.map(item=>`<option value="${esc(item.playerId)}">${esc(item.nickname)} · ${esc(item.playerId.slice(-6))}</option>`).join('')}</select></label>`;
+      return `<label>A${seat} · ${esc(POSITIONS[count][(hero+seat)%count])}<select data-mw-assign="${seat}"><option value="">New unknown player</option>${known.map(item=>`<option value="${esc(item.playerId)}">${esc(item.nickname)} · ${esc(item.playerId.slice(-6))}</option>`).join('')}</select><small data-mw-player-evidence="${seat}"></small></label>`;
     }).join('');
     for (const node of list.querySelectorAll('[data-mw-assign]')) node.value = saved.get(Number(node.dataset.mwAssign)) || '';
+    const current = window.TheibsPlayerDecisionReview?.currentRoster(view.config, view.state?.heroId, known, count);
+    $('#mw-keep-players').hidden = setupPurpose !== 'new-game' || !view.enabled;
+    $('#mw-keep-players').disabled = !current;
+    updateAssignmentEvidence(known);
+  }
+  function updateAssignmentEvidence(players = window.theibsPlayersUI?.list?.() || []) {
+    const known = new Map(players.map(item => [item.playerId,item]));
+    for (const node of $('#mw-assignment-grid').querySelectorAll('[data-mw-assign]')) {
+      const item = known.get(node.value), evidence = $(`[data-mw-player-evidence="${node.dataset.mwAssign}"]`);
+      evidence.textContent = item ? `${item.observations} recorded ${item.observations === 1 ? 'action' : 'actions'} · ${item.handCount} ${item.handCount === 1 ? 'hand' : 'hands'}` : 'Separate profile · no recorded actions';
+    }
   }
   function fillSetup(force = false) {
     if (!initialized || setupDirty && !force) return;
@@ -403,6 +422,7 @@
     setupPurpose = newGame ? 'new-game' : forNextHand ? 'next' : 'activate';
     if (newGame) for (const node of $('#mw-assignment-grid').querySelectorAll('[data-mw-assign]')) node.value = '';
     setupDirty = false; fillSetup(true);
+    $('#mw-assignments').open = setupPurpose !== 'next';
     $('#mw-setup-dialog .multiway-dialog-head h2').textContent = newGame ? 'New game' : forNextHand ? 'Next hand setup' : 'Set up Multiway';
     $('#mw-start').textContent = newGame ? 'Start new game' : forNextHand ? 'Save for next hand' : 'Start Multiway';
     const settings = $('#settings-dialog'); if (settings?.open) settings.close();
@@ -757,6 +777,17 @@
     setupHost.innerHTML = `<div class="mw-quick-setup"><div><strong>Multiway <span id="mw-setup-status" class="mw-chip">Off</span></strong><small id="mw-setup-summary">Configure players, position, blinds and stacks</small></div><div class="mw-setup-switches"><button id="mw-setup-open" type="button" class="ghost-button">Setup</button><button id="mw-toggle" type="button" class="ghost-button" aria-pressed="false">Turn on Multiway</button></div></div><button id="mw-exit" type="button" class="text-button" hidden>Return to simple mode</button><p id="mw-quick-error" class="multiway-error" role="alert" hidden></p>`;
     setupDialog = dialog('mw-setup-dialog', 'Set up Multiway', `<div class="mw-setup-fields"><p class="mw-setup-intro" id="mw-start-note"></p><div class="mw-config-grid"><label>Players, including you<select id="mw-player-count" required></select></label><label>Your position<select id="mw-hero-position" required></select></label><label>Small blind<input id="mw-small-blind" type="text" inputmode="decimal" autocomplete="off" required></label><label>Big blind<input id="mw-big-blind" type="text" inputmode="decimal" autocomplete="off" required></label><label>Starting stack per player<input id="mw-starting-stack" type="text" inputmode="decimal" autocomplete="off" required></label></div><details class="mw-assignments"><summary>Advanced calculation options</summary><div class="mw-config-grid"><label>Room fees<select id="mw-rake-mode"><option value="GROSS">Before fees · default</option><option value="NO_RAKE">No room fee</option><option value="FIXED">Fixed room fee in chips</option></select></label><label id="mw-rake-fixed-row" hidden>Fixed room fee · chips<input id="mw-rake-fixed" type="text" inputmode="decimal" autocomplete="off"></label></div></details><details id="mw-assignments" class="mw-assignments"><summary>Assign saved players to seats</summary><div id="mw-assignment-grid"></div></details><div class="mw-setup-actions"><button id="mw-start" type="button" class="primary-button">Start Multiway</button></div><p id="multiway-setup-error" class="multiway-error" role="alert" hidden></p></div>`);
     setupDialog.setAttribute('aria-labelledby', 'mw-setup-title');
+    $('#mw-assignments summary').textContent = 'Players & learning';
+    $('#mw-assignment-grid').insertAdjacentHTML('beforebegin', '<div class="mw-roster-actions"><button type="button" id="mw-keep-players" class="ghost-button" hidden>Use current players</button><button type="button" id="mw-fresh-players" class="text-button">Use new players</button></div><p class="micro">Saved players keep their recorded history. Unknown players get separate profiles.</p>');
+    $('#mw-keep-players').onclick = () => {
+      const roster = window.TheibsPlayerDecisionReview.currentRoster(view.config,view.state?.heroId,window.theibsPlayersUI?.list?.() || [],Number($('#mw-player-count').value));
+      if (!roster) return;
+      for (const node of $('#mw-assignment-grid').querySelectorAll('[data-mw-assign]')) node.value = roster[Number(node.dataset.mwAssign)-1];
+      setupDirty = true; updateAssignmentEvidence();
+    };
+    $('#mw-fresh-players').onclick = () => { for (const node of $('#mw-assignment-grid').querySelectorAll('[data-mw-assign]')) node.value = ''; setupDirty = true; updateAssignmentEvidence(); };
+    $('#mw-assignment-grid').addEventListener('change', () => { setupDirty = true; updateAssignmentEvidence(); });
+    $('#mw-hero-position').addEventListener('change',renderAssignments);
     setupDialog.querySelector('h2').id = 'mw-setup-title';
     controlsHost.classList.add('multiway-controls'); controlsHost.hidden = true;
     controlsHost.innerHTML = `<div class="mw-control-heading"><div class="mw-turn-context"><strong id="mw-actor"></strong></div><span class="mw-call-amount">To call <b id="mw-to-call"></b></span><button id="mw-undo" type="button" class="text-button" title="Undo the last confirmed event · Ctrl+Z">↶ Undo</button></div><div id="mw-action-stage" class="mw-action-stage"><div id="mw-actions" class="mw-action-row">${COMMANDS.map(item => `<button type="button" data-mw-command="${item.id}" data-mw-action="" disabled title="${item.key === ',' ? 'COMMA' : item.key === '.' ? 'PERIOD' : 'SEMICOLON'}"><kbd>${item.key}</kbd><span>${item.id === 'passive' ? 'Check / Call' : item.id === 'aggressive' ? 'Bet / Raise' : 'Fold'}</span></button>`).join('')}</div><div id="mw-inline-size" class="mw-inline-size" hidden><label for="mw-size" id="mw-size-label">Total this street</label><input id="mw-size" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" required><button id="mw-pot-size" type="button" class="ghost-button">Pot</button><button id="mw-allin-size" type="button" class="ghost-button">All-in</button><button id="mw-size-confirm" type="button" class="primary-button">Confirm</button><button id="mw-size-cancel" type="button" class="text-button" aria-label="Cancel amount entry">×</button></div></div><p class="mw-action-hint" id="mw-size-limits"></p><p class="mw-action-hint" id="mw-size-cost" role="status" aria-live="polite"></p><section id="mw-decision-ev" class="mw-decision-ev" aria-label="Decision EV by legal action" hidden></section><p id="mw-decision-feedback" class="mw-decision-feedback" role="status" hidden></p><p id="mw-board-prompt" class="mw-board-prompt" role="status" aria-live="polite" hidden></p><p id="multiway-error" class="multiway-error" role="alert" hidden></p><details id="mw-history"><summary>Recent actions</summary><ol id="mw-history-list"></ol></details>`;
@@ -774,6 +805,7 @@
     rakeDialog = dialog('mw-rake-dialog', 'Room fees · optional', '<form id="mw-current-rake-form"><label>Calculation basis<select id="mw-current-rake-mode"><option value="GROSS">Before fees · default</option><option value="NO_RAKE">No room fee</option><option value="FIXED">Fixed room fee in chips</option></select></label><label id="mw-current-rake-row" hidden>Fixed room fee · chips<input id="mw-current-rake-amount" type="text" inputmode="decimal" autocomplete="off"></label><p class="micro">Calculation assumption only. Previously recorded decisions and actual chip balances stay unchanged.</p><p id="mw-current-rake-error" class="multiway-error" role="alert" hidden></p><button type="submit" class="primary-button">Apply to current calculation</button></form>');
     let rakeEditorToken = null;
     $('#mw-decision-ev').addEventListener('click', event => {
+      if (event.target.closest('[data-mw-profile-compare]')) { void options.handlers?.profileComparison?.(); return; }
       if (!event.target.closest('[data-mw-rake]') || busy()) return;
       rakeEditorToken = activeToken();
       $('#mw-current-rake-mode').value = rakeChoice.mode;

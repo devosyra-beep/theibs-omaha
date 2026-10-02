@@ -15,6 +15,13 @@ body[data-multiway=on] .mw-chip { color:var(--primary); border-color:var(--prima
 .mw-config-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
 .mw-config-grid label { display:grid; gap:7px; font-size:14px; }
 .mw-config-grid input,.mw-config-grid select { width:100%; min-width:0; }
+.mw-roster-actions { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:12px 0; }
+#mw-assignment-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr)); gap:12px; margin:12px 0; }
+#mw-assignment-grid label { display:grid; gap:6px; min-width:0; font-size:14px; }
+#mw-assignment-grid select { width:100%; min-width:0; }
+#mw-assignment-grid small { color:var(--muted); font-size:12px; line-height:1.4; }
+.mw-profile-review { margin-top:12px; }
+.mw-profile-review p { font-size:13px; line-height:1.5; color:var(--muted); }
 #mw-start-note { color:var(--muted); font-size:13px; line-height:1.5; margin:13px 0; }
 #mw-position-prompt { margin:12px 0 0; padding:10px 12px; border:1px solid #d6ac4688; border-radius:8px; background:#f6d36f12; color:#f6d36f; font-size:13px; line-height:1.4; }
 .mw-setup-actions { display:flex; flex-wrap:wrap; gap:12px; align-items:center; }

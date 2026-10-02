@@ -114,6 +114,21 @@
     'Multiple actions in one hand are correlated. These descriptive scores do not establish calibration, future performance, card ranges, EV or profit.',
     'Later shown cards, manual notes and outcomes do not enter these forecasts.'
   ];
+  function archivedOpportunities(hand) {
+    const archive = hand.archive;
+    if (!archive || archive.multiway?.handId !== hand.handId) return false;
+    if (archive.state?.phase === 'FINISHED') return true;
+    // Fast continuation may archive an unfinished ledger. Its confirmed action
+    // forecasts remain measurable without inventing payouts or later actions.
+    if (!['BETTING','WAIT_BOARD','SHOWDOWN'].includes(archive.state?.phase) ||
+        !['NEW_GAME','PREVIOUS_STARTING_STACK_ESTIMATE','USER_CONFIRMED_STACKS'].includes(archive.reconciliation?.source) ||
+        archive.reconciliation.resultPending !== true || !Array.isArray(archive.multiway.events)) return false;
+    return hand.observations.every(observation => {
+      const event = archive.multiway.events[observation.eventIndex];
+      return event?.type === 'ACT' && event.actor === observation.seatId && event.action === observation.action &&
+        observation.id === `${hand.handId}:${event.eventId || event.originEventId || observation.eventIndex}`;
+    });
+  }
   function evaluatePrequential(input = {}) {
     const { hands, currentHandId = null, currentFrozenAt = null, playerIds } = object(input) ? input : {};
     const output = { version: VERSION, status: 'UNAVAILABLE', protocol: 'ORIGINAL_FROZEN_PRE_HAND_ACTION_FORECASTS',
@@ -147,7 +162,7 @@
           || new Set(hand.playerIds).size !== hand.playerIds.length || !Array.isArray(hand.observations)) { excludeHand(id, 'INVALID_HAND_RECORD'); continue; }
       if (id === currentHandId) { excludeHand(id, 'CURRENT_HAND_EXCLUDED'); continue; }
       if (handCounts.get(id) !== 1) { excludeHand(id, 'DUPLICATE_HAND_IDENTITY'); continue; }
-      if (!hand.archive || hand.archive.multiway?.handId !== id || hand.archive.state?.phase !== 'FINISHED') { excludeHand(id, 'HAND_NOT_ARCHIVED'); continue; }
+      if (!archivedOpportunities(hand)) { excludeHand(id, 'HAND_NOT_ARCHIVED'); continue; }
       const archivedAt = timestamp(hand.archive.archivedAt), frozenAt = timestamp(hand.profileSnapshot?.frozenAt);
       if (frozenAt === null || archivedAt === null || archivedAt < frozenAt) { excludeHand(id, 'INVALID_HAND_CHRONOLOGY'); continue; }
       if (cutoff !== null && (frozenAt >= cutoff || archivedAt >= cutoff)) { excludeHand(id, 'HAND_NOT_BEFORE_CURRENT_CUTOFF'); continue; }

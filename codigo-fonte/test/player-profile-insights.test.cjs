@@ -149,6 +149,19 @@ test('archive identity, chronology and exact frozen snapshot origin are necessar
     assert.equal(audit.metrics, null); assert.ok(audit.exclusions.some(row => row.reasonCode === reason));
   }
 });
+test('explicitly closed incomplete hands score only their archived confirmed opportunities, without payouts', () => {
+  const { hands } = history(['CALL']);
+  const partial = clone(hands[0]);
+  partial.archive.state.phase = 'BETTING';
+  partial.archive.reconciliation = { source:'NEW_GAME', resultPending:true };
+  partial.archive.multiway.events = [{type:'ACT',actor:0,action:'CALL',eventId:'action-1'}];
+  const audit = insights.evaluatePrequential(options([partial]));
+  assert.equal(audit.counts.forecasts,1); assert.equal(audit.status,'READY');
+  partial.archive.multiway.events[0].action = 'FOLD';
+  assert.equal(insights.evaluatePrequential(options([partial])).counts.forecasts,0);
+  partial.archive.multiway.events[0].action = 'CALL'; partial.archive.reconciliation.resultPending = false;
+  assert.equal(insights.evaluatePrequential(options([partial])).counts.forecasts,0);
+});
 
 test('duplicate, noncanonical, illegal and unconfirmed observations never get opportunistically counted', () => {
   const { hands } = history(['CALL']);
