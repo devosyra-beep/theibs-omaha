@@ -102,8 +102,8 @@
     },
     {
       "id": "src/multiway-evaluator.js",
-      "sha256": "6f3363bab15a63231f61c9d2594d7c30bbd0f3b32f70a9e7d4b2cd59d4cfd9c9",
-      "bytes": 29027
+      "sha256": "b116f99287801d93c6ad1ce13e777e554685e9d93481188090d9dd899c2ffcbd",
+      "bytes": 29329
     },
     {
       "id": "src/multiway-session.js",
@@ -162,5 +162,5 @@
   "cancellation": "HOST_WORKER_TERMINATE",
   "cache": "OWNER_BUILD_FULL_INPUT_COMPLETE_ONLY",
   "sourceNormalization": "LF",
-  "buildFingerprint": "3b5cf4e571091f5ea9f52da383298526bcaec5ef2f63714e8a150a8014eab25a"
+  "buildFingerprint": "672f4b168c7fe913e05c1d60ef10ca06c5fdebc614a58b002f99b822a1530aa0"
 }

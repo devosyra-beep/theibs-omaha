@@ -22,7 +22,10 @@ const round = value => Math.round(value * 100) / 100;
 const optionId = (action, size) => size == null ? action : `${action}:${Number(size).toFixed(2)}`;
 
 function candidatesFor(state, chosenSize) {
-  const actions = state.legal.actions;
+  // The observation ledger may retain an actual free fold. It is dominated by
+  // checking and is not a Hero decision alternative; keep historical replay and
+  // continuation policies intact, without evaluating/ranking this root option.
+  const actions = state.legal.actions.filter(action => action !== 'FOLD' || state.legal.toCall > 0);
   const candidates = actions.filter(action => !['BET', 'RAISE'].includes(action)).map(action => ({ action, size: null, optionId: action }));
   const aggression = actions.find(action => ['BET', 'RAISE'].includes(action));
   if (aggression) {

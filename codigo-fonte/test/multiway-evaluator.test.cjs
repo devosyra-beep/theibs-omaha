@@ -48,6 +48,34 @@ test('all legal sizing candidates including custom are modeled under declared co
   for(const item of result.ev.candidates) assert.ok(item.confidenceInterval95[0]<=item.ev&&item.confidenceInterval95[1]>=item.ev);
   assert.ok(result.multiwayEvaluation.elapsedMs<3000);
 });
+
+test('a free Hero decision evaluates Check and legal sizes, never a Fold reference', () => {
+  const input=river(), state=replay(input.config,input.events);
+  assert.equal(state.legal.toCall,0);
+  assert.ok(state.legal.actions.includes('FOLD'),'an observed free fold remains replayable');
+  assert.ok(candidatesFor(state).every(item=>item.action!=='FOLD'));
+  const result=evaluateMultiway(input);
+  assert.deepEqual(result.legalActions,['CHECK','BET']);
+  assert.equal(result.ev.actions.FOLD.status,'NOT_LEGAL');
+  assert.equal(result.ev.actions.FOLD.ev,null);
+  assert.ok(result.ev.candidates.every(item=>item.action!=='FOLD'));
+  assert.notEqual(result.ev.bestModeledAction,'FOLD');
+  assert.equal(result.ev.actions.CHECK.status,'MODELED');
+  assert.ok(Number.isFinite(result.ev.actions.CHECK.ev),'Check must be evaluated, not assigned zero');
+  const facing={...state,legal:{...state.legal,toCall:1,actions:['FOLD','CALL','RAISE']}};
+  assert.ok(candidatesFor(facing).some(item=>item.action==='FOLD'));
+});
+
+test('the big blind free option excludes Fold without inventing a Check EV on missing fee coverage',()=>{
+  const input=river();input.events=input.events.slice(0,1);delete input.assumeNoRake;
+  const state=replay(input.config,input.events);
+  assert.equal(state.legal.toCall,0);
+  assert.deepEqual([...new Set(candidatesFor(state).map(item=>item.action))],['CHECK','RAISE']);
+  const result=evaluateMultiway(input);
+  assert.ok(result.ev.candidates.every(item=>item.status==='NOT_MODELED' && item.ev===null));
+  assert.equal(result.ev.actions.FOLD.ev,null);
+  assert.equal(result.ev.bestModeledAction,null);
+});
 test('rake absence is null, never invented net EV; invalid size/range/context rejected', () => {
   const input=river();delete input.assumeNoRake;
   const result=evaluateMultiway(input); assert.ok(result.ev.candidates.filter(item=>item.action!=='FOLD').every(item=>item.status==='NOT_MODELED'&&item.ev===null));

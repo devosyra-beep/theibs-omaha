@@ -8,7 +8,7 @@
     CALL: { label: 'Call', past: 'called' }, BET: { label: 'Bet', past: 'bet' }, RAISE: { label: 'Raise', past: 'raised' }
   };
   const COMMANDS = [
-    { id: 'leave', key: ',', code: 'Comma', resolve: state => state?.legal?.actions?.includes('FOLD') ? 'FOLD' : null },
+    { id: 'leave', key: ',', code: 'Comma', resolve: state => state?.legal?.toCall > 0 && state?.legal?.actions?.includes('FOLD') ? 'FOLD' : null },
     { id: 'passive', key: '.', code: 'Period', resolve: state => state?.legal?.actions?.includes('CHECK') ? 'CHECK' : state?.legal?.actions?.includes('CALL') ? 'CALL' : null },
     { id: 'aggressive', key: ';', code: 'Semicolon', resolve: state => state?.legal?.actions?.includes('BET') ? 'BET' : state?.legal?.actions?.includes('RAISE') ? 'RAISE' : null }
   ];
@@ -74,8 +74,10 @@
     const refining = provisional && readiness.analysisBusy!==false && !refinement;
     const idle = !ev && !provisional && readiness.analysisBusy === false;
     const bigBlind = finite(ev?.bigBlind) && ev.bigBlind > 0 ? ev.bigBlind : finite(state.bigBlind) && state.bigBlind > 0 ? state.bigBlind : null;
-    const candidates = Array.isArray(ev?.candidates) ? ev.candidates.filter(item => state.legal?.actions?.includes(item.action)) : null;
-    const entries = candidates?.length ? candidates : (state.legal?.actions || []).map(action => ({ ...ev?.actions?.[action], action }));
+    const decisionActions = (state.legal?.actions || []).filter(action => action !== 'FOLD' || state.legal.toCall > 0);
+    const candidates = Array.isArray(ev?.candidates) ? ev.candidates.filter(item => decisionActions.includes(item.action)) : null;
+    const entries = candidates?.length ? candidates : decisionActions.map(action => ({ ...ev?.actions?.[action], action }));
+    const comparisonCurrent = !(state.legal?.toCall === 0 && (ev?.candidates?.some(item => item.action === 'FOLD') || ev?.actions?.FOLD?.status === 'MODELED'));
     const rows = entries.map(item => {
       const action = item.action;
       const modeled = item?.status === 'MODELED' && finite(item.ev);
@@ -84,7 +86,7 @@
         action, optionId: item?.optionId || action, size: finite(item?.size) ? item.size : null,
         status: !ev ? waitingCards || idle || provisional && !refining ? 'NOT_MODELED' : 'PENDING' : modeled ? 'MODELED' : 'NOT_MODELED',
         evBB: valueBB,
-        differenceBB: !provisional && modeled && ev?.decisionPrecision?.bestActionId && finite(item.differenceToBestModeledBB) ? item.differenceToBestModeledBB : null,
+        differenceBB: comparisonCurrent && !provisional && modeled && ev?.decisionPrecision?.bestActionId && finite(item.differenceToBestModeledBB) ? item.differenceToBestModeledBB : null,
         method: item?.method || item?.model || null,
         numericalQuality: item?.numericalQuality || null,
         numericalBounds: [item?.numericalBounds, item?.confidenceInterval95].find(bounds => Array.isArray(bounds) && bounds.length === 2 && bounds.every(finite)) || null,
@@ -104,14 +106,14 @@
       refinement,refining,
       comparisonStatus: ev?.comparisonStatus || null,
       modeledCount,estimateCount,foldReference,
-      bestModeledAction: !provisional && modeledCount && (!ev.decisionPrecision || ev.decisionPrecision.bestActionId) ? ev.bestModeledAction : null,
+      bestModeledAction: comparisonCurrent && !provisional && modeledCount && decisionActions.includes(ev.bestModeledAction) && (!ev.decisionPrecision || ev.decisionPrecision.bestActionId) ? ev.bestModeledAction : null,
       bestModeledSize: rows.find(row => row.optionId === ev?.bestModeledOptionId)?.size ?? null,
       finiteSizeGrid: Boolean(candidates?.length),
-      globalBestSupported: !provisional && ev?.globalBestSupported === true,
-      leaderConclusive: !provisional && ev?.decisionPrecision?.status === 'CONCLUSIVE' && ev.decisionPrecision.leaderConclusive === true,
-      precision: provisional ? null : ev?.decisionPrecision || null,
-      gapBestSecondBB: provisional ? null : finite(ev?.decisionPrecision?.deltaEVBB) ? ev.decisionPrecision.deltaEVBB : null,
-      missingLegalActions: Array.isArray(ev?.missingLegalActions) ? ev.missingLegalActions : [],
+      globalBestSupported: comparisonCurrent && !provisional && ev?.globalBestSupported === true,
+      leaderConclusive: comparisonCurrent && !provisional && ev?.decisionPrecision?.status === 'CONCLUSIVE' && ev.decisionPrecision.leaderConclusive === true,
+      precision: provisional || !comparisonCurrent ? null : ev?.decisionPrecision || null,
+      gapBestSecondBB: provisional || !comparisonCurrent ? null : finite(ev?.decisionPrecision?.deltaEVBB) ? ev.decisionPrecision.deltaEVBB : null,
+      missingLegalActions: Array.isArray(ev?.missingLegalActions) ? ev.missingLegalActions.filter(action => decisionActions.includes(action)) : [],
       assumptions: Array.isArray(ev?.assumptions) ? ev.assumptions : [],
       warnings: [...(Array.isArray(ev?.warnings) ? ev.warnings : []),
         ...(view.config?.stackEstimates?.some(Boolean) ? ['EV and legal sizes use estimated stacks carried from an unresolved hand. Payouts were not inferred.'] : [])],
@@ -217,16 +219,18 @@
     const reason = outcome?.status==='NEAR_EQUIVALENT' ? 'Full-prior commitment comparison.' : outcome?.status==='ESTIMATING' ? running?'Commitment bounds are still being estimated.':'Commitment comparison remains provisional; refinement is paused.' : outcome?.invalid ? 'Comparison outcome context unavailable.' : outcome?.reason || precisionReason(precision);
     const gapSummary=outcome?.status==='NEAR_EQUIVALENT' ? `Robust commitment difference: ${precise(outcome.robustWorstDifferenceBB)} bb` : `ΔEV · top two: ${gap===null?'unavailable':precise(gap)+' bb'}`;
     const comparisonDetails=outcome && !outcome.invalid ? `<p>Decision outcome: ${esc(outcome.status)}. Comparison policy: ${precise(policy.nearEquivalenceBB)} bb · FULL_PRIOR_COMMITMENT. Near-equivalence concerns ex-ante values across the full supplied prior. It does not imply equal EV for your current hand. Solver qualification and the legacy strict comparison (${esc(precision?.status)}) remain separate.</p><details><summary>Comparison diagnostics</summary><pre>${esc(JSON.stringify(outcome.diagnostics || {},null,2))}</pre></details>` : '';
-    const profileValues=rows.map(row=>row.evBB).filter(finite).sort((a,b)=>b-a),profileBest=profileValues[0];
-    const profileLeaders=rows.filter(row=>row.evBB===profileBest);
+    const decisionRows=rows.filter(row=>row.action!=='FOLD' || view.state.legal?.toCall>0);
+    const freeFoldExcluded=decisionRows.length!==rows.length;
+    const profileValues=decisionRows.map(row=>row.evBB).filter(finite).sort((a,b)=>b-a),profileBest=profileValues[0];
+    const profileLeaders=decisionRows.filter(row=>row.evBB===profileBest);
     const compactEV=value=>!finite(value)?'—':value!==0 && (Math.abs(value)<.001 || Math.abs(value)>=1000)?value.toExponential(1).replace('e+','e'):value.toLocaleString('en-US',{maximumFractionDigits:3});
     const compactMix=value=>!finite(value)?'—':value>0 && value<.001?'<0.1%':(100*value).toLocaleString('en-US',{maximumFractionDigits:1})+'%';
     const profileCell=(value,label,display)=>{const full=finite(value)?`${label}: ${String(value)}`:`${label}: unavailable`;return `<td title="${esc(full)}"><span aria-label="${esc(full)}">${esc(display)}</span></td>`;};
-    const primaryRows=rows.map(row=>{
-      const value=row.evBB,difference=commitment?finite(profileBest)&&finite(value)?profileBest-value:null:outcome?.status!=='NEAR_EQUIVALENT' && finite(best)&&finite(value)?best-value:null;
+    const primaryRows=decisionRows.map(row=>{
+      const value=row.evBB,difference=commitment || freeFoldExcluded?finite(profileBest)&&finite(value)?profileBest-value:null:outcome?.status!=='NEAR_EQUIVALENT' && finite(best)&&finite(value)?best-value:null;
       return `<tr><th scope="row">${esc(actionName(row))}</th>${profileCell(value,'Current-hand profile EV · bb',compactEV(value))}${profileCell(finite(row.frequency)?100*row.frequency:null,'Profile mix · percent',compactMix(row.frequency))}${profileCell(difference,'Below profile leader · bb',compactEV(difference))}</tr>`;
     }).join('');
-    const primaryConclusion=commitment?`<div class="mw-ev-conclusion">${esc(profileLeaders.length?`Current profile EV leader${profileLeaders.length>1?'s':''} · provisional: ${profileLeaders.map(actionName).join(', ')}`:'Current-hand profile estimates unavailable')}<span>Profile EV gap · top two: ${profileValues.length>1?precise(profileValues[0]-profileValues[1])+' bb':'unavailable'}</span><span>INCONCLUSIVE · Returned-profile estimates; commitment certificates do not bound your current-hand action EV.</span></div>`:`<div class="mw-ev-conclusion">${esc(leader)}<span>${gapSummary}</span><span>${outcome?esc(outcome.status):conclusive?'CONCLUSIVE':'INCONCLUSIVE'} · ${esc(reason)}</span></div>`;
+    const primaryConclusion=commitment || freeFoldExcluded?`<div class="mw-ev-conclusion">${esc(profileLeaders.length?`Current profile EV leader${profileLeaders.length>1?'s':''} · provisional: ${profileLeaders.map(actionName).join(', ')}`:'Current-hand profile estimates unavailable')}<span>Profile EV gap · top two: ${profileValues.length>1?precise(profileValues[0]-profileValues[1])+' bb':'unavailable'}</span><span>INCONCLUSIVE · Returned-profile estimates; commitment certificates do not bound your current-hand action EV.</span></div>`:`<div class="mw-ev-conclusion">${esc(leader)}<span>${gapSummary}</span><span>${outcome?esc(outcome.status):conclusive?'CONCLUSIVE':'INCONCLUSIVE'} · ${esc(reason)}</span></div>`;
     const commitments=commitment?`<details class="mw-solver-profile"><summary>Full-prior commitments</summary><p>Ex-ante range commitment values, separate from current-hand profile EV. Any certified leader or near-equivalence applies only to this full-prior comparison.</p><table class="mw-ev-table mw-ev-bounds"><thead><tr><th>Action</th><th>Range commitment · bb</th><th>Bounds · bb</th><th>Below leader · bb</th></tr></thead><tbody>${rowHtml}</tbody></table><div class="mw-ev-conclusion">${esc(leader)}<span>${gapSummary}</span><span>${outcome?esc(outcome.status):conclusive?'CONCLUSIVE':'INCONCLUSIVE'} · ${esc(reason)}</span></div>${comparisonDetails}</details>`:'';
     const actionDetails = commitment ? `<details><summary>Action bounds & computation</summary><p>The action is fixed only at your private information set. Both players may re-optimize elsewhere; all original ranges and hidden information are preserved. Values average over the entire supplied range, not only your current hand. No statistical confidence interval is inferred from NashConv.</p><p>Displayed values are rounded. Comparisons use the full-precision bounds.</p><ul>${rows.map(row=>{const b=boundFor(row);return `<li><strong>${esc(row.id)}</strong>: ${b?`estimate ${precise(b.estimateBB)} bb; lower ${precise(b.lowerBB)}, upper ${precise(b.upperBB)} bb; ${money(b.iterations)} iterations; ${precise(b.elapsedMs)} ms. Source: ${esc(b.origin)}. Version: ${esc(b.solverVersion)}.`:'Certified bounds pending.'}</li>`;}).join('')}</ul><p>Every comparison uses the same base state, ranges, fees, utility and complete declared tree. A candidate stops receiving focused refinement only after its upper bound is strictly below a rival’s lower bound with the numerical guard.</p></details>` : '';
     const costs = solved.metrics?.costs;
@@ -250,7 +254,7 @@
     if (!decision) return;
     const priorDetails = host.querySelector('details')?.open ?? (document.body.dataset.analysisSecondary === 'expanded');
     if (renderSolverDecision(host, priorDetails)) return;
-    const price = decision.toCall === null ? 'Call price unavailable' : `Call ${money(decision.toCall)}${decision.bigBlind ? ` (${bb(decision.toCall / decision.bigBlind)} bb)` : ''}`;
+    const price = decision.toCall === null ? 'Call price unavailable' : decision.toCall === 0 ? 'Check available' : `Call ${money(decision.toCall)}${decision.bigBlind ? ` (${bb(decision.toCall / decision.bigBlind)} bb)` : ''}`;
     const pot = (decision.potBeforeDecision === null ? 'Pot unavailable' : `Pot ${money(decision.potBeforeDecision)}`)+(decision.feeBasis==='BEFORE_FEES'?' · Before fees':'');
     const needsRake = decision.rows.some(row => row.missingInputs.some(text => /rake/i.test(text)));
     const badge = needsRake ? 'Fee basis required' : decision.stage === 'WAITING_CARDS' ? 'Add your cards' : decision.stage === 'IDLE' ? 'Not calculated' : decision.stage === 'PROVISIONAL' ? decision.estimateCount ? decision.refining ? 'HEURISTIC · refining' : 'HEURISTIC · preliminary' : decision.refining ? 'Calculating action EV' : 'No sampled EV estimate' : decision.stage === 'PENDING' ? 'Calculating' : decision.stage === 'NO_DECISION' ? 'No decision' : decision.stage === 'UNAVAILABLE' ? 'Calculation unavailable' : 'HEURISTIC';
@@ -509,6 +513,7 @@
     for (const command of COMMANDS) {
       const button = $(`[data-mw-command="${command.id}"]`), actionCode = resolveCommand(command);
       button.disabled = !actionCode; button.dataset.mwAction = actionCode || '';
+      button.hidden = command.id === 'leave' && state?.phase === 'BETTING' && state.legal?.toCall === 0;
       const fallback = command.id === 'passive' ? 'Check / Call' : command.id === 'aggressive' ? 'Bet / Raise' : 'Fold';
       button.querySelector('span').textContent = actionCode ? ACTIONS[actionCode].label + (actionCode === 'CALL' ? ' ' + money(state.legal.toCall) : '') : fallback;
       button.title = `${actionCode ? ACTIONS[actionCode].label : fallback} · ${command.key === ',' ? 'COMMA' : command.key === '.' ? 'PERIOD' : 'SEMICOLON'}`;

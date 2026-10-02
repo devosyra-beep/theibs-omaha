@@ -36,6 +36,20 @@ Archive backup/recovery accepts incomplete ledgers and preserves estimate flags,
 canonical revision hashes and the original result. No showdown result, hidden
 cards, win statistics or profit are manufactured to advance.
 
+## Free decisions
+
+When the call price is zero, the main controls and current-hand EV table offer
+Check and legal Bet/Raise sizes. Fold is omitted from contextual root evaluation
+and ranking; Check retains its evaluated continuation value, never an automatic
+zero. Comma does not record a free fold from the main controls. A positive call
+price restores Fold.
+
+The observation ledger still accepts a deliberately recorded free fold, keeping
+old hands and opponent evidence replayable. River solver trees, utilities,
+certificates and convergence metrics are unchanged. Its current-hand profile
+display omits the dominated free-fold row and computes that profile gap across
+the displayed alternatives; full-prior certificates remain separate in details.
+
 ## Validation
 
 Focused gates exercise active-hand reset, unresolved/all-in continuation,

@@ -182,6 +182,37 @@ function renderDecision(analysis, solverSnapshot = null, readiness = {}) {
   return host.innerHTML;
 }
 
+test('a free decision never shows Fold in loading, current estimates or stale free-fold comparisons',()=>{
+  const current=state();current.legal={actions:['FOLD','CHECK','BET'],toCall:0};
+  assert.deepEqual(Array.from(describe(current,null).rows,row=>row.action),['CHECK','BET']);
+  const analysis={status:'OK',analysisStage:'FINAL',observedState:{revisionKey:current.revisionKey},ev:{
+    comparisonComplete:true,bestModeledAction:'CHECK',decisionPrecision:{status:'INCONCLUSIVE',bestActionId:'CHECK',deltaEVBB:1},
+    actions:{FOLD:{status:'NOT_LEGAL',ev:null},CHECK:{status:'MODELED',ev:4,evBB:2},BET:{status:'MODELED',ev:2,evBB:1}}}};
+  const decision=describe(current,analysis);
+  assert.deepEqual(Array.from(decision.rows,row=>row.action),['CHECK','BET']);assert.equal(decision.bestModeledAction,'CHECK');
+  const html=renderDecision(analysis,null,{state:current});
+  assert.match(html,/Check available/);assert.doesNotMatch(html,/<span>Fold/);
+  analysis.ev.actions.FOLD={status:'MODELED',ev:0,evBB:0};analysis.ev.bestModeledAction='FOLD';
+  analysis.ev.decisionPrecision={status:'CONCLUSIVE',bestActionId:'FOLD',leaderConclusive:true,deltaEVBB:99};
+  const older=describe(current,analysis);assert.equal(older.bestModeledAction,null);assert.equal(older.leaderConclusive,false);
+  assert.equal(older.gapBestSecondBB,null);assert.equal(older.precision,null);
+  assert.ok(older.rows.every(row=>row.differenceBB===null));
+});
+
+test('a free solver profile hides Fold and computes the profile gap only across displayed options',()=>{
+  const current=state();current.legal={actions:['FOLD','CHECK','BET'],toCall:0};
+  const solver={revisionKey:current.revisionKey,status:'APPROXIMATE',actions:[
+    {id:'FOLD',action:'FOLD',evBB:0,frequency:0},
+    {id:'CHECK',action:'CHECK',evBB:-1,frequency:.5},{id:'BET:2',action:'BET',size:2,evBB:-2,frequency:.5}],
+    decisionPrecision:{status:'INCONCLUSIVE',bestActionId:'FOLD',deltaEVBB:1}};
+  const html=renderDecision(null,solver,{state:current});
+  const primary=html.split('<details class="mw-ev-details"')[0];
+  assert.doesNotMatch(primary,/<th scope="row">Fold/);
+  assert.match(primary,/Current profile EV leader · provisional: Check/);
+  assert.match(primary,/Profile EV gap · top two: 1 bb/);
+  assert.match(primary,/INCONCLUSIVE/);
+});
+
 test('rendered comparison gaps are positive shortfalls and remain separate from top-two uncertainty', () => {
   const analysis = { status: 'OK', analysisStage: 'FINAL', observedState: { revisionKey: 'hand-1:4' }, ev: {
     bigBlind: 2, bestModeledAction: 'CALL', comparisonComplete: true, globalBestSupported: false,
