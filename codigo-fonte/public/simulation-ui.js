@@ -5,6 +5,7 @@
   let host,request,getOwner,owner=null,session=null,analysis=null,active=false,busy=false,controller=null,client=null,generation=0;
   let reports=[],decisions=[],error='',timing=null,startedAt=0,restored=false,connection='CONNECTED',pendingIntent=null,chosenSize=null,recoveryId=null;
   let progress=T.practiceProgress();
+  let validation=null,batchScope='CURRENT',batchWorlds=128;
   const key=()=>`theibs.simulation.v1.${owner}`;
   const snapshot=()=>session?{id:session.id,revision:session.revision,owner,generation}:null;
   const current=stamp=>active && stamp && stamp.id===session?.id && stamp.revision===session?.revision && stamp.owner===owner && stamp.generation===generation;
@@ -14,7 +15,7 @@
   const heroTurn=()=>!session?.finished && session?.state.phase==='BETTING' && session.state.actor===session.state.heroId;
   const userTurn=()=>!session?.finished&&session?.state.phase==='BETTING'&&(heroTurn()||session.manualOpponents);
   const canContinue=()=>session?.state.players[session.state.heroId].stack>0&&session.state.players.filter(player=>player.stack>0).length>=2;
-  function cancel(){generation++;controller?.abort();controller=null;}
+  function cancel(){validation?.setAvailable(false);generation++;controller?.abort();controller=null;}
   function save(){
     if(!owner)return;
     try{reports=T.boundedHistory(reports);localStorage.setItem(key(),JSON.stringify({sessionId:session?.id||recoveryId||null,session,reports,decisions,pendingIntent,progress}));}
@@ -93,10 +94,40 @@
     const revealed=session.audit?.hands;
     return `<details class="sim-audit"><summary>Deal, opponents & audit</summary><p>Unfiltered random deal, committed before the first action. Bots follow the declared contextual reference policy using their own cards and the public board. This tests a modeled simulation, not real opponent accuracy or universal GTO.</p><p>Simulation never updates Players, real hand history, or Train. Sessions live for two hours in server memory and can expire on service restart.</p><p>Commitment <code>${esc(session.deal.commitment)}</code></p>${session.audit?`<p>Completed deal seed <code>${esc(session.audit.seed)}</code></p>`:'<p>The seed and hidden cards remain on the server until this hand ends.</p>'}${revealed?`<div class="sim-reveals">${session.state.players.map(player=>`<div><strong>${esc(player.name)} · ${esc(player.position)}</strong><div>${revealed[player.id].map(card=>E.canonicalCard(card,{small:true})).join('')}</div></div>`).join('')}<div><strong>Fixed runout</strong><div>${session.audit.runout.map(card=>E.canonicalCard(card,{small:true})).join('')}</div></div></div>`:''}${session.shownHands&&!revealed?`<div class="sim-reveals">${Object.entries(session.shownHands).map(([id,cards])=>`<div><strong>${esc(session.state.players[id].name)} · showdown</strong><div>${cards.map(card=>E.canonicalCard(card,{small:true})).join('')}</div></div>`).join('')}</div>`:''}<p>Shuffle: ${esc(session.deal.version)}. Export includes the seed, commitment and decision-time inputs for independent review.</p></details>`;
   }
+  function validationContexts(){
+    const items=[];
+    if(batchScope==='SAVED'){
+      for(const report of reports.filter(item=>!item.replayed))for(const item of report.decisions||[])items.push({record:item.publicInput,chosenSize:item.chosen?.size,label:`${item.publicInput?.config?.variant?.replace('_HIGH','')||'Omaha'} · ${item.street} · saved decision`});
+      if(!session?.replayed)for(const item of decisions)items.push({record:item.publicInput,chosenSize:item.chosen?.size,label:`${item.street} · saved decision`});
+    }
+    if(heroTurn()&&!session.replayed)items.push({record:session.multiway,chosenSize,label:`${session.multiway.config.variant.replace('_HIGH','')} · ${session.state.street} · current decision`});
+    return items;
+  }
+  function renderValidation(){
+    const section=host?.querySelector('.sim-batches');if(!section){render();return;}
+    const expanded=section.open,boundsOpen=section.querySelector('.sim-batch-bounds')?.open;
+    section.outerHTML=batchPanel();
+    const replacement=host.querySelector('.sim-batches');replacement.open=expanded;
+    const bounds=replacement.querySelector('.sim-batch-bounds');if(bounds)bounds.open=!!boundsOpen;
+  }
+  function batchPanel(){
+    if(!validation)return '';
+    const batch=validation.state,running=batch?.status==='RUNNING',idle=active&&!busy&&!controller&&!pendingIntent&&!document.hidden;
+    const op=(name,label,disabled=false)=>`<button type="button" class="ghost-button" data-batch-op="${name}"${disabled?' disabled':''}>${label}</button>`;
+    const rows=batch?.contexts.flatMap((item,index)=>(item.result?.summary?.rows||[]).map(row=>({context:index+1,...row})))||[];
+    const completed=batch?.contexts.filter(item=>item.result&&item.result.status!=='RUNNING').length||0,currentBatch=batch?.contexts[batch.index]?.result,diagnostic=window.TheibsSimulationValidation.metrics(batch);
+    const interval=value=>value?`${signed(value[0])} to ${signed(value[1])}`:'—';
+    return `<details class="sim-batches"><summary>Automatic EV validation${batch?` · ${esc(batch.status.replaceAll('_',' ').toLowerCase())}`:''}</summary><div class="sim-batch-toolbar"><label>Decisions<select id="sim-batch-scope"${running?' disabled':''}><option value="CURRENT"${batchScope==='CURRENT'?' selected':''}>Current decision</option><option value="SAVED"${batchScope==='SAVED'?' selected':''}>Saved + current · up to 5</option></select></label><label>Worlds per decision<select id="sim-batch-worlds"${running?' disabled':''}>${[32,64,128,256,512].map(n=>`<option${batchWorlds===n?' selected':''}>${n}</option>`).join('')}</select></label>${op('START','Start batch',running||!idle||!validation.supported)}${running?op('PAUSE','Pause'):batch&&['PAUSED','ERROR'].includes(batch.status)?op('RESUME','Resume',!idle):''}${batch?op('STOP','Stop',!running&&batch.status!=='PAUSED')+op('DOWNLOAD','Download batch'):''}</div><p class="sim-limits">Independent deals · every legal action and modeled sizing · reference policy, not GTO. Up to 30 seconds of compute per decision. Gameplay and EV pause this work automatically.</p>${batch?`<div class="sim-batch-progress" role="status"><strong>${esc(batch.status.replaceAll('_',' '))}</strong><span>${completed}/${batch.contexts.length} decisions checked${currentBatch?` · ${currentBatch.count}/${batch.worlds} worlds`:''}</span>${batch.reason?`<span>${esc(batch.reason)}</span>`:''}</div>${batch.storageWarning?`<p class="sim-error">${esc(batch.storageWarning)}</p>`:''}${batch.contexts.map((item,index)=>`<p class="sim-context">${index+1}. ${esc(item.label)}${item.result?` · ${item.result.count} worlds · effective ${money(item.result.summary?.effectiveSamples||0)} · ${money(item.result.computeMs)} ms compute · ${item.result.leaderChanges} checkpoint leader changes${item.result.status==='PARTIAL_BUDGET'?' · Partial budget':''}`:''}</p>`).join('')}${rows.length?`<div class="sim-batch-table-wrap"><table class="sim-ev-table sim-batch-table"><thead><tr><th>Decision / action</th><th>Predicted EV · bb</th><th>Validation mean · bb</th><th>Difference · bb</th></tr></thead><tbody>${rows.map(row=>`<tr><th scope="row">${row.context} · ${esc(label(row))}<small>${row.comparison==='EXACT_REFERENCE'?'Exact fold reference':row.comparison==='REVIEW_DIFFERENCE'?'Difference needs review':row.comparison==='UNAVAILABLE'?'Forecast unavailable':'Overlapping bounds'}</small></th><td>${signed(row.estimateBB)}</td><td>${signed(row.meanBB)}</td><td>${signed(row.differenceBB)}</td></tr>`).join('')}</tbody></table></div>`:''}<details class="sim-batch-bounds"><summary>Uncertainty, stability & method</summary>${diagnostic.comparedActions?`<p>Across ${diagnostic.comparedActions} non-fold action means: mean absolute difference ${money(diagnostic.meanAbsoluteDifferenceBB)} bb · RMSE ${money(diagnostic.rmseBB)} bb. Descriptive diagnostics, not a precision certificate.</p>`:''}<p>${diagnostic.cancelledSlices} in-flight slices cancelled; discarded work is excluded from completed-world compute time.</p><p>Difference = validation mean minus predicted EV. Both are incremental from the frozen decision; past contributions are not charged twice. No estimate is treated as zero. Each world evaluates every action with the same compatible cards.</p><p>Validation uses a separate seed and exact Omaha showdown enumeration. Public-action likelihood weights match the fixed reference policy. Bounds describe numerical sampling uncertainty only. The prediction and validation each have 95% model-conditional bounds; their difference interval has at least 90% coverage per decision by the union bound. Overlap is inconclusive, not a pass.</p>${batch.contexts.map((item,index)=>item.result?.summary?`<p>${index+1}. Validation leader: ${esc(item.result.summary.leader||'Unavailable')} · ${item.result.summary.leaderCertified?'Separated within the reference model':'INCONCLUSIVE'} · prediction ${money(item.result.predictionMs)} ms · ${item.result.prediction.samples} forecast worlds.</p>`:'').join('')}${rows.map(row=>`<p>${row.context} · ${esc(label(row))}: predicted bounds [${interval(row.predictionBoundsBB)}], validation bounds [${interval(row.boundsBB)}], difference bounds [${interval(row.differenceBoundsBB)}] bb.</p>`).join('')}<p>Uniform priors · zero rake · ${esc(batch.contexts.find(item=>item.result)?.result.model||'MULTIWAY_CONTEXT_POLICY_V2')}. Both runs share this response model, so agreement does not establish human-opponent accuracy or equilibrium. No solver strategy, player statistics, hand history or bankroll is updated. At most five frozen decisions and 512 worlds each are retained in this account's latest batch on this device. Download before replacing it.</p></details>`:'<p class="sim-limits">Start on your turn, or use saved decisions. Hidden cards, future runouts and replay decisions are excluded from the inputs.</p>'}</details>`;
+  }
+  function downloadBatch(){
+    const value=validation?.export();if(!value)return;
+    const blob=new Blob([JSON.stringify(value,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download='theibs-validation-batch.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+  }
   function render(){
     if(!host)return;
+    validation?.setAvailable(active&&!busy&&!controller&&!pendingIntent&&!document.hidden);
     const openDetails=[...host.querySelectorAll('details[open]')].map(node=>node.className);
-    host.innerHTML=`<div class="sim-heading"><div><h1 id="simulation-title">Simulation</h1><span class="sim-mode">${session?.replayed?'Replay · previously revealed deal':session?'Random Multiway · isolated practice':'Multiway practice with a fair, hidden deal'}</span></div>${button(session?'Table setup':'Set up table','CONFIG')}</div>${bankroll()}${connection==='RECONNECTING'?'<p class="sim-connection" role="status">Reconnecting to the server… Your hand is retained.</p>':''}<div class="sim-recovery"><p class="sim-error" role="alert"${error?'':' hidden'}>${esc(error)}</p>${pendingIntent?button('Retry last request','RETRY',true):connection==='OFFLINE'?button('Reconnect','REFRESH',true):''}</div>${session?`<div class="sim-layout"><div class="sim-game">${table()}${controls()}</div><aside class="sim-evaluation">${decisionPanel()}</aside></div>${audit()}`:'<div class="sim-empty"><p>Play a complete hand against simulated opponents. Deal each street when ready and see equity and modeled action EV on your turn.</p>'+button('Start simulation','CONFIG',true)+'</div>'}${history()}`;
+    host.innerHTML=`<div class="sim-heading"><div><h1 id="simulation-title">Simulation</h1><span class="sim-mode">${session?.replayed?'Replay · previously revealed deal':session?'Random Multiway · isolated practice':'Multiway practice with a fair, hidden deal'}</span></div>${button(session?'Table setup':'Set up table','CONFIG')}</div>${bankroll()}${connection==='RECONNECTING'?'<p class="sim-connection" role="status">Reconnecting to the server… Your hand is retained.</p>':''}<div class="sim-recovery"><p class="sim-error" role="alert"${error?'':' hidden'}>${esc(error)}</p>${pendingIntent?button('Retry last request','RETRY',true):connection==='OFFLINE'?button('Reconnect','REFRESH',true):''}</div>${session?`<div class="sim-layout"><div class="sim-game">${table()}${controls()}</div><aside class="sim-evaluation">${decisionPanel()}</aside></div>${audit()}`:'<div class="sim-empty"><p>Play a complete hand against simulated opponents. Deal each street when ready and see equity and modeled action EV on your turn.</p>'+button('Start simulation','CONFIG',true)+'</div>'}${batchPanel()}${history()}`;
     for(const node of host.querySelectorAll('details'))if(openDetails.includes(node.className)&&node.className)node.open=true;
   }
   async function evaluate(size=chosenSize){
@@ -179,6 +210,7 @@
   }
   function configure(){
     if(busy)return;
+    validation?.pause('Paused while table setup is open.');
     const config=session?.multiway.config||{variant:'PLO5_HIGH',playerCount:6,heroPosition:'BTN',startingStack:100,smallBlind:.5,bigBlind:1};
     setup.innerHTML=`<form id="sim-setup-form"><div class="sim-dialog-heading"><h2 id="sim-setup-title">Simulation table</h2><button type="button" class="ghost-button" data-sim-close aria-label="Close simulation setup">×</button></div><div class="sim-setup-grid"><label>Variant<select name="variant"><option value="PLO4_HIGH">PLO4</option><option value="PLO5_HIGH">PLO5</option><option value="PLO6_HIGH">PLO6</option></select></label><label>Total players<select name="playerCount"></select></label><label>Your position<select name="heroPosition"></select></label><label>Starting stack<input name="startingStack" type="number" min="0.01" step="0.01" value="${money(config.startingStack).replaceAll(',','')}" required></label><label>Small blind<input name="smallBlind" type="number" min="0.01" step="0.01" value="${config.smallBlind}" required></label><label>Big blind<input name="bigBlind" type="number" min="0.01" step="0.01" value="${config.bigBlind}" required></label></div><p class="sim-limits">Random deals · reference-policy bots · zero rake. New table starts fresh stacks; Next hand carries settled stacks.</p><p id="sim-setup-error" role="alert"></p><button type="submit" class="primary-button">Deal a random hand</button></form>`;
     const form=setup.querySelector('form'),variant=form.elements.variant,count=form.elements.playerCount,position=form.elements.heroPosition;
@@ -196,6 +228,7 @@
     setup.showModal();
   }
   function configureBankroll(){
+    validation?.pause('Paused while bankroll settings are open.');
     const settings=progress.settings;
     funds.innerHTML=`<form><div class="sim-dialog-heading"><h2 id="sim-funds-title">Practice bankroll</h2><button type="button" class="ghost-button" data-sim-close aria-label="Close bankroll settings">×</button></div><div class="sim-setup-grid"><label>Starting funds · chips<input name="initialChips" type="number" min="0" max="1000000000" step="0.01" value="${settings.initialChips}" required></label><label>Money per chip<input name="chipValue" type="number" min="0.000001" max="1000000" step="any" value="${settings.chipValue}" required></label><label>Display currency<select name="currency">${['BRL','USD','EUR','GBP'].map(value=>`<option${value===settings.currency?' selected':''}>${value}</option>`).join('')}</select></label></div><p>Fictitious funds for tracking settled results, not table stakes. Changing these display settings preserves your hand, chips and recorded profit. Results persist on this device, separately for each account.</p><div class="sim-action-buttons"><button type="submit" class="primary-button">Save settings</button><button type="button" class="ghost-button" data-reset-progress>Reset progress</button></div></form>`;
     funds.querySelector('[data-sim-close]').onclick=()=>funds.close();
@@ -218,6 +251,7 @@
   }
   function sizing(action,preferredSize=null){
     if(!userTurn()||busy||pendingIntent)return;
+    validation?.pause('Paused while you choose an action.');
     const stamp=snapshot(),actor=session.state.actor;
     const legal=session.state.legal;
     const initial=Number.isFinite(preferredSize)&&preferredSize>=legal.minTo&&preferredSize<=legal.maxTo?preferredSize:legal.minTo;
@@ -229,6 +263,7 @@
     editor.querySelector('form').onsubmit=event=>{event.preventDefault();const to=Number(sizingInput.value);if(session?.id!==stamp.id||session?.revision!==stamp.revision||session.state.actor!==actor)return;editor.close();perform('ACT',{action,to,actor});};editor.showModal();updateSizing();
   }
   function inspect(id){
+    validation?.pause('Paused while seat details are open.');
     const player=session?.state.players.find(item=>item.id===id);if(!player)return;
     editor.innerHTML=`<div class="sim-dialog-heading"><h2 id="sim-editor-title">${esc(player.name)} · ${esc(player.position)}</h2><button type="button" class="ghost-button" data-sim-close aria-label="Close seat details">×</button></div><p>Stack ${money(player.stack)} · committed this street ${money(player.streetPaid)}</p><p>${player.folded?'Folded':player.allIn?'All-in':'Active'}${player.lastAction?' · '+esc(player.lastAction.toLowerCase()):''}</p><div class="sim-reveals">${(session.audit?.hands?.[id] || session.shownHands?.[id] || (player.hero?session.multiway.config.heroCards:[])).map(card=>E.canonicalCard(card,{small:true})).join('')}</div>`;
     editor.querySelector('[data-sim-close]').onclick=()=>editor.close();editor.showModal();
@@ -242,7 +277,7 @@
   }
   async function enter(){
     active=true;const selected=getOwner();if(!selected){error='Account verification is required to start a simulation.';render();return;}
-    if(owner!==selected){clearOwner();active=true;owner=selected;restored=false;}
+    if(owner!==selected){clearOwner();active=true;owner=selected;restored=false;validation?.load(owner);}
     if(!client)client=window.TheibsBrowserMultiwayClient?.create();
     if(!restored){restored=true;const restoring=generation,own=owner;try{const saved=JSON.parse(localStorage.getItem(key())||'null');reports=Array.isArray(saved?.reports)?T.boundedHistory(saved.reports.filter(item=>item?.publicRecord?.config?.variant&&Array.isArray(item.decisions))):[];decisions=Array.isArray(saved?.decisions)?saved.decisions:[];
       progress=T.practiceProgress(saved?.progress);if(saved?.progress?.schema!=='SIMULATION_PROGRESS_V1')for(const report of reports)T.recordProgress(progress,report);
@@ -257,9 +292,16 @@
     save();render();if(active&&!pendingIntent&&connection==='CONNECTED')evaluate();
   }
   function leave(){active=false;cancel();if(setup.open)setup.close();if(editor.open)editor.close();if(funds.open)funds.close();if(confirmation.open)confirmation.close('cancel');save();}
-  function clearOwner(){leave();client?.close();client=null;owner=null;session=null;analysis=null;reports=[];decisions=[];progress=T.practiceProgress();error='';restored=false;busy=false;connection='CONNECTED';pendingIntent=null;chosenSize=null;recoveryId=null;render();}
+  function clearOwner(){leave();validation?.clearOwner();client?.close();client=null;owner=null;session=null;analysis=null;reports=[];decisions=[];progress=T.practiceProgress();error='';restored=false;busy=false;connection='CONNECTED';pendingIntent=null;chosenSize=null;recoveryId=null;render();}
   function init(options){request=(url,settings={})=>{const own=owner;return T.createTransport((endpoint,settings)=>options.request(endpoint,{...settings,headers:{'Content-Type':'application/json',...settings.headers}}),{onState:state=>{if(owner===own&&(state!=='CONNECTED'||connection==='RECONNECTING')){connection=state;if(active)render();}}})(url,settings);};getOwner=options.getOwner;host=document.getElementById('simulation-workspace');document.body.append(setup,editor,confirmation,funds);
+    validation=window.TheibsSimulationValidation?.create({onChange:()=>renderValidation()});
+    document.addEventListener('visibilitychange',()=>{if(document.hidden)validation?.setAvailable(false,'Paused while this page is hidden.');else render();});
     host.addEventListener('click',async event=>{
+      const batchButton=event.target.closest('[data-batch-op]');if(batchButton){const op=batchButton.dataset.batchOp;
+        try{if(op==='START'){if(validation?.state&&!await confirmAction('Replace the latest local validation batch? Download it first to retain its results.'))return;validation.start(validationContexts(),{worlds:batchWorlds});}
+          else if(op==='PAUSE')validation.pause();else if(op==='RESUME')validation.resume();else if(op==='STOP')validation.stop();else if(op==='DOWNLOAD')downloadBatch();
+        }catch(failure){error=failure.message;render();}return;
+      }
       const seat=event.target.closest('[data-sim-seat]');if(seat){inspect(Number(seat.dataset.simSeat));return;}
       const target=event.target.closest('[data-sim-op]');if(!target)return;const op=target.dataset.simOp;
       if(op==='CONFIG')configure();else if(op==='BANKROLL')configureBankroll();else if(op==='SIZE')sizing(target.dataset.action,target.dataset.to==null?null:Number(target.dataset.to));else if(op==='EXPORT')download();
@@ -272,7 +314,7 @@
       else if(op==='END'){if(await confirmAction('End this hand without recording a payout?'))perform(op);}
       else return perform(op,op==='ACT'?{action:target.dataset.action}:{});
     });
-    host.addEventListener('change',event=>{if(event.target.id==='sim-control')perform('PACE',{paused:event.target.value==='STEP',manualOpponents:event.target.value==='MANUAL'});});
+    host.addEventListener('change',event=>{if(event.target.id==='sim-control')perform('PACE',{paused:event.target.value==='STEP',manualOpponents:event.target.value==='MANUAL'});else if(event.target.id==='sim-batch-scope')batchScope=event.target.value;else if(event.target.id==='sim-batch-worlds')batchWorlds=Number(event.target.value);});
     document.addEventListener('keydown',event=>{
       if(!active||busy||pendingIntent||connection!=='CONNECTED'||event.repeat||event.ctrlKey||event.altKey||event.metaKey||document.querySelector('dialog[open]')||event.target.closest('input,textarea,select,[contenteditable=true]'))return;
       if(event.key==='Shift'&&session?.finished){event.preventDefault();perform(!session.abandoned&&canContinue()?'NEXT':'RESTART');}

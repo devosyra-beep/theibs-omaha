@@ -8,6 +8,7 @@ const { execFileSync } = require('node:child_process');
 // publish a stale worker alongside a newer client.
 execFileSync(process.execPath, [path.resolve(__dirname, '../../scripts/build-browser-solver.cjs')], { stdio: 'inherit' });
 execFileSync(process.execPath, [path.resolve(__dirname, '../../scripts/build-browser-multiway.cjs')], { stdio: 'inherit' });
+execFileSync(process.execPath, [path.resolve(__dirname, '../../scripts/build-simulation-validation.cjs')], { stdio: 'inherit' });
 const source = path.resolve(__dirname, '../../public');
 const target = path.resolve(__dirname, '.output/assets');
 const version = require('../../package.json').version;
