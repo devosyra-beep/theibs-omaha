@@ -107,3 +107,57 @@ test('exact settlement supports a tied main pot and separate eligibility in side
   assert.deepEqual(s.state.result.pots[1].winners,[1]);
   assert.ok(Math.abs(s.outcome.stacks.reduce((sum,p)=>sum+p.stack,0)-12)<.011);
 });
+
+test('lost lifecycle responses can be retried without another deal, even after replacement',()=>{
+  const service=createService({maxSessions:1}),config={playerCount:2,heroPosition:'SB'};
+  const start=service.start(owner,config,'start-identity');
+  assert.deepEqual(service.start(owner,config,'start-identity'),start);
+  assert.throws(()=>service.start(owner,{...config,startingStack:20},'start-identity'),{statusCode:409});
+  const payload={id:start.id,revision:start.revision,requestId:'restart-identity'};
+  const changed=service.restart(owner,payload);
+  assert.equal(changed.previous.abandoned,true);assert.equal(changed.previous.outcome,null);
+  assert.notEqual(changed.session.deal.commitment,start.deal.commitment);
+  assert.deepEqual(service.restart(owner,payload),changed);assert.equal(service._testing.size(),1);
+  assert.throws(()=>service.read('other-owner',changed.session.id),{statusCode:404});
+  const end=step(service,changed.session,'END'),replayPayload={id:end.id,revision:end.revision,requestId:'replay-identity'};
+  const replay=service.replay(owner,replayPayload);
+  assert.deepEqual(service.replay(owner,replayPayload),replay);
+  assert.equal(replay.session.replayed,true);
+  assert.equal(replay.session.deal.commitment,end.deal.commitment);
+  assert.equal(replay.session.validation.eligible,false);
+});
+
+test('manual control permits any legal current-player action, preserves accounting and excludes it from policy validation',()=>{
+  const service=createService();let s=seeded(service,{playerCount:3,heroPosition:'BTN'});
+  s=step(service,s,'PACE',{manualOpponents:true});
+  for(let i=0;i<10&&!s.finished&&s.state.phase==='BETTING';i++){
+    const state=s.state,action=state.legal.actions.includes('CHECK')?'CHECK':'CALL',actor=state.actor;
+    assert.throws(()=>step(service,s,'ACT',{actor:(actor+1)%3,action}),{statusCode:409});
+    s=step(service,s,'ACT',{actor,action});
+    assert.equal(s.state.players.reduce((sum,p)=>sum+p.stack,0)+s.state.pot,30);
+  }
+  assert.ok(s.manualOpponentActions>0);assert.ok(s.validation.manualHeroEvents.length);
+  s=step(service,s,'FINISH');assert.equal(s.finished,true);assert.equal(s.validation.eligible,false);
+  assert.equal(s.outcome.stacks.reduce((sum,p)=>sum+p.stack,0),30);
+});
+
+test('reference finish preserves a held-out deal and exact utilities, without exposing future cards to EV',()=>{
+  const service=createService();let s=seeded(service);
+  const input=service.evaluation(owner,s.id,s.revision),cards=[...s.multiway.config.heroCards];
+  s=step(service,s,'ACT',{action:'CALL'});
+  s=step(service,s,'FINISH');assert.equal(s.finished,true);assert.equal(s.validation.eligible,true);
+  assert.equal(s.validation.manualHeroEvents.length,1);
+  assert.deepEqual(input.multiway.config.heroCards,cards);assert.equal(input.multiway.events.length,0);
+  assert.equal(input.seed,undefined);assert.equal(input.hands,undefined);assert.equal(input.boardAll,undefined);
+  assert.equal(s.outcome.stacks.reduce((sum,p)=>sum+p.stack,0),20);
+});
+
+test('repeated fresh deals retain one session and never require a busted Hero to continue stacks',()=>{
+  const service=createService({maxSessions:1});let s=seeded(service);
+  for(let i=0;i<50;i++){
+    const result=service.restart(owner,{id:s.id,revision:s.revision,requestId:'new-deal-'+i});
+    assert.equal(result.previous.abandoned,true);s=result.session;
+    assert.equal(s.state.players.reduce((sum,p)=>sum+p.startingStack,0),20);
+    assert.equal(service._testing.size(),1);
+  }
+});

@@ -12,6 +12,16 @@ Open **Simulation**, immediately below **Players** in the navigation. This is an
 - **Next hand** carries settled stacks and rotates positions. **New table** starts fresh stacks. **Replay this deal** repeats the completed/ended deal for informed practice; it is not a fresh blind trial.
 - Keyboard: comma = check/call, period = fold when facing a bet, semicolon = sizing, Shift = next settled hand. Form fields and open dialogs retain ordinary keyboard behavior. Existing Analysis card entry and voice are unchanged.
 
+## Connection recovery, restarts and action control
+
+Transient connection failures and gateway timeouts receive one bounded automatic retry. Start, next, replay, restart and action requests retain an owner-scoped operation identity; a lost acknowledgement cannot silently create another deal or duplicate an action. After retry exhaustion, **Retry last request** preserves the original intent and decision-time snapshot. Authentication errors and invalid/stale actions are not retried as network failures. Reload restores a saved uncertain intent for reconciliation. An expired server session remains distinct from a temporary connection failure.
+
+**New deal** resets stacks and deals fresh, unfiltered cards with the existing table configuration. An interrupted hand is archived without a fabricated payout. **Next hand** carries settled stacks only when Hero and at least one opponent have chips. A busted Hero can immediately start a new deal; Shift chooses the applicable continuation. **Table setup** changes the table configuration. Lifecycle changes are atomic at the dealer, including replacing a session at its capacity limit.
+
+Choose **Automatic**, **One action at a time**, or **Choose every action** for opponents. Manual mode exposes legal actions for the current actor; it does not permit out-of-turn or illegal actions, and hides free Fold. Any legal cent sizing can be applied independently of the EV leader. Hero's sizing dialog can evaluate a custom total before applying it; action entry never waits for the calculation. Manual opponent actions are interventions, explicitly separated from reference-policy validation. Scenario EV still interprets the entered history under its declared reference policy, not as calibrated evidence about the manually controlled opponent.
+
+Browser EV now projects the already public, synchronized ledger directly into its worker, without first querying the dealer. This removes a network dependency before the first estimate; calculation budgets, utility, priors, provenance and numerical uncertainty are unchanged. Server calculation remains a fallback. Hidden dealer cards, seed, completed audit and future runout never enter this projection.
+
 ## Evaluation boundaries
 
 EV and equity use only Hero's cards, the public board and the recorded actions. The server's hidden opponent hands, fixed future board and deal seed are not calculation inputs. Decision-time snapshots are retained before the chosen action; revealing cards later does not re-evaluate or replace past decisions. Acting while calculation is pending records that the estimate was unavailable, rather than inventing one.
@@ -28,7 +38,15 @@ Each new hand receives a fresh 256-bit cryptographic seed with no hand-strength/
 
 The seed and deal-version algorithm in `codigo-fonte/src/multiway-simulation.js` permit independent deck/commitment reconstruction. Bot random choices depend on semantic action history, not random ledger UUIDs, so the same replay/actions/pacing reproduce the same behavior. Replays are clearly identified as informed practice.
 
-Simulation history stores up to 30 completed or explicitly ended hands in a separate owner-scoped browser namespace. Abandonment has no fabricated payout. The JSON report includes every stored hand, decision-time public inputs, available numerical evaluations and quality metadata, timing, and any completed/revealed deal audit. Actual hand profit is separate from modeled EV and is not a decision-quality certification.
+Simulation history stores up to 100 completed or explicitly ended hands within a bounded local storage budget, in a separate owner-scoped browser namespace. Older reports may be removed to fit that budget; download them for durable review. Abandonment has no fabricated payout. Compact snapshots retain EV candidates, bounds, method/quality, timing and decision-time public inputs. Actual hand profit is separate from modeled EV and is not a decision-quality certification.
+
+## Using simulations to check EV
+
+**Hand options → Finish with reference policy** explicitly lets the reference policy play the remaining actions, including Hero, and complete the committed runout. This produces a held-out realized utility for the last evaluated Hero action. It does not choose future actions from the displayed EV estimates. Replay, abandoned hands and manual opponent interventions are excluded from these measurements. Exact action/sizing and public-prefix matching are required. Missing estimates remain absent.
+
+**Simulation history → EV validation data** reports descriptive observed-minus-predicted residuals and outcome RMSE in bb. The target utility is final Hero stack minus stack at the decision, rather than total hand profit. A single outcome is noisy; user-selected decisions, correlated hands and model mismatch preclude claiming calibration or GTO accuracy from these summaries. These data never update real Players, observed statistics, ranges, model weights or solver guarantees automatically.
+
+Download the V2 JSON report and run `node codigo-fonte/scripts/simulation-report-check.cjs <export.json>`. The checker independently reconstructs the committed deck and verifies Hero/board prefixes, exact Omaha showdown winners, reported stacks/profit and chip conservation through the authoritative hand ledger/evaluator. It also reports the eligible frozen-decision residuals. This supports accounting/model regression investigations; it is not a replacement for independent strategic solver references or validation against human opponents. Older V1 exports remain verifiable for deal/accounting without inventing missing validation metadata.
 
 ## Hosting and access
 

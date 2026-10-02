@@ -38,7 +38,8 @@ function fresh(options={}) {
   const base=multiway.start({variant,playerCount,heroPosition:options.heroPosition || (playerCount===2?'SB':'BTN'),
     startingStack:options.startingStack ?? 100,smallBlind:options.smallBlind ?? .5,bigBlind:options.bigBlind ?? 1,heroCards:[]}).multiway;
   const heroId=multiway.envelope(base).state.heroId;
-  base.config.players=base.config.players.map((_,seat)=>({playerId:'sim_'+crypto.randomUUID().replaceAll('-',''),name:seat===heroId?'You':`Bot ${seat+1}`}));
+  let opponent=0;
+  base.config.players=base.config.players.map((_,seat)=>({playerId:'sim_'+crypto.randomUUID().replaceAll('-',''),name:seat===heroId?'You':`Opponent ${++opponent}`}));
   return base;
 }
 function chooseBot(session,state) {
@@ -80,7 +81,12 @@ function publicSession(session) {
   const safe={id:session.id,revision:session.revision,createdAt:session.createdAt,expiresAt:new Date(session.expires).toISOString(),
     ...observed,source:'SIMULATED_ACTIONS',policy:{version:MODEL,origin:'DECLARED_REFERENCE_WITHOUT_PLAYER_OBSERVATIONS',quality:'HEURISTIC'},
     deal:{version:DEAL_VERSION,commitment:session.commitment,selection:'UNFILTERED_CRYPTOGRAPHIC_SEED',lockedBeforeFirstAction:true},
-    paused:session.paused,abandoned:session.abandoned===true,finished:finished||session.abandoned===true,
+    paused:session.paused,manualOpponents:session.manualOpponents===true,replayed:session.replayed===true,
+    manualOpponentActions:session.manualOpponentActions||0,
+    validation:{referenceFromEvent:session.referenceFromEvent??null,manualHeroEvents:session.manualHeroEvents||[],
+      eligible:finished&&session.referenceFromEvent!=null&&!session.replayed&&!session.manualOpponentActions,
+      scope:'HELD_OUT_DEAL_UNDER_DECLARED_REFERENCE_POLICY_NOT_HUMAN_OR_GTO_VALIDATION'},
+    abandoned:session.abandoned===true,finished:finished||session.abandoned===true,
     outcome:finished?{heroNet:Math.round((state.players[state.heroId].stack-state.players[state.heroId].startingStack)*100)/100,
       reason:state.result.reason,stacks:state.players.map(player=>({id:player.id,stack:player.stack})),rake:0}:null};
   if(session.showdown)safe.shownHands=Object.fromEntries(state.players.filter(player=>!player.folded).map(player=>[player.id,[...session.hands[player.id]]]));
@@ -101,45 +107,81 @@ function evaluationPayload(session, chosenSize) {
     ...(chosenSize==null||chosenSize===''?{}:{chosenSize:Number(chosenSize)})}};
 }
 function createService({now=Date.now,maxSessions=128}={}) {
-  const sessions=new Map();
-  function get(owner,id) {
+  const sessions=new Map(),receipts=new Map();
+  function prune(){
     for(const [key,value] of sessions)if(value.expires<=now())sessions.delete(key);
+    for(const [key,value] of receipts)if(value.expires<=now())receipts.delete(key);
+  }
+  // A lost HTTP response must not create a second deal or repeat an action.
+  // Lifecycle receipts outlive the replaced session, and are owner-isolated.
+  function transaction(owner,route,payload,apply){
+    if(payload.requestId==null)return apply(); // Older start/next clients remain readable.
+    if(typeof payload.requestId!=='string'||!/^[a-zA-Z0-9_-]{1,100}$/.test(payload.requestId))throw fail('A simulation operation identity is required.');
+    prune();
+    const key=JSON.stringify([owner,payload.requestId]),content=JSON.stringify([route,payload]);
+    const saved=receipts.get(key);
+    if(saved){if(saved.content!==content)throw fail('This request identity was used for a different operation.',409);return structuredClone(saved.result);}
+    const result=apply();
+    receipts.set(key,{owner,content,result:structuredClone(result),expires:now()+TTL});
+    const owned=[...receipts].filter(([,value])=>value.owner===owner);
+    while(owned.length>32)receipts.delete(owned.shift()[0]);
+    while(receipts.size>256)receipts.delete(receipts.keys().next().value);
+    return result;
+  }
+  function get(owner,id) {
+    prune();
     const value=sessions.get(id);if(!value||value.owner!==owner)throw fail('Simulation expired or is unavailable for this account. Start a new hand.',404);
     return value;
   }
-  function register(owner,record,seed=crypto.randomBytes(32).toString('hex'),paused=false) {
-    for(const [key,value] of sessions)if(value.expires<=now())sessions.delete(key);
-    const owned=[...sessions.values()].filter(value=>value.owner===owner);
+  function register(owner,record,seed=crypto.randomBytes(32).toString('hex'),paused=false,replacing=null) {
+    prune();
+    const owned=[...sessions.values()].filter(value=>value.owner===owner&&value.id!==replacing);
     if(owned.length>=8)throw fail('Eight simulation hands are open. Finish or end one before starting another.',429);
-    if(sessions.size>=maxSessions)throw fail('The simulator is busy. Try again shortly.',503);
+    if(sessions.size-(sessions.has(replacing)?1:0)>=maxSessions)throw fail('The simulator is busy. Try again shortly.',503);
     const dealt=deal(record,seed),value={...dealt,id:crypto.randomUUID(),owner,revision:0,createdAt:new Date(now()).toISOString(),expires:now()+TTL,
-      paused:paused===true,receipts:new Map()};
+      paused:paused===true,manualOpponents:false,manualOpponentActions:0,manualHeroEvents:[],receipts:new Map()};
     sessions.set(value.id,value);return publicSession(value);
   }
   function mutate(owner,payload) {
     const value=get(owner,payload.id),operation=String(payload.operation||'');
     if(typeof payload.requestId!=='string'||!/^[a-zA-Z0-9_-]{1,100}$/.test(payload.requestId))throw fail('A simulation operation identity is required.');
-    const content=JSON.stringify({operation,revision:payload.revision,action:payload.action,to:payload.to,paused:payload.paused});
+    const content=JSON.stringify({operation,revision:payload.revision,actor:payload.actor,action:payload.action,to:payload.to,paused:payload.paused,manualOpponents:payload.manualOpponents});
     const receipt=value.receipts.get(payload.requestId);
     if(receipt){if(receipt.content!==content)throw fail('This request identity was used for a different operation.',409);return structuredClone(receipt.result);}
     if(payload.revision!==value.revision)throw fail('The simulation changed. Refresh this hand before acting.',409);
     if(value.abandoned&&operation!=='REVEAL')throw fail('This hand was ended.');
-    const next={...value,record:structuredClone(value.record)},state=multiway.envelope(next.record).state;
+    const next={...value,record:structuredClone(value.record),manualHeroEvents:[...(value.manualHeroEvents||[])]},state=multiway.envelope(next.record).state;
     if(operation==='ACT'){
-      if(state.phase!=='BETTING'||state.actor!==state.heroId)throw fail('Wait for your turn.');
+      if(state.phase!=='BETTING'||(state.actor!==state.heroId&&!next.manualOpponents))throw fail('Wait for your turn or select manual opponent control.');
+      if(payload.actor!=null&&payload.actor!==state.actor)throw fail('This player is not the current actor.',409);
       const action=String(payload.action||'').toUpperCase();
       if(action==='FOLD'&&state.legal.toCall===0)throw fail('Check is available; a free fold is not a decision option.');
-      append(next,{type:'ACT',actor:state.heroId,action,...(['BET','RAISE'].includes(action)?{to:Number(payload.to)}:{})});
-      if(!next.paused)advance(next,true);
+      if(state.actor===state.heroId)next.manualHeroEvents.push(next.record.events.length);
+      else next.manualOpponentActions++;
+      append(next,{type:'ACT',actor:state.actor,action,...(['BET','RAISE'].includes(action)?{to:Number(payload.to)}:{})});
+      if(!next.paused&&!next.manualOpponents)advance(next,true);
     } else if(operation==='ADVANCE') {
       if(state.phase!=='BETTING'||state.actor===state.heroId)throw fail('Choose your action or deal the next street.');
       advance(next,!next.paused);
     } else if(operation==='DEAL') {
       if(state.phase!=='WAIT_BOARD')throw fail('Finish the current betting round before dealing.');
       append(next,{type:'BOARD',cards:next.boardAll.slice(0,{FLOP:3,TURN:4,RIVER:5}[state.nextStreet])});
-      if(!next.paused)advance(next,true);
+      if(!next.paused&&!next.manualOpponents)advance(next,true);
     } else if(operation==='SETTLE')settle(next);
-    else if(operation==='PACE')next.paused=payload.paused===true;
+    else if(operation==='PACE'){
+      next.paused=payload.paused===true;next.manualOpponents=payload.manualOpponents===true;
+    } else if(operation==='FINISH'){
+      next.referenceFromEvent=next.record.events.length;
+      for(let count=0;count<300;count++){
+        const current=multiway.envelope(next.record).state;
+        if(current.phase==='FINISHED')break;
+        if(current.phase==='SHOWDOWN')settle(next);
+        else if(current.phase==='WAIT_BOARD')append(next,{type:'BOARD',cards:next.boardAll.slice(0,{FLOP:3,TURN:4,RIVER:5}[current.nextStreet])});
+        else if(current.phase==='BETTING')append(next,chooseBot(next,current));
+        else throw fail('The reference continuation cannot advance this state.');
+        if(count===299)throw fail('Reference continuation reached its safety limit.');
+      }
+    }
     else if(operation==='REVEAL'){
       if(state.phase!=='FINISHED'&&!next.abandoned)throw fail('Hidden cards can be revealed only after the hand ends.');
       next.revealed=true;
@@ -151,22 +193,27 @@ function createService({now=Date.now,maxSessions=128}={}) {
     while(next.receipts.size>12)next.receipts.delete(next.receipts.keys().next().value);
     sessions.set(next.id,next);return result;
   }
-  function next(owner,payload,replaying=false) {
+  function next(owner,payload,replaying=false,restarting=false) {
     const previous=get(owner,payload.id),state=multiway.envelope(previous.record).state;
     if(payload.revision!==previous.revision)throw fail('The simulation changed.',409);
-    if(replaying ? state.phase!=='FINISHED'&&!previous.abandoned : state.phase!=='FINISHED')throw fail(replaying?'Finish or end this hand first.':'Finish this hand before continuing its stacks.');
-    const oldResult=publicSession(previous);
-    const record=replaying?multiway.start({...previous.record.config,heroCards:[]}).multiway:
+    if(!restarting&&(replaying ? state.phase!=='FINISHED'&&!previous.abandoned : state.phase!=='FINISHED'))throw fail(replaying?'Finish or end this hand first.':'Finish this hand before continuing its stacks.');
+    const oldResult=publicSession(restarting&&state.phase!=='FINISHED'?{...previous,abandoned:true}:previous);
+    const record=restarting?fresh(payload.config||previous.record.config):replaying?multiway.start({...previous.record.config,heroCards:[]}).multiway:
       multiway.nextHand(previous.record,{},state.revisionKey).multiway;
     // The finished receipt is already held by the UI; releasing it keeps server
     // memory bounded. No real library data is read or written.
-    const result=register(owner,record,replaying?previous.seed:undefined,previous.paused);
+    let result=register(owner,record,replaying?previous.seed:undefined,previous.paused,previous.id);
+    const created=sessions.get(result.id);created.manualOpponents=previous.manualOpponents;created.replayed=replaying;
+    result=publicSession(created);
     sessions.delete(previous.id);return {session:result,previous:oldResult};
   }
-  return {start:(owner,options)=>register(owner,fresh(options),undefined,options?.paused),read:(owner,id)=>publicSession(get(owner,id)),
-    mutate,next:(owner,payload)=>next(owner,payload),replay:(owner,payload)=>next(owner,payload,true),
+  return {start:(owner,options,requestId)=>transaction(owner,'START',{config:options,requestId},()=>register(owner,fresh(options),undefined,options?.paused)),read:(owner,id)=>publicSession(get(owner,id)),
+    mutate:(owner,payload)=>transaction(owner,'STEP',payload,()=>mutate(owner,payload)),
+    next:(owner,payload)=>transaction(owner,'NEXT',payload,()=>next(owner,payload)),
+    replay:(owner,payload)=>transaction(owner,'REPLAY',payload,()=>next(owner,payload,true)),
+    restart:(owner,payload)=>transaction(owner,'RESTART',payload,()=>next(owner,payload,false,true)),
     evaluation:(owner,id,revision,chosenSize)=>{const value=get(owner,id);if(revision!==value.revision)throw fail('The simulation changed.',409);return evaluationPayload(value,chosenSize);},
-    release:(owner,id)=>{get(owner,id);sessions.delete(id);},close:()=>sessions.clear(),
+    release:(owner,id)=>{const value=sessions.get(id);if(value&&value.owner!==owner)throw fail('Simulation unavailable for this account.',404);sessions.delete(id);},close:()=>{sessions.clear();receipts.clear();},
     _testing:{get,size:()=>sessions.size,register}};
 }
 module.exports={createService,publicSession,evaluationPayload,shuffled,stream,DEAL_VERSION};

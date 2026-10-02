@@ -422,11 +422,12 @@ const server = http.createServer(async (request, response) => {
       if (route === '/api/workspace') return json(response, 200, { status: 'OK', ...saveWorkspace(payload.workspace, payload.expectedRevision, userStoragePath(auth, 'workspace.json')) });
       if (route === '/api/analyze') return json(response, 200, await analyzeManual(payload, response, auth.user.id));
       if (route === '/api/equity') return json(response, 200, await priorityCalculation(()=>analyzeInWorker.equity(prepareOpponentOverrides(buildInput(payload)), response)));
-      if (route === '/api/simulation/start') return json(response,200,{status:'OK',session:simulation.start(auth.user.id,payload.config)});
+      if (route === '/api/simulation/start') return json(response,200,{status:'OK',session:simulation.start(auth.user.id,payload.config,payload.requestId)});
       if (route === '/api/simulation/state') return json(response,200,{status:'OK',session:simulation.read(auth.user.id,payload.id)});
       if (route === '/api/simulation/step') return json(response,200,{status:'OK',session:simulation.mutate(auth.user.id,payload)});
       if (route === '/api/simulation/next') return json(response,200,{status:'OK',...simulation.next(auth.user.id,payload)});
       if (route === '/api/simulation/replay') return json(response,200,{status:'OK',...simulation.replay(auth.user.id,payload)});
+      if (route === '/api/simulation/restart') return json(response,200,{status:'OK',...simulation.restart(auth.user.id,payload)});
       if (route === '/api/simulation/release') {simulation.release(auth.user.id,payload.id);return json(response,200,{status:'OK'});}
       if (route === '/api/simulation/input') return json(response,200,{status:'OK',input:simulation.evaluation(auth.user.id,payload.id,payload.revision,payload.chosenSize)});
       if (route === '/api/simulation/analyze') {
