@@ -16,7 +16,7 @@
     if(raw==null)return raw;
     const snapshot=pick(raw,['schemaVersion','handId','source','players']);
     if(snapshot?.players&&typeof snapshot.players==='object')snapshot.players=Object.fromEntries(Object.entries(snapshot.players).map(([id,player])=>[id,{
-      contexts:player?.contexts&&typeof player.contexts==='object'?Object.fromEntries(Object.entries(player.contexts).map(([key,cell])=>[key,pick(cell,['counts'])])):player?.contexts
+      contexts:player?.contexts&&typeof player.contexts==='object'?Object.fromEntries(Object.entries(player.contexts).map(([key,cell])=>[key,pick(cell,['counts','sizingCounts'])])):player?.contexts
     }]));
     return snapshot;
   }

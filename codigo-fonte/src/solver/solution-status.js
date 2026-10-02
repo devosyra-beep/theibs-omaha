@@ -61,7 +61,7 @@ function completeChance(meta) {
 }
 
 function qualify(meta, result, { coverage, refining = false } = {}) {
-  const source = meta?.source === 'LEGACY_HEURISTIC' && result?.method === 'MULTIWAY_CONTEXT_POLICY_V1'
+  const source = meta?.source === 'LEGACY_HEURISTIC' && ['MULTIWAY_CONTEXT_POLICY_V1','MULTIWAY_CONTEXT_POLICY_V2'].includes(result?.method)
     ? 'LEGACY_HEURISTIC' : 'REFERENCE_SUBGAME_STRATEGY';
   const reasons = [];
   const baseQualification = { version: VERSION, source, gto: false, fullHandEquilibrium: false,

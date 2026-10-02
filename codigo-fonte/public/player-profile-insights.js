@@ -48,6 +48,7 @@
       for (const [key, cell] of Object.entries(profile.contexts)) {
         if (!object(cell) || !object(cell.counts) || contextKey(cell.context) !== key) throw Error('Invalid recorded context.');
         const legal = normalizeContext(cell.context).legalActions;
+        model.validateSizingCounts(cell);
         for (const [action, value] of Object.entries(cell.counts)) {
           if (!legal.includes(action) || !count(value)) throw Error('Invalid confirmed action count.');
           total += value;
@@ -89,6 +90,7 @@
         opportunities: observed, prior: copy(posterior.prior),
         actions: normalized.legalActions.map(action => ({ action, observed: posterior.estimates[action].observed,
           mean: posterior.estimates[action].mean, credibleInterval95: [...posterior.estimates[action].credibleInterval95] })),
+        sizing: normalized.legalActions.filter(action=>['BET','RAISE'].includes(action)).map(action=>model.getSizingPosterior(profile,normalized,action,0,.03)),
         contextScope: 'EXPLICIT_OPPORTUNITY_CONTEXT', uncertaintyScope: 'BETA_MARGINAL_POSTERIOR_ONLY', intervalMethod: posterior.intervalMethod,
         calibrationStatus: 'NOT_ESTABLISHED', reasonCodes: missing ? [missing] : [], limitations: [...LIMITATIONS] };
     } catch (_) { return unavailable('INVALID_SNAPSHOT_OR_CONTEXT'); }
@@ -138,6 +140,7 @@
       counts: { handsConsidered: Array.isArray(hands) ? hands.length : 0, eligibleHands: 0, scoredHands: 0, forecasts: 0,
         skippedHands: 0, skippedObservations: 0 }, metrics: null, byHand: [], byPlayer: [], byContext: [], forecasts: [],
       exclusions: [], reasonCodes: [], limitations: [...FORECAST_LIMITATIONS] };
+    output.sizing={model:model?.SIZING_VERSION || null,scope:'FROZEN_PRE_HAND_CONDITIONAL_AGGRESSIVE_SIZE_BAND',forecasts:0,metrics:null};
     const cutoff = currentFrozenAt === null ? null : timestamp(currentFrozenAt);
     if (!Array.isArray(hands) || currentHandId !== null && !identifier(currentHandId)
         || currentFrozenAt !== null && cutoff === null || currentHandId !== null && cutoff === null
@@ -148,7 +151,7 @@
     for (const hand of hands) {
       handCounts.set(hand?.handId, (handCounts.get(hand?.handId) || 0) + 1);
     }
-    const total = metricAccumulator(), players = new Map(), contexts = new Map();
+    const total = metricAccumulator(), sizeTotal=metricAccumulator(), players = new Map(), contexts = new Map();
     const excludeHand = (handId, reasonCode) => { output.counts.skippedHands++; output.exclusions.push({ handId: identifier(handId) ? handId : null, reasonCode }); };
     const excludeObservation = (handId, observationId, reasonCode) => {
       output.counts.skippedObservations++; output.exclusions.push({ handId, observationId: typeof observationId === 'string' ? observationId : null, reasonCode });
@@ -202,6 +205,19 @@
           observedAction: observed, actions: forecast.actions, observedActionProbability: modelProbability, referenceActionProbability: referenceProbability,
           logLoss: { model: -Math.log(modelProbability), reference: -Math.log(referenceProbability) }, brier: { model: modelBrier, reference: referenceBrier } };
         output.forecasts.push(row); addScore(total, row); addScore(perHand, row);
+        const event=hand.archive.multiway.events?.[observation.eventIndex];
+        if(['BET','RAISE'].includes(observed) && event?.type==='ACT' && event.actor===observation.seatId && event.action===observed && event.to===observation.targetStreetTotal &&
+          observation.legalMinTo!==undefined && observation.legalMaxTo!==undefined){
+          try{
+            const band=model.sizingBucket(observation.targetStreetTotal,observation.legalMinTo,observation.legalMaxTo);
+            const sizing=model.getSizingPosterior(hand.profileSnapshot.players[observation.playerId],forecast.context,observed,observation.legalMinTo,observation.legalMaxTo);
+            const referenceSize=model.getSizingPosterior(null,forecast.context,observed,observation.legalMinTo,observation.legalMaxTo);
+            const probability=sizing.bins.find(bin=>bin.band===band).mean,referenceProbability=referenceSize.bins.find(bin=>bin.band===band).mean;
+            const sizeRow={logLoss:{model:-Math.log(probability),reference:-Math.log(referenceProbability)},
+              brier:{model:sizing.bins.reduce((sum,bin)=>sum+(bin.mean-Number(bin.band===band))**2,0),reference:referenceSize.bins.reduce((sum,bin)=>sum+(bin.mean-Number(bin.band===band))**2,0)}};
+            row.sizing={band,priorOpportunities:sizing.sampleSize,...sizeRow};addScore(sizeTotal,sizeRow);
+          }catch(_){row.sizing={status:'UNKNOWN',reason:'INVALID_LEGAL_SIZING_EVIDENCE'};}
+        }
         if (!players.has(row.playerId)) players.set(row.playerId, metricAccumulator()); addScore(players.get(row.playerId), row);
         const groupKey = JSON.stringify([row.playerId, row.contextKey]);
         if (!contexts.has(groupKey)) contexts.set(groupKey, { playerId: row.playerId, contextKey: row.contextKey, context: row.context, accumulator: metricAccumulator() });
@@ -211,6 +227,7 @@
       else output.exclusions.push({ handId: id, reasonCode: 'NO_ELIGIBLE_PLAYER_OBSERVATIONS' });
     }
     output.counts.forecasts = total.forecasts; output.metrics = metrics(total);
+    output.sizing.forecasts=sizeTotal.forecasts;output.sizing.metrics=metrics(sizeTotal);
     output.byPlayer = [...players].map(([playerId, accumulator]) => ({ playerId, forecasts: accumulator.forecasts, metrics: metrics(accumulator) }));
     output.byContext = [...contexts.values()].map(row => ({ playerId: row.playerId, contextKey: row.contextKey, context: row.context,
       forecasts: row.accumulator.forecasts, metrics: metrics(row.accumulator) }));

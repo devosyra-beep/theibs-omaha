@@ -43,9 +43,10 @@ function feeAt(model, pot) {
   return fee;
 }
 function normalizeSizing(raw, maxLevels) {
-  if (!object(raw) || !['MIN_MID_MAX', 'EXPLICIT_TOTALS'].includes(raw.type)) fail('SIZING_REQUIRED', 'Declare the river sizing abstraction.');
+  if (!object(raw) || !['MIN_MID_MAX', 'EXPLICIT_TOTALS', 'ALL_LEGAL_TOTALS'].includes(raw.type)) fail('SIZING_REQUIRED', 'Declare the river sizing abstraction.');
   const maxAggressions = integer(raw.maxAggressions, 0, 3, 'Maximum additional aggressive actions');
   if (raw.type === 'MIN_MID_MAX') return { type: raw.type, maxAggressions };
+  if (raw.type === 'ALL_LEGAL_TOTALS') return { type: raw.type, version:'LEGAL_CENT_ENUMERATION_V1', maxAggressions, maxLevels };
   if (!Array.isArray(raw.levels) || raw.levels.length < 1 || raw.levels.length > maxLevels) fail('INVALID_SIZING', `Declare one to ${maxLevels} street-total sizes.`);
   const levels = [...new Set(raw.levels.map(value => amount(value, 'Street total')))].sort((a, b) => a - b);
   if (levels.some(value => value <= 0)) fail('INVALID_SIZING', 'Street totals must be positive.');
@@ -57,7 +58,14 @@ function actionsFor(state, sizing, aggressionCount) {
   const aggressive = state.legal.actions.find(action => action === 'BET' || action === 'RAISE');
   if (!aggressive || aggressionCount >= sizing.maxAggressions) return actions;
   const { minTo, maxTo } = state.legal;
-  const levels = sizing.type === 'MIN_MID_MAX' ? [minTo, round((minTo + maxTo) / 2), maxTo] : sizing.levels;
+  let levels;
+  if (sizing.type === 'ALL_LEGAL_TOTALS') {
+    const first = Math.round(minTo * 100), last = Math.round(maxTo * 100), count = last - first + 1;
+    // Refuse the entire tree before allocating an oversized branch. Never sample
+    // or silently truncate this mode; completeness is checked at every node.
+    if (count > sizing.maxLevels) fail('EXACT_SIZING_BUDGET', `All legal totals requires at most ${sizing.maxLevels} cent-denominated sizes at every included node. Use an explicit abstraction for this tree.`);
+    levels = Array.from({ length: count }, (_, index) => (first + index) / 100);
+  } else levels = sizing.type === 'MIN_MID_MAX' ? [minTo, round((minTo + maxTo) / 2), maxTo] : sizing.levels;
   for (const size of [...new Set(levels)].filter(size => size >= minTo && size <= maxTo)) actions.push({ id: `${aggressive}:${size.toFixed(2)}`, action: aggressive, size });
   return actions;
 }
@@ -73,6 +81,7 @@ function normalize(input) {
   if (record.events.some(event => !['ACT', 'BOARD'].includes(event.type))) fail('PARTIAL_HISTORY', 'This slice requires a complete ordered public action history, without out-of-turn or later reveal events.');
   const support = state.players.length === 2 ? HU_SUPPORT : THREE_SEAT_SUPPORT;
   const sizing = normalizeSizing(input.sizing, support.maxSizingLevels), rake = normalizeFee(input.rake);
+  if (sizing.type === 'ALL_LEGAL_TOTALS' && state.players.length !== 2) fail('TABLE_NOT_COVERED','All legal totals currently covers river heads-up only.');
   const budgetRaw = input.budget || {}, budget = {};
   for (const [key, maximum] of Object.entries({ ...LIMITS, maxWorlds: support.maxWorlds, maxMemoryBytes: support.maxMemoryBytes }))
     budget[key] = integer(budgetRaw[key] ?? maximum, 1, maximum, key);

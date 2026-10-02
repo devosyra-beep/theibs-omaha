@@ -9,14 +9,14 @@ const { holeCount } = require('./variants');
 const { normalizeRange, serializeRange } = require('./range-engine');
 const { Lcg } = require('./equity-engine');
 const { policyStrength } = require('./opponent-policy');
-const { contextFor, getPosterior } = require('./player-profiles');
+const { contextFor, getPosterior, getSizingPosterior, validateSizingCounts } = require('./player-profiles');
 const { normalizeRakeSchedule, calculateRake } = require('./rake-model');
 const { enrichActionEV } = require('./action-ev-presentation');
 const { describeHand } = require('./hand-insights');
 const { attachAnalysisContract } = require('./analysis-contract');
 const { compareDecisionValues, LEGACY_METHOD } = require('./decision-precision');
 const ALL_ACTIONS = ['FOLD', 'CHECK', 'CALL', 'BET', 'RAISE'];
-const MODEL = 'MULTIWAY_CONTEXT_POLICY_V1';
+const MODEL = 'MULTIWAY_CONTEXT_POLICY_V2';
 const hash = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
 const round = value => Math.round(value * 100) / 100;
 const optionId = (action, size) => size == null ? action : `${action}:${Number(size).toFixed(2)}`;
@@ -51,7 +51,15 @@ function choosePolicy(state, cards, profile, rng) {
   const distribution = policyDistribution({ state, cards, profile }).probabilities;
   let roll = rng.next(), action = Object.keys(distribution).at(-1);
   for (const [candidate, probability] of Object.entries(distribution)) { roll -= probability; if (roll <= 0) { action = candidate; break; } }
-  return { action, ...(['BET', 'RAISE'].includes(action) ? { to: round(state.legal.minTo + (state.legal.maxTo - state.legal.minTo) * rng.next()) } : {}) };
+  return { action, ...(['BET', 'RAISE'].includes(action) ? { to: chooseSizing(state, profile, action, rng) } : {}) };
+}
+function chooseSizing(state, profile, action, rng) {
+  const sizing = getSizingPosterior(profile,contextFor(state),action,state.legal.minTo,state.legal.maxTo);
+  // Preserve the legacy reference when no compatible sizing was observed.
+  if (!sizing.sampleSize) return round(state.legal.minTo + (state.legal.maxTo - state.legal.minTo) * rng.next());
+  let roll = rng.next(), bin = sizing.bins.at(-1);
+  for (const candidate of sizing.bins) { roll -= candidate.mean; if (roll <= 0) { bin = candidate; break; } }
+  return (bin.first + Math.floor(rng.next() * (bin.last - bin.first + 1))) / 100;
 }
 function costs(input) {
   const supplied = [input.rakeSchedule != null, input.rake != null && input.rake !== '', input.assumeNoRake === true].filter(Boolean).length;
@@ -95,7 +103,8 @@ function normalize(input) {
     for (const [key, cell] of Object.entries(profile.contexts || {})) {
       if (!cell.counts || Object.values(cell.counts).some(value => !Number.isSafeInteger(value) || value < 0 || value > 1e9)
           || Object.keys(cell.counts).some(action => !ALL_ACTIONS.includes(action))) throw Error('Invalid confirmed observation counts.');
-      contexts[key] = { counts: { ...cell.counts } };
+      validateSizingCounts(cell);
+      contexts[key] = { counts: { ...cell.counts }, ...(cell.sizingCounts ? {sizingCounts:JSON.parse(JSON.stringify(cell.sizingCounts))} : {}) };
     }
     snapshot.players[id] = { playerId: id, contexts, observations: Object.values(contexts).reduce((sum, cell) => sum + Object.values(cell.counts).reduce((a, b) => a + b, 0), 0) };
   }
@@ -255,6 +264,7 @@ function evaluateMultiway(input) {
     'Intervals cover numerical sampling under fixed hypotheses, including weighting and the bounded time stop; they do not measure policy validity or population certainty.'
   ];
   assumptions.push('Profile posterior means are held fixed during this evaluation; their Bayesian uncertainty is reported in Players and is not propagated into action EV intervals.');
+  assumptions.push('Recorded sizing bands condition future aggressive street totals in the same opportunity context, independently of private-card strength. Missing sizing evidence uses the uniform reference. Sizing posterior uncertainty is not propagated into EV intervals; this policy is not externally calibrated.');
   if (!costModel) assumptions.push('Rake is unknown; non-fold action EV remains unavailable.');
   if (context.raw.feeBasis === 'BEFORE_FEES' && costModel?.fixed === 0) assumptions.push('EV is before room fees. No room-specific fee schedule is inferred.');
   const results = candidates.map((candidate, index) => {
@@ -304,7 +314,7 @@ function evaluateMultiway(input) {
   ev.comparisonScope = 'FINITE_SIZE_GRID_FIXED_CONTEXTUAL_CONTINUATION_POLICY';
   ev.feeBasis = context.raw.feeBasis === 'BEFORE_FEES' && costModel?.fixed === 0 ? 'BEFORE_FEES' : costModel ? 'DECLARED_FEES' : 'UNKNOWN';
   const policy = { model: MODEL, profileSnapshotHash: hash(context.snapshot), heroContinuation: 'REFERENCE_CONTEXT_POLICY',
-    cardDependence: 'HEURISTIC_EXPONENTIAL_STRENGTH_LINK', sizePolicy: 'UNIFORM_LEGAL_STREET_TOTAL', learnedObservations: 'PRE_HAND_ONLY', externallyValidated: false };
+    cardDependence: 'HEURISTIC_EXPONENTIAL_STRENGTH_LINK', sizePolicy: 'CONTEXT_LEGAL_SIZE_DIRICHLET_V1_WITH_UNIFORM_FALLBACK', learnedObservations: 'PRE_HAND_ONLY', externallyValidated: false };
   policy.profileUncertaintyPropagation = 'NOT_PROPAGATED_FIXED_POSTERIOR_MEANS';
   const result = { status: 'OK', contractVersion: 'THEIBS_DECISION_V1', state: basic,
     ...(!n ? { analysisStage: 'PROVISIONAL' } : {}), ...(refinement ? { refinement } : {}),
@@ -346,4 +356,4 @@ function evaluateMultiway(input) {
     futureStreetModel: policy });
 }
 module.exports = { MODEL, evaluateMultiway, candidatesFor, policyDistribution,
-  _testing: { normalize, drawWorld, historyWeight, rollout, scoresFor, weightedBounds, weightedMean, costs, rakeAt } };
+  _testing: { normalize, drawWorld, historyWeight, rollout, scoresFor, weightedBounds, weightedMean, costs, rakeAt, chooseSizing } };

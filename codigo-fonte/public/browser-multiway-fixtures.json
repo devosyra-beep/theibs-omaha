@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "sourceFingerprint": "672f4b168c7fe913e05c1d60ef10ca06c5fdebc614a58b002f99b822a1530aa0",
+  "sourceFingerprint": "6eff1353e8cd7c8fa78d2b05ee0ff3423afe557d75fefd779e585dda1b3c1ecb",
   "normal": {
     "multiway": {
       "schemaVersion": 1,
@@ -74,8 +74,8 @@
   "expected": {
     "samples": 128,
     "model": "HEURISTIC",
-    "fingerprint": "c326fadfc0e6c6738f5cebf4b0ecefbdaceceace47bac616f0a3c4b759434fec",
-    "equity": 0.25865826371104583,
+    "fingerprint": "76e3362d552f80f77d0bc39e93f73f79c306bfab1f8f2a7b199ba23d17a9581e",
+    "equity": 0.2727333297571588,
     "candidates": [
       {
         "optionId": "FOLD",
@@ -83,19 +83,19 @@
       },
       {
         "optionId": "CALL",
-        "evBB": 9.588642499388582
+        "evBB": 16.228412410921592
       },
       {
         "optionId": "RAISE:2.00",
-        "evBB": 8.058805304165787
+        "evBB": 6.9832928614015115
       },
       {
         "optionId": "RAISE:4.25",
-        "evBB": 1.5138063218454005
+        "evBB": 1.1627575357577578
       },
       {
         "optionId": "RAISE:6.50",
-        "evBB": 1.3004351942708214
+        "evBB": 1.3784624132365666
       }
     ],
     "revisionKey": "5602f1814e83b7eb52c4be539975ca2978de55a112075a29396e62859a59f224"

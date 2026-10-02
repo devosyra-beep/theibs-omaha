@@ -302,7 +302,7 @@
       !Array.isArray(saved.ranges) || saved.ranges.length < 2 || saved.ranges.length > 3 || !saved.sizing) return;
     if (saved.ranges.some(range => !Number.isInteger(range.seatId) || range.complete !== true || !Array.isArray(range.combos) ||
       range.combos.length < 1 || range.combos.length > rangeLimit(saved.ranges.length) || range.combos.some(combo => !Array.isArray(combo.cards) || combo.cards.length !== 5 || !Number.isFinite(combo.weight) || combo.weight <= 0))) return;
-    if (!['MIN_MID_MAX','EXPLICIT_TOTALS'].includes(saved.sizing.type) || !Number.isInteger(saved.sizing.maxAggressions) || saved.sizing.maxAggressions < 0 || saved.sizing.maxAggressions > 3 ||
+    if (!['MIN_MID_MAX','EXPLICIT_TOTALS','ALL_LEGAL_TOTALS'].includes(saved.sizing.type) || !Number.isInteger(saved.sizing.maxAggressions) || saved.sizing.maxAggressions < 0 || saved.sizing.maxAggressions > 3 ||
       saved.sizing.type === 'EXPLICIT_TOTALS' && (!Array.isArray(saved.sizing.levels) || saved.sizing.levels.length < 1 || saved.sizing.levels.length > levelLimit(saved.ranges.length) || saved.sizing.levels.some(level => !Number.isFinite(level) || level <= 0))) return;
     let comparisonPolicy;try{comparisonPolicy=normalizeComparisonPolicy(saved.comparisonPolicy);}catch{return;}
     let scenarios;
@@ -326,7 +326,7 @@
             !Array.isArray(combo.cards) || combo.cards.length!==5 || !Number.isFinite(combo.weight) || combo.weight<=0 || combo.weight>1e12))throw Error('Use complete weighted ranges for every scenario.');
         return {seatId:range.seatId,complete:true,source:range.source,combos:range.combos.map(combo=>({cards:clone(combo.cards),weight:combo.weight}))};
       });
-      if(new Set(ranges.map(range=>range.seatId)).size!==seats || !['MIN_MID_MAX','EXPLICIT_TOTALS'].includes(item.sizing.type) ||
+      if(new Set(ranges.map(range=>range.seatId)).size!==seats || !['MIN_MID_MAX','EXPLICIT_TOTALS','ALL_LEGAL_TOTALS'].includes(item.sizing.type) ||
         !Number.isInteger(item.sizing.maxAggressions) || item.sizing.maxAggressions<0 || item.sizing.maxAggressions>3 ||
         item.sizing.type==='EXPLICIT_TOTALS' && (!Array.isArray(item.sizing.levels) || !item.sizing.levels.length || item.sizing.levels.length>levelLimit(seats) || item.sizing.levels.some(value=>!Number.isFinite(value) || value<=0)))throw Error('Use a valid sizing tree for every scenario.');
       const sizing={type:item.sizing.type,maxAggressions:item.sizing.maxAggressions,...(item.sizing.type==='EXPLICIT_TOTALS'?{levels:clone(item.sizing.levels)}:{})};
@@ -516,9 +516,10 @@
         <p>One template per player/context; a later approval replaces it. These finite study hypotheses are separate from observed actions and are never fed into the heuristic evaluator’s history conditioning.</p></details>
       <p class="mw-solver-hint">One five-card combination per line, up to ${maxCombos} per seat. Add <code>| weight</code> if needed; omitted weights are 1. Weights are relative within each seat; compatible joint assignments are renormalized after card blockers. Include your current cards within your declared range. The declared tree may still exceed the solver's safety limits.</p>
       <details class="mw-solver-limits"><summary>Range source & rationale · optional</summary><p>Record where each hypothesis came from and the context you assumed. These notes are not observations or learned statistics and are not sent to the solver.</p>${seats.map(seat=>`<label>${esc(seat.hero?'You':seat.name || `Seat ${seat.id+1}`)} · source / rationale<textarea rows="2" maxlength="500" data-solver-rationale="${seat.id}" autocomplete="off"></textarea></label>`).join('')}</details>
-      <div class="mw-solver-grid"><label>Sizing abstraction<select name="sizing"><option value="MIN_MID_MAX">Minimum / middle / maximum</option><option value="EXPLICIT_TOTALS">Specific street totals</option></select></label><label>Additional bets / raises<select name="aggressions"><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></label></div>
+      <details class="mw-solver-limits"><summary>Range weight checks</summary><p>Check joint blockers and weight concentration, or create an explicit opponent-weight hypothesis. Hero weights and all combinations stay unchanged. These are model sensitivity checks, not learned ranges or confidence intervals. Review and save every scenario before running comparisons.</p><div class="mw-solver-actions"><button type="button" class="text-button" data-range-check>Check support</button><button type="button" class="text-button" data-range-power="0.5">Flatter opponent weights</button><button type="button" class="text-button" data-range-power="2">Sharper opponent weights</button></div><p data-range-report role="status" aria-live="polite"></p></details>
+      <div class="mw-solver-grid"><label>Sizing abstraction<select name="sizing"><option value="MIN_MID_MAX">Minimum / middle / maximum</option><option value="EXPLICIT_TOTALS">Specific street totals</option><option value="ALL_LEGAL_TOTALS"${seats.length===2?'':' disabled'}>All legal totals · small HU trees</option></select></label><label>Additional bets / raises<select name="aggressions"><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></label></div>
       <label data-solver-levels hidden>Street totals · chips<input name="levels" type="text" inputmode="decimal" placeholder="2, 4, 6" autocomplete="off"></label>
-      <p class="mw-solver-hint">Specific sizes are absolute totals committed on this street, reused wherever legal in the tree. They are not pot percentages. Minimum / middle / maximum uses the legal minimum, arithmetic midpoint and maximum at each node. The aggression limit can omit later bets or raises.</p>
+      <p class="mw-solver-hint">Specific sizes are absolute street totals, not pot percentages. All legal totals enumerates every cent-sized option at each included node and refuses the whole tree if any node exceeds 12 sizes. The aggression limit can still omit later actions; qualification checks completeness separately.</p>
       <details class="mw-solver-limits"><summary>Study scope & privacy</summary><p>These are explicitly chosen study ranges, including folded seats. They are not observed cards or learned statistics. Every player knows the declared ranges; a one-combination range reveals that seat’s hand within the study.</p><p>The sizing selection and aggression limit restrict the tree. Convergence applies to this river subgame only, not a full-hand GTO solution. Room fees follow the current calculation basis.</p><label>Near-equivalence threshold · bb<input name="nearEquivalenceBB" type="number" min="0" step="any" value="${normalizeComparisonPolicy(matches?study.comparisonPolicy:undefined).nearEquivalenceBB}" required></label><p>This threshold compares ex-ante commitments across the full supplied prior (FULL_PRIOR_COMMITMENT). It does not imply equal EV for your current hand. It changes the comparison policy, not the game tree or mathematical bounds.</p><p>Browser compute runs the river study on this device and currently covers two original seats. Server compute sends the entered combinations and public hand ledger to the server and covers two or three original seats. No voice transcripts, profile notes or inferred ranges are included. This setup resets with the next hand.</p></details>
       <label class="mw-solver-confirm"><input name="complete" type="checkbox" required><span>I define these as the complete ranges for every saved scenario.</span></label>
       <details class="mw-solver-limits"><summary>Compare saved scenarios</summary><p>Compare the active scenario with up to two explicit alternatives, sequentially in Browser compute. Each alternative has up to 3s; total comparison work has a 6s wall limit. Save edits first. Range hypotheses and sizing changes describe model sensitivity, not uncertainty or a universal best action.</p><div class="mw-solver-actions"><button type="button" class="text-button" data-solver-compare>Run comparison</button><button type="button" class="text-button" data-solver-comparison-stop hidden>Stop comparison</button></div><div data-solver-comparison-result role="status" aria-live="polite"></div></details>
@@ -541,10 +542,32 @@
         dialog.querySelector(`[data-solver-rationale="${seat.id}"]`).value=draft.rationaleBySeat?.[seat.id] || '';}
       form.elements.sizing.value=draft.sizing.type;form.elements.aggressions.value=String(draft.sizing.maxAggressions);form.elements.levels.value=draft._levels ?? draft.sizing.levels?.join(', ') ?? '';
       form.elements.complete.checked=false;sizingChanged();updateNotation();dialogError('');
+      dialog.querySelector('[data-range-report]').textContent='';
+      dialog.querySelector('[data-range-check]').disabled=seats.length!==2;
+      for(const button of dialog.querySelectorAll('[data-range-power]'))button.disabled=seats.length!==2 || drafts.length>=MAX_SCENARIOS;
       dialog.querySelector('[data-solver-duplicate]').disabled=drafts.length>=MAX_SCENARIOS;dialog.querySelector('[data-solver-new]').disabled=drafts.length>=MAX_SCENARIOS;
       dialog.querySelector('[data-solver-remove]').disabled=drafts.length===1;
     };
     const nextId=()=>`scenario-${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
+    const draftRanges=()=>seats.map(seat=>({seatId:seat.id,complete:true,source:drafts.find(item=>item.id===selectedId).ranges.find(range=>range.seatId===seat.id)?.source || 'USER_DEFINED_COMPLETE_STUDY',
+      combos:parseRange(dialog.querySelector(`[data-solver-range="${seat.id}"]`).value,form.elements.notation.value,maxCombos)}));
+    const supportReport=ranges=>{
+      const report=root.TheibsRiverStudyTools.diagnostics(ranges,now.state.board,now.state.heroId,now.multiway.config.heroCards);
+      dialog.querySelector('[data-range-report]').textContent=`${report.worlds}/${report.cartesianWorlds} compatible worlds · Hero mass ${(100*report.heroMass).toFixed(2)}% · ${report.seats.map(row=>`Seat ${row.seatId+1}: ${row.combinations} combinations, effective ${row.effectiveCombinations.toFixed(2)}`).join(' · ')}. Effective combinations describes weight concentration only.`;
+    };
+    dialog.querySelector('[data-range-check]').onclick=()=>{try{if(binding(context())!==openedBinding)throw Error('The decision changed. Reopen Solver study.');supportReport(draftRanges());dialogError('');}catch(error){dialogError(error.message);}};
+    for(const button of dialog.querySelectorAll('[data-range-power]'))button.onclick=()=>{
+      try{
+        if(binding(context())!==openedBinding)throw Error('The decision changed. Reopen Solver study.');
+        if(drafts.length>=MAX_SCENARIOS)throw Error('Keep at most three scenarios. Remove an unused alternative first.');
+        const ranges=draftRanges();supportReport(ranges);captureDraft();
+        const power=Number(button.dataset.rangePower),hypothesis=root.TheibsRiverStudyTools.weightHypothesis(ranges,now.state.heroId,power);
+        const draft=clone(drafts.find(item=>item.id===selectedId));draft.id=nextId();draft.name=power===.5?'Flatter opponent weights':'Sharper opponent weights';
+        draft.ranges=hypothesis.ranges;delete draft._texts;
+        const seat=hypothesis.origin.seatId;draft.rationaleBySeat[seat]=`User weight sensitivity: relative weights raised to power ${power}. Source: ${hypothesis.origin.source}. Combinations and Hero weights unchanged; not learned behavior.`;
+        drafts.push(draft);selectedId=draft.id;fillDraft();supportReport(draft.ranges);
+      }catch(error){dialogError(error.message);}
+    };
     for(const button of dialog.querySelectorAll('[data-solver-template]'))button.onclick=()=>{
       if(binding(context())!==openedBinding){dialogError('The decision or account changed. Reopen Solver study.');return;}
       const suggestion=rangeSuggestions.find(item=>item.seat.id===Number(button.dataset.solverTemplate));
@@ -566,6 +589,7 @@
     dialog.querySelector('[data-solver-remove]').onclick=()=>{if(drafts.length===1)return;const index=drafts.findIndex(item=>item.id===selectedId);drafts.splice(index,1);selectedId=drafts[Math.max(0,index-1)].id;fillDraft();};
     form.elements.sizing.onchange = sizingChanged;fillDraft();
     form.elements.notation.onchange = () => { updateNotation();dialogError('The notation changed. Review the entered cards before saving.'); };
+    form.addEventListener('input',event=>{if(event.target===form.elements.complete)return;dialog.querySelector('[data-range-report]').textContent='';form.elements.complete.checked=false;});
     dialog.querySelector('[data-solver-close]').onclick = () => dialog.close();
     dialog.querySelector('[data-solver-clear]').onclick = () => { study = null; invalidate();dialog.close(); };
     dialog.querySelector('[data-solver-compare]').onclick=()=>void runComparison();

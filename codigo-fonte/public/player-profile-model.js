@@ -9,6 +9,8 @@ const randomUUID = () => globalThis.crypto.randomUUID();
 const hash = value => JSON.stringify(value);
 const clone = value => JSON.parse(JSON.stringify(value));
 const VERSION = 'CONTEXT_DIRICHLET_V1';
+const SIZING_VERSION = 'CONTEXT_LEGAL_SIZE_DIRICHLET_V1';
+const SIZE_BANDS = Object.freeze(['LOW', 'LOW_MID', 'HIGH_MID', 'HIGH']);
 const actions = ['FOLD', 'CHECK', 'CALL', 'BET', 'RAISE'];
 function createStore() { return { schemaVersion: 1, revision: 0, players: {}, hands: {} }; }
 function validateStore(store) {
@@ -25,6 +27,7 @@ function validateStore(store) {
         if (!actions.includes(action) || !cell.context.legalActions.includes(action) || !Number.isSafeInteger(count) || count < 0 || count > 1e9) throw Error('Invalid stored observation count.');
         total += count;
       }
+      validateSizingCounts(cell);
     }
     if (total !== player.observations) throw Error('Stored observation totals do not match.');
   }
@@ -89,6 +92,40 @@ function posterior(context, counts = {}) {
     intervalMethod: 'BETA_MARGINAL_CHEBYSHEV_AT_LEAST_95_PERCENT_POSTERIOR_MASS', estimates };
 }
 function getPosterior(profile, context) { return posterior(context, profile?.contexts?.[contextKey(context)]?.counts || {}); }
+function validateSizingCounts(cell) {
+  if (cell.sizingCounts === undefined) return;
+  if (!cell.sizingCounts || typeof cell.sizingCounts !== 'object' || Array.isArray(cell.sizingCounts)) throw Error('Invalid recorded sizing counts.');
+  for (const [action, counts] of Object.entries(cell.sizingCounts)) {
+    if (!['BET','RAISE'].includes(action) || !counts || typeof counts !== 'object' || Array.isArray(counts)) throw Error('Invalid sizing action.');
+    let total = 0;
+    for (const [band, value] of Object.entries(counts)) {
+      if (!SIZE_BANDS.includes(band) || !Number.isSafeInteger(value) || value < 0 || value > 1e9) throw Error('Invalid sizing band count.');
+      total += value;
+    }
+    if (total > (cell.counts[action] || 0)) throw Error('Sizing observations exceed confirmed actions.');
+  }
+}
+function sizingBucket(to, minTo, maxTo) {
+  if (![to,minTo,maxTo].every(value => typeof value === 'number' && Number.isFinite(value) && value >= 0 && Math.abs(value * 100 - Math.round(value * 100)) < 1e-7)
+      || to < minTo || to > maxTo || maxTo < minTo) throw Error('Sizing needs a legal cent-denominated street total.');
+  const count = Math.round(maxTo * 100) - Math.round(minTo * 100) + 1;
+  return SIZE_BANDS[Math.floor((Math.round(to * 100) - Math.round(minTo * 100)) * 4 / count)];
+}
+function getSizingPosterior(profile, context, action, minTo, maxTo) {
+  if (!['BET','RAISE'].includes(action) || !context.legalActions.includes(action)) throw Error('A legal bet or raise is required for sizing evidence.');
+  sizingBucket(minTo,minTo,maxTo);
+  const first = Math.round(minTo * 100), count = Math.round(maxTo * 100) - first + 1;
+  const cell = profile?.contexts?.[contextKey(context)] || {counts:{}}; validateSizingCounts(cell);
+  const counts = cell.sizingCounts?.[action] || {};
+  const bins = SIZE_BANDS.map((band,index) => ({band, first: first + Math.ceil(index * count / 4), last: first + Math.ceil((index + 1) * count / 4) - 1}))
+    .filter(bin => bin.last >= bin.first);
+  const observed = bins.reduce((sum,bin) => sum + (counts[bin.band] || 0),0), total = observed + bins.length;
+  return {model:SIZING_VERSION,action,context,source:observed?'CONFIRMED_SIZINGS_WITH_REFERENCE_PRIOR':'REFERENCE_PRIOR_ONLY',sampleSize:observed,
+    basis:'RELATIVE_POSITION_IN_LEGAL_CENT_TOTALS',uncertainty:'MARGINAL_POSTERIOR_ONLY',
+    bins:bins.map(bin => {const alpha = 1 + (counts[bin.band] || 0), mean = alpha / total;
+      const radius = Math.sqrt(alpha * (total - alpha) / (total * total * (total + 1) * .05));
+      return {...bin,observed:counts[bin.band] || 0,mean,credibleInterval95:[Math.max(0,mean-radius),Math.min(1,mean+radius)]};})};
+}
 function profileSnapshot(store, handId, playerIds = Object.keys(store.players)) {
   validateStore(store);
   return { schemaVersion: 1, handId, source: 'PRE_HAND_OBSERVATIONS', model: VERSION,
@@ -118,6 +155,15 @@ function applyObservation(store, observation, delta) {
   const key = contextKey(observation.context);
   const cell = player.contexts[key] || { context: observation.context, counts: {} };
   cell.counts[observation.action] = Number(cell.counts[observation.action] || 0) + delta;
+  if (['BET','RAISE'].includes(observation.action) && observation.legalMinTo !== undefined && observation.legalMaxTo !== undefined) {
+    const band = sizingBucket(observation.targetStreetTotal,observation.legalMinTo,observation.legalMaxTo);
+    cell.sizingCounts ||= {}; cell.sizingCounts[observation.action] ||= {};
+    const counts = cell.sizingCounts[observation.action]; counts[band] = (counts[band] || 0) + delta;
+    if (counts[band] < 0) throw Error('Sizing observation ledger is inconsistent.');
+    if (!counts[band]) delete counts[band];
+    if (!Object.keys(counts).length) delete cell.sizingCounts[observation.action];
+    if (!Object.keys(cell.sizingCounts).length) delete cell.sizingCounts;
+  }
   if (cell.counts[observation.action] < 0) throw Error('Player observation ledger is inconsistent.');
   player.observations += delta;
   if (Object.values(cell.counts).some(value => value > 0)) player.contexts[key] = cell;
@@ -132,6 +178,10 @@ function applyObservations(store, record) {
   for (const item of observations) {
     if (!initial.playerIds.includes(item.playerId) || item.source !== 'CONFIRMED_EVENT'
         || !item.context?.legalActions?.includes(item.action) || !actions.includes(item.action)) throw Error('Invalid confirmed observation.');
+    if (item.legalMinTo !== undefined || item.legalMaxTo !== undefined) {
+      if (!['BET','RAISE'].includes(item.action)) throw Error('Sizing evidence requires a confirmed bet or raise.');
+      sizingBucket(item.targetStreetTotal,item.legalMinTo,item.legalMaxTo);
+    }
   }
   if (new Set(observations.map(item => item.id)).size !== observations.length) throw Error('Duplicate confirmed observation identity.');
   const previous = new Map(hand.observations.map(item => [item.id, item])), next = new Map(observations.map(item => [item.id, item]));
@@ -155,7 +205,7 @@ function resetPlayer(store, id) {
   store.revision++; return player;
 }
 function deletePlayer(store, id) { resetPlayer(store, id); delete store.players[id]; store.revision++; }
-return { VERSION, createStore, validateStore, createPlayer, renamePlayer, addNote, removeNote, beginHand, applyObservations,
+return { VERSION, SIZING_VERSION, SIZE_BANDS, sizingBucket, getSizingPosterior, validateSizingCounts, createStore, validateStore, createPlayer, renamePlayer, addNote, removeNote, beginHand, applyObservations,
   profileSnapshot, summarizePlayer, listPlayers, resetPlayer, deletePlayer, getPosterior, contextFor, contextKey, posterior };
 
 });

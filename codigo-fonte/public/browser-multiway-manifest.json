@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "runtimeVersion": "THEIBS_BROWSER_MULTIWAY_V1",
   "engineBuild": "0.14.10",
-  "model": "MULTIWAY_CONTEXT_POLICY_V1",
+  "model": "MULTIWAY_CONTEXT_POLICY_V2",
   "builderSha256": "fa58645d9d2dfd7380aeecb2df8a7aaebd6853a9f428013fb6824c2b438d9998",
   "sources": [
     {
@@ -17,8 +17,8 @@
     },
     {
       "id": "public/player-profile-model.js",
-      "sha256": "9fb671ea75863a72c46f3451e4f146a9dda5aba610560c4c8d70d4a5cbd0a194",
-      "bytes": 11944
+      "sha256": "102011796539fa6b9e66f006136e630af8043c4d8aeb78c3eb9d2e18edb0fc0b",
+      "bytes": 15844
     },
     {
       "id": "src/action-ev-presentation.js",
@@ -102,8 +102,8 @@
     },
     {
       "id": "src/multiway-evaluator.js",
-      "sha256": "b116f99287801d93c6ad1ce13e777e554685e9d93481188090d9dd899c2ffcbd",
-      "bytes": 29329
+      "sha256": "14daf0d47a50911aa08066d02f5fec40b58d87a242c5099d7c782a0465c3ceb3",
+      "bytes": 30414
     },
     {
       "id": "src/multiway-session.js",
@@ -122,8 +122,8 @@
     },
     {
       "id": "src/player-profiles.js",
-      "sha256": "5ba4fa6fc37c6de55211a1aaa3638633768b32449b62f99bfd050badc1f1cc7e",
-      "bytes": 2017
+      "sha256": "3cceb048b2c28943ccd9012ac36b1c9c9c0cc7d56938c4736005d91eb6f8d8fc",
+      "bytes": 2137
     },
     {
       "id": "src/rake-model.js",
@@ -162,5 +162,5 @@
   "cancellation": "HOST_WORKER_TERMINATE",
   "cache": "OWNER_BUILD_FULL_INPUT_COMPLETE_ONLY",
   "sourceNormalization": "LF",
-  "buildFingerprint": "672f4b168c7fe913e05c1d60ef10ca06c5fdebc614a58b002f99b822a1530aa0"
+  "buildFingerprint": "6eff1353e8cd7c8fa78d2b05ee0ff3423afe557d75fefd779e585dda1b3c1ecb"
 }

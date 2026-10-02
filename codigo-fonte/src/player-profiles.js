@@ -19,6 +19,7 @@ function deriveObservations(record) {
       playerId: playerIds[event.actor], seatId: event.actor, action: event.action, context,
       amountToCall: before.legal.toCall, potBeforeDecision: before.pot,
       targetStreetTotal: ['BET', 'RAISE'].includes(event.action) ? Number(event.to) : null,
+      ...(['BET','RAISE'].includes(event.action) ? {legalMinTo:before.legal.minTo,legalMaxTo:before.legal.maxTo} : {}),
       source: 'CONFIRMED_EVENT', eventIndex: index });
   }
 

@@ -35,7 +35,8 @@ test('generated artifacts are current, reproducible and use only audited Node ad
   assert.equal(normalize(fs.readFileSync(path.join(root,'public/browser-solver-worker.js'),'utf8')),generated.source);
   assert.deepEqual(JSON.parse(fs.readFileSync(path.join(root,'public/browser-solver-manifest.json'),'utf8')),generated.manifest);
   assert.deepEqual(generated.manifest.nodeAdapters,['node:crypto','node:perf_hooks','node:worker_threads']);
-  assert.ok(generated.manifest.sources.every(source=>source.id.startsWith('src/')||source.id==='public/card-voice.js'));
+  const auditedPublic = new Set(['public/card-voice.js','public/solver-study-comparison.js','public/browser-solver-checkpoint-codec.js']);
+  assert.ok(generated.manifest.sources.every(source=>source.id.startsWith('src/')||auditedPublic.has(source.id)));
   assert.ok(!generated.manifest.sources.some(source=>/job-service|solution-cache/.test(source.id)));
   assert.doesNotMatch(generated.source,/\beval\s*\(|\bnew\s+Function\s*\(/);
   assert.equal(normalize('a\r\nb\rc\n'),'a\nb\nc\n');

@@ -27,7 +27,7 @@
     if ([baseline, reference].some(result => result?.status !== 'OK' || result.observedState?.handId !== expected || !result.multiwayEvaluation)) return reject('Matching contextual EV estimates are required.');
     const b = baseline.multiwayEvaluation, r = reference.multiwayEvaluation;
     if (b.revisionKey !== r.revisionKey || b.revisionKey !== payload.multiwayEvaluation?.revisionKey || !b.revisionKey ||
-        b.model !== 'MULTIWAY_CONTEXT_POLICY_V1' || b.model !== r.model || !baseline.engineBuild || baseline.engineBuild !== reference.engineBuild ||
+        !['MULTIWAY_CONTEXT_POLICY_V1','MULTIWAY_CONTEXT_POLICY_V2'].includes(b.model) || b.model !== r.model || !baseline.engineBuild || baseline.engineBuild !== reference.engineBuild ||
         baseline.ev?.feeBasis !== reference.ev?.feeBasis || baseline.ev?.bigBlind !== reference.ev?.bigBlind ||
         baseline.ev?.comparisonScope !== reference.ev?.comparisonScope) return reject('The state, model or calculation basis changed.');
     const original = baseline.ev?.candidates || b.candidates, alternative = reference.ev?.candidates || r.candidates;

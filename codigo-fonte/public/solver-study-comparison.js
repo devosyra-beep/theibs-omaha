@@ -73,9 +73,10 @@
     return result.sort((a, b) => a.seatId - b.seatId);
   }
   function sizingFor(value) {
-    if (!object(value) || !['MIN_MID_MAX', 'EXPLICIT_TOTALS'].includes(value.type)
+    if (!object(value) || !['MIN_MID_MAX', 'EXPLICIT_TOTALS', 'ALL_LEGAL_TOTALS'].includes(value.type)
         || !Number.isSafeInteger(value.maxAggressions) || value.maxAggressions < 0 || value.maxAggressions > 3) return null;
     if (value.type === 'MIN_MID_MAX') return { type: value.type, maxAggressions: value.maxAggressions };
+    if (value.type === 'ALL_LEGAL_TOTALS') return {type:value.type,version:'LEGAL_CENT_ENUMERATION_V1',maxAggressions:value.maxAggressions,maxLevels:12};
     if (!Array.isArray(value.levels) || value.levels.length < 1 || value.levels.length > 12 || !value.levels.every(level => finite(level) && level > 0)) return null;
     return { type: value.type, levels: [...new Set(value.levels)].sort((a, b) => a - b), maxAggressions: value.maxAggressions };
   }

@@ -17,7 +17,7 @@ const conditioned = require('../src/solver/action-conditioned');
 const session = require('../src/multiway-session');
 const fixtures = require('./helpers/solver-reference-fixtures.cjs');
 const exact = require('./helpers/river-hu-expanded-contract-reference.cjs');
-const BASELINE = '5ba76316efa7bd55557cb8e7fe7a807bb0442608';
+const BASELINE = '5d9cdda251ffee8030659431fca3295dda0b76a0';
 const sourceRoot = path.resolve(__dirname, '..');
 const baselineIds = new Set(['src/solver/extensive-solver.js', 'src/solver/action-conditioned.js', 'src/solver/job-worker.js',
   'src/solver/plo-river-game.js', 'src/solver/versions.js', 'src/solver/solution-status.js', 'src/solver/decision-outcome.js', 'src/decision-precision.js']);
@@ -124,7 +124,7 @@ test('native transferred fixed-work global resumes match the exact baseline chec
   }
 });
 
-test('packed adaptive resume preserves nonuniform/blocker job and certificate mathematics against 5ba76316', async () => {
+test('packed adaptive resume preserves nonuniform/blocker job and certificate mathematics against the published 5d9cdda baseline', async () => {
   for (const source of [fixtures.riverCallInput({ blockers: true }), fixtures.riverMixedInput()]) {
     // Candidate admission defaults intentionally allow 32 instead of 24.
     // Compare the same explicit legacy declaration, including its guard metadata.

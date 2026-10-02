@@ -22,8 +22,8 @@
     },
     {
       "id": "public/solver-study-comparison.js",
-      "sha256": "c343f00f7cde81189ba8df3daf9586577a7e8889caaaeefd8579bd149c318415",
-      "bytes": 24280
+      "sha256": "4bd0196bab074d8046bdbbc8802c0af7bbc11bc9c461a205cb039ac31c13661a",
+      "bytes": 24454
     },
     {
       "id": "src/action-ev-presentation.js",
@@ -117,13 +117,13 @@
     },
     {
       "id": "src/solver/plo-river-game.js",
-      "sha256": "b1749bf23d2c29bbc707e7955f1e193834b1cd3b8a9109eb5100d3b4b9663532",
-      "bytes": 22586
+      "sha256": "dec86c6448539bd81d43918906ac8aa87ff2f27399863184f7c35499ed9d6274",
+      "bytes": 23503
     },
     {
       "id": "src/solver/solution-status.js",
-      "sha256": "03142bab5ba95cd852c8d3bf691a0d74d993a380bb7bf1904a0e6e3df7975a22",
-      "bytes": 8497
+      "sha256": "6e4d940d117465d6c33d27f7caf2d4a70a837246061daaffbdcb8e8d95c4e427",
+      "bytes": 8534
     },
     {
       "id": "src/solver/versions.js",
@@ -164,5 +164,5 @@
   "checkpointTransport": "DETACHED_BINARY64_COPY_TRANSFER_V1",
   "memoryMetric": "UNAVAILABLE_IN_BROWSER",
   "sourceNormalization": "LF",
-  "buildFingerprint": "b5e581332fc5738261a55c0b24b63465042ca7932a0d94e463791dcb38c1141b"
+  "buildFingerprint": "945e2b3b29da0720de83e4d7d6a43e0b5d65f6ccc8dc648d96e17ef55750c8a2"
 }

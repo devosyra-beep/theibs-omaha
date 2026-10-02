@@ -1,0 +1,714 @@
+{
+  "schemaVersion": 1,
+  "classification": "PUBLIC_SYNTHETIC_RIVER_HU_PACKAGE_QA",
+  "cells": [
+    {
+      "id": "priorA-treeA",
+      "name": "Explicit prior A / all legal cent totals",
+      "revisionKey": "34982681ab0e9bdf128665ca4aab6bc36af0d51c7138f8f1b0ebaafd443b7add",
+      "input": {
+        "multiway": {
+          "schemaVersion": 1,
+          "enabled": true,
+          "config": {
+            "variant": "PLO5_HIGH",
+            "playerCount": 2,
+            "heroPosition": "SB",
+            "startingStack": 0.53,
+            "smallBlind": 0.1,
+            "bigBlind": 0.25,
+            "heroCards": [
+              "As",
+              "Ah",
+              "Qd",
+              "Jc",
+              "Tc"
+            ],
+            "players": [
+              {
+                "playerId": "3a269444-f415-41e0-bd60-70e21587c339",
+                "name": "You"
+              },
+              {
+                "playerId": "68bc0e4e-713e-403e-9078-2ed37e0b3f0e",
+                "name": "A1"
+              }
+            ]
+          },
+          "events": [
+            {
+              "type": "ACT",
+              "actor": 0,
+              "action": "CALL",
+              "eventId": "54ca2bbb-f79b-440b-8c73-22dc90a97881"
+            },
+            {
+              "type": "ACT",
+              "actor": 1,
+              "action": "CHECK",
+              "eventId": "f589f02a-c9f9-4f59-aca3-53a3c6be50fd"
+            },
+            {
+              "type": "BOARD",
+              "cards": [
+                "2s",
+                "3h",
+                "4d"
+              ],
+              "eventId": "6ca397fe-e8f8-4a09-af29-ec65a1568db5"
+            },
+            {
+              "type": "ACT",
+              "actor": 1,
+              "action": "CHECK",
+              "eventId": "8b1c4404-a4ea-4452-9c4a-46482b13d494"
+            },
+            {
+              "type": "ACT",
+              "actor": 0,
+              "action": "CHECK",
+              "eventId": "5e407f3a-b6f5-441f-8c7d-b469e37a088a"
+            },
+            {
+              "type": "BOARD",
+              "cards": [
+                "2s",
+                "3h",
+                "4d",
+                "8c"
+              ],
+              "eventId": "eac3de4c-b8a2-4934-bde2-0e88c64575cb"
+            },
+            {
+              "type": "ACT",
+              "actor": 1,
+              "action": "CHECK",
+              "eventId": "d501a9da-e19f-4d75-b8cd-8c9349c76a6a"
+            },
+            {
+              "type": "ACT",
+              "actor": 0,
+              "action": "CHECK",
+              "eventId": "a438d4e9-2ab9-4270-bac6-4e5d1235c141"
+            },
+            {
+              "type": "BOARD",
+              "cards": [
+                "2s",
+                "3h",
+                "4d",
+                "8c",
+                "9s"
+              ],
+              "eventId": "9bcaf780-9a4e-4914-9da1-94fb5563612c"
+            },
+            {
+              "type": "ACT",
+              "actor": 1,
+              "action": "CHECK",
+              "eventId": "9ace566e-caff-43c1-b4cd-5213f3be1067"
+            }
+          ],
+          "handId": "090e5aec-c484-4264-a474-dffe18b77d6c",
+          "editEpoch": 0
+        },
+        "ranges": [
+          {
+            "seatId": 0,
+            "complete": true,
+            "source": "PUBLIC_SYNTHETIC_PRIOR_A",
+            "combos": [
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Jc",
+                  "Tc"
+                ],
+                "weight": 3
+              },
+              {
+                "cards": [
+                  "Ac",
+                  "Ad",
+                  "Qh",
+                  "Js",
+                  "Ts"
+                ],
+                "weight": 1
+              }
+            ]
+          },
+          {
+            "seatId": 1,
+            "complete": true,
+            "source": "PUBLIC_SYNTHETIC_PRIOR_A",
+            "combos": [
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "7c",
+                  "8h"
+                ],
+                "weight": 1
+              },
+              {
+                "cards": [
+                  "Kc",
+                  "Kd",
+                  "6h",
+                  "7d",
+                  "8s"
+                ],
+                "weight": 4
+              }
+            ]
+          }
+        ],
+        "rake": {
+          "type": "NONE"
+        },
+        "sizing": {
+          "type": "ALL_LEGAL_TOTALS",
+          "maxAggressions": 3
+        }
+      }
+    },
+    {
+      "id": "priorA-treeB",
+      "name": "Explicit prior A / two-total abstraction",
+      "revisionKey": "34982681ab0e9bdf128665ca4aab6bc36af0d51c7138f8f1b0ebaafd443b7add",
+      "input": {
+        "multiway": {
+          "schemaVersion": 1,
+          "enabled": true,
+          "config": {
+            "variant": "PLO5_HIGH",
+            "playerCount": 2,
+            "heroPosition": "SB",
+            "startingStack": 0.53,
+            "smallBlind": 0.1,
+            "bigBlind": 0.25,
+            "heroCards": [
+              "As",
+              "Ah",
+              "Qd",
+              "Jc",
+              "Tc"
+            ],
+            "players": [
+              {
+                "playerId": "3a269444-f415-41e0-bd60-70e21587c339",
+                "name": "You"
+              },
+              {
+                "playerId": "68bc0e4e-713e-403e-9078-2ed37e0b3f0e",
+                "name": "A1"
+              }
+            ]
+          },
+          "events": [
+            {
+              "type": "ACT",
+              "actor": 0,
+              "action": "CALL",
+              "eventId": "54ca2bbb-f79b-440b-8c73-22dc90a97881"
+            },
+            {
+              "type": "ACT",
+              "actor": 1,
+              "action": "CHECK",
+              "eventId": "f589f02a-c9f9-4f59-aca3-53a3c6be50fd"
+            },
+            {
+              "type": "BOARD",
+              "cards": [
+                "2s",
+                "3h",
+                "4d"
+              ],
+              "eventId": "6ca397fe-e8f8-4a09-af29-ec65a1568db5"
+            },
+            {
+              "type": "ACT",
+              "actor": 1,
+              "action": "CHECK",
+              "eventId": "8b1c4404-a4ea-4452-9c4a-46482b13d494"
+            },
+            {
+              "type": "ACT",
+              "actor": 0,
+              "action": "CHECK",
+              "eventId": "5e407f3a-b6f5-441f-8c7d-b469e37a088a"
+            },
+            {
+              "type": "BOARD",
+              "cards": [
+                "2s",
+                "3h",
+                "4d",
+                "8c"
+              ],
+              "eventId": "eac3de4c-b8a2-4934-bde2-0e88c64575cb"
+            },
+            {
+              "type": "ACT",
+              "actor": 1,
+              "action": "CHECK",
+              "eventId": "d501a9da-e19f-4d75-b8cd-8c9349c76a6a"
+            },
+            {
+              "type": "ACT",
+              "actor": 0,
+              "action": "CHECK",
+              "eventId": "a438d4e9-2ab9-4270-bac6-4e5d1235c141"
+            },
+            {
+              "type": "BOARD",
+              "cards": [
+                "2s",
+                "3h",
+                "4d",
+                "8c",
+                "9s"
+              ],
+              "eventId": "9bcaf780-9a4e-4914-9da1-94fb5563612c"
+            },
+            {
+              "type": "ACT",
+              "actor": 1,
+              "action": "CHECK",
+              "eventId": "9ace566e-caff-43c1-b4cd-5213f3be1067"
+            }
+          ],
+          "handId": "090e5aec-c484-4264-a474-dffe18b77d6c",
+          "editEpoch": 0
+        },
+        "ranges": [
+          {
+            "seatId": 0,
+            "complete": true,
+            "source": "PUBLIC_SYNTHETIC_PRIOR_A",
+            "combos": [
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Jc",
+                  "Tc"
+                ],
+                "weight": 3
+              },
+              {
+                "cards": [
+                  "Ac",
+                  "Ad",
+                  "Qh",
+                  "Js",
+                  "Ts"
+                ],
+                "weight": 1
+              }
+            ]
+          },
+          {
+            "seatId": 1,
+            "complete": true,
+            "source": "PUBLIC_SYNTHETIC_PRIOR_A",
+            "combos": [
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "7c",
+                  "8h"
+                ],
+                "weight": 1
+              },
+              {
+                "cards": [
+                  "Kc",
+                  "Kd",
+                  "6h",
+                  "7d",
+                  "8s"
+                ],
+                "weight": 4
+              }
+            ]
+          }
+        ],
+        "rake": {
+          "type": "NONE"
+        },
+        "sizing": {
+          "type": "EXPLICIT_TOTALS",
+          "levels": [
+            0.25,
+            0.28
+          ],
+          "maxAggressions": 3
+        }
+      }
+    },
+    {
+      "id": "priorB-treeA",
+      "name": "Explicit prior B / all legal cent totals",
+      "revisionKey": "34982681ab0e9bdf128665ca4aab6bc36af0d51c7138f8f1b0ebaafd443b7add",
+      "input": {
+        "multiway": {
+          "schemaVersion": 1,
+          "enabled": true,
+          "config": {
+            "variant": "PLO5_HIGH",
+            "playerCount": 2,
+            "heroPosition": "SB",
+            "startingStack": 0.53,
+            "smallBlind": 0.1,
+            "bigBlind": 0.25,
+            "heroCards": [
+              "As",
+              "Ah",
+              "Qd",
+              "Jc",
+              "Tc"
+            ],
+            "players": [
+              {
+                "playerId": "3a269444-f415-41e0-bd60-70e21587c339",
+                "name": "You"
+              },
+              {
+                "playerId": "68bc0e4e-713e-403e-9078-2ed37e0b3f0e",
+                "name": "A1"
+              }
+            ]
+          },
+          "events": [
+            {
+              "type": "ACT",
+              "actor": 0,
+              "action": "CALL",
+              "eventId": "54ca2bbb-f79b-440b-8c73-22dc90a97881"
+            },
+            {
+              "type": "ACT",
+              "actor": 1,
+              "action": "CHECK",
+              "eventId": "f589f02a-c9f9-4f59-aca3-53a3c6be50fd"
+            },
+            {
+              "type": "BOARD",
+              "cards": [
+                "2s",
+                "3h",
+                "4d"
+              ],
+              "eventId": "6ca397fe-e8f8-4a09-af29-ec65a1568db5"
+            },
+            {
+              "type": "ACT",
+              "actor": 1,
+              "action": "CHECK",
+              "eventId": "8b1c4404-a4ea-4452-9c4a-46482b13d494"
+            },
+            {
+              "type": "ACT",
+              "actor": 0,
+              "action": "CHECK",
+              "eventId": "5e407f3a-b6f5-441f-8c7d-b469e37a088a"
+            },
+            {
+              "type": "BOARD",
+              "cards": [
+                "2s",
+                "3h",
+                "4d",
+                "8c"
+              ],
+              "eventId": "eac3de4c-b8a2-4934-bde2-0e88c64575cb"
+            },
+            {
+              "type": "ACT",
+              "actor": 1,
+              "action": "CHECK",
+              "eventId": "d501a9da-e19f-4d75-b8cd-8c9349c76a6a"
+            },
+            {
+              "type": "ACT",
+              "actor": 0,
+              "action": "CHECK",
+              "eventId": "a438d4e9-2ab9-4270-bac6-4e5d1235c141"
+            },
+            {
+              "type": "BOARD",
+              "cards": [
+                "2s",
+                "3h",
+                "4d",
+                "8c",
+                "9s"
+              ],
+              "eventId": "9bcaf780-9a4e-4914-9da1-94fb5563612c"
+            },
+            {
+              "type": "ACT",
+              "actor": 1,
+              "action": "CHECK",
+              "eventId": "9ace566e-caff-43c1-b4cd-5213f3be1067"
+            }
+          ],
+          "handId": "090e5aec-c484-4264-a474-dffe18b77d6c",
+          "editEpoch": 0
+        },
+        "ranges": [
+          {
+            "seatId": 0,
+            "complete": true,
+            "source": "PUBLIC_SYNTHETIC_PRIOR_B",
+            "combos": [
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Jc",
+                  "Tc"
+                ],
+                "weight": 0.001
+              },
+              {
+                "cards": [
+                  "Ac",
+                  "Ad",
+                  "Qh",
+                  "Js",
+                  "Ts"
+                ],
+                "weight": 5
+              }
+            ]
+          },
+          {
+            "seatId": 1,
+            "complete": true,
+            "source": "PUBLIC_SYNTHETIC_PRIOR_B",
+            "combos": [
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "7c",
+                  "8h"
+                ],
+                "weight": 4
+              },
+              {
+                "cards": [
+                  "Kc",
+                  "Kd",
+                  "6h",
+                  "7d",
+                  "8s"
+                ],
+                "weight": 1
+              }
+            ]
+          }
+        ],
+        "rake": {
+          "type": "NONE"
+        },
+        "sizing": {
+          "type": "ALL_LEGAL_TOTALS",
+          "maxAggressions": 3
+        }
+      }
+    },
+    {
+      "id": "priorB-treeB",
+      "name": "Explicit prior B / two-total abstraction",
+      "revisionKey": "34982681ab0e9bdf128665ca4aab6bc36af0d51c7138f8f1b0ebaafd443b7add",
+      "input": {
+        "multiway": {
+          "schemaVersion": 1,
+          "enabled": true,
+          "config": {
+            "variant": "PLO5_HIGH",
+            "playerCount": 2,
+            "heroPosition": "SB",
+            "startingStack": 0.53,
+            "smallBlind": 0.1,
+            "bigBlind": 0.25,
+            "heroCards": [
+              "As",
+              "Ah",
+              "Qd",
+              "Jc",
+              "Tc"
+            ],
+            "players": [
+              {
+                "playerId": "3a269444-f415-41e0-bd60-70e21587c339",
+                "name": "You"
+              },
+              {
+                "playerId": "68bc0e4e-713e-403e-9078-2ed37e0b3f0e",
+                "name": "A1"
+              }
+            ]
+          },
+          "events": [
+            {
+              "type": "ACT",
+              "actor": 0,
+              "action": "CALL",
+              "eventId": "54ca2bbb-f79b-440b-8c73-22dc90a97881"
+            },
+            {
+              "type": "ACT",
+              "actor": 1,
+              "action": "CHECK",
+              "eventId": "f589f02a-c9f9-4f59-aca3-53a3c6be50fd"
+            },
+            {
+              "type": "BOARD",
+              "cards": [
+                "2s",
+                "3h",
+                "4d"
+              ],
+              "eventId": "6ca397fe-e8f8-4a09-af29-ec65a1568db5"
+            },
+            {
+              "type": "ACT",
+              "actor": 1,
+              "action": "CHECK",
+              "eventId": "8b1c4404-a4ea-4452-9c4a-46482b13d494"
+            },
+            {
+              "type": "ACT",
+              "actor": 0,
+              "action": "CHECK",
+              "eventId": "5e407f3a-b6f5-441f-8c7d-b469e37a088a"
+            },
+            {
+              "type": "BOARD",
+              "cards": [
+                "2s",
+                "3h",
+                "4d",
+                "8c"
+              ],
+              "eventId": "eac3de4c-b8a2-4934-bde2-0e88c64575cb"
+            },
+            {
+              "type": "ACT",
+              "actor": 1,
+              "action": "CHECK",
+              "eventId": "d501a9da-e19f-4d75-b8cd-8c9349c76a6a"
+            },
+            {
+              "type": "ACT",
+              "actor": 0,
+              "action": "CHECK",
+              "eventId": "a438d4e9-2ab9-4270-bac6-4e5d1235c141"
+            },
+            {
+              "type": "BOARD",
+              "cards": [
+                "2s",
+                "3h",
+                "4d",
+                "8c",
+                "9s"
+              ],
+              "eventId": "9bcaf780-9a4e-4914-9da1-94fb5563612c"
+            },
+            {
+              "type": "ACT",
+              "actor": 1,
+              "action": "CHECK",
+              "eventId": "9ace566e-caff-43c1-b4cd-5213f3be1067"
+            }
+          ],
+          "handId": "090e5aec-c484-4264-a474-dffe18b77d6c",
+          "editEpoch": 0
+        },
+        "ranges": [
+          {
+            "seatId": 0,
+            "complete": true,
+            "source": "PUBLIC_SYNTHETIC_PRIOR_B",
+            "combos": [
+              {
+                "cards": [
+                  "As",
+                  "Ah",
+                  "Qd",
+                  "Jc",
+                  "Tc"
+                ],
+                "weight": 0.001
+              },
+              {
+                "cards": [
+                  "Ac",
+                  "Ad",
+                  "Qh",
+                  "Js",
+                  "Ts"
+                ],
+                "weight": 5
+              }
+            ]
+          },
+          {
+            "seatId": 1,
+            "complete": true,
+            "source": "PUBLIC_SYNTHETIC_PRIOR_B",
+            "combos": [
+              {
+                "cards": [
+                  "Ks",
+                  "Kh",
+                  "6d",
+                  "7c",
+                  "8h"
+                ],
+                "weight": 4
+              },
+              {
+                "cards": [
+                  "Kc",
+                  "Kd",
+                  "6h",
+                  "7d",
+                  "8s"
+                ],
+                "weight": 1
+              }
+            ]
+          }
+        ],
+        "rake": {
+          "type": "NONE"
+        },
+        "sizing": {
+          "type": "EXPLICIT_TOTALS",
+          "levels": [
+            0.25,
+            0.28
+          ],
+          "maxAggressions": 3
+        }
+      }
+    }
+  ]
+}

@@ -141,15 +141,19 @@
   $('stop').onclick=()=>{stopped=true;for(const id of active.keys())void service?.cancel(owner,id);void runner?.cancel('Validation stopped.');};
   $('invalidate').onclick=()=>{bindingToken++;void runner?.cancel('Decision binding changed.');check('Decision edit was explicitly invalidated',true);};
   $('download').onclick=()=>{render();const anchor=document.createElement('a'),url=URL.createObjectURL(new Blob([JSON.stringify(report,null,2)],{type:'application/json'}));anchor.href=url;anchor.download='browser-study-sensitivity.json';anchor.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
-  Promise.all([fetch('./browser-solver-manifest.json',{cache:'no-store'}).then(row=>row.json()),fetch('./solver-validation-fixtures.json',{cache:'no-store'}).then(row=>row.json())]).then(([runtime,fixtures])=>{
-    manifest=runtime;const source=fixtures.cases.find(row=>row.id==='four_world_five_actions').variants[0];
+  const packageQA=new URLSearchParams(location.search).get('package')==='ev-coverage';
+  Promise.all([fetch('./browser-solver-manifest.json',{cache:'no-store'}).then(row=>row.json()),fetch(packageQA?'./ev-coverage-fixtures.json':'./solver-validation-fixtures.json',{cache:'no-store'}).then(row=>row.json())]).then(([runtime,fixtures])=>{
+    manifest=runtime;const source=packageQA?null:fixtures.cases.find(row=>row.id==='four_world_five_actions').variants[0];
+    if(packageQA)cells=clone(fixtures.cells);
+    else {
     cells=[];for(const prior of ['A','B'])for(const tree of ['A','B']){
       const input=clone(source.input),weights=prior==='A'?[[3,1],[1,4]]:[[.001,5],[4,1]];
       input.ranges.forEach((range,seat)=>range.combos.forEach((combo,index)=>{combo.weight=weights[seat][index];}));
       input.sizing={type:'EXPLICIT_TOTALS',levels:tree==='A'?[1,2]:[1,1.5,2],maxAggressions:1};
       cells.push({id:`prior${prior}-tree${tree}`,name:`Prior ${prior} / tree ${tree}`,input,revisionKey:source.expectedRevisionKey});
     }
-    report={schemaVersion:1,classification:'PUBLIC_SYNTHETIC_NATIVE_BROWSER_STUDY_QA',createdAt:new Date().toISOString(),url:location.href,buildFingerprint:manifest.buildFingerprint,
+    }
+    report={schemaVersion:1,classification:packageQA?'PUBLIC_SYNTHETIC_RIVER_HU_PACKAGE_QA':'PUBLIC_SYNTHETIC_NATIVE_BROWSER_STUDY_QA',createdAt:new Date().toISOString(),url:location.href,buildFingerprint:manifest.buildFingerprint,
       matrix:'Two declared weighted priors × two declared sizing trees; four cold + four FAST reads; one small local cohort, no production rate or latency SLA.',
       notExecuted:['Authenticated gameplay','Physical phone','Human speech recognition','Population range accuracy','Worker heap or process peak memory'],
       inputs:cells.map(row=>({id:row.id,name:row.name,input:row.input,revisionKey:row.revisionKey})),runs:[],checks:[]};
