@@ -7,7 +7,7 @@
   function publicRecord(raw){
     const record=pick(raw,['schemaVersion','enabled','config','events','handId','editEpoch']);
     if(!record||typeof record!=='object'||Array.isArray(record))return record;
-    record.config=pick(record.config,['variant','playerCount','heroPosition','startingStack','smallBlind','bigBlind','heroCards','stacks','players']);
+    record.config=pick(record.config,['variant','playerCount','heroPosition','startingStack','smallBlind','bigBlind','heroCards','stacks','players','stackEstimates']);
     if(Array.isArray(record.config?.players))record.config.players=record.config.players.map(player=>pick(player,['playerId','name']));
     if(Array.isArray(record.events))record.events=record.events.map(event=>pick(event,['type','actor','action','to','cards','winners','rake','eventId','originEventId']));
     return record;

@@ -52,6 +52,25 @@ function disjoint(prefix='other') {
 }
 async function exported(value=library()) { return backup.create({ownerKey,library:value,now:date}); }
 
+test('mid-hand archives and estimated continuation balances survive backup without invented results',async()=>{
+  const value=empty();
+  let hand=session.start({variant:'PLO5_HIGH',playerCount:3,heroPosition:'BTN',startingStack:100,smallBlind:.5,bigBlind:1,heroCards:[],
+    players:[{playerId:'one',name:'One'},{playerId:'two',name:'Two'},{playerId:'hero',name:'You'}]});
+  profiles.beginHand(value.store,hand.multiway);
+  hand=session.step(hand.multiway,{type:'ACT',actor:hand.state.actor,action:'RAISE',to:3.5});
+  profiles.syncHand(value.store,hand.multiway);
+  const next=session.nextHand(hand.multiway);
+  value.archive[hand.multiway.handId]={...next.archivedHand,decisions:[]};
+  profiles.beginHand(value.store,next.multiway);
+  const fresh=session.start({...next.multiway.config,stacks:undefined,stackEstimates:undefined,startingStack:50},next.multiway,next.state.revisionKey);
+  value.archive[next.multiway.handId]={...fresh.archivedHand,decisions:[]};
+  const created=await exported(value),parsed=await backup.parse(created.text,{ownerKey});
+  assert.deepEqual(parsed.library,value);
+  assert.equal(parsed.library.archive[hand.multiway.handId].state.result,null);
+  assert.ok(parsed.library.archive[next.multiway.handId].multiway.config.stackEstimates.every(Boolean));
+  assert.equal(parsed.library.archive[next.multiway.handId].reconciliation.source,'NEW_GAME');
+});
+
 test('roundtrip preserves real archived decisions, numeric solver values, HEURISTIC null/zero, notes and frozen origins exactly',async()=>{
   const value=library(), before=clone(value), created=await exported(value), parsed=await backup.parse(created.text,{ownerKey});
   assert.deepEqual(parsed.library,value);assert.deepEqual(value,before);

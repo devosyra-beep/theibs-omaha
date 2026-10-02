@@ -102,6 +102,7 @@ function record(value, hand) {
   if (cfg.startingStack !== undefined) numeric(cfg.startingStack); numeric(cfg.smallBlind); numeric(cfg.bigBlind); requireThat(Number(cfg.smallBlind) > 0 && Number(cfg.smallBlind) < Number(cfg.bigBlind), 'Invalid saved blinds.');
   cards(cfg.heroCards, [0,hole]);
   if (cfg.stacks !== undefined) { requireThat(Array.isArray(cfg.stacks) && cfg.stacks.length === count, 'Invalid saved seat stacks.'); cfg.stacks.forEach(value => numeric(value)); }
+  if (cfg.stackEstimates !== undefined) requireThat(Array.isArray(cfg.stackEstimates) && cfg.stackEstimates.length === count && cfg.stackEstimates.every(value=>typeof value === 'boolean'), 'Invalid saved stack estimate flags.');
   requireThat(cfg.stacks !== undefined || cfg.startingStack !== undefined, 'The saved ledger has no starting stacks.');
   requireThat(Array.isArray(cfg.players) && cfg.players.length === count, 'A saved ledger must identify each seat.');
   cfg.players.forEach((player, index) => requireThat(object(player) && player.playerId === hand.playerIds[index] && typeof player.name === 'string' && player.name.length > 0 && player.name.length <= 80, 'A saved ledger has a different player roster.'));
@@ -165,7 +166,7 @@ function archived(value, hand, decisions) {
   requireThat(object(value) && object(value.state), 'Invalid saved hand archive.'); record(value.multiway, hand);
   if (value.archivedAt !== undefined) time(value.archivedAt);
   const state = value.state;
-  requireThat(state.schema === 'THEIBS_OBSERVED_HAND_V1' && state.phase === 'FINISHED' && state.variant === value.multiway.config.variant && Array.isArray(state.players) && state.players.length === hand.playerIds.length, 'The saved archive state does not match its ledger.');
+  requireThat(state.schema === 'THEIBS_OBSERVED_HAND_V1' && ['BETTING','WAIT_BOARD','SHOWDOWN','FINISHED'].includes(state.phase) && (state.phase === 'FINISHED' || value.reconciliation?.resultPending === true) && state.variant === value.multiway.config.variant && Array.isArray(state.players) && state.players.length === hand.playerIds.length, 'The saved archive state does not match its ledger.');
   if (state.handId !== undefined) requireThat(state.handId === hand.handId, 'The saved archive has a different hand identity.');
   if (state.revisionKey !== undefined) hash(state.revisionKey);
   if (state.revision !== undefined) requireThat(state.revision === value.multiway.events.length, 'The saved archive event count does not match.');
@@ -176,11 +177,11 @@ function archived(value, hand, decisions) {
     cards(player.shownCards,[0,Number(state.variant[3])]);
   }
   for (const field of ['pot','bigBlind','rake','totalChips']) requireThat(finite(state[field]) && state[field] >= 0, 'Invalid saved pot or balances.');
-  requireThat(Array.isArray(state.log) && object(state.result), 'The saved archive has no event log or result.');
+  requireThat(Array.isArray(state.log) && (object(state.result) || state.result === null && state.phase !== 'FINISHED'), 'The saved archive has no event log or result.');
   if (value.reconciliation !== undefined) {
     const item = value.reconciliation;
-    requireThat(object(item) && ['USER_CONFIRMED_STACKS','UNCONTESTED_POT_BEFORE_UNRECORDED_RAKE','CONFIRMED_POT_RESULT'].includes(item.source) && typeof item.rakeObserved === 'boolean' && typeof item.resultPending === 'boolean' && Array.isArray(item.stacks) && item.stacks.length === hand.playerIds.length, 'Invalid saved balance reconciliation.');
-    item.stacks.forEach((row,index)=>requireThat(row.playerId === hand.playerIds[index] && finite(row.stack) && row.stack >= 0, 'Invalid saved reconciled seat balance.'));
+    requireThat(object(item) && ['USER_CONFIRMED_STACKS','UNCONTESTED_POT_BEFORE_UNRECORDED_RAKE','CONFIRMED_POT_RESULT','PREVIOUS_STARTING_STACK_ESTIMATE','NEW_GAME'].includes(item.source) && typeof item.rakeObserved === 'boolean' && typeof item.resultPending === 'boolean' && (item.source === 'NEW_GAME' && item.stacks === undefined || Array.isArray(item.stacks) && item.stacks.length === hand.playerIds.length), 'Invalid saved balance reconciliation.');
+    item.stacks?.forEach((row,index)=>requireThat(row.playerId === hand.playerIds[index] && finite(row.stack) && row.stack >= 0, 'Invalid saved reconciled seat balance.'));
   }
   if (value.decisions !== undefined) {
     requireThat(Array.isArray(value.decisions), 'Invalid archived decision histories.'); const seen = new Set();
@@ -261,7 +262,7 @@ async function verifyRevisions(library) {
     if (expected === undefined) return;
     const cfg = record.config;
     const canonical = {variant:cfg.variant,playerCount:Number(cfg.playerCount),heroPosition:cfg.heroPosition.toUpperCase(),startingStack:cfg.startingStack,smallBlind:cfg.smallBlind,bigBlind:cfg.bigBlind,heroCards:cfg.heroCards,
-      ...(cfg.stacks?{stacks:cfg.stacks}:{}),...(cfg.players?{players:cfg.players.map(player=>({playerId:player.playerId,name:player.name.trim()}))}:{})};
+      ...(cfg.stacks?{stacks:cfg.stacks}:{}),...(cfg.players?{players:cfg.players.map(player=>({playerId:player.playerId,name:player.name.trim()}))}:{}),...(cfg.stackEstimates?{stackEstimates:cfg.stackEstimates}:{})};
     const events = record.events.map(event=>{
       const metadata = Object.fromEntries(['eventId','originEventId'].filter(key=>own(event,key)).map(key=>[key,event[key]]));
       if(event.type==='BOARD')return {type:'BOARD',cards:event.cards,...metadata};

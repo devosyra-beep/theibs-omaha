@@ -421,7 +421,7 @@ const server = http.createServer(async (request, response) => {
       if (route === '/api/workspace') return json(response, 200, { status: 'OK', ...saveWorkspace(payload.workspace, payload.expectedRevision, userStoragePath(auth, 'workspace.json')) });
       if (route === '/api/analyze') return json(response, 200, await analyzeManual(payload, response, auth.user.id));
       if (route === '/api/equity') return json(response, 200, await priorityCalculation(()=>analyzeInWorker.equity(prepareOpponentOverrides(buildInput(payload)), response)));
-      if (route === '/api/multiway/start') return json(response, 200, multiway.start(payload.config));
+      if (route === '/api/multiway/start') return json(response, 200, multiway.start(payload.config, payload.previousMultiway, payload.expectedRevisionKey));
       if (route === '/api/multiway/solver/start') {
         const observed=multiway.envelope(payload.multiway);
         if(payload.expectedRevisionKey!==observed.state.revisionKey)throw Error('The solver decision revision changed.');

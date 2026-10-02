@@ -81,7 +81,12 @@ test('unknown result keeps unallocated chips pending; explicit reconciliation pe
   r=flow.step(r.multiway,{type:'SKIP_RESULT'});
   assert.equal(r.state.phase,'FINISHED');assert.equal(r.state.result.reason,'UNKNOWN');assert.equal(r.state.result.unresolvedPot,4);
   assert.deepEqual(r.state.result.awards,[]);assert.deepEqual(r.state.players.map(p=>p.stack),[99,99,99,99]);conserved(r.state);
-  assert.throws(()=>flow.nextHand(r.multiway),error=>error.code==='STACKS_UNRECONCILED');
+  const estimated=flow.nextHand(r.multiway,{},r.state.revisionKey);
+  assert.deepEqual(estimated.state.players.map(player=>player.startingStack),[100,100,100,100]);
+  assert.ok(estimated.state.players.every(player=>player.stackEstimated));
+  assert.equal(estimated.archivedHand.reconciliation.source,'PREVIOUS_STARTING_STACK_ESTIMATE');
+  assert.deepEqual(estimated.archivedHand.state.result.awards,[]);
+  assert.ok(estimated.analysis.warnings.some(text=>text.includes('Stacks are estimates')));
   const next=flow.nextHand(r.multiway,{stacks:[99,103,99,99]},r.state.revisionKey);
   assert.equal(next.state.phase,'BETTING');assert.equal(next.state.heroId,0);
   assert.equal(next.archivedHand.state.result.reason,'UNKNOWN');assert.equal(next.archivedHand.reconciliation.resultPending,true);
@@ -126,7 +131,8 @@ test('fold terminal returns only the winning unmatched wager and distinguishes r
 
 test('pending next-hand basics cannot mutate the current ledger and reject illegal blind values',()=>{
   let r=flow.start(config);
-  assert.throws(()=>flow.nextHand(r.multiway,{config:{bigBlind:2}}),/Finish the current/);
+  const activeNext=flow.nextHand(r.multiway,{config:{smallBlind:1,bigBlind:2}});
+  assert.equal(activeNext.state.bigBlind,2);assert.equal(activeNext.archivedHand.state.phase,'BETTING');
   for(const event of [act(2,'FOLD'),act(3,'FOLD'),act(0,'FOLD')])r=flow.step(r.multiway,event);
   const snapshot=JSON.stringify(r);
   const next=flow.nextHand(r.multiway,{config:{smallBlind:1,bigBlind:2,heroPosition:'BTN'}});
@@ -144,6 +150,47 @@ test('the next button skips zero stacks and player identities survive a smaller 
   assert.deepEqual(next.state.players.map(p=>p.playerId),[ids[1],ids[3],ids[0]]);
   assert.deepEqual(next.state.players.map(p=>p.startingStack),[20,30,10]);
   assert.equal(next.state.heroId,0);assert.equal(next.state.buttonId,2);conserved(next.state);
+});
+
+test('mid-hand continuation archives exact observations, resets folds/cards and never invents payouts',()=>{
+  let r=flow.start({...config,heroCards:['As','Kh','Qd','Jc','Ts']});
+  r=flow.step(r.multiway,act(2,'RAISE',3.5));r=flow.step(r.multiway,act(3,'FOLD'));
+  const original=structuredClone(r),next=flow.nextHand(r.multiway,{},r.state.revisionKey);
+  assert.deepEqual(r,original);assert.deepEqual(next.archivedHand.multiway,r.multiway);
+  assert.deepEqual(next.archivedHand.state,r.state);assert.equal(next.archivedHand.state.result,null);
+  assert.equal(next.archivedHand.state.pot,r.state.pot);assert.equal(next.archivedHand.reconciliation.resultPending,true);
+  assert.deepEqual(next.multiway.events,[]);assert.deepEqual(next.multiway.config.heroCards,[]);
+  assert.ok(next.state.players.every(p=>!p.folded && p.stackEstimated && p.startingStack===100));
+  assert.deepEqual(new Set(next.multiway.config.players.map(p=>p.playerId)),new Set(r.multiway.config.players.map(p=>p.playerId)));
+  assert.equal(next.state.pot,1.5);conserved(next.state);
+  assert.throws(()=>flow.nextHand(r.multiway,{},next.state.revisionKey),/revision changed/);
+});
+
+test('unresolved all-in does not remove seats and estimate provenance survives subsequent known results',()=>{
+  const r=untilShowdown({...config,playerCount:2,heroPosition:'BB',stacks:[1,1]});
+  assert.deepEqual(r.state.players.map(p=>p.stack),[0,0]);
+  let next=flow.nextHand(r.multiway);
+  assert.equal(next.state.initialPlayerCount,2);assert.deepEqual(next.multiway.config.stacks,[1,1]);
+  next=flow.step(next.multiway,act(next.state.actor,'FOLD'));
+  const continued=flow.nextHand(next.multiway);
+  assert.ok(continued.multiway.config.stackEstimates.every(Boolean));
+  const confirmed=flow.nextHand(next.multiway,{stacks:[10,10]});
+  assert.equal(confirmed.multiway.config.stackEstimates,undefined);
+  assert.ok(confirmed.state.players.every(p=>!p.stackEstimated));
+  assert.throws(()=>flow.nextHand(next.multiway,{stacks:[10,null]}),/non-negative stack/);
+});
+
+test('new game archives an unfinished hand, uses fresh table settings and rejects stale replacement',()=>{
+  let r=flow.start(config);r=flow.step(r.multiway,act(2,'CALL'));
+  const snapshot=structuredClone(r),fresh=flow.start({...config,heroPosition:'BTN',startingStack:50},r.multiway,r.state.revisionKey);
+  assert.deepEqual(r,snapshot);assert.deepEqual(fresh.archivedHand.state,r.state);
+  assert.equal(fresh.archivedHand.reconciliation.source,'NEW_GAME');
+  assert.equal(fresh.archivedHand.reconciliation.resultPending,true);
+  assert.notEqual(fresh.multiway.handId,r.multiway.handId);assert.deepEqual(fresh.multiway.events,[]);
+  assert.ok(fresh.state.players.every(p=>p.startingStack===50 && !p.stackEstimated && !p.folded));
+  assert.equal(fresh.state.heroPosition,'BTN');
+  assert.ok(fresh.multiway.config.players.every(p=>!r.multiway.config.players.some(old=>old.playerId===p.playerId)));
+  assert.throws(()=>flow.start(config,r.multiway,fresh.state.revisionKey),/revision changed/);
 });
 
 test('settling different side pots does not require revealed cards and undo restores unallocated chips',()=>{

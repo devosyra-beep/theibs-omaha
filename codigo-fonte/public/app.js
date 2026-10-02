@@ -166,13 +166,13 @@
     const analyzeButton=$('#quick-analyze'), equityPanel=$('#analyze-workspace .insight-panel');
     if(multiway){if(analyzeButton.parentElement!==equityPanel)equityPanel.append(analyzeButton);}
     else if(analyzeButton.parentElement!==$('.quick-decision'))$('.quick-decision').append(analyzeButton);
-    const newHandLabel=activeView==='analyze'&&multiway?'+ Next hand':activeView==='analyze'?'+ New game':'+ New hand';
+    const newHandLabel=activeView==='analyze'?'+ New game':'+ New hand';
     $('#new-hand').textContent=newHandLabel;
     $('#new-hand').setAttribute('aria-label',newHandLabel.replace(/^\+\s*/,''));
-    $('#new-hand').title=activeView==='analyze'&&multiway?'Next hand · shortcut: apostrophe':activeView==='analyze'?'New game · shortcut: apostrophe':'New hand';
+    $('#new-hand').title=activeView==='analyze'?'New game · shortcut: apostrophe':'New hand';
     $('#clear').textContent='↺';
-    $('#clear').setAttribute('aria-label',multiway?'Discard pending card entry':'Reset cards');
-    $('#clear').title=multiway?'Discard pending card entry · Shift alone':'Clear cards and board, keep table context · Shift alone';
+    $('#clear').setAttribute('aria-label',multiway?'Next hand, keep this game':'Reset cards');
+    $('#clear').title=multiway?'Next hand, keep this game · Shift alone':'Clear cards and board, keep table context · Shift alone';
     $('#analysis-form .view-heading h1').textContent=multiway?'Every card, a decision.':'Your cards. Your equity.';
     $('#analysis-form .view-heading .eyebrow').textContent=multiway?'MANUAL ANALYSIS':'EQUITY ANALYSIS';
     $('#analysis-seats').setAttribute('aria-label',multiway?'Table seats; the current player is highlighted. Select a seat to view its position and stack.':'Opponent seats; select a player to mark active or folded.');
@@ -247,7 +247,17 @@
   }
   async function startMultiway(config) {
     if(simpleSeatDialog.open)simpleSeatDialog.close();
-    return runMultiway(()=>postJson('/api/multiway/start',{config}),()=>{
+    const oldRecord = multiway, expectedRevisionKey = multiwayState?.revisionKey;
+    if (oldRecord) {
+      await syncPlayerObservations(oldRecord);
+      if (multiway !== oldRecord || multiwayState?.revisionKey !== expectedRevisionKey) throw Error('The hand changed. Review the new game setup again.');
+    }
+    return runMultiway(()=>postJson('/api/multiway/start',{config,...(oldRecord ? {previousMultiway:oldRecord,expectedRevisionKey} : {})}),data=>{
+      if (oldRecord) {
+        if (!data.archivedHand || !window.theibsPlayersUI?.ready()) throw Error('The previous hand could not be archived. It was kept active.');
+        window.theibsPlayersUI.archiveHand(data.archivedHand);
+      }
+      window.theibsMultiwayUI.cancelPendingAmount?.();
       multiwayDecisionFeedback=null;
       window.theibsOpponentInputs?.reset();
       if(!multiwayYesple)multiwayYesple={keyboard:cards.state.snapshot(),fields:Object.fromEntries(FIELD_IDS.map(id=>{const el=document.getElementById(id);return[id,el.type==='checkbox'?el.checked:el.value];}))};
@@ -296,7 +306,7 @@
     });
   }
   async function nextMultiwayHand(stacks) {
-    if (!multiway || multiwayState?.phase !== 'FINISHED') throw Error('Finish the current hand before starting the next one.');
+    if (!multiway) throw Error('Start a Multiway game first.');
     const planned = window.theibsMultiwayUI.getPlannedSetup?.();
     const options = { ...(planned ? {config:planned} : {}), ...(stacks ? {stacks} : {}) };
     const oldRecord = multiway, session = JSON.stringify(window.theibsVoiceSessionContext?.()), ownerKey = window.theibsPlayersUI?.getOwnerKey?.();
@@ -306,6 +316,10 @@
       if (!data.archivedHand) throw Error('The previous hand was not archived.');
       if (!window.theibsPlayersUI?.ready()) throw Error('The local player library is unavailable. The previous hand was kept active.');
       window.theibsPlayersUI.archiveHand(data.archivedHand);
+      cards.discardDraft?.();
+      window.theibsMultiwayUI.cancelPendingAmount?.();
+      syncingMultiway=true;cards.reset();syncingMultiway=false;
+      window.theibsCardPicker.close();
       multiwayDecisionFeedback=null;
       window.theibsMultiwayUI.acceptNextSetup?.();
       snapshots.splice(0);
@@ -927,14 +941,12 @@ function renderResult(data, street) {
   async function newAnalysisHand(confirm = true, askPosition = false) {
     if(multiwayBusy){toast('Wait for the action to be recorded before clearing the hand.');return;}
     if(multiway && !askPosition){
-      cards.discardDraft?.();
-      window.theibsMultiwayUI.cancelPendingAmount?.();
-      toast('Pending entry cleared. This hand, its folds and its ledger are unchanged.');
+      try { if (await nextMultiwayHand()) toast('Next hand. Previous actions and pot saved in History.'); }
+      catch (error) { toast(error.message); }
       return;
     }
     if (multiway && askPosition) {
-      if (multiwayState?.phase === 'FINISHED' || multiwayState?.phase === 'SHOWDOWN') window.theibsMultiwayUI.openCompletion();
-      else toast('Finish the current hand before starting the next one.');
+      window.theibsMultiwayUI.openSetup({forNextHand:false,newGame:true});
       return;
     }
     if (confirm && (cards.state.slots.some(Boolean) || cards.isManualInvalid() || multiway?.events.length) && !window.confirm(multiway?'Start a new game and clear this hand’s cards, actions and folds? Table settings will be kept.':'Clear the current hand’s cards and analyses? Saved history and settings will be preserved.')) return;
@@ -954,10 +966,10 @@ function renderResult(data, street) {
     }
     activeView = view;
     document.body.dataset.view=view;
-    const newHandLabel=view==='analyze'&&multiway?'+ Next hand':view==='analyze'?'+ New game':'+ New hand';
+    const newHandLabel=view==='analyze'?'+ New game':'+ New hand';
     $('#new-hand').textContent=newHandLabel;
     $('#new-hand').setAttribute('aria-label',newHandLabel.replace(/^\+\s*/,''));
-    $('#new-hand').title=view==='analyze'&&multiway?'Next hand · shortcut: apostrophe':view==='analyze'?'New game · shortcut: apostrophe':'New hand';
+    $('#new-hand').title=view==='analyze'?'New game · shortcut: apostrophe':'New hand';
     $('.analysis-rail').classList.toggle('hidden', view !== 'analyze');
     ['analyze', 'train', 'history', 'players'].forEach((name) => document.getElementById(`${name}-workspace`).classList.toggle('hidden', name !== view));
     document.querySelectorAll('.nav-tab').forEach((button) => {
@@ -1310,10 +1322,13 @@ function renderResult(data, street) {
   document.addEventListener('focusin',()=>{if(!handShortcutAllowed(document.activeElement))cancelHandShift();});
   window.addEventListener('blur',()=>{cancelHandShift();heldHandKeys.clear();});
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'){cancelHandShift();heldHandKeys.clear();}});
-  $('#clear').title=multiway?'Reset pending input · Shift alone in Analyze':'Clear cards and board, keep table context · Shift alone';
+  $('#clear').title=multiway?'Next hand, keep this game · Shift alone':'Clear cards and board, keep table context · Shift alone';
   const shiftKeyHelp=document.createElement('dt');shiftKeyHelp.textContent='Shift alone';
-  const shiftHelp=document.createElement('dd');shiftHelp.textContent='In standalone analysis, clears cards and board while keeping folds and table context. In Multiway, cancels only pending entry and keeps the current hand, folds and ledger. Shift combinations still work normally.';
+  const shiftHelp=document.createElement('dd');shiftHelp.textContent='In Multiway, archives this hand and starts the next one at the same table, rotating positions. Payouts are optional; unresolved balances remain estimates. In standalone analysis, clears cards and board while keeping table context. Shift combinations still work normally.';
   $('.shortcut-list').prepend(shiftKeyHelp,shiftHelp);
+  const gameKeyHelp=document.createElement('dt');gameKeyHelp.textContent="'";
+  const gameHelp=document.createElement('dd');gameHelp.textContent='New game. In Multiway, opens a fresh table setup; the previous hand is archived when you start. Saved players and history remain available.';
+  shiftHelp.after(gameKeyHelp,gameHelp);
   document.querySelectorAll('.nav-tab').forEach((button) => button.addEventListener('click', () => showView(button.dataset.view)));
   document.querySelectorAll('[data-open-history]').forEach((button) => button.addEventListener('click', () => showView('history')));
   document.querySelectorAll('button[data-deck],button[data-felt]').forEach((button) => button.addEventListener('click', () => { applyAppearance(button.dataset.deck, button.dataset.felt); scheduleSave(); }));

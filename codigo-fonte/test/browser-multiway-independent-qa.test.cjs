@@ -257,6 +257,7 @@ test('owner/epoch, hand, revision, range, fee, size and profile changes cannot r
     const original = payload({ weighted: true });
     const changes = [source => { source.multiway.handId = '90000000-0000-4000-8000-000000000002'; source.multiwayEvaluation.profileSnapshot.handId = source.multiway.handId; },
       source => { source.multiway.editEpoch++; }, source => { source.multiwayEvaluation.ranges[0].range.weights = [3, 1]; },
+      source => { source.multiway.config.stackEstimates = source.multiway.config.players.map(()=>true); },
       source => { delete source.multiwayEvaluation.assumeNoRake; source.multiwayEvaluation.rake = .25; },
       source => { source.multiwayEvaluation.chosenSize = 2.37; },
       source => { Object.values(source.multiwayEvaluation.profileSnapshot.players['qa-seat-1'].contexts)[0].counts.FOLD++; }];

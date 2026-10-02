@@ -25,6 +25,7 @@ function canonicalConfig(raw) {
   const heroCards = cardCodes(normalizeCards(raw.heroCards || []));
   if (heroCards.length && heroCards.length !== count) throw Error(`Enter all ${count} hole cards or leave the hand empty until complete.`);
   if (raw.stacks !== undefined && (!Array.isArray(raw.stacks) || raw.stacks.length !== playerCount)) throw Error('Enter a stack for each seat.');
+  if (raw.stackEstimates !== undefined && (!Array.isArray(raw.stackEstimates) || raw.stackEstimates.length !== playerCount || raw.stackEstimates.some(value=>typeof value !== 'boolean'))) throw Error('Invalid stack estimate flags.');
   let players;
   if (raw.players !== undefined) {
     if (!Array.isArray(raw.players) || raw.players.length !== playerCount) throw Error('Identify every player at the table.');
@@ -38,7 +39,8 @@ function canonicalConfig(raw) {
   }
   return { variant, playerCount, heroPosition, startingStack: raw.startingStack,
     smallBlind: raw.smallBlind, bigBlind: raw.bigBlind, heroCards,
-    ...(raw.stacks ? { stacks: [...raw.stacks] } : {}), ...(players ? {players} : {}) };
+    ...(raw.stacks ? { stacks: [...raw.stacks] } : {}), ...(players ? {players} : {}),
+    ...(raw.stackEstimates ? {stackEstimates:[...raw.stackEstimates]} : {}) };
 }
 
 function canonicalEvent(raw) {
@@ -103,8 +105,8 @@ function envelope(raw) {
   const reasons = [], warn = (code, message) => reasons.push({ code, message });
   if (!multiway.enabled) warn('DISABLED', 'Multiway mode is off.');
   if (state.phase === 'WAIT_BOARD') warn('WAIT_BOARD', 'The betting round ended. Enter the next street’s cards.');
-  else if (state.phase === 'SHOWDOWN') warn('SHOWDOWN', 'The hand is at showdown; enter the pot results.');
-  else if (state.phase === 'FINISHED') warn('FINISHED', state.result?.reason === 'UNKNOWN' ? 'Result pending. Confirm the pot result or reconcile stacks before the next hand.' : 'The hand is complete. Start the next hand to continue.');
+  else if (state.phase === 'SHOWDOWN') warn('SHOWDOWN', 'Showdown. Start the next hand or optionally record the result.');
+  else if (state.phase === 'FINISHED') warn('FINISHED', state.result?.reason === 'UNKNOWN' ? 'Result unknown. You can start the next hand without recording payouts.' : 'The hand is complete. Start the next hand to continue.');
   else if (state.actor !== state.heroId) warn('NOT_HERO_TURN', 'Record the current player’s action before analyzing your decision.');
   if (hero.folded) warn('HERO_FOLDED', 'You folded this hand.');
   if (state.hasSidePots) warn('SIDE_POTS_UNSUPPORTED', 'Side pots are recorded, but their EV is not yet calculated.');
@@ -121,10 +123,12 @@ function envelope(raw) {
     availableActions, minRaiseTo: state.legal.minTo, maxRaiseTo: state.legal.maxTo, minBet: state.bigBlind, bigBlind: state.bigBlind,
     actionHistory: state.log, sidePots: state.hasSidePots };
   const warnings = ['Actions and contributions were entered by the user. They do not determine opponent cards or response frequencies.'];
+  if (multiway.config.stackEstimates?.some(Boolean)) warnings.push('Stacks are estimates carried from an unresolved hand. EV and legal sizing use these assumed balances; payouts were not inferred.');
   if (multiway.events.some(event => event.type === 'MARK_FOLD')) warnings.push('An out-of-turn fold was recorded: the observed history is partial; no intervening action was invented.');
   const continuationReasons = reasons.filter(item=>!['SIDE_POTS_UNSUPPORTED','ALL_IN_UNSUPPORTED','CALL_REACHES_ALL_IN'].includes(item.code));
   return { status: 'OK', multiway, state: { ...state, revision: multiway.events.length,
-    revisionKey: revisionKey(multiway), handId: multiway.handId || null, source: SOURCE },
+    revisionKey: revisionKey(multiway), handId: multiway.handId || null, source: SOURCE,
+    ...(multiway.config.stackEstimates ? {players:state.players.map(player=>({...player,stackEstimated:multiway.config.stackEstimates[player.id]}))} : {}) },
     analysis: { available: reasons.length === 0, reasons, input, source: SOURCE,
       activeOpponentIds: opponents.map(player => player.id), warnings },
     continuationAnalysis: { available: continuationReasons.length === 0, reasons: continuationReasons,
@@ -136,7 +140,20 @@ function identifyPlayers(config) {
   const state = replay(config, []);
   return {...config, players:state.players.map(player=>({playerId:randomUUID(),name:player.name}))};
 }
-function start(config) { return envelope({ schemaVersion: 1, enabled: true, config:identifyPlayers(canonicalConfig(config)), events: [], handId: randomUUID(), editEpoch: 0 }); }
+function start(config, previousRaw, expectedRevisionKey) {
+  const result = envelope({ schemaVersion: 1, enabled: true, config:identifyPlayers(canonicalConfig(config)), events: [], handId: randomUUID(), editEpoch: 0 });
+  if (previousRaw !== undefined) {
+    const previous = envelope(previousRaw);
+    requireRevision(previous.multiway, undefined, expectedRevisionKey);
+    result.archivedHand = archiveForContinuation(previous, {source:'NEW_GAME',resultPending:!hasKnownResult(previous.state)});
+  }
+  return result;
+}
+const hasKnownResult = state => state.phase === 'FINISHED' && state.result?.reason !== 'UNKNOWN';
+function archiveForContinuation(previous, reconciliation) {
+  return {multiway:previous.multiway,state:previous.state,reconciliation:{
+    rakeObserved:previous.multiway.events.some(event=>event.type==='SETTLE'),...reconciliation}};
+}
 function eventContent(event) {
   const {eventId,originEventId,...content}=event;
   return JSON.stringify(content);
@@ -330,18 +347,23 @@ function prepareAnalysis(raw, supplied) {
 function nextHand(raw, options = {}, expectedRevisionKey) {
   const previous = envelope(raw), {state} = previous;
   requireRevision(previous.multiway, undefined, expectedRevisionKey);
-  if (state.phase !== 'FINISHED') throw Error('Finish the current hand before starting the next one.');
   if (!object(options)) throw Error('Invalid next-hand configuration.');
   const cfg = identifyPlayers(previous.multiway.config), overrides = object(options.config) ? options.config : {};
   if (overrides.variant && overrides.variant !== cfg.variant) throw Error('Keep the current variant when continuing this table.');
   let stacks = state.players.map(player=>player.stack);
+  const unresolved = !hasKnownResult(state);
+  let estimates = cfg.stackEstimates || state.players.map(()=>false);
   if (options.stacks !== undefined) {
     if (!Array.isArray(options.stacks) || options.stacks.length !== state.players.length || options.stacks.some(value=>
       typeof value !== 'number' || !Number.isFinite(value) || value<0 || value>10000000 || Math.abs(value*100-Math.round(value*100))>0.00001)) throw Error('Confirm a non-negative stack with up to two decimals for every current seat.');
     stacks = [...options.stacks];
-  } else if (state.result?.reason === 'UNKNOWN') {
-    const error = Error('The previous pot result is unknown. Confirm every remaining stack before starting the next hand.');
-    error.code = 'STACKS_UNRECONCILED'; error.statusCode = 409; throw error;
+    estimates = stacks.map(()=>false);
+  } else if (unresolved) {
+    // Without a payout, remaining chips are not ending balances. Keep the last
+    // starting reference (including all-in seats) and label it as an estimate.
+    // The archived ledger/pot remains exact; no refund or winner is invented.
+    stacks = state.players.map(player=>player.startingStack);
+    estimates = stacks.map(()=>true);
   }
   const eligible = state.players.filter(player=>stacks[player.id]>0).map(player=>player.id);
   if (!eligible.includes(state.heroId)) throw Error('Confirm a positive Hero stack before continuing this table.');
@@ -361,17 +383,17 @@ function nextHand(raw, options = {}, expectedRevisionKey) {
   }
   const nextConfig = {...cfg,heroCards:[],playerCount:order.length,heroPosition:POSITIONS[order.length][order.indexOf(state.heroId)],
     smallBlind:overrides.smallBlind ?? cfg.smallBlind,bigBlind:overrides.bigBlind ?? cfg.bigBlind,
-    players:order.map(id=>({...cfg.players[id]})),stacks:order.map(id=>stacks[id])};
+    players:order.map(id=>({...cfg.players[id]})),stacks:order.map(id=>stacks[id]),
+    ...(estimates.some(Boolean) ? {stackEstimates:order.map(id=>estimates[id])} : {stackEstimates:undefined})};
   const result = start(nextConfig);
   const archived = envelope({...previous.multiway,config:cfg});
-  result.archivedHand = {multiway:archived.multiway,state:archived.state,
-    reconciliation:{source:options.stacks ? 'USER_CONFIRMED_STACKS' : state.result?.reason === 'ALL_FOLDED'
+  result.archivedHand = archiveForContinuation(archived,
+    {source:options.stacks ? 'USER_CONFIRMED_STACKS' : unresolved ? 'PREVIOUS_STARTING_STACK_ESTIMATE' : state.result?.reason === 'ALL_FOLDED'
       ? 'UNCONTESTED_POT_BEFORE_UNRECORDED_RAKE' : 'CONFIRMED_POT_RESULT',
       // Model rake is an assumption for EV, never an observation of money
       // taken from this hand. Corrected balances alone do not identify rake.
-      rakeObserved:archived.multiway.events.some(event=>event.type==='SETTLE'),
       stacks:state.players.map(player=>({playerId:cfg.players[player.id].playerId,stack:stacks[player.id]})),
-      resultPending:state.result?.reason==='UNKNOWN'}};
+      resultPending:unresolved});
   return result;
 }
 
@@ -388,6 +410,7 @@ function guardResult(result, prepared) {
   result.observedOpponentIds = prepared.observed.analysis.activeOpponentIds;
   result.opponentHypotheses = prepared.opponentHypotheses;
   result.warnings = [...new Set([...(result.warnings || []), ...prepared.warnings])];
+  if (prepared.observed.multiway.config.stackEstimates?.some(Boolean) && result.ev) result.ev.warnings = [...new Set([...(result.ev.warnings || []), ...prepared.warnings.filter(text=>text.startsWith('Stacks are estimates'))])];
   if (result.status !== 'OK') return result;
   if (!Object.keys(prepared.blockedActions).length) {
     enrichActionEV(result.ev, { ...prepared.input, legalActions: result.legalActions }, result.equity);

@@ -113,7 +113,8 @@
       gapBestSecondBB: provisional ? null : finite(ev?.decisionPrecision?.deltaEVBB) ? ev.decisionPrecision.deltaEVBB : null,
       missingLegalActions: Array.isArray(ev?.missingLegalActions) ? ev.missingLegalActions : [],
       assumptions: Array.isArray(ev?.assumptions) ? ev.assumptions : [],
-      warnings: Array.isArray(ev?.warnings) ? ev.warnings : [],
+      warnings: [...(Array.isArray(ev?.warnings) ? ev.warnings : []),
+        ...(view.config?.stackEstimates?.some(Boolean) ? ['EV and legal sizes use estimated stacks carried from an unresolved hand. Payouts were not inferred.'] : [])],
       reason: analysis?.status && analysis.status !== 'OK' ? analysis.reason : null
     };
   }
@@ -390,15 +391,16 @@
       ...($('#mw-hero-position').value ? { heroPosition: $('#mw-hero-position').value } : {}),
       smallBlind: parseAmount($('#mw-small-blind').value), bigBlind: parseAmount($('#mw-big-blind').value), startingStack: parseAmount($('#mw-starting-stack').value),
       ...(players ? {players} : {}),
-      ...(setupPurpose === 'next' ? { heroCards: [] } : Array.isArray(source.heroCards) ? { heroCards: source.heroCards.slice() } : {}) };
+      ...(['next','new-game'].includes(setupPurpose) ? { heroCards: [] } : Array.isArray(source.heroCards) ? { heroCards: source.heroCards.slice() } : {}) };
   }
-  function openSetup({ forNextHand = view.enabled } = {}) {
+  function openSetup({ forNextHand = view.enabled, newGame = false } = {}) {
     if (!initialized) return;
     if (seatDialog?.open) seatDialog.close();
-    setupPurpose = forNextHand ? 'next' : 'activate';
+    setupPurpose = newGame ? 'new-game' : forNextHand ? 'next' : 'activate';
+    if (newGame) for (const node of $('#mw-assignment-grid').querySelectorAll('[data-mw-assign]')) node.value = '';
     setupDirty = false; fillSetup(true);
-    $('#mw-setup-dialog .multiway-dialog-head h2').textContent = forNextHand ? 'Next hand setup' : 'Set up Multiway';
-    $('#mw-start').textContent = forNextHand ? 'Save for next hand' : 'Start Multiway';
+    $('#mw-setup-dialog .multiway-dialog-head h2').textContent = newGame ? 'New game' : forNextHand ? 'Next hand setup' : 'Set up Multiway';
+    $('#mw-start').textContent = newGame ? 'Start new game' : forNextHand ? 'Save for next hand' : 'Start Multiway';
     const settings = $('#settings-dialog'); if (settings?.open) settings.close();
     if (!setupDialog.open) setupDialog.showModal();
     (forNextHand ? $('#mw-hero-position') : $('#mw-player-count')).focus({ preventScroll: true });
@@ -410,8 +412,8 @@
     const rows = state.players.map(item => `<label class="mw-stack-row"><span>${esc(playerName(item))} <small>${esc(item.position)}</small></span><input data-mw-ending-stack="${item.id}" type="text" inputmode="decimal" autocomplete="off" aria-label="${esc(playerName(item))} ending stack" value="${pending ? '' : esc(item.stack)}" placeholder="Confirm stack"></label>`).join('');
     const pots = (state.pots || []).map((pot, index) => `<fieldset class="mw-result-pot"><legend>${index ? `Side pot ${index}` : 'Main pot'} · ${money(pot.amount)} chips</legend>${pot.eligible.map(id => `<label><input type="checkbox" data-mw-pot="${index}" value="${id}"><span>${esc(playerName(player(id)))} · ${esc(player(id)?.position)}</span></label>`).join('')}</fieldset>`).join('');
     const awards = (state.result?.awards || []).map(item => `${playerName(player(item.player))} +${money(item.amount)}`).join(' · ');
-    const note = pending ? 'Result unknown. Confirm every remaining stack to continue, or record the pot winners.' : state.result?.reason === 'ALL_FOLDED' ? `Pot awarded · ${awards}. Rake was not recorded; review ending stacks if needed.` : awards ? `Pot awarded · ${awards}. Rake ${money(state.rake)} chips.` : 'Result recorded.';
-    $('#mw-completion-content').innerHTML = `<p class="mw-result-summary">${esc(note)}</p>${pending ? `<details id="mw-result-details"${state.phase === 'SHOWDOWN' ? ' open' : ''}><summary>Record pot winners</summary><form id="mw-result-form">${pots}<label>Actual rake · chips<input id="mw-result-rake" type="text" inputmode="decimal" autocomplete="off" placeholder="Enter 0 for no rake" required></label><button type="submit" class="primary-button">Record result</button></form></details>` : ''}<div class="mw-result-actions"><button id="mw-result-shown" type="button" class="ghost-button">Shown cards</button>${state.phase === 'SHOWDOWN' ? '<button id="mw-result-skip" type="button" class="text-button">Keep result unknown</button>' : ''}</div>${state.phase === 'FINISHED' ? `<details id="mw-ending-stacks"${pending ? ' open' : ''}><summary>${pending ? 'Confirm ending stacks' : 'Review ending stacks'}</summary><div class="mw-ending-stack-grid">${rows}</div></details><button id="mw-next-hand" type="button" class="primary-button">Next hand</button>` : ''}`;
+    const note = pending ? 'Payouts are optional. Continue with estimated stacks, or record the result.' : state.result?.reason === 'ALL_FOLDED' ? `Pot awarded · ${awards}. Rake was not recorded; review ending stacks if needed.` : awards ? `Pot awarded · ${awards}. Rake ${money(state.rake)} chips.` : 'Result recorded.';
+    $('#mw-completion-content').innerHTML = `<p class="mw-result-summary">${esc(note)}</p>${pending ? `<details id="mw-result-details"><summary>Record pot winners · optional</summary><form id="mw-result-form">${pots}<label>Actual rake · chips<input id="mw-result-rake" type="text" inputmode="decimal" autocomplete="off" placeholder="Enter 0 for no rake" required></label><button type="submit" class="primary-button">Record result</button></form></details>` : ''}<div class="mw-result-actions"><button id="mw-result-shown" type="button" class="ghost-button">Shown cards</button></div><details id="mw-ending-stacks"><summary>Update ending stacks · optional</summary><div class="mw-ending-stack-grid">${rows}</div></details><button id="mw-next-hand" type="button" class="primary-button">Next hand</button>`;
     $('#mw-result-shown').onclick = () => openReveal();
     const resultForm = $('#mw-result-form');
     if (resultForm) resultForm.onsubmit = async event => {
@@ -423,8 +425,6 @@
       if (rake === null || rake > view.state.pot) { setError('Enter the actual rake from zero up to the total pot.'); return; }
       if (await invoke('settle', { winners, rake })) openCompletion();
     };
-    const skip = $('#mw-result-skip');
-    if (skip) skip.onclick = async () => { if (completionToken === activeToken() && await invoke('skipResult')) openCompletion(); };
     const next = $('#mw-next-hand');
     if (next) next.onclick = async () => {
       try {
@@ -437,6 +437,7 @@
   function getEndingStacks() {
     if (!completionDialog?.open || completionToken !== activeToken()) throw Error('Open the current result before confirming stacks.');
     const inputs = [...completionDialog.querySelectorAll('[data-mw-ending-stack]')];
+    if (inputs.every(input => !input.value.trim())) return undefined;
     const values = inputs.map(input => parseAmount(input.value));
     if (values.length !== view.state.players.length || values.some(value => value === null || value < 0)) throw Error('Confirm a non-negative ending stack for every player.');
     return pendingResult() || values.some((value, index) => value !== view.state.players[index].stack) ? values : undefined;
@@ -476,7 +477,7 @@
   function refreshCompletion() {
     const ready = completed();
     $('#mw-completion-actions').hidden = !ready;
-    $('#mw-completion-open').textContent = view.state?.phase === 'FINISHED' ? 'Result & next hand' : 'Record result';
+    $('#mw-completion-open').textContent = 'Result · optional';
     for (const button of document.querySelectorAll('#mw-completion-actions button')) button.disabled = busy();
     if (completionDialog?.open && completionToken !== activeToken()) completionDialog.close();
     if (completionDialog?.open) for (const field of completionDialog.querySelectorAll('#mw-completion-content button,input')) field.disabled = busy();
@@ -533,13 +534,15 @@
     potDetail.textContent = state?.hasSidePots ? `${state.pots.length - 1} side pot${state.pots.length === 2 ? '' : 's'} · main ${money(state.pots[0]?.amount)}` : '';
     const heroSeat = $('#mw-hero-seat'), hero = state?.players?.find(item => item.hero);
     if (heroSeat) {
+      const stackLabel = heroSeat.querySelector('.hero-stack-line');
+      if (stackLabel?.firstChild?.nodeType === 3) stackLabel.firstChild.textContent = hero?.stackEstimated ? 'Est. stack ' : 'Stack ';
       if (view.enabled && hero) heroSeat.dataset.multiwayPlayer = String(hero.id);
       else delete heroSeat.dataset.multiwayPlayer;
       heroSeat.disabled = !view.enabled || busy();
       heroSeat.classList.toggle('mw-actor-seat', Boolean(view.enabled && hero && state.actor === hero.id));
       heroSeat.classList.toggle('mw-folded-seat', Boolean(view.enabled && hero?.folded));
       heroSeat.classList.toggle('mw-allin-seat', Boolean(view.enabled && hero?.allIn));
-      heroSeat.setAttribute('aria-label', hero ? `You, ${hero.position}, stack ${money(hero.stack)}, ${money(hero.streetPaid)} committed this street. View seat.` : 'Your seat');
+      heroSeat.setAttribute('aria-label', hero ? `You, ${hero.position}, ${hero.stackEstimated ? "estimated stack" : "stack"} ${money(hero.stack)}, ${money(hero.streetPaid)} committed this street. View seat.` : 'Your seat');
     }
     const heroPaid = $('#hero-street-paid');
     if (heroPaid) { heroPaid.hidden = !view.enabled || !hero; heroPaid.textContent = hero ? `In ${money(hero.streetPaid)} this street` : ''; }
@@ -556,7 +559,7 @@
       node.classList.toggle('mw-folded-seat', view.enabled && item.folded);
       node.classList.toggle('mw-allin-seat', view.enabled && (item.allIn || item.stack === 0));
       node.classList.toggle('mw-checked-seat', view.enabled && !item.folded && !item.allIn && item.lastAction === 'CHECK');
-      if (view.enabled) node.setAttribute('aria-label', `${playerName(item)}, ${item.position}, stack ${money(item.stack)}, ${money(item.streetPaid)} committed this street, ${item.folded ? 'folded' : item.allIn || item.stack === 0 ? 'all-in' : state.actor === item.id ? 'to act' : item.lastAction === 'CHECK' ? 'checked' : 'in hand'}. View seat.`);
+      if (view.enabled) node.setAttribute('aria-label', `${playerName(item)}, ${item.position}, ${item.stackEstimated ? "estimated stack" : "stack"} ${money(item.stack)}, ${money(item.streetPaid)} committed this street, ${item.folded ? 'folded' : item.allIn || item.stack === 0 ? 'all-in' : state.actor === item.id ? 'to act' : item.lastAction === 'CHECK' ? 'checked' : 'in hand'}. View seat.`);
     }
     $('#mw-size-confirm').disabled = busy();
     refreshDecisionEV();
@@ -683,7 +686,7 @@
   function refreshSeat() {
     const item = player(selectedPlayer); if (!item) { seatDialog.close(); return; }
     $('#mw-seat-title').textContent = `${playerName(item)} · ${item.position}`;
-    $('#mw-seat-info').textContent = `${item.folded ? 'Folded' : item.allIn || item.stack === 0 ? 'All-in' : 'In hand'} · stack ${money(item.stack)} · committed ${money(item.streetPaid)} this street`;
+    $('#mw-seat-info').textContent = `${item.folded ? 'Folded' : item.allIn || item.stack === 0 ? 'All-in' : 'In hand'} · ${item.stackEstimated ? "estimated stack" : "stack"} ${money(item.stack)} · committed ${money(item.streetPaid)} this street`;
     const turnFold = item.id === view.state.actor && view.state.legal?.actions?.includes('FOLD');
     $('#mw-seat-fold').disabled = busy() || !(turnFold || !item.hero && item.canMarkFold);
     $('#mw-seat-fold').textContent = turnFold ? "Record fold · it is this player's turn" : 'Record observed fold';
@@ -753,7 +756,7 @@
     controlsHost.classList.add('multiway-controls'); controlsHost.hidden = true;
     controlsHost.innerHTML = `<div class="mw-control-heading"><div class="mw-turn-context"><strong id="mw-actor"></strong></div><span class="mw-call-amount">To call <b id="mw-to-call"></b></span><button id="mw-undo" type="button" class="text-button" title="Undo the last confirmed event · Ctrl+Z">↶ Undo</button></div><div id="mw-action-stage" class="mw-action-stage"><div id="mw-actions" class="mw-action-row">${COMMANDS.map(item => `<button type="button" data-mw-command="${item.id}" data-mw-action="" disabled title="${item.key === ',' ? 'COMMA' : item.key === '.' ? 'PERIOD' : 'SEMICOLON'}"><kbd>${item.key}</kbd><span>${item.id === 'passive' ? 'Check / Call' : item.id === 'aggressive' ? 'Bet / Raise' : 'Fold'}</span></button>`).join('')}</div><div id="mw-inline-size" class="mw-inline-size" hidden><label for="mw-size" id="mw-size-label">Total this street</label><input id="mw-size" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" required><button id="mw-pot-size" type="button" class="ghost-button">Pot</button><button id="mw-allin-size" type="button" class="ghost-button">All-in</button><button id="mw-size-confirm" type="button" class="primary-button">Confirm</button><button id="mw-size-cancel" type="button" class="text-button" aria-label="Cancel amount entry">×</button></div></div><p class="mw-action-hint" id="mw-size-limits"></p><p class="mw-action-hint" id="mw-size-cost" role="status" aria-live="polite"></p><section id="mw-decision-ev" class="mw-decision-ev" aria-label="Decision EV by legal action" hidden></section><p id="mw-decision-feedback" class="mw-decision-feedback" role="status" hidden></p><p id="mw-board-prompt" class="mw-board-prompt" role="status" aria-live="polite" hidden></p><p id="multiway-error" class="multiway-error" role="alert" hidden></p><details id="mw-history"><summary>Recent actions</summary><ol id="mw-history-list"></ol></details>`;
     $('#mw-history').open = document.body.dataset.analysisSecondary === 'expanded';
-    $('#mw-action-stage').insertAdjacentHTML('afterend', '<div id="mw-completion-actions" class="mw-result-actions" hidden><button id="mw-completion-open" type="button" class="primary-button">Record result</button><button id="mw-shown-open" type="button" class="ghost-button">Shown cards</button></div>');
+    $('#mw-action-stage').insertAdjacentHTML('afterend', '<div id="mw-completion-actions" class="mw-result-actions" hidden><button id="mw-next-direct" type="button" class="primary-button">Next hand</button><button id="mw-completion-open" type="button" class="ghost-button">Result · optional</button><button id="mw-shown-open" type="button" class="ghost-button">Shown cards</button></div>');
     completionDialog = dialog('mw-completion-dialog', 'Hand result', '<div id="mw-completion-content" class="mw-completion-content"></div>');
     revealDialog = dialog('mw-reveal-dialog', 'Shown cards', '<form id="mw-reveal-form"><label>Player<select id="mw-reveal-player"></select></label><label>Cards shown<input id="mw-reveal-cards" type="text" autocomplete="off" spellcheck="false" placeholder="AE KC · partial hands are welcome"></label><p class="mw-card-legend">Only cards you saw. Rank + suit: ♠ E · ♥ C · ♦ O · ♣ P.</p><div class="mw-result-actions"><button id="mw-reveal-voice" type="button" class="ghost-button" aria-pressed="false">Voice off</button><button id="mw-reveal-save" type="submit" class="primary-button">Save shown cards</button></div></form>');
     boardDialog = dialog('multiway-board-dialog', '<span id="mw-board-title">Next street</span>', '<form id="mw-board-form"><p id="mw-board-existing"></p><label><span id="mw-board-label">New cards</span><input id="mw-board-new" autocomplete="off" spellcheck="false" required></label><p class="mw-card-legend">Rank + suit: ♠ E · ♥ C · ♦ O · ♣ P. Ten = D, T or 10.</p><button id="mw-board-confirm" type="submit" class="primary-button">Deal street · Enter</button></form>');
@@ -787,6 +790,7 @@
     };
     initialized = true; fillSetup(true);
     $('#mw-completion-open').onclick = () => openCompletion();
+    $('#mw-next-direct').onclick = () => { if (completed() && !busy()) void invoke('nextHand'); };
     $('#mw-shown-open').onclick = () => openReveal();
     $('#mw-reveal-player').onchange = event => selectShownPlayer(event.target.value);
     $('#mw-reveal-voice').onclick = () => { window.theibsCardVoice?.toggle?.(); refreshCompletion(); };

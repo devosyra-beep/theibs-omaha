@@ -77,8 +77,8 @@
     },
     {
       "id": "src/multiway-session.js",
-      "sha256": "144f6742298c13e761cb51aaf4e0ced98a9a4ccc8cd601212fb5d62d6f1f16f6",
-      "bytes": 31492
+      "sha256": "d8a52f5cf7f300d93ed1f79281847b6c3d827e9081bd5bd294cf0e4341549663",
+      "bytes": 33257
     },
     {
       "id": "src/opponent-overrides.js",
@@ -164,5 +164,5 @@
   "checkpointTransport": "DETACHED_BINARY64_COPY_TRANSFER_V1",
   "memoryMetric": "UNAVAILABLE_IN_BROWSER",
   "sourceNormalization": "LF",
-  "buildFingerprint": "47b66f5288af193a8da858c68c80069b64ff607877472b76a752456d398cf3be"
+  "buildFingerprint": "b5e581332fc5738261a55c0b24b63465042ca7932a0d94e463791dcb38c1141b"
 }
