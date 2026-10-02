@@ -22,6 +22,16 @@ Choose **Automatic**, **One action at a time**, or **Choose every action** for o
 
 Browser EV now projects the already public, synchronized ledger directly into its worker, without first querying the dealer. This removes a network dependency before the first estimate; calculation budgets, utility, priors, provenance and numerical uncertainty are unchanged. Server calculation remains a fallback. Hidden dealer cards, seed, completed audit and future runout never enter this projection.
 
+## Practice bankroll and action guidance
+
+The compact **Practice bankroll** strip shows fictitious money, chip profit/loss and settled hand count. **Bankroll settings** sets starting funds, a display-only money-per-chip conversion, and BRL/USD/EUR/GBP. These values do not change table stakes, utilities, EV, or gameplay. The displayed settled balance equals starting funds plus recorded fresh-hand profit; current committed chips are not realized losses. Next hand carries table stacks, while New deal refills them without creating a bankroll gain. Manual-opponent scenario outcomes can count as practice results; they still do not become validation observations.
+
+**Progress & accounting** displays cumulative realized chip profit. Each hand identity is booked once, including across retry, reveal, export and reload. Replay and abandoned/expired hands with unknown payouts are excluded. Detailed history can be cleared or trimmed without erasing progress. Up to 2,000 compact progress records are stored locally per account; at that limit, tracking stops with a visible message rather than silently losing totals. Export includes the progress ledger and settings. Reset progress starts a new tracking period without changing the current hand or detailed history; an already finished hand remains in the prior period. On first upgrade, only completed reports retained on this device can be imported, not previously discarded history.
+
+On Hero's turn, the current comparison contract drives a prominent action label, its EV, and the matching action button/sizing. **Current EV leader** stays explicitly `INCONCLUSIVE` when uncertainty overlaps or coverage is incomplete. **Best modeled action** requires the existing conclusive-precision contract and complete displayed coverage, within the fixed model and sizing grid. No preliminary, stale, illegal or incomparable leader is promoted. Bet/raise opens the editable sizing dialog at the leader's legal total; the user still confirms the action. No action is executed automatically and no frequency is invented.
+
+**EV · bb** is estimated incremental profit; **EV shortfall · bb** is the difference below the current leader. **ΔEV** separately compares the top two estimates. Actual bankroll profit is a realized outcome, not any of these mathematical estimates. The simulator remains a heuristic reference-policy environment, not a full Multiway GTO solution.
+
 ## Evaluation boundaries
 
 EV and equity use only Hero's cards, the public board and the recorded actions. The server's hidden opponent hands, fixed future board and deal seed are not calculation inputs. Decision-time snapshots are retained before the chosen action; revealing cards later does not re-evaluate or replace past decisions. Acting while calculation is pending records that the estimate was unavailable, rather than inventing one.

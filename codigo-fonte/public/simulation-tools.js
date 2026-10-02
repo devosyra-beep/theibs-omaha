@@ -75,5 +75,52 @@
     while(kept.length>1&&total>1400000){kept.shift();total-=lengths.shift();}
     return kept;
   }
-  return {createTransport,evaluationInput,measurements,summary,compactEvaluation,boundedHistory,networkFailure};
+  const PROGRESS_LIMIT=2000;
+  const cents=value=>Math.round(value*100);
+  function practiceProgress(saved){
+    const settings=saved?.settings||{};
+    const entries=[],seen=new Set();
+    for(const row of (Array.isArray(saved?.entries)?saved.entries:[]).slice(0,PROGRESS_LIMIT)){
+      if(typeof row?.id!=='string'||seen.has(row.id)||!['SETTLED','REPLAY','UNSETTLED','BASELINE'].includes(row.kind))continue;
+      if(row.kind==='SETTLED'&&!Number.isSafeInteger(row.netCents))continue;
+      seen.add(row.id);entries.push({id:row.id,kind:row.kind,netCents:row.kind==='SETTLED'?row.netCents:null});
+    }
+    return {schema:'SIMULATION_PROGRESS_V1',settings:{
+      initialChips:Number.isFinite(settings.initialChips)&&settings.initialChips>=0&&settings.initialChips<=1e9?cents(settings.initialChips)/100:1000,
+      chipValue:Number.isFinite(settings.chipValue)&&settings.chipValue>0&&settings.chipValue<=1e6?settings.chipValue:1,
+      currency:['BRL','USD','EUR','GBP'].includes(settings.currency)?settings.currency:'BRL'
+    },entries};
+  }
+  function recordProgress(progress,report){
+    // The dealer owns payouts. Repeated acknowledgements, reveal and export
+    // must never book the same hand twice. Refills are not earnings.
+    if(!report?.id||progress.entries.some(row=>row.id===report.id))return;
+    if(progress.entries.length>=PROGRESS_LIMIT)return;
+    const known=Number.isFinite(report.outcome?.heroNet)&&Number.isSafeInteger(cents(report.outcome.heroNet));
+    const kind=report.replayed?'REPLAY':report.abandoned||!known?'UNSETTLED':'SETTLED';
+    progress.entries.push({id:report.id,kind,netCents:kind==='SETTLED'?cents(report.outcome.heroNet):null});
+  }
+  function progressSummary(progress){
+    const settled=progress.entries.filter(row=>row.kind==='SETTLED');
+    let netCents=0;const points=[{hand:0,netChips:0}];
+    for(const row of settled){netCents+=row.netCents;points.push({hand:points.length,netChips:netCents/100});}
+    return {hands:settled.length,netChips:netCents/100,balanceChips:(cents(progress.settings.initialChips)+netCents)/100,
+      lastNetChips:settled.length?settled.at(-1).netCents/100:null,points,
+      replays:progress.entries.filter(row=>row.kind==='REPLAY').length,
+      unsettled:progress.entries.filter(row=>row.kind==='UNSETTLED').length,
+      full:progress.entries.length>=PROGRESS_LIMIT};
+  }
+  function actionGuidance(decision,state){
+    if(!decision||['PENDING','IDLE','WAITING_CARDS','UNAVAILABLE','NO_DECISION','INCOMPARABLE','PROVISIONAL'].includes(decision.stage))return null;
+    const row=decision.rows?.find(item=>item.optionId===decision.precision?.bestActionId);
+    if(row?.status!=='MODELED'||!Number.isFinite(row.evBB)||!state.legal?.actions?.includes(row.action)||
+      row.action==='FOLD'&&!(state.legal.toCall>0))return null;
+    if(['BET','RAISE'].includes(row.action)&&(!Number.isFinite(row.size)||row.size<state.legal.minTo-1e-8||row.size>state.legal.maxTo+1e-8))return null;
+    const complete=!decision.missingLegalActions?.length&&decision.rows.every(item=>item.status==='MODELED'&&Number.isFinite(item.evBB));
+    const conclusive=complete&&decision.leaderConclusive===true&&decision.precision?.status==='CONCLUSIVE'&&decision.precision.leaderConclusive===true;
+    return {row,conclusive,heading:conclusive?'Best modeled action':'Current EV leader',
+      reason:!complete?'Some legal alternatives have no comparable estimate.':decision.precision?.reason||'The available uncertainty does not certify a superior action.'};
+  }
+  return {createTransport,evaluationInput,measurements,summary,compactEvaluation,boundedHistory,networkFailure,
+    practiceProgress,recordProgress,progressSummary,actionGuidance};
 });
