@@ -76,6 +76,12 @@ Turn, network and EV updates reconcile existing DOM elements instead of remounti
 
 Within a hand, automatic updates retain the current scroll position and the evaluation area's measured footprint through loading/opponent states. Expanded calculation details remain fully readable and are excluded from that retained footprint. A new hand starts a fresh footprint. Primary decision buttons keep a consistent height with or without the leader badge. Reconnecting/error recovery sits after the gameplay layout; retry is offered only after an unsettled request has actually failed, never during a normal pending action. No betting, evaluation, idempotency or accounting rules are changed.
 
+## Reading practice progress
+
+The progress chart plots cumulative settled net profit in chips against the number of settled hands, starting at zero. Straight segments retain every recorded result, including fractional chips; there is no smoothing or projection. The dashed zero line separates profit from loss, with loss portions shown in pink. Axis labels and the current total remain readable on mobile. Empty and flat histories keep a stable plotting area.
+
+Accounting details remain available within the existing disclosure. Replays and hands without a payout do not enter the plotted results. The chart does not change payouts, bankroll bookkeeping, EV, player learning or storage limits.
+
 ## Hosting and access
 
 The existing Cloudflare gateway forwards authenticated `/api/simulation/*` requests to the Node service. No new hosting plan, credential or external AI dependency is introduced. The dealer's sessions are server-memory-only, owner-isolated, expire after two hours and are bounded to eight per owner/128 total. Server restart can end an active simulation. Completed local reports remain available; download them for durable review. No session secret is stored in the real workspace or player-learning modules.

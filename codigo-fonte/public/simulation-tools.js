@@ -136,6 +136,40 @@
       unsettled:progress.entries.filter(row=>row.kind==='UNSETTLED').length,
       full:progress.entries.length>=PROGRESS_LIMIT};
   }
+  function progressChartModel(points){
+    // Presentation only: keep every settled result and the zero-profit origin.
+    // The chart has no smoothing, projection or change to the booked ledger.
+    const series=(points?.length?points:[{hand:0,netChips:0}]).map(point=>({hand:point.hand,netChips:point.netChips}));
+    const lastPoint=series.at(-1),hands=lastPoint.hand;
+    let minChips=0,maxChips=0;
+    for(const point of series){minChips=Math.min(minChips,point.netChips);maxChips=Math.max(maxChips,point.netChips);}
+    const niceStep=value=>{
+      const magnitude=10**Math.floor(Math.log10(value));
+      // Sub-cent axis labels would imply more precision than the stored ledger.
+      const choices=magnitude<.1?[1,2,5,10]:[1,2,2.5,5,10];
+      return choices.find(factor=>factor*magnitude>=value-Number.EPSILON*value)*magnitude;
+    };
+    const xDomain=[0,Math.max(1,hands)],xTicks=[0];
+    if(hands>0){
+      const step=Math.max(1,Math.ceil(niceStep(hands/3)));
+      for(let hand=step;hand<hands;hand+=step)xTicks.push(hand);
+      xTicks.push(hands);
+      // Keep the exact latest hand readable when a rounded tick is nearby.
+      if(xTicks.length>2&&hands-xTicks.at(-2)<hands*.2)xTicks.splice(-2,1);
+    }
+    const range=maxChips-minChips,padding=Math.max(.01,range*.08);
+    const yDomain=range?[minChips-padding,maxChips+padding]:[-1,1];
+    const step=niceStep(Math.max(.01,(yDomain[1]-yDomain[0])/4));
+    const tickPrecision=Math.max(0,Math.min(2,-Math.floor(Math.log10(step))+(Math.abs(step/10**Math.floor(Math.log10(step))-2.5)<1e-8?1:0)));
+    const yTicks=[];
+    for(let index=Math.ceil(yDomain[0]/step);index<=Math.floor(yDomain[1]/step);index++){
+      const value=Number((index*step).toFixed(tickPrecision));
+      yTicks.push(value===0?0:value);
+    }
+    const format=value=>new Intl.NumberFormat('en-US',{maximumFractionDigits:2}).format(value);
+    const description=hands?`Cumulative settled profit in chips after ${format(hands)} ${hands===1?'hand':'hands'}. Latest result: ${format(lastPoint.netChips)} chips. Recorded range including the starting point: ${format(minChips)} to ${format(maxChips)} chips. Points show cumulative results after settled hands; replays and hands without a payout are excluded.`:'No settled hands recorded. Cumulative profit starts at 0 chips.';
+    return {points:series,xDomain,yDomain,xTicks,yTicks,tickPrecision,minChips,maxChips,lastPoint,description};
+  }
   function actionGuidance(decision,state){
     if(!decision||['PENDING','IDLE','WAITING_CARDS','UNAVAILABLE','NO_DECISION','INCOMPARABLE','PROVISIONAL'].includes(decision.stage))return null;
     const row=decision.rows?.find(item=>item.optionId===decision.precision?.bestActionId);
@@ -148,5 +182,5 @@
       reason:!complete?'Some legal alternatives have no comparable estimate.':decision.precision?.reason||'The available uncertainty does not certify a superior action.'};
   }
   return {createTransport,evaluationInput,measurements,summary,compactEvaluation,boundedHistory,networkFailure,
-    practiceProgress,recordProgress,progressSummary,actionGuidance,patchDOM};
+    practiceProgress,recordProgress,progressSummary,progressChartModel,actionGuidance,patchDOM};
 });

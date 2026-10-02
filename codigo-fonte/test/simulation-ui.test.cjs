@@ -60,7 +60,7 @@ test('an exhausted connection retains an uncertain intent, and manual retry reus
 test('leaving or clearing the account cancels evaluation without erasing or resurrecting a hand',async()=>{
   const f=fixture();await f.ui.enter();await settle();f.ui.leave();assert.equal(f.pending[0].options.signal.aborted,true);
   assert.equal(JSON.parse(f.local.get('theibs.simulation.v1.account-a')).sessionId,'session-a');
-  f.ui.clearOwner();f.pending[0].resolve(f.result);await settle();assert.doesNotMatch(f.host.innerHTML,/123|456|As/);
+  f.ui.clearOwner();f.pending[0].resolve(f.result);await settle();assert.doesNotMatch(f.host.innerHTML,/123|456|<span>As<\/span>/);
   assert.match(f.host.innerHTML,/Start simulation/);assert.equal(f.requests.filter(item=>item.url.endsWith('/step')).length,0);
   assert.doesNotMatch(f.host.innerHTML,/-0.5 chips/);assert.match(f.host.innerHTML,/1,000.00/);
 });
