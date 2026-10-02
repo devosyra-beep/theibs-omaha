@@ -70,6 +70,12 @@ The worker yields between small slices, caps compute at 30 seconds per decision,
 
 The existing river CFR+/LP and per-action bounds are unaffected. This feature does not increase solver coverage. Batch data can identify numerical regressions and future calibration work; changing a response model still requires separately held-out evidence and regression gates.
 
+## Stable gameplay presentation
+
+Turn, network and EV updates reconcile existing DOM elements instead of remounting the workspace. Native selectors, compatible action buttons, the table and user-open disclosures retain their identity. A button is not reused for a different poker action; disabled state and sizing attributes still update from the current state. Temporary disabling restores focus without scrolling when the control becomes available again.
+
+Within a hand, automatic updates retain the current scroll position and the evaluation area's measured footprint through loading/opponent states. Expanded calculation details remain fully readable and are excluded from that retained footprint. A new hand starts a fresh footprint. Primary decision buttons keep a consistent height with or without the leader badge. Reconnecting/error recovery sits after the gameplay layout; retry is offered only after an unsettled request has actually failed, never during a normal pending action. No betting, evaluation, idempotency or accounting rules are changed.
+
 ## Hosting and access
 
 The existing Cloudflare gateway forwards authenticated `/api/simulation/*` requests to the Node service. No new hosting plan, credential or external AI dependency is introduced. The dealer's sessions are server-memory-only, owner-isolated, expire after two hours and are bounded to eight per owner/128 total. Server restart can end an active simulation. Completed local reports remain available; download them for durable review. No session secret is stored in the real workspace or player-learning modules.

@@ -1,5 +1,31 @@
 (function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else root.TheibsSimulationTools=api;})(typeof window!=='undefined'?window:globalThis,function(){
   'use strict';
+  // Update presentation in place, preserving focused controls and disclosures.
+  function patchDOM(target,source){
+    const identity=node=>node.nodeType===1?(node.id||node.getAttribute('data-sim-key')||
+      (node.hasAttribute('data-sim-op')?`${node.tagName}:${node.getAttribute('data-sim-op')}:${node.getAttribute('data-action')||''}`:
+      node.hasAttribute('data-sim-seat')?`seat:${node.getAttribute('data-sim-seat')}`:
+      ['DIV','SECTION','ASIDE','DETAILS'].includes(node.tagName)?`${node.tagName}:${node.className}`:node.tagName)):node.nodeType;
+    const compatible=(a,b)=>a.nodeType===b.nodeType&&a.nodeName===b.nodeName&&identity(a)===identity(b);
+    function sync(a,b,root=false){
+      if(a.nodeType!==1){if(a.nodeValue!==b.nodeValue)a.nodeValue=b.nodeValue;return;}
+      if(!root){
+        for(const attr of [...a.attributes])if(!b.hasAttribute(attr.name)&&!(a.tagName==='DETAILS'&&attr.name==='open'))a.removeAttribute(attr.name);
+        for(const attr of [...b.attributes])if(a.getAttribute(attr.name)!==attr.value)a.setAttribute(attr.name,attr.value);
+      }
+      const previous=[...a.childNodes],used=new Set();
+      for(const [index,next] of [...b.childNodes].entries()){
+        const at=previous[index];
+        const node=at&&!used.has(at)&&compatible(at,next)?at:previous.find(item=>!used.has(item)&&compatible(item,next));
+        const kept=node||next.cloneNode(true);if(node){used.add(node);sync(node,next);}
+        if(a.childNodes[index]!==kept)a.insertBefore(kept,a.childNodes[index]||null);
+      }
+      for(const node of previous)if(!used.has(node))node.remove();
+      // A native select may have a user-modified value independent of attributes.
+      if(a.tagName==='SELECT'&&a.value!==b.value)a.value=b.value;
+    }
+    sync(target,source,true);
+  }
   const networkFailure=error=>error?.code!=='AUTH_SESSION_CHANGED'&&error?.name!=='AbortError'&&
     ([408,429,502,503,504].includes(error?.status)||error?.retryable===true||error instanceof TypeError||
       /failed to fetch|networkerror|network request|load failed|invalid response.*HTTP 50[234]/i.test(error?.message||''));
@@ -122,5 +148,5 @@
       reason:!complete?'Some legal alternatives have no comparable estimate.':decision.precision?.reason||'The available uncertainty does not certify a superior action.'};
   }
   return {createTransport,evaluationInput,measurements,summary,compactEvaluation,boundedHistory,networkFailure,
-    practiceProgress,recordProgress,progressSummary,actionGuidance};
+    practiceProgress,recordProgress,progressSummary,actionGuidance,patchDOM};
 });

@@ -1,4 +1,6 @@
-.simulation-workspace{max-width:1660px;margin:auto;color:var(--foreground,#eee)}
+.simulation-workspace{max-width:1660px;margin:auto;color:var(--foreground,#eee);overflow-anchor:none}
+html:has(body[data-view=simulation]){scrollbar-gutter:stable}
+.sim-primary-actions{min-block-size:52px}.sim-primary-actions button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;block-size:52px;padding:6px 12px;line-height:18px;white-space:nowrap}.sim-primary-actions.sim-action-buttons button small{line-height:12px;margin-top:0}
 .sim-heading,.sim-result-heading,.sim-dialog-heading{display:flex;align-items:center;justify-content:space-between;gap:16px}
 .sim-heading{margin-bottom:24px}.sim-heading h1{font-size:22px;margin:0 0 6px}.sim-mode,.sim-context,.sim-limits,.sim-street{color:var(--muted-foreground,#aeb7c8);font-size:12px}
 .sim-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(290px,340px);gap:24px;align-items:start}.sim-game,.sim-evaluation{min-width:0}

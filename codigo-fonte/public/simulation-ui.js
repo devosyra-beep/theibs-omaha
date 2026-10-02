@@ -6,6 +6,7 @@
   let reports=[],decisions=[],error='',timing=null,startedAt=0,restored=false,connection='CONNECTED',pendingIntent=null,chosenSize=null,recoveryId=null;
   let progress=T.practiceProgress();
   let validation=null,batchScope='CURRENT',batchWorlds=128;
+  let evaluationFootprint=0,layoutHand=null,retainedFocus=null;
   const key=()=>`theibs.simulation.v1.${owner}`;
   const snapshot=()=>session?{id:session.id,revision:session.revision,owner,generation}:null;
   const current=stamp=>active && stamp && stamp.id===session?.id && stamp.revision===session?.revision && stamp.owner===owner && stamp.generation===generation;
@@ -51,7 +52,7 @@
       <p class="sim-context">Pot ${money(session.state.pot)} · Call ${money(session.state.legal.toCall)} · 1 bb = ${money(session.state.bigBlind)} chips</p>
       ${guide?`<div class="sim-guidance" role="status"><span>${esc(guide.heading)}</span><strong>${esc(label(leader))}</strong><div>Expected value <b>${signed(leader.evBB)} bb</b></div><p>${guide.conclusive?'CONCLUSIVE within this model and sizing grid.':`INCONCLUSIVE · ${esc(guide.reason)}`}${Number.isFinite(decision.gapBestSecondBB)?`<br>ΔEV · top two ${money(decision.gapBestSecondBB)} bb`:''}</p></div>`:controller?'<p class="sim-limits" role="status">Comparing actions… You can act without waiting.</p>':'<p class="sim-limits">No comparable action leader is available. Choose any legal action below the table.</p>'}
       <table class="sim-ev-table"><thead><tr><th>Action</th><th>EV · bb</th><th>EV shortfall · bb</th></tr></thead><tbody>${rows.map(row=>`<tr${leader?.optionId===row.optionId?' class="sim-leader-row"':''}><th scope="row">${esc(label(row))}<small>${row.status==='MODELED'?decision.stage==='PROVISIONAL'?'Provisional':'Modeled':row.status==='PENDING'?'Calculating':'Unavailable'}</small></th><td>${signed(row.evBB)}</td><td>${signed(row.differenceBB)}</td></tr>`).join('')}</tbody></table>
-      ${pendingIntent?'<p class="sim-limits">Last confirmed decision · waiting for request acknowledgement.</p>':''}
+      ${pendingIntent&&!busy&&connection==='OFFLINE'?'<p class="sim-limits">Last confirmed decision · waiting for request acknowledgement.</p>':''}
       ${!guide&&precision?.status==='INCONCLUSIVE'?`<p class="sim-limits">INCONCLUSIVE · ${esc(precision.reason || String(precision.reasonCode||'Defensible error bounds unavailable.').replaceAll('_',' ').toLowerCase())}</p>`:''}
       ${analysis?.status && analysis.status!=='OK'?`<p role="status">${esc(analysis.reason || 'No estimate is available for this decision.')}</p>`:''}
       ${analysis?.status==='UNAVAILABLE'||analysis?.refinement?.status==='FAILED'?button('Retry EV','EVALUATE'):''}
@@ -84,7 +85,7 @@
     else if(state.phase==='BETTING')actions=button(session.paused?'Next opponent action':'Play opponents','ADVANCE',true);
     const status=session.abandoned?'Hand ended · no payout recorded':session.finished?`Hand complete · ${signed(session.outcome.heroNet)} chips`:heroTurn()?'Your turn':state.phase==='BETTING'?`${state.players[state.actor].name} · ${state.players[state.actor].position} to act`:state.phase==='WAIT_BOARD'?'Betting round complete':'Ready for showdown';
     const mode=session.manualOpponents?'MANUAL':session.paused?'STEP':'AUTO';
-    return `<section class="sim-actions" aria-label="Simulation actions"><div class="sim-turn" role="status">${esc(status)}</div><div class="sim-action-buttons">${actions}</div>${!session.finished?`<div class="sim-pace"><label>Opponents<select id="sim-control"${busy||pendingIntent?' disabled':''}><option value="AUTO"${mode==='AUTO'?' selected':''}>Automatic</option><option value="STEP"${mode==='STEP'?' selected':''}>One action at a time</option><option value="MANUAL"${mode==='MANUAL'?' selected':''}>Choose every action</option></select></label>${button('New deal','RESTART')}</div><details class="sim-hand-tools"><summary>Hand options</summary><div class="sim-action-buttons">${button('Finish with reference policy','FINISH')}${button('End without payout','END')}</div></details>`:!canContinue()&&!session.abandoned?'<p class="sim-limits">Start a new deal to refill stacks.</p>':''}</section>`;
+    return `<section class="sim-actions" aria-label="Simulation actions"><div class="sim-turn" role="status">${esc(status)}</div><div class="sim-action-buttons sim-primary-actions">${actions}</div>${!session.finished?`<div class="sim-pace"><label>Opponents<select id="sim-control"${busy||pendingIntent?' disabled':''}><option value="AUTO"${mode==='AUTO'?' selected':''}>Automatic</option><option value="STEP"${mode==='STEP'?' selected':''}>One action at a time</option><option value="MANUAL"${mode==='MANUAL'?' selected':''}>Choose every action</option></select></label>${button('New deal','RESTART')}</div><details class="sim-hand-tools"><summary>Hand options</summary><div class="sim-action-buttons">${button('Finish with reference policy','FINISH')}${button('End without payout','END')}</div></details>`:!canContinue()&&!session.abandoned?'<p class="sim-limits">Start a new deal to refill stacks.</p>':''}</section>`;
   }
   function history(){
     const check=T.summary(reports);
@@ -126,9 +127,28 @@
   function render(){
     if(!host)return;
     validation?.setAvailable(active&&!busy&&!controller&&!pendingIntent&&!document.hidden);
-    const openDetails=[...host.querySelectorAll('details[open]')].map(node=>node.className);
-    host.innerHTML=`<div class="sim-heading"><div><h1 id="simulation-title">Simulation</h1><span class="sim-mode">${session?.replayed?'Replay · previously revealed deal':session?'Random Multiway · isolated practice':'Multiway practice with a fair, hidden deal'}</span></div>${button(session?'Table setup':'Set up table','CONFIG')}</div>${bankroll()}${connection==='RECONNECTING'?'<p class="sim-connection" role="status">Reconnecting to the server… Your hand is retained.</p>':''}<div class="sim-recovery"><p class="sim-error" role="alert"${error?'':' hidden'}>${esc(error)}</p>${pendingIntent?button('Retry last request','RETRY',true):connection==='OFFLINE'?button('Reconnect','REFRESH',true):''}</div>${session?`<div class="sim-layout"><div class="sim-game">${table()}${controls()}</div><aside class="sim-evaluation">${decisionPanel()}</aside></div>${audit()}`:'<div class="sim-empty"><p>Play a complete hand against simulated opponents. Deal each street when ready and see equity and modeled action EV on your turn.</p>'+button('Start simulation','CONFIG',true)+'</div>'}${batchPanel()}${history()}`;
-    for(const node of host.querySelectorAll('details'))if(openDetails.includes(node.className)&&node.className)node.open=true;
+    const sameHand=layoutHand===session?.id;
+    const before=host.querySelector('.sim-evaluation');
+    const footprint=node=>node.getBoundingClientRect().height-[...node.querySelectorAll('details[open]')].reduce((sum,details)=>sum+details.getBoundingClientRect().height-details.querySelector('summary').getBoundingClientRect().height,0);
+    if(sameHand&&before)evaluationFootprint=Math.max(evaluationFootprint,footprint(before));
+    else {evaluationFootprint=0;layoutHand=session?.id;}
+    const scroll={x:window.scrollX,y:window.scrollY};
+    const focused=document.activeElement;
+    if(focused&&host.contains?.(focused))retainedFocus=focused;
+    else if(focused&&focused!==document.body&&focused!==document.documentElement)retainedFocus=null;
+    const markup=`<div class="sim-heading" data-sim-key="heading"><div><h1 id="simulation-title">Simulation</h1><span class="sim-mode">${session?.replayed?'Replay · previously revealed deal':session?'Random Multiway · isolated practice':'Multiway practice with a fair, hidden deal'}</span></div>${button(session?'Table setup':'Set up table','CONFIG')}</div>${bankroll()}${session?`<div class="sim-layout" data-sim-key="layout"><div class="sim-game">${table()}${controls()}</div><aside class="sim-evaluation">${decisionPanel()}</aside></div>`:'<div class="sim-empty"><p>Play a complete hand against simulated opponents. Deal each street when ready and see equity and modeled action EV on your turn.</p>'+button('Start simulation','CONFIG',true)+'</div>'}<div class="sim-recovery" data-sim-key="recovery">${connection==='RECONNECTING'?'<p class="sim-connection" role="status">Reconnecting to the server… Your hand is retained.</p>':''}<p class="sim-error" role="alert"${error?'':' hidden'}>${esc(error)}</p>${!busy&&pendingIntent?button('Retry last request','RETRY',true):!busy&&connection==='OFFLINE'?button('Reconnect','REFRESH',true):''}</div>${session?audit():''}${batchPanel()}${history()}`;
+    if(host.childNodes?.length){
+      const next=document.createElement('div');next.innerHTML=markup;T.patchDOM(host,next);
+    }else host.innerHTML=markup;
+    const evaluation=host.querySelector('.sim-evaluation');
+    if(evaluation){
+      evaluationFootprint=Math.max(evaluationFootprint,footprint(evaluation));
+      // Hold the measured footprint through transient states of the same hand.
+      // Content remains unconstrained: errors and expanded details are not clipped.
+      evaluation.style.minHeight=`${evaluationFootprint}px`;
+    }
+    if(retainedFocus?.isConnected&&!retainedFocus.disabled&&document.activeElement===document.body)retainedFocus.focus({preventScroll:true});
+    if(sameHand&&Number.isFinite(scroll.y)&&window.scrollTo)window.scrollTo({left:scroll.x,top:scroll.y,behavior:'instant'});
   }
   async function evaluate(size=chosenSize){
     chosenSize=size;

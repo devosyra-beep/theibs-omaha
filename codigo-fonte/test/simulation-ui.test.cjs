@@ -2,7 +2,7 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const source=fs.readFileSync(require.resolve('../public/simulation-ui.js'),'utf8');
 const settle=async()=>{for(let i=0;i<8;i++)await new Promise(resolve=>setImmediate(resolve));};
-function fixture({stepFailures=0,decisionContract=null}={}){
+function fixture({stepFailures=0,decisionContract=null,stepGate=null}={}){
   function node(){return {innerHTML:'',open:false,handlers:{},setAttribute(){},querySelector(){return null;},querySelectorAll(){return [];},addEventListener(type,fn){this.handlers[type]=fn;},close(){this.open=false;},showModal(){this.open=true;}};}
   const host=node(),local=new Map(),pending=[],requests=[];let owner='account-a';
   const state={heroId:0,actor:0,phase:'BETTING',street:'PREFLOP',revisionKey:'revision-a',board:[],bigBlind:1,pot:1.5,players:[{id:0,hero:true,position:'SB',name:'You',stack:9.5,streetPaid:.5},{id:1,position:'BB',name:'Bot 2',stack:9,streetPaid:1}],legal:{actions:['FOLD','CALL','RAISE'],toCall:.5,minTo:2,maxTo:3}};
@@ -17,7 +17,7 @@ function fixture({stepFailures=0,decisionContract=null}={}){
     assert.equal(options.headers['Content-Type'],'application/json');const body=JSON.parse(options.body);requests.push({url,body});
     if(url.endsWith('/state'))return {session:structuredClone(session)};
     if(url.endsWith('/input'))return {input:{multiway:structuredClone(session.multiway),multiwayEvaluation:{revisionKey:state.revisionKey}}};
-    if(url.endsWith('/step')){if(stepFailures-->0)throw new TypeError('Failed to fetch');return {session:{...structuredClone(session),revision:1,finished:true,outcome:{heroNet:-.5},state:{...state,phase:'FINISHED',revisionKey:'revision-b',result:{pots:[{amount:1.5}]},legal:{actions:[]}}}};}
+    if(url.endsWith('/step')){if(stepGate)await stepGate;if(stepFailures-->0)throw new TypeError('Failed to fetch');return {session:{...structuredClone(session),revision:1,finished:true,outcome:{heroNet:-.5},state:{...state,phase:'FINISHED',revisionKey:'revision-b',result:{pots:[{amount:1.5}]},legal:{actions:[]}}}};}
     throw Error('Unexpected simulation endpoint');
   };
   vm.runInNewContext(source,{window,document,localStorage,structuredClone,AbortController,crypto:require('node:crypto').webcrypto,performance,setTimeout,Blob,URL,FormData});
@@ -34,6 +34,15 @@ test('acting before EV finishes retains an unavailable decision snapshot and rej
   assert.equal(saved.reports[0].decisions[0].evaluation,null);assert.equal(saved.reports[0].decisions[0].publicInput.events.length,0);
   f.pending[0].resolve(f.result);await settle();assert.doesNotMatch(f.host.innerHTML,/123|456|90%/);
   assert.equal(JSON.parse(f.local.get('theibs.simulation.v1.account-a')).reports[0].decisions[0].evaluation,null);
+});
+
+test('an ordinary pending action does not insert recovery controls or acknowledgement text',async()=>{
+  let release;const f=fixture({stepGate:new Promise(resolve=>{release=resolve;})});
+  await f.ui.enter();await settle();const acting=f.click('ACT');await settle();
+  assert.doesNotMatch(f.host.innerHTML,/Retry last request|Last confirmed decision/);
+  assert.ok(JSON.parse(f.local.get('theibs.simulation.v1.account-a')).pendingIntent,'Operation is still persisted for safe recovery');
+  assert.match(f.host.innerHTML,/data-sim-op="ACT" disabled/);
+  release();await acting;assert.equal(JSON.parse(f.local.get('theibs.simulation.v1.account-a')).pendingIntent,null);
 });
 
 test('an exhausted connection retains an uncertain intent, and manual retry reuses its identity and original snapshot once',async()=>{
