@@ -158,7 +158,7 @@
     },
     {
       "id": "scripts/browser-multiway/validation-entry.js",
-      "sha256": "02b426a10d7558c48032bca3382d1e306bc3f6e3ce874ae994afe427172cd30c"
+      "sha256": "8f9416ab260ef575f5dfaac20a7cdcd27720a15b9f66549d53136cad83f6fca6"
     }
   ],
   "nodeAdapters": [
@@ -167,5 +167,5 @@
   "cancellation": "HOST_WORKER_TERMINATE",
   "cache": "NO_CACHE_HELD_OUT_SEEDS",
   "sourceNormalization": "LF",
-  "buildFingerprint": "0657d7615b2c4689468e425c1afdd14346572d806e81ebcf2ade7214ff43cf18"
+  "buildFingerprint": "c606fd8e27774ac18763cbd5b6e283c8df3b78565dee0c39e5bd7edfe5b41ee5"
 }

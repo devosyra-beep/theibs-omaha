@@ -1,6 +1,11 @@
 .simulation-workspace{max-width:1660px;margin:auto;color:var(--foreground,#eee);overflow-anchor:none}
 html:has(body[data-view=simulation]){scrollbar-gutter:stable}
 .sim-primary-actions{min-block-size:52px}.sim-primary-actions button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;block-size:52px;padding:6px 12px;line-height:18px;white-space:nowrap}.sim-primary-actions.sim-action-buttons button small{line-height:12px;margin-top:0}
+.sim-actions:focus-visible{outline:1px solid var(--primary,#f7d477);outline-offset:5px}.sim-shortcut-hint{min-block-size:32px;line-height:16px;margin-top:8px;color:var(--muted-foreground,#aeb7c8);font-size:12px}.sim-batches .sim-validation-status{font-weight:400;font-size:12px;color:var(--muted-foreground,#aeb7c8);margin-left:auto;text-align:right}.sim-batches .sim-auto-setting{display:flex;align-items:center;gap:8px;font-size:12px;margin:8px 0 12px;line-height:1.5}.sim-auto-setting input{width:18px;height:18px;min-height:18px;margin:0;flex-shrink:0}.sim-batches>summary{gap:16px}
+.sim-validation-recent{margin-top:12px}.sim-validation-recent p,.sim-validation-capture{overflow-wrap:anywhere}.sim-batches>summary>span:first-child{flex-shrink:0}
+.sim-validation-controls{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.sim-validation-controls:empty{display:none}.sim-validation-controls button{min-height:42px}.sim-manual-batch{margin:8px 0}
+.sim-batches>summary .sim-validation-status{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sim-batches .sim-auto-setting{flex-direction:row;min-height:42px;text-align:left}.sim-auto-setting span{min-width:0;text-align:left}
 .sim-heading,.sim-result-heading,.sim-dialog-heading{display:flex;align-items:center;justify-content:space-between;gap:16px}
 .sim-heading{margin-bottom:24px}.sim-heading h1{font-size:22px;margin:0 0 6px}.sim-mode,.sim-context,.sim-limits,.sim-street{color:var(--muted-foreground,#aeb7c8);font-size:12px}
 .sim-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(290px,340px);gap:24px;align-items:start}.sim-game,.sim-evaluation{min-width:0}
