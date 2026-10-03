@@ -154,6 +154,9 @@
     return draftHero.length===cards.state.count &&
       JSON.stringify(draftHero)===JSON.stringify(multiway.config.heroCards) && !multiwayCardSyncPending && !multiwayCardSyncFailed;
   }
+  function multiwayBoardDraftReady() {
+    return !multiway||window.theibsKeyboard?.getState().boardReady!==false;
+  }
   function renderMultiway() {
     const heroDraftReady=multiwayHeroDraftReady();
     document.body.dataset.multiwayBusy=String(multiwayBusy);
@@ -163,7 +166,9 @@
     syncMultiwayBoardKeyboard();
     cards.render();
     placeAnalysisFeedback();
-    if(!analysisBusy)$('#quick-analyze').innerHTML=multiway?'Analyze hand <span>↗</span>':'Calculate equity <span>↗</span>';
+    if(!analysisBusy)$('#quick-analyze').innerHTML=multiway?'Calculate equity + EV <span>↗</span>':'Calculate equity <span>↗</span>';
+    $('#quick-analyze').disabled=analysisBusy||!!multiway&&(multiwayBusy||!heroDraftReady||!multiwayBoardDraftReady()||!multiwayAnalysis?.available);
+    $('#quick-analyze').title=!multiway?'':!heroDraftReady?'Complete your cards before calculating.':!multiwayBoardDraftReady()?'Confirm the board correction before calculating.':!multiwayAnalysis?.available?multiwayAnalysis?.reasons?.map(reason=>reason.message).join(' ')||'Waiting for your decision.':'';
     const analyzeButton=$('#quick-analyze'), equityPanel=$('#analyze-workspace .insight-panel');
     if(multiway){if(analyzeButton.parentElement!==equityPanel)equityPanel.append(analyzeButton);}
     else if(analyzeButton.parentElement!==$('.quick-decision'))$('.quick-decision').append(analyzeButton);
@@ -173,7 +178,7 @@
     $('#new-hand').title=activeView==='analyze'?'New game · shortcut: apostrophe':'New hand';
     $('#clear').textContent='↺';
     $('#clear').setAttribute('aria-label',multiway?'Next hand, keep this game':'Reset cards');
-    $('#clear').title=multiway?'Next hand, keep this game · Shift alone':'Clear cards and board, keep table context · Shift alone';
+    $('#clear').title=multiway?'Next hand, keep this game':'Clear cards and board, keep table context · Shift alone';
     $('#analysis-form .view-heading h1').textContent=multiway?'Every card, a decision.':'Your cards. Your equity.';
     $('#analysis-form .view-heading .eyebrow').textContent=multiway?'MANUAL ANALYSIS':'EQUITY ANALYSIS';
     $('#analysis-seats').setAttribute('aria-label',multiway?'Table seats; the current player is highlighted. Select a seat to view its position and stack.':'Opponent seats; select a player to mark active or folded.');
@@ -271,8 +276,8 @@
     });
   }
   async function stepMultiway(event) {
-    const heroCards=cards.state.cards().hero.map(window.TheibsCards.toCanonical);
-    multiway={...multiway,config:{...multiway.config,heroCards:heroCards.length===cards.state.count?heroCards:[]}};
+    // Action revisions use the confirmed ledger. The independent /state path
+    // synchronizes complete Hero drafts; partial card entry cannot rewrite it.
     const before=multiwayState, analysis=lastAnalysis?.data,evaluationInput=lastAnalysis?.input;
     const solverSnapshot=window.TheibsMultiwaySolverUI?.decisionSnapshot?.();
     const recordBefore=structuredClone(multiway);
@@ -300,7 +305,7 @@
       version:solverSnapshot?.solverVersion || analysis?.strategyMetadata?.version || null,
       coverage:solverSnapshot ? solverSnapshot.status : validSnapshot ? ev.comparisonStatus : 'NOT_MODELED'
     } : null;
-    return runMultiway(()=>postJson('/api/multiway/step',{multiway,event,expectedRevisionKey:before?.revisionKey}),data=>{
+    return runMultiway(()=>postJson('/api/multiway/step',{multiway:recordBefore,event,expectedRevisionKey:before?.revisionKey}),data=>{
       if(isHeroDecision && window.theibsPlayersUI?.ready()) {
         window.theibsPlayersUI.recordDecision(recordBefore.handId,{handId:recordBefore.handId,
           revisionKey:before.revisionKey,committedEventId:data.multiway.events[recordBefore.events.length]?.eventId,
@@ -683,18 +688,20 @@ function renderResult(data, street) {
   });
   function scheduleAnalysis() {
     clearTimeout(analysisTimer);
-    if(!loaded||window.theibsVoiceSessionContext?.().expired||activeView!=='analyze'||(multiway&&(!multiwayAnalysis?.available||!multiwayHeroDraftReady())))return;
+    if(!loaded||window.theibsVoiceSessionContext?.().expired||activeView!=='analyze'||(!multiway&&!$('#auto-analysis').checked)||(multiway&&(multiwayBusy||!multiwayAnalysis?.available||!multiwayHeroDraftReady()||!multiwayBoardDraftReady())))return;
     analysisTimer=setTimeout(async()=>{
+      if(multiway&&(window.theibsMultiwayUI.getState().busy||window.theibsKeyboard?.getState().actionPending))return;
       if(analysisBusy){analysisQueued=true;return;}
       const requestedRevision=inputRevision;
       try{
         await window.theibsAuth?.ensureSession?.();
-        if(!loaded||activeView!=='analyze'||(multiway&&(!multiwayAnalysis?.available||!multiwayHeroDraftReady()))||requestedRevision!==inputRevision)return;
+        if(!loaded||activeView!=='analyze'||(multiway&&(multiwayBusy||!multiwayAnalysis?.available||!multiwayHeroDraftReady()||!multiwayBoardDraftReady()))||requestedRevision!==inputRevision)return;
         buildAnalysisPayload();
       }catch(error){if(activeView==='analyze'&&requestedRevision===inputRevision)quickAction({status:'ERROR',reason:error.message});return;}
       analyze();
     },80);
   }
+  document.addEventListener('theibs:keyboard-settled',scheduleAnalysis);
   document.addEventListener('theibs:players-backup-restored',()=>{invalidateAnalysis();});
   function invalidateAnalysis() {
     cancelProfileComparison();
@@ -740,6 +747,7 @@ function renderResult(data, street) {
     if(cards.isManualInvalid())throw Error('Fix the cards in the text field.');
     if(multiway){
       if(multiwayBusy)throw Error('Updating the street.');
+      if(!multiwayBoardDraftReady())throw Error('Confirm the board correction before analyzing.');
       const canonical=cards.canonicalForSubmit();
       if(JSON.stringify(canonical.heroCards)!==JSON.stringify(multiway.config.heroCards))throw Error('Confirm your cards before analyzing.');
       if(!multiwayAnalysis?.available)throw Error(multiwayAnalysis?.reasons?.map(r=>r.message).join(' ')||'Waiting for your turn.');
@@ -978,7 +986,7 @@ function renderResult(data, street) {
       if(!currentRequest() && lastAnalysis===publishedAnalysis){lastAnalysis=null;renderCharts();}
       analysisBusy=false;analysisController=null;analyzeButton.disabled=false;$('#quick-analyze').disabled=false;
       if(multiway)renderMultiway();
-      analyzeButton.innerHTML='Analyze street <span>↗</span>';$('#quick-analyze').innerHTML=multiway?'Analyze hand <span>↗</span>':'Calculate equity <span>↗</span>';
+      analyzeButton.innerHTML='Analyze street <span>↗</span>';$('#quick-analyze').innerHTML=multiway?'Calculate equity + EV <span>↗</span>':'Calculate equity <span>↗</span>';
       if(solverMayRun && contextual && currentRequest())void window.TheibsMultiwaySolverUI?.evaluate?.(payload);
       if(analysisQueued){analysisQueued=false;scheduleAnalysis();}
     }

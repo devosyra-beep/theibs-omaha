@@ -532,7 +532,7 @@
     $('#mw-action-stage').hidden = state?.phase !== 'BETTING';
     for (const command of COMMANDS) {
       const button = $(`[data-mw-command="${command.id}"]`), actionCode = resolveCommand(command);
-      button.disabled = window.theibsKeyboard ? !view.enabled || ['FINISHED','SHOWDOWN'].includes(state?.phase) : !actionCode; button.dataset.mwAction = actionCode || '';
+      button.disabled = !actionCode; button.dataset.mwAction = actionCode || '';
       button.hidden=false; button.dataset.keyboardCommand=command.id==='leave'?'FOLD':command.id==='call'?'MATCH':'AGGRESSIVE';
       const fallback = command.id === 'call' ? 'Call' : command.id === 'aggressive' ? 'Bet / Raise' : 'Check / Fold';
       button.querySelector('span').textContent = actionCode ? ACTIONS[actionCode].label + (actionCode === 'CALL' ? ' ' + money(state.legal.toCall) : '') : fallback;
@@ -714,10 +714,10 @@
     $('#mw-seat-title').textContent = `${playerName(item)} · ${item.position}`;
     $('#mw-seat-info').textContent = `${item.folded ? 'Folded' : item.allIn || item.stack === 0 ? 'All-in' : 'In hand'} · ${item.stackEstimated ? "estimated stack" : "stack"} ${money(item.stack)} · committed ${money(item.streetPaid)} this street`;
     const turnFold = item.id === view.state.actor && view.state.legal?.actions?.includes('FOLD');
-    $('#mw-seat-fold').disabled = busy() || !(turnFold || !item.hero && item.canMarkFold);
-    $('#mw-seat-fold').textContent = turnFold ? "Record fold · it is this player's turn" : 'Record observed fold';
+    $('#mw-seat-fold').disabled = busy() || !turnFold;
+    $('#mw-seat-fold').textContent = turnFold ? "Record fold · it is this player's turn" : "Wait for this player's turn";
     $('#mw-seat-note').textContent = item.hero ? 'Your poker position is set for this hand. Use Multiway settings when starting a new hand to change it.'
-      : item.folded ? 'Fold recorded. Undo reverses events in order; a recent fold can be undone here.' : item.allIn || item.stack === 0 ? 'An all-in player remains eligible for the pot.' : item.markFoldReason === 'UNMATCHED_CONTRIBUTION' ? 'Record responses to the largest bet first.' : !turnFold && !item.canMarkFold ? "Wait for this player's turn to record another action." : 'Use this only for a fold you observed.';
+      : item.folded ? 'Fold recorded. Undo reverses events in order; a recent fold can be undone here.' : item.allIn || item.stack === 0 ? 'An all-in player remains eligible for the pot.' : !turnFold ? "Wait for this player's turn to record another action." : 'Record only the action observed for the current player.';
     const latest=window.theibsApp?.getState().multiway?.events?.at(-1);
     const undoFold=item.folded&&latest?.actor===item.id&&(latest.type==='MARK_FOLD'||latest.type==='ACT'&&latest.action==='FOLD');
     $('#mw-seat-undo').hidden=!undoFold;
@@ -855,7 +855,7 @@
       if(busy())return;
       if(view.enabled)void invoke('exit');else openSetup({ forNextHand: false });
     };
-    controlsHost.addEventListener('click', event => { const button = event.target.closest('[data-mw-command]'); if (!button || button.disabled) return; if(window.theibsKeyboard) window.theibsKeyboard.dispatch({type:button.dataset.keyboardCommand}); else if(button.dataset.mwAction) void action(button.dataset.mwAction); });
+    controlsHost.addEventListener('click', event => { const button = event.target.closest('[data-mw-command]'); if (!button || button.disabled) return; if(window.theibsKeyboard) { window.theibsKeyboard.selectPlayer(view.state.actor,false); window.theibsKeyboard.dispatch({type:button.dataset.keyboardCommand}); } else if(button.dataset.mwAction) void action(button.dataset.mwAction); });
     $('#mw-size').addEventListener('input', sizeHelp);
     $('#mw-size-confirm').onclick = () => { void submitPendingAmount(); };
     $('#mw-size').addEventListener('keydown', event => { if (event.key === 'Enter' && !event.isComposing) { event.preventDefault(); event.stopPropagation(); void submitPendingAmount(); } });
@@ -876,8 +876,8 @@
     $('#mw-seat-fold').onclick = async () => {
       const item = player(selectedPlayer); if (!item || busy()) return;
       const isTurn = item.id === view.state.actor && view.state.legal?.actions?.includes('FOLD');
-      if (!isTurn && (item.hero || !item.canMarkFold)) return;
-      if (await invoke(isTurn ? 'act' : 'markFold', { actor: item.id, ...(isTurn ? { action: 'FOLD' } : {}) })) seatDialog.close();
+      if (!isTurn) return;
+      if (await invoke('act', { actor: item.id, action: 'FOLD' })) seatDialog.close();
     };
     $('#mw-seat-undo').onclick=async()=>{const item=player(selectedPlayer),latest=window.theibsApp?.getState().multiway?.events?.at(-1);if(item?.folded&&latest?.actor===item.id&&(latest.type==='MARK_FOLD'||latest.type==='ACT'&&latest.action==='FOLD')&&await invoke('undo'))seatDialog.close();};
     $('#mw-seat-apply').onclick=()=>{
