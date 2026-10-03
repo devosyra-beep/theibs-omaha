@@ -105,7 +105,7 @@
   document.addEventListener('pointerdown',event=>{if(simpleSeatDialog.open&&!simpleSeatDialog.contains(event.target)&&!event.target.closest?.('[data-simple-seat]'))simpleSeatDialog.close();});
   document.addEventListener('focusin',event=>{if(simpleSeatDialog.open&&!simpleSeatDialog.contains(event.target)&&!event.target.closest?.('[data-simple-seat]'))simpleSeatDialog.close();});
   window.addEventListener('resize',()=>{if(simpleSeatDialog.open)simpleSeatDialog.close();});
-  let multiwayBusy = false, syncingMultiway = false, multiwayCardTimer = null, multiwayCardSnapshot = null, multiwayRevision = 0, multiwayBoardEntryToken = null;
+  let multiwayBusy = false, syncingMultiway = false, multiwayCardTimer = null, multiwayCardSnapshot = null, multiwayRevision = 0, multiwayCardsDirty = false, multiwayBoardEntryToken = null;
   let multiwayCardSyncPending = false, multiwayCardSyncFailed = false;
   const multiwayLocked = ['variant-select','players','opponent-count','position','potBeforeAction','amountToCall','effectiveStack','study-mode'];
   const multiwayManualModels = ['opponentProfile','opponentProfileSource','observedFoldToBet','observedCallFrequency','observedRaiseFrequency','observedBluffFrequency','betSize','raiseTo','foldEquity','continuationEquity','study-hero-contribution','study-min-raise','study-min-bet','study-accept',...Array.from({length:9},(_,i)=>['study-contribution-'+i,'study-probability-'+i]).flat()];
@@ -157,7 +157,7 @@
   function renderMultiway() {
     const heroDraftReady=multiwayHeroDraftReady();
     document.body.dataset.multiwayBusy=String(multiwayBusy);
-    for(const id of ['hero-slots','card-grid'])document.getElementById(id).inert=multiwayBusy;
+    for(const id of ['hero-slots','card-grid'])document.getElementById(id).inert=false;
     window.theibsMultiwayUI.render({enabled:!!multiway,state:multiwayState,config:multiway?.config,busy:multiwayBusy||multiwayCardSyncPending,heroDraftReady,
       analysis:lastAnalysis?.data || null,analysisBusy,decisionFeedback:multiwayDecisionFeedback,profileComparison});
     syncMultiwayBoardKeyboard();
@@ -229,7 +229,7 @@
       return data;
     }
     catch(error){window.theibsMultiwayUI.setError(error.message);throw error;}
-    finally{multiwayBusy=false;multiwayCardSnapshot=null;renderMultiway();if(currentMultiwayRequest(captured))scheduleAnalysis();}
+    finally{multiwayBusy=false;multiwayCardSnapshot=null;renderMultiway();if(multiwayCardsDirty){multiwayCardsDirty=false;document.dispatchEvent(new CustomEvent('theibs:cards-changed',{detail:{source:'keyboard-reconcile'}}));}if(currentMultiwayRequest(captured))scheduleAnalysis();}
   }
   async function syncPlayerObservations(record) {
     if (!record || !window.theibsPlayersUI?.ready()) return;
@@ -246,7 +246,7 @@
       payload.handId !== expected.handId || payload.sourceRevisionKey !== expected.revisionKey) throw Error('The hand or account changed before local observations could be saved.');
     window.theibsPlayersUI.syncObservations(payload);
   }
-  async function startMultiway(config) {
+  async function startMultiway(config, preserveKeyboard = false) {
     if(simpleSeatDialog.open)simpleSeatDialog.close();
     const oldRecord = multiway, expectedRevisionKey = multiwayState?.revisionKey;
     if (oldRecord) {
@@ -260,15 +260,19 @@
       }
       window.theibsMultiwayUI.cancelPendingAmount?.();
       multiwayDecisionFeedback=null;
+      document.dispatchEvent(new CustomEvent('theibs:hand-started',{detail:{keyboard:preserveKeyboard}}));
       window.theibsOpponentInputs?.reset();
       if(!multiwayYesple)multiwayYesple={keyboard:cards.state.snapshot(),fields:Object.fromEntries(FIELD_IDS.map(id=>{const el=document.getElementById(id);return[id,el.type==='checkbox'?el.checked:el.value];}))};
       syncingMultiway=true;
       const count=Number(config.variant.match(/\d/)[0]);
-      cards.restore({count,slots:[...(config.heroCards||[]).map(window.TheibsCards.fromCanonical),...Array(count-(config.heroCards?.length||0)+5).fill(null)],selected:0});
-      syncingMultiway=false;snapshots.splice(0);$('#settings-dialog').close();window.theibsCardPicker.close();
+      const hero=preserveKeyboard?cards.state.slots.slice(0,count):[...(config.heroCards||[]).map(window.TheibsCards.fromCanonical),...Array(count-(config.heroCards?.length||0)).fill(null)];
+      cards.restore({count,slots:[...hero,...Array(5).fill(null)],selected:Math.min(cards.state.selected,count-1)});
+      syncingMultiway=false;snapshots.splice(0);$('#settings-dialog').close();if(!preserveKeyboard)window.theibsCardPicker.close();
     });
   }
   async function stepMultiway(event) {
+    const heroCards=cards.state.cards().hero.map(window.TheibsCards.toCanonical);
+    multiway={...multiway,config:{...multiway.config,heroCards:heroCards.length===cards.state.count?heroCards:[]}};
     const before=multiwayState, analysis=lastAnalysis?.data,evaluationInput=lastAnalysis?.input;
     const solverSnapshot=window.TheibsMultiwaySolverUI?.decisionSnapshot?.();
     const recordBefore=structuredClone(multiway);
@@ -1026,7 +1030,7 @@ function renderResult(data, street) {
     if (view === 'train') renderTrainingSession();
     if (view === 'simulation') window.TheibsSimulationUI?.enter();
     if (save) scheduleSave();
-    if(changed&&view==='analyze')scheduleAnalysis();
+    if(changed){document.dispatchEvent(new CustomEvent('theibs:view-changed'));if(view==='analyze')scheduleAnalysis();}
   }
 
   // ---- Same guided/challenge, coaching, legal-action and review flows as Theibs. ----
@@ -1096,9 +1100,9 @@ function renderResult(data, street) {
     $('#training-size').disabled = busy;
     document.querySelectorAll('#training-action-buttons button,#training-size-presets button').forEach((item) => { item.disabled = busy; });
   }
-  async function startTraining() {
+  async function startTraining(confirm = true) {
     if (trainingBusy) return;
-    if (trainingSession && !trainingSession.finished && !window.confirm('The simulated hand is still active. Start another? Recorded decisions remain in history.')) return;
+    if (confirm && trainingSession && !trainingSession.finished && !window.confirm('The simulated hand is still active. Start another? Recorded decisions remain in history.')) return;
     cancelCoach(); setTrainingBusy(true);
     try {
       const data = await postJson('/api/training/start', { variant: `PLO${cards.state.count}_HIGH`, mode: value('training-mode'), opponentStyle: value('training-style'), targetStreet: value('training-street'), seed: Number(value('training-seed')), startingStack: Number(value('training-stack')) });
@@ -1108,15 +1112,15 @@ function renderResult(data, street) {
     } catch (error) { $('#training-coach').textContent = error.message; toast(error.message); }
     finally { setTrainingBusy(false); }
   }
-  async function actTraining(action) {
+  async function actTraining(action, size) {
     if (!trainingSession || trainingSession.finished || trainingBusy) return;
     cancelCoach(); const sessionId = trainingSession.id; setTrainingBusy(true);
     try {
-      const data = await postJson('/api/training/act', { sessionId, revision:trainingSession.revision, action, ...(trainingSession.legalActions.some(candidate=>['BET','RAISE'].includes(candidate)) ? { size: Number(value('training-size')) } : {}) });
+      const data = await postJson('/api/training/act', { sessionId, revision:trainingSession.revision, action, ...(trainingSession.legalActions.some(candidate=>['BET','RAISE'].includes(candidate)) ? { size: size ?? Number(value('training-size')) } : {}) });
       if (trainingSession?.id !== sessionId) return;
       trainingSession = data.session; trainingDecisions.push(data.feedback);
-      showTrainingFeedback(data.feedback); renderTrainingSession(); $('#training-coach').textContent = ''; scheduleSave();
-    } catch (error) { $('#training-coach').textContent = error.message; }
+      showTrainingFeedback(data.feedback); renderTrainingSession(); $('#training-coach').textContent = ''; scheduleSave(); return true;
+    } catch (error) { $('#training-coach').textContent = error.message; return false; }
     finally { setTrainingBusy(false); }
   }
   function cancelCoach() {
@@ -1180,8 +1184,8 @@ function renderResult(data, street) {
   function serializeWorkspace() {
     const fields = Object.fromEntries(FIELD_IDS.map((id) => { const el = document.getElementById(id); return [id, el.type === 'checkbox' ? el.checked : el.value]; }));
     return { schemaVersion: 1, keyboard: cards.state.snapshot(), manualText: cards.manualDraft(), fields,
-       ui: { felt: document.body.dataset.felt, deck: document.body.dataset.deck, view: activeView, cardDisplayVersion: 2, workflowVersion: 1, sidebarCollapsed: document.body.dataset.sidebar === 'collapsed', simpleFoldedSeats:[...simpleFoldedSeats],multiwayPreferences:window.theibsMultiwayUI.getPreferences(),solverStudy:window.TheibsMultiwaySolverUI?.serialize?.() },
-      handFlow:null, legacyHandFlow, multiway, multiwayYesple, opponentInputs:window.theibsOpponentInputs.snapshot(),
+       ui: { felt: document.body.dataset.felt, deck: document.body.dataset.deck, view: activeView, cardDisplayVersion: 2, workflowVersion: 1, keyboardLocale:window.theibsKeyboard?.getLocale(), sidebarCollapsed: document.body.dataset.sidebar === 'collapsed', simpleFoldedSeats:[...simpleFoldedSeats],multiwayPreferences:window.theibsMultiwayUI.getPreferences(),solverStudy:window.TheibsMultiwaySolverUI?.serialize?.() },
+      keyboardCommands:window.theibsKeyboard?.snapshot(), handFlow:null, legacyHandFlow, multiway, multiwayYesple, opponentInputs:window.theibsOpponentInputs.snapshot(),
       snapshots: multiway ? [] : [...snapshots], lastAnalysis: multiway ? null : lastAnalysis, trainingSessionId: trainingSession?.id || null };
   }
   function scheduleSave() {
@@ -1260,6 +1264,7 @@ function renderResult(data, street) {
             if (trainingDecisions.length) showTrainingFeedback(trainingDecisions.at(-1));
           } catch { $('#training-coach').textContent = 'The previous active session ended with the server. Recorded decisions remain in History. Start another hand to train.'; }
         }
+        window.theibsKeyboard?.restore(workspace.keyboardCommands,workspace.ui?.keyboardLocale);
         showView(workspace.ui?.view || 'analyze', false);
         $('#save-status').textContent = 'Draft restored';
       } else $('#save-status').textContent = 'Ready to save draft';
@@ -1308,7 +1313,7 @@ function renderResult(data, street) {
   });
   document.addEventListener('theibs:cards-changed', (event) => {
     if(syncingMultiway)return;
-    if(multiwayBusy&&multiwayCardSnapshot){syncingMultiway=true;cards.restore(multiwayCardSnapshot);syncingMultiway=false;renderMultiway();return;}
+    if(multiwayBusy||window.theibsKeyboard?.isResetting()){multiwayCardsDirty=true;invalidateAnalysis();scheduleSave();return;}
     if(multiway){
       const board=cards.state.cards().board.map(window.TheibsCards.toCanonical);
       if(JSON.stringify(board)!==JSON.stringify(multiwayState.board))syncMultiwayCards();
@@ -1343,42 +1348,11 @@ function renderResult(data, street) {
   }));
   $('#new-hand').addEventListener('click', () => { if (activeView === 'simulation') window.TheibsSimulationUI.configure(); else if (activeView === 'train') startTraining(); else { showView('analyze'); newAnalysisHand(true, true); } });
   $('#clear').addEventListener('click', () => newAnalysisHand());
-  // A modifier is to shortcut only on release, if it was never part of to chord.
-  const heldHandKeys=new Set();let soloHandShift=null;
-  const handShortcutAllowed=target=>loaded&&activeView==='analyze'&&!multiwayBusy&&!document.querySelector('dialog[open]')&&
-    !(target instanceof Element&&target.closest('input,textarea,select,[contenteditable]:not([contenteditable="false"])'));
-  const cancelHandShift=()=>{soloHandShift=null;};
-  document.addEventListener('keydown',event=>{
-    const code=event.code||event.key;
-    if((event.key==="'"||code==='Quote')&&!event.repeat&&!event.isComposing&&!event.shiftKey&&!event.ctrlKey&&!event.altKey&&!event.metaKey&&handShortcutAllowed(event.target)){
-      event.preventDefault(); cancelHandShift(); void newAnalysisHand(true,true); return;
-    }
-    const solo=event.key==='Shift'&&!event.repeat&&!event.isComposing&&!event.ctrlKey&&!event.altKey&&!event.metaKey&&heldHandKeys.size===0&&handShortcutAllowed(event.target);
-    soloHandShift=solo?code:null;heldHandKeys.add(code);
-  },true);
-  document.addEventListener('keyup',event=>{
-    const code=event.code||event.key;heldHandKeys.delete(code);
-    if(event.key!=='Shift')return;
-    const reset=soloHandShift===code&&heldHandKeys.size===0&&!event.shiftKey&&!event.ctrlKey&&!event.altKey&&!event.metaKey&&!event.isComposing&&handShortcutAllowed(event.target)&&handShortcutAllowed(document.activeElement);
-    cancelHandShift();
-    if(reset){event.preventDefault();cards.cancelPending();void newAnalysisHand(false);}
-  },true);
-  document.addEventListener('pointerdown',cancelHandShift,true);
-  document.addEventListener('focusin',()=>{if(!handShortcutAllowed(document.activeElement))cancelHandShift();});
-  window.addEventListener('blur',()=>{cancelHandShift();heldHandKeys.clear();});
-  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'){cancelHandShift();heldHandKeys.clear();}});
-  $('#clear').title=multiway?'Next hand, keep this game · Shift alone':'Clear cards and board, keep table context · Shift alone';
-  const shiftKeyHelp=document.createElement('dt');shiftKeyHelp.textContent='Shift alone';
-  const shiftHelp=document.createElement('dd');shiftHelp.textContent='In Multiway, archives this hand and starts the next one at the same table, rotating positions. Payouts are optional; unresolved balances remain estimates. In standalone analysis, clears cards and board while keeping table context. Shift combinations still work normally.';
-  $('.shortcut-list').prepend(shiftKeyHelp,shiftHelp);
-  const gameKeyHelp=document.createElement('dt');gameKeyHelp.textContent="'";
-  const gameHelp=document.createElement('dd');gameHelp.textContent='New game. In Multiway, opens a fresh table setup; the previous hand is archived when you start. Saved players and history remain available.';
-  shiftHelp.after(gameKeyHelp,gameHelp);
   document.querySelectorAll('.nav-tab').forEach((button) => button.addEventListener('click', () => showView(button.dataset.view)));
   document.querySelectorAll('[data-open-history]').forEach((button) => button.addEventListener('click', () => showView('history')));
   document.querySelectorAll('button[data-deck],button[data-felt]').forEach((button) => button.addEventListener('click', () => { applyAppearance(button.dataset.deck, button.dataset.felt); scheduleSave(); }));
   for (const id of FIELD_IDS.filter((id) => id.startsWith('training-'))) document.getElementById(id).addEventListener('change', scheduleSave);
-  $('#training-start').addEventListener('click', startTraining);
+  $('#training-start').addEventListener('click', () => startTraining());
   $('#training-clear').addEventListener('click', () => {
     if(trainingBusy)return;
     cancelCoach();
@@ -1425,7 +1399,6 @@ function renderResult(data, street) {
   });
   $('#open-help').addEventListener('click', () => $('#help-dialog').showModal());
   $('#close-help').addEventListener('click', () => $('#help-dialog').close());
-  document.addEventListener('keydown', (event) => { if (event.key === 'F1') { event.preventDefault(); if (!$('#help-dialog').open) $('#help-dialog').showModal(); } });
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flushSave(true); });
   document.addEventListener('theibs:llm-updated', event => {
     engineStatus={...engineStatus,llmProvider:event.detail.provider,llmModel:event.detail.model};renderEngineDetails();
@@ -1471,5 +1444,6 @@ function renderResult(data, street) {
    window.theibsOpponentInputs.init({getContext:()=>({mode:multiway?'MULTIWAY':'SIMPLE',variant:`PLO${cards.state.count}_HIGH`,count:cards.state.count,position:multiway?multiway.config.heroPosition:value('position'),busy:multiwayBusy,players:multiwayState&&multiway?multiwayState.players.filter(p=>!p.hero).map((p,index)=>({seatId:p.id,label:`OPP. ${index+1} · ${p.position}`,folded:p.folded})):Array.from({length:simpleSeatCount()},(_,seatId)=>({seatId,label:`OPP. ${seatId+1}`,folded:simpleFoldedSeats.has(seatId)}))}),onChange:()=>{invalidateAnalysis();scheduleSave();}});
   updateTableContext(); renderMultiway();renderStreetCards(); renderCharts(); quickAction(null); updateBoardHelp(); renderTrainingSession();
    window.TheibsSimulationUI.init({request:requestJson,getOwner:()=>window.theibsPlayersUI?.getOwnerKey?.()});
-   window.theibsApp = { ready: initialize(), getState: () => ({ activeView, analysisBusy, trainingBusy, lastAnalysis, trainingSession, multiway,multiwayState,multiwayAnalysis,multiwayBusy,simpleFoldedSeats:[...simpleFoldedSeats],snapshots: [...snapshots], saveBusy, saveDirty, saveBlocked }), flushSave, showView, requestJson, getAnalysisInput: buildAnalysisPayload, getVoiceContext: () => ({ activeView, inputRevision, multiwayRevision, loaded, session: window.theibsVoiceSessionContext?.(), accessVisible: !document.getElementById('app-shell').hidden && !document.getElementById('app-shell').inert }), renderCoachAnswer };
+   window.theibsApp = { ready: initialize(), getState: () => ({ activeView, analysisBusy, trainingBusy, lastAnalysis, trainingSession, multiway,multiwayState,multiwayAnalysis,multiwayBusy,simpleFoldedSeats:[...simpleFoldedSeats],snapshots: [...snapshots], saveBusy, saveDirty, saveBlocked }), flushSave, showView, requestJson, getAnalysisInput: buildAnalysisPayload, getVoiceContext: () => ({ activeView, inputRevision, multiwayRevision, loaded, session: window.theibsVoiceSessionContext?.(), accessVisible: !document.getElementById('app-shell').hidden && !document.getElementById('app-shell').inert }), renderCoachAnswer, keyboard: { newHand:()=>activeView==='train'?startTraining(false):newAnalysisHand(false), startTracking:config=>startMultiway(config,true), actTraining, analyze:()=>analyze(), editBoard:(index,card)=>runMultiway(()=>postJson('/api/multiway/state',{multiway:{...multiway,events:multiway.events.map(event=>event.type==='BOARD'&&event.cards.length>index?{...event,cards:event.cards.map((value,i)=>i===index?card:value)}:event)}})), resetTraining:()=>{trainingSession=null;trainingDecisions=[];renderTrainingSession();scheduleSave();}, changed:scheduleSave } };
+
 })();

@@ -7,6 +7,47 @@
   let progress=T.practiceProgress();
   let validation=null,batchScope='CURRENT',batchWorlds=128;
   let evaluationFootprint=0,layoutHand=null,retainedFocus=null,shortcutMessage='',restoringSession=false;
+  let keyboardObservations=[];
+  async function keyboardFlush(){
+    if(!active||!session||busy||restoringSession||pendingIntent||connection!=='CONNECTED')return;
+    keyboardObservations=keyboardObservations.filter(item=>item.id===session.id);
+    if(!keyboardObservations.length)return;
+    if(!session.manualOpponents){await perform('PACE',{paused:true,manualOpponents:true});}
+    for(let n=0;n<100&&!busy&&session&&!session.finished;n++){
+      const item=keyboardObservations.find(item=>!item.error&&item.actor===session.state.actor&&item.street===session.state.street);
+      if(!item||session.state.phase!=='BETTING')break;
+      const before=session.revision,actions=session.state.legal.actions;
+      const action=item.kind==='FOLD'?'FOLD':item.kind==='MATCH'?(actions.includes('CHECK')?'CHECK':'CALL'):(actions.includes('BET')?'BET':'RAISE');
+      await perform('ACT',{actor:item.actor,action,...(item.to==null?{}:{to:item.to})});
+      if(session?.revision!==before)keyboardObservations=keyboardObservations.filter(entry=>entry!==item);
+      else {item.error=error||'Review this action.';break;}
+    }
+    render();
+  }
+  function keyboardCapture(kind,actor,to){
+    const player=session?.state.players.find(player=>player.id===actor);
+    if(!player||session.finished||player.folded||player.allIn)return false;
+    const item={id:session.id,actor,kind,to,street:session.state.phase==='WAIT_BOARD'?session.state.nextStreet:session.state.street};
+    keyboardObservations=keyboardObservations.filter(entry=>entry.actor!==actor||entry.street!==item.street);keyboardObservations.push(item);
+    save();window.theibsKeyboard.queue.push(keyboardFlush);return true;
+  }
+  async function keyboardCommand(type){
+    if(type==='CONFIRM'&&(!active||busy||restoringSession||pendingIntent||connection!=='CONNECTED'))return;
+    for(let n=0;(busy||restoringSession)&&n<1200;n++)await new Promise(resolve=>setTimeout(resolve,16));
+    if(!active)return;
+    if(type==='NEW_GAME'){configure();return;}
+    if(type==='RESET_HAND'){if(session)await perform('RESTART');else configure();keyboardObservations=[];return;}
+    if(type==='BACKSPACE'){
+      const actor=window.theibsKeyboard.getState().selectedPlayer;
+      keyboardObservations=keyboardObservations.filter(item=>item.actor!==actor);render();return;
+    }
+    if(type==='CONFIRM'){
+      const next=enterAction();
+      if(next)await perform(next.operation,next.extra||{});
+      else {shortcutMessage='No EV leader is available. Choose an action with F, G or H.';render();}
+      await keyboardFlush();
+    }
+  }
   const key=()=>`theibs.simulation.v1.${owner}`;
   const snapshot=()=>session?{id:session.id,revision:session.revision,owner,generation}:null;
   const current=stamp=>active && stamp && stamp.id===session?.id && stamp.revision===session?.revision && stamp.owner===owner && stamp.generation===generation;
@@ -38,7 +79,7 @@
   function cancel(){validation?.setAvailable(false);generation++;controller?.abort();controller=null;}
   function save(){
     if(!owner)return;
-    try{reports=T.boundedHistory(reports);localStorage.setItem(key(),JSON.stringify({sessionId:session?.id||recoveryId||null,session,reports,decisions,pendingIntent,progress}));}
+    try{reports=T.boundedHistory(reports);localStorage.setItem(key(),JSON.stringify({sessionId:session?.id||recoveryId||null,session,reports,decisions,pendingIntent,progress,keyboardObservations}));}
     catch{error='Local simulation history could not be saved. Download the report before leaving.';}
   }
   function archive(value=session){
@@ -126,7 +167,7 @@
     const status=session.abandoned?'Hand ended · no payout recorded':session.finished?`Hand complete · ${signed(session.outcome.heroNet)} chips`:heroTurn()?'Your turn':state.phase==='BETTING'?`${state.players[state.actor].name} · ${state.players[state.actor].position} to act`:state.phase==='WAIT_BOARD'?'Betting round complete':'Ready for showdown';
     const mode=session.manualOpponents?'MANUAL':session.paused?'STEP':'AUTO';
     const shortcut=enterAction(),hint=heroTurn()?shortcut?'Enter applies the highlighted EV leader.':shortcutMessage||'Enter needs an EV leader; you can choose an action.':shortcut?.operation==='RESTART'?'Enter deals fresh cards with refilled table stacks.':shortcut?'Enter advances the highlighted step.':'Choose an opponent action manually.';
-    return `<section class="sim-actions" aria-label="Simulation actions" tabindex="-1"><div class="sim-turn" role="status">${esc(status)}</div><div class="sim-action-buttons sim-primary-actions">${actions}</div><div class="sim-shortcut-hint" role="status">${esc(hint)}</div>${!session.finished?`<div class="sim-pace"><label>Opponents<select id="sim-control"${busy||pendingIntent?' disabled':''}><option value="AUTO"${mode==='AUTO'?' selected':''}>Automatic</option><option value="STEP"${mode==='STEP'?' selected':''}>One action at a time</option><option value="MANUAL"${mode==='MANUAL'?' selected':''}>Choose every action</option></select></label>${button('New deal','RESTART')}</div><details class="sim-hand-tools"><summary>Hand options</summary><div class="sim-action-buttons">${button('Finish with reference policy','FINISH')}${button('End without payout','END')}</div></details>`:!canContinue()&&!session.abandoned?'<p class="sim-limits">Start a new deal to refill stacks.</p>':''}</section>`;
+    return `<section class="sim-actions" aria-label="Simulation actions" tabindex="-1"><div class="sim-turn" role="status">${esc(status)}</div><div class="sim-action-buttons sim-primary-actions">${actions}</div><div class="sim-shortcut-hint" role="status">${esc(hint)} · F Fold · G Check / Call · H Bet / Raise · ↑ ↓ Players · Shift Reset · ' New table</div><p id="simulation-keyboard-target" class="sim-shortcut-hint" aria-live="polite">Selected player</p>${keyboardObservations.length?`<p class="sim-shortcut-hint">${keyboardObservations.map(item=>`${esc(session.state.players.find(player=>player.id===item.actor)?.name)} · ${esc(item.kind)}${item.to==null?'':' '+item.to} · ${esc(item.error||'pending flow')}`).join(' · ')}</p>`:''}${!session.finished?`<div class="sim-pace"><label>Opponents<select id="sim-control"${busy||pendingIntent?' disabled':''}><option value="AUTO"${mode==='AUTO'?' selected':''}>Automatic</option><option value="STEP"${mode==='STEP'?' selected':''}>One action at a time</option><option value="MANUAL"${mode==='MANUAL'?' selected':''}>Choose every action</option></select></label>${button('New deal','RESTART')}</div><details class="sim-hand-tools"><summary>Hand options</summary><div class="sim-action-buttons">${button('Finish with reference policy','FINISH')}${button('End without payout','END')}</div></details>`:!canContinue()&&!session.abandoned?'<p class="sim-limits">Start a new deal to refill stacks.</p>':''}</section>`;
   }
   function history(){
     const check=T.summary(reports);
@@ -224,6 +265,7 @@
       evaluation.style.minHeight=`${evaluationFootprint}px`;
     }
     if(retainedFocus?.isConnected&&!retainedFocus.disabled&&document.activeElement===document.body)retainedFocus.focus({preventScroll:true});
+    if(window.theibsKeyboard)document.dispatchEvent(new CustomEvent('theibs:simulation-render'));
     if(sameHand&&Number.isFinite(scroll.y)&&window.scrollTo)window.scrollTo({left:scroll.x,top:scroll.y,behavior:'instant'});
   }
   async function evaluate(size=chosenSize){
@@ -383,6 +425,7 @@
     if(!restored){restored=true;const restoring=generation,own=owner;try{const saved=JSON.parse(localStorage.getItem(key())||'null');reports=Array.isArray(saved?.reports)?T.boundedHistory(saved.reports.filter(item=>item?.publicRecord?.config?.variant&&Array.isArray(item.decisions))):[];decisions=Array.isArray(saved?.decisions)?saved.decisions:[];
       progress=T.practiceProgress(saved?.progress);if(saved?.progress?.schema!=='SIMULATION_PROGRESS_V1')for(const report of reports)T.recordProgress(progress,report);
       recoveryId=saved?.sessionId||null;if(saved?.session?.id===saved?.sessionId)session=saved.session;
+      keyboardObservations=Array.isArray(saved?.keyboardObservations)?saved.keyboardObservations.filter(item=>item.id===saved.sessionId&&Number.isInteger(item.actor)&&['FOLD','MATCH','AGGRESSIVE'].includes(item.kind)&&['PREFLOP','FLOP','TURN','RIVER'].includes(item.street)):[];
       pendingIntent=saved?.pendingIntent||null;
       if(pendingIntent){if(pendingIntent.operation==='START')await startTable(pendingIntent.body.config,pendingIntent);else if(session)await perform(pendingIntent.operation,{},pendingIntent);}
       else if(saved?.sessionId){const data=await request('/api/simulation/state',{method:'POST',body:JSON.stringify({id:saved.sessionId})});if(own===owner&&generation===restoring){session=data.session;recoveryId=null;if(session.finished)archive();}}
@@ -393,7 +436,7 @@
     save();restoringSession=false;if(active&&!pendingIntent&&connection==='CONNECTED')evaluate();else render();
   }
   function leave(){active=false;cancel();if(setup.open)setup.close();if(editor.open)editor.close();if(funds.open)funds.close();if(confirmation.open)confirmation.close('cancel');save();}
-  function clearOwner(){leave();validation?.clearOwner();client?.close();client=null;owner=null;session=null;analysis=null;reports=[];decisions=[];progress=T.practiceProgress();error='';restored=false;restoringSession=false;shortcutMessage='';busy=false;connection='CONNECTED';pendingIntent=null;chosenSize=null;recoveryId=null;render();}
+  function clearOwner(){keyboardObservations=[];leave();validation?.clearOwner();client?.close();client=null;owner=null;session=null;analysis=null;reports=[];decisions=[];progress=T.practiceProgress();error='';restored=false;restoringSession=false;shortcutMessage='';busy=false;connection='CONNECTED';pendingIntent=null;chosenSize=null;recoveryId=null;render();}
   function init(options){request=(url,settings={})=>{const own=owner;return T.createTransport((endpoint,settings)=>options.request(endpoint,{...settings,headers:{'Content-Type':'application/json',...settings.headers}}),{onState:state=>{if(owner===own&&(state!=='CONNECTED'||connection==='RECONNECTING')){connection=state;if(active)render();}}})(url,settings);};getOwner=options.getOwner;host=document.getElementById('simulation-workspace');document.body.append(setup,editor,confirmation,funds);
     validation=window.TheibsSimulationValidation?.create({onChange:()=>renderValidation()});
     for(const dialog of [setup,editor,confirmation,funds])dialog.addEventListener('close',()=>{if(active)render();});
@@ -417,22 +460,7 @@
       else return perform(op,op==='ACT'?{action:target.dataset.action}:{});
     });
     host.addEventListener('change',event=>{if(event.target.id==='sim-control')perform('PACE',{paused:event.target.value==='STEP',manualOpponents:event.target.value==='MANUAL'});else if(event.target.id==='sim-validation-auto')validation?.setAutomatic(event.target.checked);else if(event.target.id==='sim-batch-scope')batchScope=event.target.value;else if(event.target.id==='sim-batch-worlds')batchWorlds=Number(event.target.value);});
-    document.addEventListener('keydown',event=>{
-      const interactive=node=>node?.isContentEditable||node?.closest?.('button,input,textarea,select,a[href],summary,[role="button"],[contenteditable]:not([contenteditable="false"])');
-      if(!active||!session||restoringSession||busy||pendingIntent||document.hidden||connection!=='CONNECTED'||event.defaultPrevented||event.repeat||event.isComposing||event.keyCode===229||event.ctrlKey||event.altKey||event.metaKey||document.querySelector('dialog[open]')||interactive(event.target)||interactive(document.activeElement))return;
-      if(event.key==='Enter'){
-        if(event.shiftKey)return;
-        const next=enterAction();
-        if(next){event.preventDefault();perform(next.operation,next.extra||{});}
-        else if(heroTurn()){event.preventDefault();shortcutMessage='No EV leader is available. Wait for EV or choose an action.';render();}
-        return;
-      }
-      if(event.key==='Shift'&&session?.finished){event.preventDefault();perform(!session.abandoned&&canContinue()?'NEXT':'RESTART');}
-      if(!userTurn())return;
-      const actions=session.state.legal.actions;if(event.key===',' && (actions.includes('CALL')||actions.includes('CHECK'))){event.preventDefault();perform('ACT',{action:actions.includes('CALL')?'CALL':'CHECK'});}
-      else if(event.key==='.'&&session.state.legal.toCall>0){event.preventDefault();perform('ACT',{action:'FOLD'});}
-      else if(event.key===';'&&(actions.includes('BET')||actions.includes('RAISE'))){event.preventDefault();sizing(actions.includes('BET')?'BET':'RAISE');}
-    });render();
+    render();
   }
-  window.TheibsSimulationUI={init,enter,leave,clearOwner,configure};
+  window.TheibsSimulationUI={init,enter,leave,clearOwner,configure,keyboardCommand,keyboardCapture,keyboardFlush,getKeyboardState:()=>({session,active,busy,restoringSession,pendingIntent,connection,observations:keyboardObservations.map(item=>({...item}))})};
 })();

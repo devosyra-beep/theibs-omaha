@@ -166,7 +166,7 @@ test('renderer keeps zero eligible diagnostics unknown, escapes receipts and cap
 
 test('app captures canonical chronology before observations, then ACT and archive preserve forecast eligibility',async()=>{
   const h=harness({visible:false}),app=fs.readFileSync(require.resolve('../public/app'),'utf8');
-  const source=app.slice(app.indexOf('  async function syncPlayerObservations(record)'),app.indexOf('  async function startMultiway(config)'));
+  const source=app.slice(app.indexOf('  async function syncPlayerObservations(record)'),app.indexOf('  async function startMultiway(config'));
   assert.ok(source.indexOf('.beginHand(record)')<source.indexOf("postJson('/api/multiway/observations'"));
   const hand=record(),state={revisionKey:'first'},contextVM={window:h.window,multiway:hand,multiwayState:state,JSON,
     postJson:async()=>{

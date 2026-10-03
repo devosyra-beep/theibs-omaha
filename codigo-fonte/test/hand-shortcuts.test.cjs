@@ -3,28 +3,32 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const source=fs.readFileSync(require('node:path').join(__dirname,'../public/app.js'),'utf8');
 function shortcutHarness(){
   const handlers={},windowHandlers={},calls=[];
-  class Element {constructor(editable=false){this.editable=editable;}closest(){return this.editable;}}
-  const context={Element,loaded:true,activeView:'analyze',multiwayBusy:false,dialog:false,
+  class Element {constructor(editable=false){this.editable=editable;}closest(){return null;}}
+  const commands=require('../public/keyboard-commands');
+  const context={Element,loaded:true,activeView:'analyze',dialog:false,held:new Set(),shiftCandidate:false,typingUntil:0,performance,language:'en-US',rank:'',ten:false,
     document:{activeElement:new Element(),querySelector:()=>context.dialog,addEventListener:(key,fn)=>handlers[key]=fn,visibilityState:'visible'},
-    window:{addEventListener:(key,fn)=>windowHandlers[key]=fn},cards:{cancelPending:()=>calls.push('cancel')},
-    newAnalysisHand:(...args)=>calls.push(args)};
-  vm.runInNewContext(source.slice(source.indexOf('  const heldHandKeys='),source.indexOf("  $('#clear').title=multiway?'Next hand",source.indexOf('  const heldHandKeys='))),context);
-  const event=(key,options={})=>({key,code:key==='Shift'?'ShiftLeft':key==="'"?'Quote':key,preventDefault(){this.prevented=true;},target:context.document.activeElement,...options});
+    window:{addEventListener:(key,fn)=>windowHandlers[key]=fn},
+    allowed:()=>context.loaded&&['analyze','train','simulation'].includes(context.activeView),protectedInput:target=>target?.editable,
+    clearRank(){},paint(){},resolveKey:commands.resolveKey,canHandleKey:commands.canHandleKey,
+    dispatch:command=>{if(['RESET_HAND','NEW_GAME'].includes(command.type))calls.push(command.type);}};
+  const controller=fs.readFileSync(require.resolve('../public/keyboard-controller'),'utf8');
+  vm.runInNewContext(controller.slice(controller.indexOf("  document.addEventListener('keydown',event=>{"),controller.indexOf("  document.addEventListener('focusin',event=>{")),context);
+  const event=(key,options={})=>({key,code:key==='Shift'?'ShiftLeft':key==="'"?'Quote':key,preventDefault(){this.prevented=true;},stopImmediatePropagation(){},target:context.document.activeElement,...options});
   return {context,handlers,windowHandlers,calls,event};
 }
-test('Shift alone advances exactly once on release; apostrophe opens a completely new game',()=>{
+test('the central owner resets once on Shift release and starts a new hand on apostrophe',()=>{
   const h=shortcutHarness();h.handlers.keydown(h.event('Shift',{shiftKey:true}));assert.deepEqual(h.calls,[]);
-  h.handlers.keyup(h.event('Shift'));assert.equal(JSON.stringify(h.calls),JSON.stringify(['cancel',[false]]));
+  h.handlers.keyup(h.event('Shift'));assert.deepEqual(h.calls,['RESET_HAND']);
   h.calls.length=0;const quote=h.event("'");h.handlers.keydown(quote);
-  assert.equal(quote.prevented,true);assert.equal(JSON.stringify(h.calls),JSON.stringify([[true,true]]));
+  assert.equal(quote.prevented,true);assert.deepEqual(h.calls,['NEW_GAME']);
   h.handlers.keydown(h.event("'",{repeat:true}));assert.equal(h.calls.length,1);
 });
-test('Shift chords, text fields, dialogs, composition, blur and pending mutations never reset a hand',()=>{
+test('Shift chords, text fields, dialogs, composition, blur and inactive views cannot reset a hand',()=>{
   for(const chord of ['Tab','A','Control']){
     const h=shortcutHarness();h.handlers.keydown(h.event('Shift',{shiftKey:true}));h.handlers.keydown(h.event(chord,{shiftKey:true}));
     h.handlers.keyup(h.event(chord,{shiftKey:true}));h.handlers.keyup(h.event('Shift'));assert.deepEqual(h.calls,[]);
   }
-  for(const change of [h=>h.context.document.activeElement.editable=true,h=>h.context.dialog=true,h=>h.context.multiwayBusy=true,h=>h.context.activeView='train',h=>h.context.loaded=false]){
+  for(const change of [h=>h.context.document.activeElement.editable=true,h=>h.context.dialog=true,h=>h.context.activeView='history',h=>h.context.loaded=false]){
     const h=shortcutHarness();change(h);h.handlers.keydown(h.event('Shift',{shiftKey:true}));h.handlers.keyup(h.event('Shift'));h.handlers.keydown(h.event("'"));assert.deepEqual(h.calls,[]);
   }
   const h=shortcutHarness();h.handlers.keydown(h.event('Shift',{shiftKey:true}));h.windowHandlers.blur();h.handlers.keyup(h.event('Shift'));h.handlers.keydown(h.event("'",{isComposing:true}));assert.deepEqual(h.calls,[]);

@@ -1,0 +1,59 @@
+/* Quick entry uses the table's charcoal, gold and four-suit palette. */
+body[data-view=analyze] .card-keyboard { border:1px solid #ffffff20; border-radius:14px; background:#0e1014; padding:12px 14px; min-width:0; align-self:stretch; }
+.keyboard-context { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; min-height:42px; }
+#new-hand.icon-button { width:auto; min-width:90px; white-space:nowrap; font-size:12px; padding:8px 12px!important; }
+.keyboard-context>div { min-width:0; display:grid; gap:4px; }
+.keyboard-eyebrow { color:var(--primary); font-size:10px; letter-spacing:.12em; }
+#keyboard-target { font-size:13px; line-height:1.4; min-height:36px; overflow-wrap:anywhere; }
+.keyboard-language { display:flex; align-items:center; gap:7px; flex:none; }
+.keyboard-language>span { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); }
+.keyboard-language select { width:74px; min-height:34px; font-size:12px; padding:5px 7px; }
+body[data-view=analyze] .card-keyboard .keyboard-heading { gap:9px; margin-bottom:6px; }
+body[data-view=analyze] .card-keyboard #open-card-picker { font-size:13px; padding:7px 11px; }
+body[data-view=analyze] .card-keyboard #remove-card,body[data-view=analyze] .card-keyboard #undo-card { display:inline-flex; font-size:12px; }
+body[data-view=analyze] .card-picker .card-key { height:36px; font-size:16px; border-radius:6px; transition:filter .1s,box-shadow .1s; }
+body[data-view=analyze] .card-picker .card-ranks { gap:4px; }
+body[data-view=analyze] .card-picker #card-grid { display:grid; grid-template-columns:minmax(0,1fr); gap:5px; }
+body[data-view=analyze] .card-picker .card-row { display:grid; grid-template-columns:20px minmax(0,1fr); gap:8px; }
+body[data-view=analyze] .card-picker .card-ranks { display:grid; grid-template-columns:repeat(13,minmax(0,1fr)); }
+body[data-view=analyze] .card-picker .picker-tools { position:static; display:flex; flex-wrap:wrap; justify-content:flex-end; gap:12px; margin-top:8px; }
+.card-key.used { opacity:.35; }
+.card-key { position:relative; }
+.ten-shortcut { position:absolute; right:4px; bottom:2px; font:600 8px/1 var(--font-sans); opacity:.7; }
+.is-key-active { filter:brightness(1.6); box-shadow:inset 0 0 0 2px #f0cc74!important; }
+.keyboard-command-legend { display:flex; flex-wrap:wrap; gap:7px 15px; padding-top:10px; margin-top:7px; border-top:1px solid #ffffff12; font-size:10px; color:var(--muted); line-height:1.8; }
+.keyboard-command-legend>span { display:inline-flex; align-items:center; gap:5px; white-space:nowrap; }
+.keyboard-command-legend kbd,.training-keyboard-hint kbd { font:600 10px/1.5 var(--font-sans); border:1px solid #ffffff25; border-radius:4px; padding:1px 5px; color:#dfe3eb; background:#ffffff07; }
+#keyboard-feedback { min-height:36px; height:36px; margin:7px 0 0; font-size:12px; line-height:1.5; color:#c9d6c9; overflow-wrap:anywhere; overflow:hidden; display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; }
+#keyboard-feedback.error { color:#ff9eaa; }
+.keyboard-context-slots { display:flex; gap:6px; margin:0 0 10px; }
+.keyboard-context-slots[hidden] { display:none; }
+.keyboard-slot { flex:1; min-width:0; min-height:38px; border:1px solid #ffffff25; border-radius:6px; background:#171d27; color:#edf1f6; font-size:14px; }
+.keyboard-slot.selected { outline:2px solid var(--primary); outline-offset:1px; }
+.keyboard-observations { display:flex; flex-wrap:wrap; gap:5px; }
+.keyboard-observation { text-align:left; padding:5px 8px; border:1px solid #c8a45650; border-radius:5px; color:#dec993; background:#d5ae5710; font-size:11px; overflow-wrap:anywhere; }
+.keyboard-observation.error { color:#ff9eaa; border-color:#ff9eaa60; }
+.keyboard-selected-player { outline:2px solid var(--primary)!important; outline-offset:4px; border-radius:8px; }
+.keyboard-player-context .playing-card.selected { outline-color:#ffffff35!important; }
+.keyboard-amount-dialog { width:min(360px,calc(100vw - 28px)); padding:20px; border:1px solid #e6c57855; border-radius:16px; background:#111318; color:#edf1f6; }
+.keyboard-amount-dialog .dialog-head { margin-bottom:18px; gap:12px; }
+.keyboard-amount-dialog h2 { font-size:17px; margin:0; }
+.keyboard-amount-dialog input { font-size:26px; width:100%; min-height:54px; margin-top:8px; }
+.keyboard-amount-dialog p { color:var(--muted); font-size:12px; line-height:1.5; }
+.keyboard-amount-dialog .primary-button { width:100%; }
+.training-keyboard-hint { font-size:12px; color:var(--muted); line-height:2; margin:8px 0; }
+:is(button,a,input,select,textarea,summary,[tabindex]):focus-visible { outline:2px solid var(--primary); outline-offset:3px; }
+@media(max-width:700px) {
+ body[data-view=analyze] .card-keyboard { padding:12px; }
+ body[data-view=analyze] .card-picker .card-ranks { grid-template-columns:repeat(7,minmax(0,1fr)); gap:4px; }
+ body[data-view=analyze] .card-picker .card-key { height:44px; font-size:14px; }
+ body[data-view=analyze] .card-row { align-items:center; gap:7px; }
+ body[data-view=analyze] .card-suit { font-size:17px; width:20px; flex:none; }
+ .keyboard-command-legend { gap:5px 11px; }
+ .keyboard-context { margin-bottom:9px; }
+ .keyboard-selected-player { outline-offset:2px; }
+}
+@media(prefers-reduced-motion:reduce) { .card-key { transition:none!important; } }
+@media(max-width:380px) {
+ body[data-view=analyze] .card-picker .card-ranks { grid-template-columns:repeat(5,minmax(0,1fr)); }
+}

@@ -33,7 +33,7 @@ function harness(responses, onRequest = () => {}, { quickSurface = false } = {})
     analyzeButton: node('#analyze-button'), emptyState: node('#empty'), result: node('#result'), $: node,
     cards: { announce() {}, isManualInvalid: () => false, state: { count: 4, slots: ['As','Ah','Kd','Qc'] } },
     document: { dispatchEvent() {}, body: { dataset: {} } }, CustomEvent: class {}, requestAnimationFrame: callback => callback(),
-    renderResult: data => rendered.push(structuredClone(data)), quickAction() {}, renderMultiway() {},
+    cancelProfileComparison() {}, multiwayDecisionFeedback:null,profileComparison:null, renderResult: data => rendered.push(structuredClone(data)), quickAction() {}, renderMultiway() {},
     renderCharts: snapshot => charts.push(structuredClone(snapshot)), renderEngineDetails() {}, renderStreetCards() {}, scheduleSave() {}, scheduleAnalysis() {},
     buildAnalysisPayload: () => { if (context.invalidInput) throw Error(context.invalidInput); return structuredClone(context.payload); },
     value: id => ({ potBeforeAction: '3.5', amountToCall: '1', players: '3' })[id] || '',

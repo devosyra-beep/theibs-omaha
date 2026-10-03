@@ -123,11 +123,21 @@
     $('#opponent-count').closest('label')?.after(button);
     refresh();
   }
+  function setKnownHand(seatId, cards) {
+    refresh();
+    const c=context();
+    if(!active(c).some(p=>p.seatId===seatId)) return false;
+    const old=rows.get(seatId), row={seatId,enabled:true};
+    if(old?.callProbability!=null) row.callProbability=old.callProbability;
+    if(cards.length===c.count) row.range={hands:[cards.map(TheibsCards.toCanonical)]};
+    if(row.range||row.callProbability!=null) rows.set(seatId,row); else rows.delete(seatId);
+    drafts.delete(seatId); accepted=false; refresh(); fillEditor(); options.onChange(); return true;
+  }
   function payload() {
     refresh();
     const c=context(), activeSeats=active(c);
     const compact=new Map(activeSeats.map((seat,index)=>[seat.seatId,index]));
     return { opponentOverrides:clone([...rows.values()].filter(row=>compact.has(row.seatId)).map(row=>({...row,seatId:c.mode==='SIMPLE'?compact.get(row.seatId):row.seatId}))), opponentStudyAccepted:accepted };
   }
-  window.theibsOpponentInputs = { init, refresh, reset, snapshot, restore, payload, seatEditor, applySeat, removeSeat };
+  window.theibsOpponentInputs = { init, refresh, reset, snapshot, restore, setKnownHand, payload, seatEditor, applySeat, removeSeat };
 })();

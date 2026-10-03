@@ -82,7 +82,7 @@
     // not silently disable card entry after changing a table option.
     return Boolean(control && !(control.tagName === 'INPUT' && ['checkbox', 'radio', 'button', 'submit', 'reset'].includes(control.type)));
   }
-  function active() { return document.body.dataset.multiwayBusy!=='true' && !$('#analyze-workspace').classList.contains('hidden') && !document.querySelector('dialog[open]'); }
+  function active() { return !$('#analyze-workspace').classList.contains('hidden') && !document.querySelector('dialog[open]'); }
   function announce(text, error = false) {
     message = text;
     if (status.textContent !== text) status.textContent = text;
@@ -163,7 +163,7 @@
       ? `Selected: ${selectedCard[0] === 'T' ? '10' : selectedCard[0]} of ${selectedSuit.name.toLowerCase()} ${selectedSuit.symbol} · ${target}`
       : `Next card: ${target} · type rank + suit`);
     if (!message) announce(manualInvalid ? 'Fix the text entry before continuing.' : pendingTen ? '10: type 0, then the suit.' : pendingRank ? `${pendingRank === 'T' ? '10' : pendingRank} → choose E, C, O or P.` : `Selected: ${target}.`, manualInvalid);
-    if (focusedSlot !== undefined) document.querySelector(`[data-slot="${state.selected}"]`)?.focus({ preventScroll: true });
+    if (focusedSlot !== undefined && document.body.dataset.keyboardContext !== 'players' && (!window.theibsKeyboard || window.theibsKeyboard.getState().scope === 'hero')) document.querySelector(`[data-slot="${state.selected}"]`)?.focus({ preventScroll: true });
     else if (focusedCard !== undefined) document.querySelector(`[data-card="${focusedCard}"]:not(:disabled)`)?.focus({ preventScroll: true });
   }
   function changed(source = 'keyboard') {
@@ -331,9 +331,9 @@
   for (const root of [heroSlots, boardSlots]) root.addEventListener('click', (event) => {
     const target = event.target.closest('[data-slot]'); if (target) select(Number(target.dataset.slot));
   });
-  grid.addEventListener('click', (event) => { const button = event.target.closest('[data-card]'); if (button && !button.disabled) assign(button.dataset.card); });
-  $('#remove-card').addEventListener('click', removeSelected);
-  $('#undo-card').addEventListener('click', undo);
+  grid.addEventListener('click', (event) => { const button = event.target.closest('[data-card]'); if (button && !button.disabled) { if(window.theibsKeyboard)window.theibsKeyboard.enterCard(button.dataset.card);else assign(button.dataset.card); } });
+  $('#remove-card').addEventListener('click', () => { if(window.theibsKeyboard)window.theibsKeyboard.dispatch({type:'REMOVE_CARD'});else if (state.removeSelected()) writeInputs('remove'); });
+  $('#undo-card').addEventListener('click', () => { if(window.theibsKeyboard)window.theibsKeyboard.dispatch({type:'UNDO_CARDS'});else undo(); });
   $('#copy-cards').addEventListener('click', copy);
   $('#export-cards').addEventListener('click', exportDraft);
   $('#paste-apply').addEventListener('click', () => { if (paste($('#paste-cards').value)) $('#paste-cards').value = ''; });
@@ -361,38 +361,9 @@
     if (!active() || isEditing(event.target)) return;
     event.preventDefault(); paste(event.clipboardData?.getData('text/plain') || '');
   });
-  document.addEventListener('keydown', (event) => {
-    if (!active() || isEditing(event.target) || event.isComposing || event.repeat) return;
-    if (event.ctrlKey || event.metaKey) {
-      if(event.shiftKey)return;
-      const key = event.key.toLowerCase();
-      if (key === 'z') {
-        event.preventDefault();
-        const table=multiwayContext();
-        if(table?.enabled && ['BETTING','WAIT_BOARD'].includes(table.phase)){
-          if(!window.theibsApp?.getState?.().multiway?.events?.length){undo();return;}
-          void undoConfirmedTableEvent({expectedRevisionKey:table.revisionKey});
-        }else undo();
-      }
-      else if (key === 'c') { event.preventDefault(); copy(); }
-      else if (key === 's') { event.preventDefault(); exportDraft(); }
-      else if (/^[1-4]$/.test(key)) { event.preventDefault(); select(({ 1: 0, 2: state.count, 3: state.count + 3, 4: state.count + 4 })[key]); }
-      return;
-    }
-    if (event.altKey) return;
-    if (event.key === 'Delete') { event.preventDefault(); if (state.removeSelected()) writeInputs('remove'); return; }
-    if (event.key === 'Backspace') { event.preventDefault(); undo(); return; }
-    if (event.key === 'Escape') { clearPending(); render(); return; }
-    if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') { event.preventDefault(); select(Math.max(0, Math.min(state.slots.length - 1, state.selected + (event.key === 'ArrowLeft' ? -1 : 1)))); return; }
-    const key = event.key.toUpperCase();
-    if (pendingTen && key === '0') { event.preventDefault(); pendingRank = 'T'; pendingTen = false; message = ''; render(); return; }
-    if (key === '1') { event.preventDefault(); pendingTen = true; pendingRank = ''; message = ''; render(); return; }
-    const rank = normalizeKeyboardRank(key);
-    if (rank) { event.preventDefault(); pendingRank = rank; pendingTen = false; message = ''; render(); return; }
-    if (key.length === 1 && 'ECOP'.includes(key) && pendingRank) { event.preventDefault(); assign(pendingRank + key); }
-  });
   window.theibsCardKeyboard = {
-    state, render, select, paste,
+    state, render, select, paste, assign, undo, copy, exportDraft,
+    getPending: () => ({ rank: pendingRank, ten: pendingTen }),
     getRevision: () => revision,
     applyReviewedHero(heroCards, expectedRevision) {
       if (document.body.dataset.multiway !== 'on' || document.body.dataset.multiwayBusy === 'true' ||
@@ -428,7 +399,7 @@
       } else writeInputs('voice');
       return { ok: true, revision, snapshot: state.snapshot() };
     },
-    cancelPending() { clearPending(); render(); },
+    cancelPending() { clearPending(); window.theibsKeyboard?.cancelPending(); render(); },
     discardDraft,
     undoConfirmedTableEvent,
     addPendingVoiceBoardCards,

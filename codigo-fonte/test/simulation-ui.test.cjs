@@ -27,7 +27,15 @@ function fixture({stepFailures=0,decisionContract=null,stepGate=null,stateGate=n
   vm.runInNewContext(source,{window,document,localStorage,structuredClone,AbortController,crypto:require('node:crypto').webcrypto,performance,setTimeout,Blob,URL,FormData});
   window.TheibsSimulationUI.init({request,getOwner:()=>owner});
   const click=async op=>host.handlers.click({target:{closest:selector=>selector==='[data-sim-op]'?{dataset:{simOp:op,action:'FOLD'}}:null}});
-  const keyboard=(options={})=>{const event={key:'Enter',target:document.body,prevented:false,preventDefault(){this.prevented=true;},...options};document.handlers.keydown(event);return event;};
+  const keyboard=(options={})=>{
+    const event={key:'Enter',target:document.body,prevented:false,preventDefault(){this.prevented=true;},...options};
+    const interactive=node=>node?.isContentEditable||node?.closest?.('button,input,textarea,select,a[href],summary,[role="button"],[contenteditable]');
+    const state=window.TheibsSimulationUI.getKeyboardState(),commands=require('../public/keyboard-commands');
+    if(commands.canHandleKey(event,{enabled:state.active&&!state.busy&&!state.restoringSession&&!state.pendingIntent&&state.connection==='CONNECTED',hidden:document.hidden,dialog:document.querySelector('dialog[open]'),nativeControl:interactive(event.target)||interactive(document.activeElement)})){
+      const command=commands.resolveKey(event,'en-US');if(command?.type==='CONFIRM'){event.preventDefault();void window.TheibsSimulationUI.keyboardCommand(command.type);}
+    }
+    return event;
+  };
   const result={status:'OK',analysisStage:'FINAL',observedState:{revisionKey:state.revisionKey},ev:{actions:{FOLD:{ev:0},CALL:{ev:123},RAISE:{ev:456}}},equity:{equity:.9}};
   return {ui:window.TheibsSimulationUI,host,local,pending,requests,click,keyboard,result,state,session,document,dialogs:elements.filter(element=>element.tagName==='DIALOG'),setOwner:value=>{owner=value;}};
 }

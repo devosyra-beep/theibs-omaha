@@ -10,6 +10,7 @@ const { available } = require('./helpers/sequence-form-reference.cjs');
 const adapter = require('../src/solver/plo-river-game');
 const core = require('../src/solver/extensive-solver');
 const worker = require('../src/solver/job-worker');
+const checkpointCodec = require('../public/browser-solver-checkpoint-codec');
 const session = require('../src/multiway-session');
 const { create: createBrowserClient } = require('../public/browser-solver-client');
 const { createSolutionCache, keyFor } = require('../src/solver/solution-cache');
@@ -102,15 +103,15 @@ test('valid model changes invalidate exact cache/checkpoint context; transport c
 
 test('HARNESS browser cache retains a real completed cold snapshot and misses each valid context/session/owner change', async () => {
   const fingerprint = createHash('sha256').update('THEIBS_EXPANDED_QA_INJECTED_NODE_TRANSPORT').digest('hex');
-  const manifest = { schemaVersion: 1, buildFingerprint: fingerprint, versions: { solver: core.VERSION, adaptive: worker.VERSION } };
+  const manifest = { schemaVersion: 1, buildFingerprint: fingerprint, versions: require('../public/browser-solver-manifest.json').versions };
   const workers = [];
   const client = createBrowserClient({ manifest, crypto: webcrypto, createWorker: () => {
     const transport = { terminated: false, terminate() { this.terminated = true; }, postMessage(message) {
-      const output = worker.execute({ input: message.input, budget: { timeMs: 5000, iterations: 128 }, checkpoint: message.checkpoint }, { compilationReuse: true });
-      queueMicrotask(() => { if (!this.terminated) this.onmessage?.({ data: { ...output, type: 'done', jobId: message.jobId,
+      const output = worker.execute({ input: message.input, budget: { timeMs: 5000, iterations: 128 }, checkpoint: checkpointCodec.unpack(message.checkpoint) }, { compilationReuse: true });
+      queueMicrotask(() => { if (!this.terminated) this.onmessage?.({ data: { ...output, checkpoint:checkpointCodec.pack(output.checkpoint), type: 'done', jobId: message.jobId,
         generation: message.generation, buildFingerprint: fingerprint, handId: message.input.multiway.handId, revisionKey: message.expectedRevisionKey } }); });
     } };
-    workers.push(transport); queueMicrotask(() => transport.onmessage?.({ data: { type: 'ready', schemaVersion: 1, buildFingerprint: fingerprint } })); return transport;
+    workers.push(transport); queueMicrotask(() => transport.onmessage?.({ data: { type: 'ready', schemaVersion: 1, buildFingerprint: fingerprint, checkpointTransportVersion:checkpointCodec.VERSION } })); return transport;
   } });
   const binding = input => ({ handId: input.multiway.handId, revisionKey: session.envelope(input.multiway).state.revisionKey, budget: 'FAST', automatic: false });
   async function complete(owner, input, changed = {}) {

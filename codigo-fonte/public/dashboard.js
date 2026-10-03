@@ -7,16 +7,20 @@
   $('#analyze-workspace .table-column').prepend(opponentsBar);
   for(const event of ['input','change'])$('#opponent-count').addEventListener(event,()=>{$('#players').value=Number($('#opponent-count').value)+1;});
   document.body.dataset.view='analyze';
+  const dialogVersions=new WeakMap();
   function closeDialog(el) {
     if (!el?.open) return;
+    const version=(dialogVersions.get(el)||0)+1;dialogVersions.set(el,version);
     el.close();
     requestAnimationFrame(()=>{
+      if(dialogVersions.get(el)!==version)return;
       if (el.open) el.removeAttribute('open');
       if (document.activeElement?.closest?.('dialog')===el) document.activeElement.blur();
     });
   }
   function openDialog(el) {
     if (!el || el.open) return;
+    dialogVersions.set(el,(dialogVersions.get(el)||0)+1);
     try { el.showModal(); }
     catch (error) { console.error('THEIBS dialog open failed', el.id, error); }
   }
@@ -179,7 +183,7 @@
     if(open&&document.body.dataset.view==='analyze'&&controls){
       controls.before(keyboard);keyboard.classList.add('contextual-card-entry');
     }else if(keyboard.classList.contains('contextual-card-entry')){
-      settings.querySelector('.controls-panel').before(keyboard);keyboard.classList.remove('contextual-card-entry');
+      $('#multiway-controls').before(keyboard);keyboard.classList.remove('contextual-card-entry');
     }
   };
   pickerButton.onclick=()=>setPickerOpen(!picker.open);
@@ -187,13 +191,7 @@
   for(const slots of [$('#hero-slots'),$('#board-slots')])slots.addEventListener('click',event=>{
     if(document.body.dataset.view==='analyze' && event.target.closest('[data-slot]:not(:disabled)'))setPickerOpen(true);
   });
-  document.addEventListener('keydown',event=>{
-    if(document.body.dataset.view!=='analyze'||document.querySelector('dialog[open]')||event.target.closest('input,textarea,select,[contenteditable]'))return;
-    const step=!event.ctrlKey&&!event.metaKey&&!event.altKey&&['ArrowLeft','ArrowRight'].includes(event.key);
-    const street=(event.ctrlKey||event.metaKey)&&!event.altKey&&/^[1-4]$/.test(event.key);
-    if(step||street)setPickerOpen(true);
-  });
-  settings.querySelector('.dialog-content').insertBefore(keyboard,settings.querySelector('.controls-panel'));
+  $('#analyze-workspace .table-column').append(keyboard);
   window.theibsCardPicker={open:()=>setPickerOpen(true),close:()=>setPickerOpen(false)};
   const trainingSettings=dialog('training-settings-dialog','Configure exercise');
   document.body.append(trainingSettings);

@@ -8,9 +8,9 @@
     CALL: { label: 'Call', past: 'called' }, BET: { label: 'Bet', past: 'bet' }, RAISE: { label: 'Raise', past: 'raised' }
   };
   const COMMANDS = [
-    { id: 'leave', key: ',', code: 'Comma', resolve: state => state?.legal?.toCall > 0 && state?.legal?.actions?.includes('FOLD') ? 'FOLD' : null },
-    { id: 'passive', key: '.', code: 'Period', resolve: state => state?.legal?.actions?.includes('CHECK') ? 'CHECK' : state?.legal?.actions?.includes('CALL') ? 'CALL' : null },
-    { id: 'aggressive', key: ';', code: 'Semicolon', resolve: state => state?.legal?.actions?.includes('BET') ? 'BET' : state?.legal?.actions?.includes('RAISE') ? 'RAISE' : null }
+    {id:'leave',key:'f',resolve:()=> 'FOLD'},
+    {id:'call',key:'g',resolve:state=>state?.legal?.actions?.includes('CHECK')?'CHECK':'CALL'},
+    {id:'aggressive',key:'h',resolve:state=>state?.currentBet?'RAISE':'BET'}
   ];
   const POSITIONS = { 2: ['SB', 'BB'], 3: ['SB', 'BB', 'BTN'], 4: ['SB', 'BB', 'CO', 'BTN'],
     5: ['SB', 'BB', 'HJ', 'CO', 'BTN'], 6: ['SB', 'BB', 'UTG', 'HJ', 'CO', 'BTN'],
@@ -532,9 +532,9 @@
     $('#mw-action-stage').hidden = state?.phase !== 'BETTING';
     for (const command of COMMANDS) {
       const button = $(`[data-mw-command="${command.id}"]`), actionCode = resolveCommand(command);
-      button.disabled = !actionCode; button.dataset.mwAction = actionCode || '';
-      button.hidden = command.id === 'leave' && state?.phase === 'BETTING' && state.legal?.toCall === 0;
-      const fallback = command.id === 'passive' ? 'Check / Call' : command.id === 'aggressive' ? 'Bet / Raise' : 'Fold';
+      button.disabled = window.theibsKeyboard ? !view.enabled || ['FINISHED','SHOWDOWN'].includes(state?.phase) : !actionCode; button.dataset.mwAction = actionCode || '';
+      button.hidden=false; button.dataset.keyboardCommand=command.id==='leave'?'FOLD':command.id==='call'?'MATCH':'AGGRESSIVE';
+      const fallback = command.id === 'call' ? 'Call' : command.id === 'aggressive' ? 'Bet / Raise' : 'Check / Fold';
       button.querySelector('span').textContent = actionCode ? ACTIONS[actionCode].label + (actionCode === 'CALL' ? ' ' + money(state.legal.toCall) : '') : fallback;
       button.title = `${actionCode ? ACTIONS[actionCode].label : fallback} · ${command.key === ',' ? 'COMMA' : command.key === '.' ? 'PERIOD' : 'SEMICOLON'}`;
     }
@@ -590,6 +590,7 @@
     refreshDecisionEV();
     refreshDecisionFeedback();
     refreshCompletion();
+    document.dispatchEvent(new CustomEvent('theibs:multiway-render'));
     if (boardDialog.open) $('#mw-board-confirm').disabled = busy();
     if (seatDialog.open) refreshSeat();
   }
@@ -741,7 +742,7 @@
     if(seatDialog.open)seatDialog.close();
     if (player(Number(id)).hero) { openSetup({ forNextHand: true }); return; }
     if (completed()) { openReveal(Number(id)); return; }
-    selectedPlayer = Number(id); setError('');
+    selectedPlayer = Number(id);window.theibsKeyboard?.selectPlayer(selectedPlayer); setError('');
     const editor=player(selectedPlayer).hero ? null : window.theibsOpponentInputs?.seatEditor(selectedPlayer);
     $('#mw-seat-hand').value=editor?.hand||'';
     $('#mw-seat-range').value=editor?.rangeText||'';
@@ -751,23 +752,6 @@
     placeSeatDialog(anchor||document.querySelector(`[data-multiway-player="${id}"]`));
     const focusTarget=player(selectedPlayer).folded?seatDialog.querySelector('[data-mw-close]'):$('#mw-seat-fold');
     focusTarget.focus({preventScroll:true});
-  }
-  function keydown(event) {
-    if (!view.enabled || !inAnalysis() || busy() || event.defaultPrevented || event.repeat || event.isComposing || document.querySelector('dialog[open]')) return;
-    const editing = event.target instanceof Element && event.target.closest('input,textarea,select,[contenteditable]:not([contenteditable="false"])');
-    if (sizeDraft && event.key === 'Escape' && !event.ctrlKey && !event.altKey && !event.metaKey) {
-      event.preventDefault(); event.stopPropagation(); cancelPendingAmount(); return;
-    }
-    if (sizeDraft && !editing && !event.ctrlKey && !event.altKey && !event.metaKey && /^[0-9.,]$/.test(event.key)) {
-      event.preventDefault(); event.stopPropagation();
-      const input = $('#mw-size'); input.focus({ preventScroll: true });
-      input.value = (input.value || '') + (event.key === ',' ? '.' : event.key); sizeHelp(); return;
-    }
-    if (sizeDraft || editing || event.ctrlKey || event.altKey || event.metaKey || event.shiftKey) return;
-    const command = COMMANDS.find(item => (item.code && item.code === event.code) || (item.key && item.key === event.key.toLowerCase())), actionCode = command && resolveCommand(command);
-    if (actionCode) { event.preventDefault(); void action(actionCode); return; }
-    const seat = event.target.closest?.('[data-multiway-player]');
-    if (seat && seat.tagName !== 'BUTTON' && ['Enter', ' '].includes(event.key)) { event.preventDefault(); openPlayer(Number(seat.dataset.multiwayPlayer)); }
   }
   function init(settings = {}) {
     options = settings;
@@ -871,7 +855,7 @@
       if(busy())return;
       if(view.enabled)void invoke('exit');else openSetup({ forNextHand: false });
     };
-    controlsHost.addEventListener('click', event => { const button = event.target.closest('[data-mw-command]'); if (button && !button.disabled && button.dataset.mwAction) void action(button.dataset.mwAction); });
+    controlsHost.addEventListener('click', event => { const button = event.target.closest('[data-mw-command]'); if (!button || button.disabled) return; if(window.theibsKeyboard) window.theibsKeyboard.dispatch({type:button.dataset.keyboardCommand}); else if(button.dataset.mwAction) void action(button.dataset.mwAction); });
     $('#mw-size').addEventListener('input', sizeHelp);
     $('#mw-size-confirm').onclick = () => { void submitPendingAmount(); };
     $('#mw-size').addEventListener('keydown', event => { if (event.key === 'Enter' && !event.isComposing) { event.preventDefault(); event.stopPropagation(); void submitPendingAmount(); } });
@@ -905,7 +889,6 @@
     document.addEventListener('pointerdown',event=>{if(seatDialog.open&&!seatDialog.contains(event.target)&&!event.target.closest?.('[data-multiway-player]'))seatDialog.close();});
     document.addEventListener('focusin',event=>{if(seatDialog.open&&!seatDialog.contains(event.target)&&!event.target.closest?.('[data-multiway-player]'))seatDialog.close();});
     window.addEventListener('resize',()=>{if(seatDialog.open)seatDialog.close();placeDecisionEV();});
-    document.addEventListener('keydown', keydown, true);
     refresh(); return window.theibsMultiwayUI;
   }
   function voiceContext() {
@@ -1028,5 +1011,7 @@
     getRakeChoice, getPlannedRakeChoice, getPlannedSetup, acceptNextSetup, restorePreferences,
     _testing:{studyComparisonDetails},
     getPreferences: () => ({ rakeChoice: { ...rakeChoice }, nextRakeChoice: nextRakeChoice && { ...nextRakeChoice }, nextSetupDraft: getPlannedSetup() }),
+    keyboardPlayers:()=>{const draft=getDraft(),positions=POSITIONS[draft.playerCount]||POSITIONS[6];return positions.map((position,id)=>({id,position,hero:position===draft.heroPosition,name:position===draft.heroPosition?'You':`Opp. ${id+1}`,stack:draft.startingStack,folded:false}));},
+    keyboardAction: (event, observed=false) => invoke(observed?'markFold':'act',event), keyboardBoard: cards => invoke('board',{cards}), keyboardUndo:()=>invoke('undo'),
     getState: () => ({ enabled: view.enabled, state: view.state, config: view.config, heroDraftReady: view.heroDraftReady !== false, busy: busy(), error: view.error }) };
 })();

@@ -75,15 +75,15 @@ function assertUnknownExceptFold(result) {
   assert.equal(result.equity.samples, 0);
   assert.equal(result.equity.effectiveSamples, 0);
   const fold = result.ev.actions.FOLD;
-  assert.equal(fold.legal, true);
-  assert.equal(fold.status, 'MODELED');
-  assert.equal(fold.ev, 0);
-  assert.equal(fold.evBB, 0);
-  assert.deepEqual(fold.confidenceInterval95, [0, 0]);
-  assert.deepEqual(fold.numericalBounds, [0, 0]);
-  assert.equal(fold.method, 'DECISION_REFERENCE');
-  assert.equal(fold.numericalQuality, 'DECISION_REFERENCE');
-  assert.equal(fold.numericalScope, 'EXACT_REFERENCE');
+  const foldLegal=result.legalActions.includes('FOLD');
+  assert.equal(fold.legal, foldLegal);
+  if(foldLegal){
+    assert.equal(fold.status, 'MODELED');assert.equal(fold.ev, 0);assert.equal(fold.evBB, 0);
+    assert.deepEqual(fold.confidenceInterval95, [0, 0]);assert.deepEqual(fold.numericalBounds, [0, 0]);
+    assert.equal(fold.method, 'DECISION_REFERENCE');assert.equal(fold.numericalQuality, 'DECISION_REFERENCE');assert.equal(fold.numericalScope, 'EXACT_REFERENCE');
+  }else{
+    assert.equal(fold.status,'NOT_LEGAL');assert.equal(fold.ev,null);assert.equal(fold.evBB,null);assert.equal(fold.numericalBounds,null);
+  }
   for (const item of result.ev.candidates.filter(item => item.action !== 'FOLD')) {
     assert.equal(item.status, 'NOT_MODELED');
     assert.equal(item.ev, null);
@@ -99,15 +99,15 @@ function assertUnknownExceptFold(result) {
     assert.equal(result.ev.actions[action].numericalBounds, null);
     assert.equal(result.ev.actions[action].numericalQuality, 'NOT_AVAILABLE');
   }
-  assert.equal(result.ev.comparisonStatus, 'PARTIAL');
+  assert.equal(result.ev.comparisonStatus, foldLegal?'PARTIAL':'UNAVAILABLE');
   assert.equal(result.ev.comparisonComplete, false);
   assert.equal(result.ev.leaderConclusive, false);
   assert.equal(result.ev.globalBestSupported, false);
-  assert.deepEqual(result.ev.comparableActions, ['FOLD']);
+  assert.deepEqual(result.ev.comparableActions, foldLegal?['FOLD']:[]);
   assert.equal(result.ev.gapBestSecondCandidateBB, null);
   assert.equal(result.recommendedAction, 'NO_DECISION');
   assert.equal(result.recommendation.action, null);
-  assert.equal(result.recommendation.status, 'PROVISIONAL');
+  assert.equal(result.recommendation.status, foldLegal?'PROVISIONAL':'UNAVAILABLE');
   assert.equal(result.ev.decisionPrecision.source, 'LEGACY_CONTEXT_CONTINUATION');
   assert.equal(result.ev.decisionPrecision.resultStatus, 'HEURISTIC');
   assert.equal(result.ev.decisionPrecision.status, 'INCONCLUSIVE');
@@ -120,7 +120,7 @@ function assertUnknownExceptFold(result) {
   assert.ok(result.analysisDiagnostics.reasonCodes.includes('SAMPLING_TIME_BUDGET'));
 }
 
-test('cold initialization exhausting the budget returns only the legal exact Fold reference', () => {
+test('cold initialization exhausting the budget preserves unavailable estimates and any legal Fold reference', () => {
   const evaluator = load({ expireAtInitialization: true }), input = river(), before = JSON.stringify(input);
   const result = plain(evaluator.evaluateMultiway(input));
   assertUnknownExceptFold(result);

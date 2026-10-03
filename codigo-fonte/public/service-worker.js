@@ -1,10 +1,10 @@
 'use strict';
 
-const CACHE = 'theibs-shell-v0.14.10-browser-river-hu-study-sensitivity-v6-20261001';
+const CACHE = 'theibs-shell-v0.14.10-keyboard-v1-20261003';
 const SHELL = [
   '/', '/landing.html', '/landing.css', '/landing.js', '/landing-assets/theibs-logo.png', '/landing-assets/osyra-studio.svg',
   '/landing-assets/theibs-app.png', '/landing-assets/theibs-training.png', '/app', '/styles.css', '/dashboard.css', '/multiway.css', '/pwa.js', '/auth-session.js', '/auth-ui.js',
-  '/card-model.js', '/essence-ui.js', '/card-keyboard.js', '/dashboard.js',
+  '/keyboard-commands.js', '/keyboard-controller.js', '/keyboard.css', '/card-model.js', '/essence-ui.js', '/card-keyboard.js', '/dashboard.js',
   '/card-voice.js', '/card-voice-ui.js', '/voice-evaluation.js', '/voice-evaluation-ui.js', '/card-voice.css',
   '/multiway-assistant-ui.js', '/player-profile-model.js', '/players-storage.js', '/players-ui.js', '/players.css',
   '/focus-ui.js', '/multiway-ui.js', '/browser-solver-checkpoint-codec.js', '/browser-solver-client.js', '/solver-study-comparison.js', '/solver-study-runner.js', '/browser-solver-worker.js', '/browser-solver-manifest.json', '/multiway-solver-ui.js', '/multiway-solver.css', '/multiway-image-model.js', '/multiway-image-ui.js', '/analysis-snapshots.js', '/analyze-feedback.js', '/continuation-view.js', '/opponent-inputs.js', '/app.js', '/assistant-ui.js',
