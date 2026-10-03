@@ -187,6 +187,34 @@ const {server}=require('../server');
       await page.keyboard.press('Shift');await tabTo('[data-slot="0"]');await page.keyboard.press('Tab');await page.keyboard.type('AE');
       assert.equal(await page.evaluate(()=>theibsCardKeyboard.state.slots[1]),'AE');assert.equal(await page.evaluate(()=>document.activeElement.dataset.slot),'2');
     });
+    await check('player and card navigation keep the card strip and toolbar stationary at every layout',async()=>{
+      const geometry=()=>page.evaluate(()=>{
+        const rect=selector=>{const r=document.querySelector(selector).getBoundingClientRect();return {y:r.y,height:r.height};};
+        return {panel:rect('.card-keyboard'),strip:rect('#keyboard-context-slots'),heading:rect('.card-keyboard .keyboard-heading'),legend:rect('.keyboard-command-legend'),scrollY,overflow:document.documentElement.scrollWidth>innerWidth};
+      });
+      for(const count of [4,5,6]){
+        await page.setViewportSize({width:1515,height:1000});
+        await tabTo('#open-settings');await page.keyboard.press('Enter');await tabTo('#variant-select');await page.keyboard.press('Home');
+        for(let i=4;i<count;i++)await page.keyboard.press('ArrowDown');await page.keyboard.press('Tab');await page.keyboard.press('Escape');
+        await page.keyboard.press('Shift');await page.keyboard.type(['AO','TP','KC','QE','JP','9C'].slice(0,count).join(''));await page.keyboard.press('Control+1');
+        for(const width of [1515,1024,390,320])for(const expanded of [false,true]){
+          await page.setViewportSize({width,height:1000});
+          if(await page.locator('#card-picker').evaluate(e=>e.open)!==expanded){await tabTo('#open-card-picker');await page.keyboard.press('Enter');}
+          await tabTo('[data-keyboard-slot="0"]');await page.keyboard.press('Enter');
+          assert.equal((await keys()).scope,'hero');assert.equal(await page.evaluate(()=>theibsCardKeyboard.state.selected),0);
+          const baseline=await geometry();assert.equal(baseline.strip.height,38);assert.equal(baseline.overflow,false);
+          for(const key of ['ArrowDown','ArrowDown','ArrowUp','ArrowUp','ArrowRight','ArrowLeft','Control+2','Control+3','Control+4','Control+1']){
+            await page.keyboard.press(key);const actual=await geometry();
+            assert.deepEqual(actual,baseline,JSON.stringify({count,width,expanded,key,actual,baseline}));
+            assert.equal(await page.locator('#keyboard-context-slots').isVisible(),true);
+            assert.equal(await page.locator('#keyboard-context-slots [aria-pressed="true"]').count(),1);
+          }
+          const group=await page.locator('#keyboard-context-slots').getAttribute('aria-label');assert.match(group,/You/);
+        }
+      }
+      await page.setViewportSize({width:1515,height:1000});
+      await page.locator('.card-keyboard').screenshot({path:path.join(output,'keyboard-stable.png')});report.screenshots.push('keyboard-stable.png');
+    });
     await check('private and board cards typed during delayed automatic tracking startup are retained',async()=>{
       await page.keyboard.press('Shift');
       await page.route('**/api/multiway/start',async route=>{await new Promise(r=>setTimeout(r,250));await route.continue();});

@@ -17,7 +17,7 @@
   const toolbar = document.createElement('div'); toolbar.className = 'keyboard-context';
   toolbar.innerHTML = '<div><span id="keyboard-mode" class="keyboard-eyebrow"></span><strong id="keyboard-target"></strong></div><label class="keyboard-language"><span>Idioma / Language</span><select id="keyboard-language" aria-label="Idioma / Language"><option value="en-US">EN</option><option value="pt-BR">PT-BR</option></select></label>';
   const keyboard = $('.card-keyboard'); keyboard.prepend(toolbar);
-  const slots = document.createElement('div'); slots.id = 'keyboard-context-slots'; slots.className='keyboard-context-slots'; slots.hidden=true;
+  const slots = document.createElement('div'); slots.id = 'keyboard-context-slots'; slots.className='keyboard-context-slots'; slots.setAttribute('role','group');
   toolbar.after(slots);
   const legend = document.createElement('div'); legend.className='keyboard-command-legend'; keyboard.append(legend);
   const pendingList=document.createElement('div');pendingList.id='keyboard-observations';pendingList.className='keyboard-observations';keyboard.append(pendingList);
@@ -110,19 +110,24 @@
     $('#remove-card').disabled=!selectedCard;
     $('#undo-card').disabled=context==='players'?!observations.length&&!app().getState().multiway?.events.length:scope==='hero'?!cards.state.undoStack.length:!values().some(Boolean);
     for(const node of document.querySelectorAll('[data-slot]')){const index=Number(node.dataset.slot);node.setAttribute('aria-label',(index<cards.state.count?text('Sua carta','Your card')+' '+(index+1):text('Board','Board')+' '+(index-cards.state.count+1))+': '+cardDescription(cards.state.slots[index]));}
-    slots.hidden=scope==='hero';
-    if(!slots.hidden){
-      const entries=values(), focused=slots.contains(document.activeElement);
-      if(slots.children.length!==entries.length)slots.replaceChildren(...entries.map((_,i)=>{
-        const button=document.createElement('button');button.type='button';button.dataset.keyboardSlot=i;button.className='keyboard-slot';return button;
-      }));
-      entries.forEach((card,i)=>{
-        const button=slots.children[i];button.classList.toggle('selected',i===cursor);button.setAttribute('aria-pressed',String(i===cursor));
-        button.setAttribute('aria-label',text('Carta','Card')+' '+(i+1)+': '+cardDescription(card));
-        const label=card?(card[0]==='T'?'10':card[0])+symbols[card[1]]:String(i+1);if(button.textContent!==label)button.textContent=label;
-      });
-      if(focused&&context==='cards'&&document.activeElement!==slots.children[cursor])slots.children[cursor]?.focus({preventScroll:true});
-    }
+    // Keep the same card strip for Hero, opponents and board. Switching the
+    // selected player must not insert a row and move every control below it.
+    const selectedIndex=scope==='hero'?cards.state.selected:cursor;
+    const heroBoard=scope==='hero'&&selectedIndex>=cards.state.count;
+    const offset=heroBoard?cards.state.count:0;
+    const entries=scope==='hero'?values().slice(offset,offset+(heroBoard?5:cards.state.count)):values();
+    const selectedSlot=selectedIndex-offset, focused=slots.contains(document.activeElement);
+    slots.setAttribute('aria-label',(heroBoard?'Board':target)+' · '+text('cartas','cards'));
+    if(slots.children.length!==entries.length)slots.replaceChildren(...entries.map(()=>{
+      const button=document.createElement('button');button.type='button';button.className='keyboard-slot';return button;
+    }));
+    entries.forEach((card,i)=>{
+      const button=slots.children[i];button.dataset.keyboardSlot=i+offset;
+      button.classList.toggle('selected',i===selectedSlot);button.setAttribute('aria-pressed',String(i===selectedSlot));
+      button.setAttribute('aria-label',text('Carta','Card')+' '+(i+1)+': '+cardDescription(card));
+      const label=card?(card[0]==='T'?'10':card[0])+symbols[card[1]]:String(i+1);if(button.textContent!==label)button.textContent=label;
+    });
+    if(focused&&context==='cards'&&document.activeElement!==slots.children[selectedSlot])slots.children[selectedSlot]?.focus({preventScroll:true});
     const pendingNodes=new Map([...pendingList.children].map(node=>[node.dataset.observation,node]));
     observations.forEach((item,i)=>{
       const button=pendingNodes.get(item.id)||document.createElement('button');button.type='button';button.dataset.observation=item.id;
@@ -385,6 +390,8 @@
     if(!canHandleKey(event,{enabled:available,hidden:document.hidden}))return;
     if(event.key==='Tab')typingUntil=0;
     if(event.key===' ' && performance.now()<typingUntil){event.preventDefault();event.stopImmediatePropagation();return;}
+    const focusedSlot=event.target?.closest?.('[data-keyboard-slot]');
+    if(focusedSlot&&['Enter',' '].includes(event.key)){event.preventDefault();event.stopImmediatePropagation();selectCard(Number(focusedSlot.dataset.keyboardSlot));return;}
     const focusedPlayer=event.target?.closest?.('[data-keyboard-player],[data-multiway-player]');
     if(focusedPlayer&&['Enter',' '].includes(event.key)&&Number(focusedPlayer.dataset.multiwayPlayer??focusedPlayer.dataset.keyboardPlayer)===selectedPlayer){event.preventDefault();event.stopImmediatePropagation();if(mw().enabled)window.theibsMultiwayUI.openPlayer(selectedPlayer);else {setContext('cards');paint();}return;}
     // Native buttons, summaries and links retain Enter/Space activation.

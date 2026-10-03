@@ -26,9 +26,8 @@ body[data-view=analyze] .card-picker .picker-tools { position:static; display:fl
 .keyboard-command-legend kbd,.training-keyboard-hint kbd { font:600 10px/1.5 var(--font-sans); border:1px solid #ffffff25; border-radius:4px; padding:1px 5px; color:#dfe3eb; background:#ffffff07; }
 #keyboard-feedback { min-height:36px; height:36px; margin:7px 0 0; font-size:12px; line-height:1.5; color:#c9d6c9; overflow-wrap:anywhere; overflow:hidden; display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; }
 #keyboard-feedback.error { color:#ff9eaa; }
-.keyboard-context-slots { display:flex; gap:6px; margin:0 0 10px; }
-.keyboard-context-slots[hidden] { display:none; }
-.keyboard-slot { flex:1; min-width:0; min-height:38px; border:1px solid #ffffff25; border-radius:6px; background:#171d27; color:#edf1f6; font-size:14px; }
+.keyboard-context-slots { display:flex; gap:6px; height:38px; margin:0 0 10px; }
+.keyboard-slot { flex:1 1 0; min-width:0; height:38px; min-height:38px; padding:6px 4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; border:1px solid #ffffff25; border-radius:6px; background:#171d27; color:#edf1f6; font-size:14px; }
 .keyboard-slot.selected { outline:2px solid var(--primary); outline-offset:1px; }
 .keyboard-observations { display:flex; flex-wrap:wrap; gap:5px; }
 .keyboard-observation { text-align:left; padding:5px 8px; border:1px solid #c8a45650; border-radius:5px; color:#dec993; background:#d5ae5710; font-size:11px; overflow-wrap:anywhere; }
