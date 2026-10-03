@@ -91,7 +91,7 @@ function clientHarness({ stalledManifestBody = false } = {}) {
     ready() { this.readySent = true; this.emit({ type: 'ready', schemaVersion: 1 }); }
     done(result, overrides = {}) {
       const job = this.messages.at(-1); assert.ok(job, 'A calculation must be posted before done.');
-      const requestFingerprint = crypto.createHash('sha256').update(JSON.stringify(job.payload)).digest('hex');
+      const requestFingerprint = crypto.createHash('sha256').update(JSON.stringify(job.type==='ledger'?{operation:job.operation,payload:job.payload}:job.payload)).digest('hex');
       this.emit({ type: 'done', jobId: job.jobId, generation: job.generation, requestFingerprint, result, ...overrides });
     }
   }
@@ -144,6 +144,46 @@ test('shipped graph is reproducible with real source digests and no Node service
   }
   const { buildFingerprint, ...descriptor } = manifest;
   assert.equal(crypto.createHash('sha256').update(JSON.stringify(descriptor)).digest('hex'), buildFingerprint);
+});
+
+test('browser ledger uses the unchanged domain for actions, correction, observations and idempotent continuation',()=>{
+  const runtime=loadWorker().api;
+  let direct=session.start({variant:'PLO5_HIGH',playerCount:4,heroPosition:'BB',startingStack:100,smallBlind:.5,bigBlind:1,heroCards:[]});
+  for(const event of [act(2,'CALL'),act(3,'FOLD'),act(0,'CALL')]){
+    const input={multiway:direct.multiway,event,expectedRevisionKey:direct.state.revisionKey},browser=plain(runtime.operate('step',plain(input)));
+    // ACT UUID is generated once by capture; use that UUID in the independent
+    // server call so the complete ledgers and their revision hashes agree.
+    direct=session.step(input.multiway,browser.multiway.events.at(-1),undefined,input.expectedRevisionKey);
+    assert.deepEqual(browser.multiway,direct.multiway);assert.deepEqual(browser.state,direct.state);
+    assert.deepEqual(browser.playerObservations.observations,require('../src/player-profiles').deriveObservations(direct.multiway).observations);
+  }
+  const change={eventIndex:0,actor:2,action:'RAISE',to:2},args={multiway:direct.multiway,change,expectedRevisionKey:direct.state.revisionKey};
+  const corrected=plain(runtime.operate('correct-action',plain(args))),expected=session.correctAction(direct.multiway,change,direct.state.revisionKey);
+  assert.deepEqual(corrected.multiway,expected.multiway);assert.deepEqual(corrected.correction,expected.correction);assert.deepEqual(corrected.previousVersion,expected.previousVersion);
+  const transition={multiway:direct.multiway,options:{},expectedRevisionKey:direct.state.revisionKey};
+  const first=plain(runtime.operate('next-hand',plain(transition))),retry=plain(runtime.operate('next-hand',plain(transition))),node=session.nextHand(direct.multiway,{},direct.state.revisionKey);
+  assert.equal(first.multiway.handId,retry.multiway.handId);assert.equal(first.multiway.handId,node.multiway.handId);
+  assert.deepEqual(first.state.players,node.state.players);assert.deepEqual(first.archivedHand,node.archivedHand);
+  assert.throws(()=>runtime.operate('step',{...args,event:act(0,'CALL')}));
+});
+
+test('ledger client preserves sequential jobs, excludes private input and rejects stale result identity',async()=>{
+  const h=clientHarness();
+  try{
+    const observed=session.start({variant:'PLO5_HIGH',playerCount:4,heroPosition:'BB',startingStack:100,smallBlind:.5,bigBlind:1,heroCards:[]});
+    const input={multiway:observed.multiway,event:{...act(2,'CALL'),eventId:'capture-once'},expectedRevisionKey:observed.state.revisionKey,access_token:'PRIVATE_LEDGER'};
+    input.multiway.note='PRIVATE_LEDGER';input.event.note='PRIVATE_LEDGER';
+    const captured=track(h.client.operate('step',input,{owner:'owner-A:epoch-1'}));
+    await until(()=>h.workers.length>0);const worker=h.workers.at(-1);worker.ready();await until(()=>worker.messages.length>0);
+    assert.doesNotMatch(JSON.stringify(worker.messages.at(-1)),/PRIVATE_LEDGER/);
+    await assert.rejects(h.client.operate('step',input,{owner:'owner-A:epoch-1'}),error=>error.code==='LEDGER_BUSY');
+    const result=plain(loadWorker().api.operate('step',worker.messages.at(-1).payload));worker.done(result);await flush();assert.equal(captured.status,'FULFILLED');
+    const nextInput={multiway:result.multiway,event:{...act(3,'CALL'),eventId:'capture-two'},expectedRevisionKey:result.state.revisionKey};
+    const next=track(h.client.operate('step',nextInput,{owner:'owner-A:epoch-1'}));await until(()=>worker.messages.length===2);
+    const incorrect=plain(loadWorker().api.operate('step',worker.messages.at(-1).payload));incorrect.playerObservations.sourceRevisionKey='stale';
+    worker.done(incorrect);await flush();assert.equal(next.status,'REJECTED');assert.equal(next.error.code,'STALE_RESULT');
+    assert.equal(h.client.metrics().cacheEntries,0);
+  }finally{h.close();}
 });
 
 test('canonical preparation owns current ledger/revision and immutable phase budgets', () => {

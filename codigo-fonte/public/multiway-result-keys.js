@@ -32,21 +32,37 @@
     return Boolean(node&&!(node.tagName==='INPUT'&&['checkbox','radio','button','submit','reset'].includes(node.type)));
   }
   const bindings=new WeakMap();
-  function bind({dialog,getState,isBusy=()=>false,onError=()=>{},onChange=()=>{}}){
+  function bind({dialog,getState,isBusy=()=>false,onError=()=>{},onChange=()=>{},onBack=()=>{}}){
     if(!dialog||typeof getState!=='function')throw Error('A result dialog and its current state are required.');
     bindings.get(dialog)?.();
-    let activePot=0,handId=null;
-    const syncHand=()=>{const state=getState();if(state?.handId!==handId){handId=state?.handId;activePot=0;}return state;};
+    let activePot=0,handId=null,history=[],goingBack=false;
+    const syncHand=()=>{const state=getState();if(state?.handId!==handId){handId=state?.handId;activePot=0;history=[];}return state;};
     const rememberPot=event=>{
       syncHand();
       const field=event.target?.closest?.('[data-mw-pot]');
       if(field&&dialog.contains(field))activePot=Number(field.dataset.mwPot);
     };
-    const reset=()=>{activePot=0;handId=null;};
+    const reset=()=>{activePot=0;handId=null;history=[];};
+    const rememberSelection=event=>{
+      const field=event.target?.closest?.('[data-mw-pot]');
+      if(!field||goingBack)return;
+      history.push({pot:Number(field.dataset.mwPot),player:Number(field.value),checked:!field.checked});
+    };
     const keydown=event=>{
       if(!dialog.open)return;
       const state=syncHand();
       rememberPot(event);
+      if(event.key==='Backspace'&&!isEditing(event.target)&&!event.repeat&&!event.isComposing&&!event.ctrlKey&&!event.metaKey&&!event.altKey&&!event.shiftKey&&!event.defaultPrevented){
+        event.preventDefault();event.stopPropagation();if(isBusy())return;
+        const previous=history.pop();
+        const field=previous&&[...dialog.querySelectorAll('[data-mw-pot]')].find(node=>Number(node.dataset.mwPot)===previous.pot&&Number(node.value)===previous.player);
+        if(field){
+          goingBack=true;
+          try{field.checked=previous.checked;field.focus({preventScroll:true});field.dispatchEvent(new dialog.ownerDocument.defaultView.Event('change',{bubbles:true}));onError('');}
+          finally{goingBack=false;}
+        }else onBack();
+        return;
+      }
       const intent=resolveWinnerKey(event,{state,potIndex:activePot,editing:isEditing(event.target),enabled:!!dialog.querySelector('[data-mw-pot]'),busy:isBusy()});
       if(!intent)return;
       event.preventDefault();event.stopPropagation();
@@ -57,8 +73,8 @@
       const EventType=dialog.ownerDocument.defaultView.Event;
       field.dispatchEvent(new EventType('change',{bubbles:true}));onError('');onChange(intent);
     };
-    dialog.addEventListener('focusin',rememberPot);dialog.addEventListener('keydown',keydown);dialog.addEventListener('close',reset);
-    const dispose=()=>{dialog.removeEventListener('focusin',rememberPot);dialog.removeEventListener('keydown',keydown);dialog.removeEventListener('close',reset);bindings.delete(dialog);};
+    dialog.addEventListener('focusin',rememberPot);dialog.addEventListener('change',rememberSelection);dialog.addEventListener('keydown',keydown);dialog.addEventListener('close',reset);
+    const dispose=()=>{dialog.removeEventListener('focusin',rememberPot);dialog.removeEventListener('change',rememberSelection);dialog.removeEventListener('keydown',keydown);dialog.removeEventListener('close',reset);bindings.delete(dialog);};
     bindings.set(dialog,dispose);return dispose;
   }
   return {keyForPlayer,playerForKey,resolveWinnerKey,bind};

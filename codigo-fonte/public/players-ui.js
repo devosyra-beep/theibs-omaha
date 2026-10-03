@@ -136,16 +136,36 @@
       return result.profileSnapshot;
     });
   }
-  async function syncObservations(payload) {
+  async function syncObservations(payload, checkpointInput) {
     requireReady();
     const confirmed=structuredClone(payload);
+    const checkpoint=checkpointInput && structuredClone(checkpointInput),capturedOwner=ownerKey;
     const result=await update(next => {
+      const prior=next.store.hands[confirmed.handId]?.ledgerCheckpoint;
+      if(checkpoint && (checkpoint.ownerKey!==capturedOwner || checkpoint.multiway?.handId!==confirmed.handId ||
+        checkpoint.revisionKey!==confirmed.sourceRevisionKey))throw Error('The hand checkpoint does not match the confirmed observations.');
+      if(checkpoint && prior && prior.revisionKey!==checkpoint.revisionKey &&
+        (prior.revisionKey!==checkpoint.previousRevisionKey || !prior.active))
+        throw Object.assign(Error('A newer local hand branch is already saved. Both versions were preserved.'),{code:'CHECKPOINT_BRANCH'});
       const existed=Boolean(next.store.hands[confirmed.handId]),applied=model.applyObservations(next.store, confirmed);
       if(!existed)next.store.hands[confirmed.handId].forecastOrigin={version:'THEIBS_FORECAST_ORIGIN_V1',status:'RECONSTRUCTED_AFTER_ACTION',createdAt:applied.profileSnapshot.frozenAt};
+      if(checkpoint && prior?.revisionKey!==checkpoint.revisionKey){
+        const append=prior && window.TheibsBrowserMultiwayClient.extendsLedger(prior.multiway,checkpoint.multiway);
+        next.store.hands[confirmed.handId].ledgerCheckpoint={version:'THEIBS_ACTIVE_LEDGER_V1',ownerKey:capturedOwner,active:true,
+          branchId:append?prior.branchId:checkpoint.branchId,revisionKey:checkpoint.revisionKey,sourceRevisionKey:confirmed.sourceRevisionKey,
+          ancestorRevisionKeys:append?[...prior.ancestorRevisionKeys,prior.revisionKey]:[],multiway:checkpoint.multiway,recoveries:checkpoint.recoveries || [],
+          ...(prior?.previousHandId?{previousHandId:prior.previousHandId,previousRevisionKey:prior.previousRevisionKey}:
+            checkpoint.previousHandId && checkpoint.previousHandId!==confirmed.handId?{previousHandId:checkpoint.previousHandId,previousRevisionKey:checkpoint.previousRevisionKey}:{})};
+        if(checkpoint.previousHandId && checkpoint.previousHandId!==confirmed.handId){
+          const previous=next.store.hands[checkpoint.previousHandId]?.ledgerCheckpoint;
+          if(previous){previous.active=false;previous.supersededBy=confirmed.handId;}
+        }
+      }
       return applied;
-    },{hands:[confirmed.handId],players:confirmed.playerIds || confirmed.config.players.map(player=>player.playerId)});
+    },{hands:[confirmed.handId,...(checkpoint?.previousHandId && checkpoint.previousHandId!==confirmed.handId?[checkpoint.previousHandId]:[])],players:confirmed.playerIds || confirmed.config.players.map(player=>player.playerId)});
     return {profileSnapshot:result.profileSnapshot,observationsAdded:result.observationsAdded,observationsRemoved:result.observationsRemoved};
   }
+  const ledgerCheckpoint=handId=>ready()?structuredClone(library.store.hands[handId]?.ledgerCheckpoint || null):null;
   function profileSnapshot(record) {
     if (!ready() || !record?.handId) return null;
     // Analysis reads only a durably recorded snapshot. Saving a new hand is
@@ -532,7 +552,7 @@
   window.TheibsPlayersBackupUI?.init({getContext:backupContext,onImport:restoreBackup});
   render();
   window.theibsPlayersUI = { init, clearOwner, getOwnerKey:()=>ownerKey, ready, list, byId, nameFor, heroId, freshId, beginHand, syncObservations,
-    profileSnapshot, archiveHand, recordDecision, getArchivedHand, archivedHands, getStore: () => ready() ? structuredClone(library.store) : null,
+    profileSnapshot, ledgerCheckpoint, archiveHand, recordDecision, getArchivedHand, archivedHands, getStore: () => ready() ? structuredClone(library.store) : null,
     configure: options => {request=options?.request || request;},voiceRevealContext,commitVoiceReveal,openArchivedReveal,openInsights,
     select:selectPlayer, render };
 })();

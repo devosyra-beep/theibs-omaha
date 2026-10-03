@@ -133,13 +133,13 @@ function createService({now=Date.now,maxSessions=128}={}) {
     const value=sessions.get(id);if(!value||value.owner!==owner)throw fail('Simulation expired or is unavailable for this account. Start a new hand.',404);
     return value;
   }
-  function register(owner,record,seed=crypto.randomBytes(32).toString('hex'),paused=false,replacing=null) {
+  function register(owner,record,seed=crypto.randomBytes(32).toString('hex'),paused=false,replacing=null,manualOpponents=false) {
     prune();
     const owned=[...sessions.values()].filter(value=>value.owner===owner&&value.id!==replacing);
     if(owned.length>=8)throw fail('Eight simulation hands are open. Finish or end one before starting another.',429);
     if(sessions.size-(sessions.has(replacing)?1:0)>=maxSessions)throw fail('The simulator is busy. Try again shortly.',503);
     const dealt=deal(record,seed),value={...dealt,id:crypto.randomUUID(),owner,revision:0,createdAt:new Date(now()).toISOString(),expires:now()+TTL,
-      paused:paused===true,manualOpponents:false,manualOpponentActions:0,manualHeroEvents:[],receipts:new Map()};
+      paused:paused===true,manualOpponents:manualOpponents===true,manualOpponentActions:0,manualHeroEvents:[],receipts:new Map()};
     sessions.set(value.id,value);return publicSession(value);
   }
   function mutate(owner,payload) {
@@ -152,6 +152,9 @@ function createService({now=Date.now,maxSessions=128}={}) {
     if(value.abandoned&&operation!=='REVEAL')throw fail('This hand was ended.');
     const next={...value,record:structuredClone(value.record),manualHeroEvents:[...(value.manualHeroEvents||[])]},state=multiway.envelope(next.record).state;
     if(operation==='ACT'){
+      // Selecting an opponent action can enable manual capture in this same
+      // atomic request. Rejected actions never publish the cloned mode change.
+      if(payload.manualOpponents===true && state.actor!==state.heroId){next.manualOpponents=true;next.paused=true;}
       if(state.phase!=='BETTING'||(state.actor!==state.heroId&&!next.manualOpponents))throw fail('Wait for your turn or select manual opponent control.');
       if(payload.actor!=null&&payload.actor!==state.actor)throw fail('This player is not the current actor.',409);
       const action=String(payload.action||'').toUpperCase();
@@ -202,8 +205,8 @@ function createService({now=Date.now,maxSessions=128}={}) {
       multiway.nextHand(previous.record,{},state.revisionKey).multiway;
     // The finished receipt is already held by the UI; releasing it keeps server
     // memory bounded. No real library data is read or written.
-    let result=register(owner,record,replaying?previous.seed:undefined,previous.paused,previous.id);
-    const created=sessions.get(result.id);created.manualOpponents=previous.manualOpponents;created.replayed=replaying;
+    let result=register(owner,record,replaying?previous.seed:undefined,previous.paused,previous.id,previous.manualOpponents);
+    const created=sessions.get(result.id);created.replayed=replaying;
     result=publicSession(created);
     sessions.delete(previous.id);return {session:result,previous:oldResult};
   }

@@ -89,12 +89,12 @@ test('progress survives reload separately from history without booking a payout 
   assert.match(f.host.innerHTML,/-0.5 chips/);assert.match(f.host.innerHTML,/999.50/);
 });
 
-test('the leader is prominent and preselects only its legal sizing, while overlap stays inconclusive',async()=>{
+test('the leader remains informational and the raise control requires explicit sizing, while overlap stays inconclusive',async()=>{
   const f=fixture({decisionContract:(state,data)=>data?{stage:'INCONCLUSIVE',rows:[{action:'CALL',optionId:'CALL',status:'MODELED',evBB:2,differenceBB:1},{action:'RAISE',size:2.5,optionId:'RAISE:2.5',status:'MODELED',evBB:3,differenceBB:0}],precision:{bestActionId:'RAISE:2.5',status:'INCONCLUSIVE',reason:'Bounds overlap.'},gapBestSecondBB:1,missingLegalActions:[]}:null});
   await f.ui.enter();await settle();f.pending[0].resolve(f.result);await settle();f.pending[1].resolve(f.result);await settle();
   assert.match(f.host.innerHTML,/Current EV leader<\/span><strong>Raise to 2.5/);
   assert.match(f.host.innerHTML,/INCONCLUSIVE · Bounds overlap/);assert.doesNotMatch(f.host.innerHTML,/Best modeled action/);
-  assert.match(f.host.innerHTML,/data-action="RAISE" data-to="2.5"/);assert.match(f.host.innerHTML,/EV shortfall · bb/);
+  assert.match(f.host.innerHTML,/data-action="RAISE" data-estimate-leader="true"/);assert.doesNotMatch(f.host.innerHTML,/data-action="RAISE" data-to=/);assert.match(f.host.innerHTML,/EV shortfall · bb/);
 });
 
 const leaderContract=(action='RAISE',size=2.5,stage='INCONCLUSIVE')=>(state,data)=>data?{
@@ -103,23 +103,26 @@ const leaderContract=(action='RAISE',size=2.5,stage='INCONCLUSIVE')=>(state,data
 }:null;
 async function finishEV(f){f.pending[0].resolve(f.result);await settle();f.pending[1].resolve(f.result);await settle();}
 
-test('Enter applies the highlighted inconclusive raise directly with its exact legal total and frozen snapshot',async()=>{
+test('Enter keeps an available EV leader informational; an explicit action preserves its frozen decision snapshot',async()=>{
   const f=fixture({decisionContract:leaderContract()});await f.ui.enter();await settle();await finishEV(f);
-  assert.match(f.host.innerHTML,/data-to="2.5" data-sim-enter/);assert.match(f.host.innerHTML,/EV leader · Enter/);
+  assert.doesNotMatch(f.host.innerHTML,/EV leader · Enter|data-to="2.5" data-sim-enter/);
   assert.equal(f.keyboard().prevented,true);await settle();
-  const step=f.requests.find(row=>row.url.endsWith('/step'));assert.equal(step.body.operation,'ACT');assert.equal(step.body.action,'RAISE');assert.equal(step.body.to,2.5);
+  assert.equal(f.requests.some(row=>row.url.endsWith('/step')),false,'Enter never applies the EV leader');
+  assert.match(f.host.innerHTML,/Choose F, G or H for this turn/);
   assert.equal(f.dialogs.some(dialog=>dialog.open),false,'Enter does not open the sizing editor');
+  await f.click('ACT');
+  const step=f.requests.find(row=>row.url.endsWith('/step'));assert.equal(step.body.operation,'ACT');assert.equal(step.body.action,'FOLD');assert.equal(step.body.to,undefined);
   const saved=JSON.parse(f.local.get('theibs.simulation.v1.account-a'));
-  assert.equal(saved.reports[0].decisions.length,1);assert.equal(saved.reports[0].decisions[0].chosen.size,2.5);
+  assert.equal(saved.reports[0].decisions.length,1);assert.equal(saved.reports[0].decisions[0].chosen.action,'FOLD');assert.equal(saved.reports[0].decisions[0].chosen.size,null);
   assert.equal(saved.reports[0].decisions[0].revisionKey,'revision-a');assert.equal(saved.reports[0].decisions[0].publicInput.events.length,0);
 });
 
-test('Enter reports an unavailable leader without guessing while pending, provisional, illegal, stale or fractional',async()=>{
+test('Enter stays navigational while evaluation is pending, provisional, illegal, stale or fractional',async()=>{
   const pending=fixture();await pending.ui.enter();await settle();pending.keyboard();await settle();
-  assert.equal(pending.requests.filter(row=>row.url.endsWith('/step')).length,0);assert.match(pending.host.innerHTML,/No EV leader is available/);
+  assert.equal(pending.requests.filter(row=>row.url.endsWith('/step')).length,0);assert.match(pending.host.innerHTML,/Choose F, G or H for this turn/);
   for(const [name,contract,stale] of [['provisional',leaderContract('RAISE',2.5,'PROVISIONAL')],['illegal action',leaderContract('BET',2.5)],['illegal total',leaderContract('RAISE',4)],['fractional cent',leaderContract('RAISE',2.505)],['stale revision',leaderContract(),true]]){
     const f=fixture({decisionContract:contract});await f.ui.enter();await settle();if(stale)f.result.observedState.revisionKey='old-revision';await finishEV(f);f.keyboard();await settle();
-    assert.equal(f.requests.filter(row=>row.url.endsWith('/step')).length,0,name);assert.match(f.host.innerHTML,/No EV leader is available/,name);
+    assert.equal(f.requests.filter(row=>row.url.endsWith('/step')).length,0,name);assert.match(f.host.innerHTML,/Choose F, G or H for this turn/,name);
   }
 });
 
@@ -136,12 +139,12 @@ test('Enter respects interactive target and focus, dialogs, IME, repeats, modifi
   }
 });
 
-test('a pending Enter action blocks a second key event and an offline uncertain intent cannot be resubmitted by Enter',async()=>{
+test('an explicit pending action and an offline uncertain intent cannot be resubmitted by Enter',async()=>{
   let release;const f=fixture({decisionContract:leaderContract(),stepGate:new Promise(resolve=>{release=resolve;})});
-  await f.ui.enter();await settle();await finishEV(f);f.keyboard();f.keyboard();await settle();
-  assert.equal(f.requests.filter(row=>row.url.endsWith('/step')).length,1);release();await settle();
-  const offline=fixture({decisionContract:leaderContract(),stepFailures:2});await offline.ui.enter();await settle();await finishEV(offline);offline.keyboard();
-  await new Promise(resolve=>setTimeout(resolve,450));await settle();
+  await f.ui.enter();await settle();await finishEV(f);const acting=f.click('ACT');await settle();
+  assert.equal(f.keyboard().prevented,false);assert.equal(f.keyboard().prevented,false);await settle();
+  assert.equal(f.requests.filter(row=>row.url.endsWith('/step')).length,1);release();await acting;await settle();
+  const offline=fixture({decisionContract:leaderContract(),stepFailures:2});await offline.ui.enter();await settle();await finishEV(offline);await offline.click('ACT');await settle();
   const before=offline.requests.filter(row=>row.url.endsWith('/step')).length;assert.match(offline.host.innerHTML,/Retry last request/);
   assert.equal(offline.keyboard().prevented,false);await settle();assert.equal(offline.requests.filter(row=>row.url.endsWith('/step')).length,before);
 });
@@ -186,7 +189,8 @@ test('automatic validation receives frozen public inputs before actions, follows
   assert.match(captured[0].label,/hand sion-a · revision 0 · frozen decision/);assert.match(f.host.innerHTML,/id="sim-validation-auto" type="checkbox" checked/);
   await finishEV(f);assert.equal(availability.at(-1).value,true);
   f.host.handlers.change({target:{id:'sim-validation-auto',checked:false}});assert.equal(scheduler.automatic,false);assert.doesNotMatch(f.host.innerHTML,/id="sim-validation-auto" type="checkbox" checked/);
-  f.keyboard();await settle();assert.equal(captured.length,2);assert.equal(captured[1].chosenSize,2.5);assert.equal(captured[1].record.events.length,0);
+  f.keyboard();await settle();assert.equal(captured.length,1,'Navigational Enter does not create a played-decision validation');
+  await f.click('ACT');await settle();assert.equal(captured.length,2);assert.equal(captured[1].chosenSize,null);assert.equal(captured[1].record.events.length,0);
   assert.equal(captured[0].record.events.length,0,'Later streets and actions do not mutate the captured decision');
   f.ui.clearOwner();await f.ui.enter();await settle();assert.equal(scheduler.automatic,false,'Automatic preference survives reload for the same owner');
 });
@@ -197,4 +201,20 @@ test('Enter cannot act on a cached finished phase while authoritative session re
   const entering=f.ui.enter();await settle();assert.equal(f.keyboard().prevented,false);await settle();
   assert.equal(f.requests.some(row=>row.url.endsWith('/next')||row.url.endsWith('/restart')),false);
   release();await entering;await settle();f.keyboard();await settle();assert.equal(f.requests.find(row=>row.url.endsWith('/next')).body.operation,'NEXT');
+});
+
+test('a real-turn opponent keyboard action uses one atomic ACT without a separate PACE request',async()=>{
+  const f=fixture({statePatch:{actor:1},sessionPatch:{manualOpponents:false}});await f.ui.enter();await settle();
+  assert.equal(await f.ui.keyboardAction('MATCH',null,{id:f.session.id,street:'PREFLOP'}),true);
+  const steps=f.requests.filter(row=>row.url.endsWith('/step'));assert.equal(steps.length,1);
+  assert.equal(steps[0].body.operation,'ACT');assert.equal(steps[0].body.action,'CALL');assert.equal(steps[0].body.actor,1);assert.equal(steps[0].body.manualOpponents,true);
+});
+
+test('keyboard action rejects stale hand/street and does not duplicate an in-flight transport',async()=>{
+  let release;const f=fixture({statePatch:{actor:1},stepGate:new Promise(resolve=>{release=resolve;})});await f.ui.enter();await settle();
+  assert.equal(await f.ui.keyboardAction('MATCH',null,{id:'different-hand',street:'PREFLOP'}),false);
+  assert.equal(await f.ui.keyboardAction('MATCH',null,{id:f.session.id,street:'FLOP'}),false);
+  const pending=f.ui.keyboardAction('MATCH',null,{id:f.session.id,street:'PREFLOP'});await settle();
+  assert.equal(await f.ui.keyboardAction('MATCH',null,{id:f.session.id,street:'PREFLOP'}),false);
+  assert.equal(f.requests.filter(row=>row.url.endsWith('/step')).length,1);release();assert.equal(await pending,true);
 });

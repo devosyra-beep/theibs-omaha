@@ -153,7 +153,7 @@
     },
     {
       "id": "scripts/browser-multiway/worker-entry.js",
-      "sha256": "be372d6381c9f1263d51f377fae272c3c97ce477e9ea17af8ff71f32a28a6d73"
+      "sha256": "0dc46d553308a3887fae2a71f90385ed2144917f75e83d926fc781fd316328d1"
     }
   ],
   "nodeAdapters": [
@@ -162,5 +162,5 @@
   "cancellation": "HOST_WORKER_TERMINATE",
   "cache": "OWNER_BUILD_FULL_INPUT_COMPLETE_ONLY",
   "sourceNormalization": "LF",
-  "buildFingerprint": "c2a1c9a9b97c527160c4b75d1e5922be9af841c17534becc451b06fa535f750f"
+  "buildFingerprint": "09eb94c65414f9bb72fddb180aaf184ef33ba4f90efe49c9e5488be261a5b01f"
 }

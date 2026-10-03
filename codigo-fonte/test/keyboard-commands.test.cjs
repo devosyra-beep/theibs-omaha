@@ -9,7 +9,7 @@ test('one semantic map keeps ranks, actions and suit boundaries in both language
     assert.deepEqual(key('T',lang),{type:'CARD_RANK',rank:'T'});
     for(const suit of 'ECOP')assert.deepEqual(key(suit,lang,{rank:'A'}),{type:'CARD_SUIT',suit});
     for(const [k,type]of [['f','FOLD'],['g','MATCH'],['h','AGGRESSIVE']])assert.deepEqual(key(k,lang,{rank:'A'}),{type});
-    assert.equal(key('m',lang),null);assert.equal(key(';',lang),null);
+    assert.deepEqual(key('m',lang),{type:'SELECT_HERO'});assert.equal(key(';',lang),null);
   }
   assert.equal(BINDINGS['pt-BR'].ten,'D');assert.equal(BINDINGS['en-US'].ten,'T');
 });

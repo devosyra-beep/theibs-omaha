@@ -1,5 +1,5 @@
-/* Theibs controller. All analysis and simulated actions go to the Theibs web
-   Theibs API. EssenceDeck supplies presentation only; no demo engine is loaded. */
+/* THEIBS controller. Capture uses the shared ledger domain in a dedicated
+   browser worker; protected service requests persist workspaces and simulations. */
 (function () {
   'use strict';
   const $ = (selector) => document.querySelector(selector);
@@ -11,7 +11,7 @@
   const feedback = window.TheibsAnalyzeFeedback;
   const snapshots = [];
   const snapshotModel = window.TheibsSnapshots;
-  const metrics = window.theibsMetrics = { analyses: [] };
+  const metrics = window.theibsMetrics = { analyses: [],ledgerRequests:[],capturedActions:[] };
   const value = (id) => document.getElementById(id).value.trim();
   const percent = (number) => number == null || !Number.isFinite(Number(number)) ? '—' : `${(Number(number) * 100).toFixed(1)}%`;
   const quickEquityPrecision = (equity) => {
@@ -45,6 +45,11 @@
   FIELD_IDS.push('study-mode','study-hero-contribution','study-min-raise','study-min-bet','study-accept',...Array.from({length:9},(_,i)=>['study-contribution-'+i,'study-probability-'+i]).flat());
   let activeView = 'analyze', inputRevision = 0, analysisBusy = false, trainingBusy = false;
   let browserMultiwayClient = null, browserMultiwayOwner = null;
+  let browserLedgerClient=null;
+  const confirmedObservationPayloads=new WeakMap();
+  let lastObservedDecision=null;
+  let multiwayCheckpoint=null;
+  let ledgerRequestTail=Promise.resolve();
   let profileComparison = null, profileComparisonController = null, profileComparisonClient = null;
   let lastAnalysis = null, trainingSession = null, trainingDecisions = [], replayGeneration = 0;
   let loaded = false, revision = 0, saveTimer = null, saveBusy = false, saveDirty = false, saveBlocked = false;
@@ -257,7 +262,9 @@
       captured.session === JSON.stringify(window.theibsVoiceSessionContext?.()) && !window.theibsVoiceSessionContext?.().expired;
   }
   async function runMultiway(operation, beforeAccept) {
+    const timing={started:performance.now(),validationMs:0,storageBeforeMs:0,observationsMs:0,renderMs:0};
     const entryView=activeView, entryRevision=multiwayRevision;
+    const previousRecord=multiway,previousRevisionKey=multiwayState?.revisionKey;
     await window.theibsAuth?.ensureSession?.();
     if(entryView!==activeView||entryRevision!==multiwayRevision)throw Error('Context changed during session confirmation. Repeat the action in the current context.');
     if(engineVersionError()) throw Error(engineVersionError());
@@ -267,37 +274,53 @@
     clearTimeout(multiwayCardTimer);
     multiwayCardSnapshot=cards.state.snapshot();multiwayBusy=true;invalidateAnalysis();renderMultiway();
     try {
-      const data=await operation();
+      const data=await operation();timing.validationMs=performance.now()-timing.started;
       if (!currentMultiwayRequest(captured)) throw Error('Context or session changed. The response was discarded; no new action was applied.');
       if(data) {
-        await beforeAccept?.(data);
+        const storageStart=performance.now();await beforeAccept?.(data);timing.storageBeforeMs=performance.now()-storageStart;
         if (!currentMultiwayRequest(captured)) throw Error('Context or session changed before the result could be applied.');
-        acceptMultiway(data);
-        try { await syncPlayerObservations(data.multiway); if(multiwayPlayerWarning)window.theibsMultiwayUI.setError('');multiwayPlayerWarning=''; }
-        catch (error) { multiwayPlayerWarning='Action saved, but local player observations could not be updated: '+error.message; window.theibsMultiwayUI.setError(multiwayPlayerWarning); }
+        const observationStart=performance.now();
+        let marker;
+        try { marker=await syncPlayerObservations(data.multiway,{revisionKey:data.state.revisionKey,previousRevisionKey,previousHandId:previousRecord?.handId,
+          current:()=>currentMultiwayRequest(captured)&&multiway===previousRecord});if(multiwayPlayerWarning)window.theibsMultiwayUI.setError('');multiwayPlayerWarning=''; }
+        catch (error) { multiwayPlayerWarning='The action was not recorded. '+error.message; window.theibsMultiwayUI.setError(multiwayPlayerWarning);throw Object.assign(Error(multiwayPlayerWarning,{cause:error}),{code:error.code || 'LEDGER_SAVE_FAILED'}); }
+        timing.observationsMs=performance.now()-observationStart;
+        if (!currentMultiwayRequest(captured)) throw Error('The context changed during the save. The saved hand checkpoint was preserved.');
+        multiwayCheckpoint=marker;
+        const renderStart=performance.now();acceptMultiway(data);timing.renderMs=performance.now()-renderStart;
       }
       return data;
     }
     catch(error){window.theibsMultiwayUI.setError(error.message);throw error;}
-    finally{multiwayBusy=false;multiwayCardSnapshot=null;renderMultiway();if(multiwayCardsDirty){multiwayCardsDirty=false;document.dispatchEvent(new CustomEvent('theibs:cards-changed',{detail:{source:'keyboard-reconcile'}}));}if(currentMultiwayRequest(captured))scheduleAnalysis();}
+    finally{multiwayBusy=false;multiwayCardSnapshot=null;const renderStart=performance.now();renderMultiway();timing.renderMs+=performance.now()-renderStart;metrics.capturedActions.push({...timing,elapsedMs:performance.now()-timing.started});if(metrics.capturedActions.length>100)metrics.capturedActions.shift();if(multiwayCardsDirty){multiwayCardsDirty=false;document.dispatchEvent(new CustomEvent('theibs:cards-changed',{detail:{source:'keyboard-reconcile'}}));}if(currentMultiwayRequest(captured))scheduleAnalysis();}
   }
-  async function syncPlayerObservations(record) {
+  async function syncPlayerObservations(record,transition) {
     if (!record) return;
     if (!window.theibsPlayersUI?.ready()) throw Error('The player library is unavailable. The current hand remains in the workspace; reopen player storage before continuing.');
     const ownerKey = window.theibsPlayersUI.getOwnerKey(), session = JSON.stringify(window.theibsVoiceSessionContext?.());
-    const expected = { handId: record.handId, revisionKey: multiwayState?.revisionKey };
-    if (record !== multiway || !expected.revisionKey) throw Error('The hand changed before local observations could be saved.');
+    const expected = { handId: record.handId, revisionKey: transition?.revisionKey || multiwayState?.revisionKey };
+    const current=transition?.current || (()=>record===multiway && expected.revisionKey===multiwayState?.revisionKey);
+    if (!current() || !expected.revisionKey) throw Error('The hand changed before local observations could be saved.');
+    const stamp=JSON.stringify([ownerKey,session,expected.handId,expected.revisionKey]);
+    if(lastObservedDecision===stamp)return multiwayCheckpoint;
     // Capture chronology from the validated ledger before the observations
     // endpoint strips its events. An unseen restored hand with ACT events is
     // explicitly reconstructed, never presented as a pre-action forecast.
     await window.theibsPlayersUI.beginHand(record);
-    if(ownerKey!==window.theibsPlayersUI.getOwnerKey() || session!==JSON.stringify(window.theibsVoiceSessionContext?.()) || multiway!==record)
+    if(ownerKey!==window.theibsPlayersUI.getOwnerKey() || session!==JSON.stringify(window.theibsVoiceSessionContext?.()) || !current())
       throw Error('The hand or account changed before local observations could be saved.');
-    const payload = await postJson('/api/multiway/observations',{multiway:record});
+    const payload = confirmedObservationPayloads.get(record) || await postJson('/api/multiway/observations',{multiway:record});
     if (ownerKey !== window.theibsPlayersUI.getOwnerKey() || session !== JSON.stringify(window.theibsVoiceSessionContext?.()) ||
-      multiway !== record || multiway?.handId !== expected.handId || multiwayState?.revisionKey !== expected.revisionKey ||
+      !current() ||
       payload.handId !== expected.handId || payload.sourceRevisionKey !== expected.revisionKey) throw Error('The hand or account changed before local observations could be saved.');
-    await window.theibsPlayersUI.syncObservations(payload);
+    await window.theibsPlayersUI.syncObservations(payload,{ownerKey,multiway:record,revisionKey:expected.revisionKey,
+      previousRevisionKey:transition?.previousRevisionKey,previousHandId:transition?.previousHandId,
+      branchId:crypto.randomUUID(),recoveries:multiwayRecoveries.filter(item=>item.multiway?.handId===record.handId)});
+    if(ownerKey!==window.theibsPlayersUI.getOwnerKey() || session!==JSON.stringify(window.theibsVoiceSessionContext?.()) || !current())throw Error('The hand or account changed during the save.');
+    lastObservedDecision=stamp;
+    const checkpoint=window.theibsPlayersUI.ledgerCheckpoint(record.handId);
+    const marker={version:checkpoint.version,ownerKey,handId:record.handId,branchId:checkpoint.branchId,revisionKey:checkpoint.revisionKey};
+    if(!transition){multiwayCheckpoint=marker;scheduleSave();}return marker;
   }
   async function startMultiway(config, preserveKeyboard = false) {
     if(simpleSeatDialog.open)simpleSeatDialog.close();
@@ -548,7 +571,36 @@
     }
     return data;
   }
-  const postJson = (url, payload, keepalive = false) => requestJson(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), keepalive });
+  const ledgerOperations=new Set(['start','state','step','undo','review-action','correct-action','adjust-stack','correct-button','restart-hand','next-hand','preview-sequence','batch','observations']);
+  function ledgerRequest(url,payload) {
+    const owner=window.theibsPlayersUI?.getOwnerKey?.(),session=JSON.stringify(window.theibsVoiceSessionContext?.());
+    const task=ledgerRequestTail.then(()=>{
+      if(owner!==window.theibsPlayersUI?.getOwnerKey?.() || session!==JSON.stringify(window.theibsVoiceSessionContext?.()))throw Error('The hand account changed before capture.');
+      return executeLedgerRequest(url,payload);
+    });
+    ledgerRequestTail=task.catch(()=>{});return task;
+  }
+  async function executeLedgerRequest(url,payload) {
+    await window.theibsAuth?.ensureSession?.();
+    if(engineVersionError())throw Error(engineVersionError());
+    const owner=window.theibsPlayersUI?.getOwnerKey?.(),session=JSON.stringify(window.theibsVoiceSessionContext?.()),started=performance.now();
+    let result,runtime='SERVER_LEDGER';
+    if(/^[a-f0-9]{64}$/i.test(owner || '') && window.TheibsBrowserMultiwayClient?.create) {
+      browserLedgerClient ||= window.TheibsBrowserMultiwayClient.create();
+      if(browserLedgerClient.supported) {
+        try {result=await browserLedgerClient.operate(url.slice('/api/multiway/'.length),payload,{owner:JSON.stringify([owner,session])});runtime='BROWSER_LEDGER_WORKER';}
+        catch(error){if(error.code!=='BROWSER_RUNTIME_UNAVAILABLE')throw error;}
+      }
+    }
+    if(!result)result=await requestJson(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    if(session!==JSON.stringify(window.theibsVoiceSessionContext?.()) || owner!==window.theibsPlayersUI?.getOwnerKey?.() || window.theibsVoiceSessionContext?.().expired)throw Error('The account changed during action capture.');
+    if(result.multiway && result.playerObservations)confirmedObservationPayloads.set(result.multiway,result.playerObservations);
+    metrics.ledgerRequests.push({operation:url.slice('/api/multiway/'.length),runtime,elapsedMs:performance.now()-started,workerStartupMs:result.captureTiming?.startupMs || 0});
+    if(metrics.ledgerRequests.length>100)metrics.ledgerRequests.shift();
+    return result;
+  }
+  const postJson = (url, payload, keepalive = false) => url.startsWith('/api/multiway/')&&ledgerOperations.has(url.slice('/api/multiway/'.length))
+    ?ledgerRequest(url,payload):requestJson(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), keepalive });
   function currentStreet() {
     const n = cards.state.cards().board.length;
     return n === 0 ? 'PREFLOP' : n <= 3 ? 'FLOP' : n === 4 ? 'TURN' : 'RIVER';
@@ -1353,7 +1405,7 @@ function renderResult(data, street) {
     const fields = Object.fromEntries(FIELD_IDS.map((id) => { const el = document.getElementById(id); return [id, el.type === 'checkbox' ? el.checked : el.value]; }));
     return { schemaVersion: 1, keyboard: cards.state.snapshot(), manualText: cards.manualDraft(), fields,
        ui: { felt: document.body.dataset.felt, deck: document.body.dataset.deck, view: activeView, cardDisplayVersion: 2, workflowVersion: 1, keyboardLocale:window.theibsKeyboard?.getLocale(), sidebarCollapsed: document.body.dataset.sidebar === 'collapsed', simpleFoldedSeats:[...simpleFoldedSeats],multiwayPreferences:window.theibsMultiwayUI.getPreferences(),solverStudy:window.TheibsMultiwaySolverUI?.serialize?.() },
-      keyboardCommands:window.theibsKeyboard?.snapshot(), handFlow:null, legacyHandFlow, multiway, multiwayYesple, multiwayRecoveries, opponentInputs:window.theibsOpponentInputs.snapshot(),
+      keyboardCommands:window.theibsKeyboard?.snapshot(), handFlow:null, legacyHandFlow, multiway, multiwayCheckpoint:multiway?multiwayCheckpoint:null, multiwayYesple, multiwayRecoveries, opponentInputs:window.theibsOpponentInputs.snapshot(),
       snapshots: multiway ? [] : [...snapshots], lastAnalysis: multiway ? null : lastAnalysis, trainingSessionId: trainingSession?.id || null };
   }
   function scheduleSave() {
@@ -1427,7 +1479,22 @@ function renderResult(data, street) {
           multiwayYesple=workspace.multiwayYesple||null;
           const restored={...workspace.multiway};
           if(!restored.sessionId){restored.sessionId=crypto.randomUUID();restored.handNumber=restored.handNumber||1;restored.attemptNumber=restored.attemptNumber||1;sessionMigrated=true;}
-          await runMultiway(()=>postJson('/api/multiway/state',{multiway:restored}));
+          const savedLedger=await postJson('/api/multiway/state',{multiway:restored});let checkpoint=window.theibsPlayersUI.ledgerCheckpoint(restored.handId);
+          if(checkpoint){
+            const checked=await postJson('/api/multiway/state',{multiway:checkpoint.multiway});
+            if(checked.state.revisionKey!==checkpoint.revisionKey)throw Error('The local hand checkpoint failed its canonical revision check. Saved copies were preserved.');
+          }
+          const successors=window.TheibsBrowserMultiwayClient.successorCheckpoints({ownerKey:window.theibsPlayersUI.getOwnerKey(),workspace:savedLedger.multiway,revisionKey:savedLedger.state.revisionKey,checkpoint,lookup:window.theibsPlayersUI.ledgerCheckpoint});
+          for(const successor of successors){
+            const checked=await postJson('/api/multiway/state',{multiway:successor.multiway});
+            if(checked.state.revisionKey!==successor.revisionKey)throw Error('The saved continuation failed its canonical revision check. Saved copies were preserved.');
+          }
+          if(successors.length)checkpoint=successors.at(-1);
+          const recovery=successors.length?{record:checkpoint.multiway,recovered:true,marker:{version:checkpoint.version,ownerKey:checkpoint.ownerKey,handId:checkpoint.multiway.handId,branchId:checkpoint.branchId,revisionKey:checkpoint.revisionKey}}:
+            window.TheibsBrowserMultiwayClient.recoverLedger({ownerKey:window.theibsPlayersUI.getOwnerKey(),workspace:savedLedger.multiway,revisionKey:savedLedger.state.revisionKey,marker:workspace.multiwayCheckpoint,checkpoint});
+          multiwayCheckpoint=recovery.marker || null;
+          if(recovery.recovered){sessionMigrated=true;multiwayRecoveries.push(...(checkpoint.recoveries || []).filter(item=>!multiwayRecoveries.some(saved=>saved.recoveryId===item.recoveryId)));}
+          await runMultiway(()=>recovery.recovered?postJson('/api/multiway/state',{multiway:recovery.record}):savedLedger);
         }
         window.theibsOpponentInputs.restore(workspace.opponentInputs);
         updateTableContext(); updateBoardHelp(); renderStreetCards();
@@ -1480,6 +1547,7 @@ function renderResult(data, street) {
     analysisController?.abort();cancelProfileComparison();cancelCoach();
     if(browserMultiwayOwner)browserMultiwayClient?.clearOwner?.(browserMultiwayOwner);
     browserMultiwayOwner=null;
+    browserLedgerClient?.clearOwner();lastObservedDecision=null;
     window.theibsPlayersUI?.clearOwner?.();
     window.TheibsSimulationUI?.clearOwner();
     if(loaded)invalidateAnalysis();
@@ -1514,7 +1582,7 @@ function renderResult(data, street) {
       multiwayCardSyncPending=Boolean(nextMultiway);
       multiwayRevision++;const requested=multiwayRequestContext();
       renderMultiway();invalidateAnalysis();
-      if(nextMultiway)multiwayCardTimer=setTimeout(async()=>{try{const data=await postJson('/api/multiway/state',{multiway:nextMultiway});if(currentMultiwayRequest(requested)&&multiway)acceptMultiway(data);}catch(error){if(currentMultiwayRequest(requested)){multiwayCardSyncPending=false;multiwayCardSyncFailed=true;window.theibsMultiwayUI.setError(error.message);renderMultiway();toast(error.message);}}},180);
+      if(nextMultiway)multiwayCardTimer=setTimeout(async()=>{try{if(currentMultiwayRequest(requested)&&multiway)await runMultiway(()=>postJson('/api/multiway/state',{multiway:nextMultiway}));}catch(error){multiwayCardSyncPending=false;multiwayCardSyncFailed=true;window.theibsMultiwayUI.setError(error.message);renderMultiway();toast(error.message);}},180);
       scheduleSave();
       return;
     }

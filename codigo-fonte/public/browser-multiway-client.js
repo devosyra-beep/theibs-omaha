@@ -25,6 +25,40 @@
     if(value&&typeof value==='object')return '{'+Object.keys(value).sort().filter(key=>value[key]!==undefined).map(key=>JSON.stringify(key)+':'+stable(value[key])).join(',')+'}';
     return JSON.stringify(value);
   }
+  // Recovery compares canonical public ledgers, never timestamps or event
+  // counts alone. An edit is a new branch even when it has more events.
+  function extendsLedger(before,after){
+    const a=publicRecord(before),b=publicRecord(after);
+    if(!a || !b || !Array.isArray(a.events) || !Array.isArray(b.events) || a.events.length>b.events.length)return false;
+    const {events:first,...left}=a,{events:second,...right}=b;
+    return stable(left)===stable(right) && stable(first)===stable(second.slice(0,first.length));
+  }
+  function recoverLedger({ownerKey,workspace,revisionKey,marker,checkpoint}){
+    if(!checkpoint)return {record:workspace,recovered:false};
+    if(checkpoint.version!=='THEIBS_ACTIVE_LEDGER_V1' || checkpoint.ownerKey!==ownerKey || checkpoint.multiway?.handId!==workspace?.handId ||
+      checkpoint.revisionKey!==checkpoint.sourceRevisionKey)throw failure('The saved hand checkpoint has a different account or identity. Saved copies were preserved.','CHECKPOINT_INVALID');
+    if(!checkpoint.active)throw failure('This hand was already replaced in local storage. The older draft was preserved; review recorded hands before continuing.','CHECKPOINT_BRANCH');
+    if(checkpoint.revisionKey===revisionKey)return {record:workspace,recovered:false,marker:{version:checkpoint.version,ownerKey,handId:workspace.handId,branchId:checkpoint.branchId,revisionKey}};
+    if(marker && (marker.ownerKey!==ownerKey || marker.handId!==workspace.handId || marker.branchId!==checkpoint.branchId) ||
+      !checkpoint.ancestorRevisionKeys?.includes(revisionKey) || !extendsLedger(workspace,checkpoint.multiway))
+      throw failure('A different hand correction is saved locally. Both versions were preserved; review the draft before continuing.','CHECKPOINT_BRANCH');
+    return {record:checkpoint.multiway,recovered:true,marker:{version:checkpoint.version,ownerKey,handId:workspace.handId,branchId:checkpoint.branchId,revisionKey:checkpoint.revisionKey}};
+  }
+  function successorCheckpoints({ownerKey,workspace,revisionKey,checkpoint,lookup}){
+    if(!checkpoint || checkpoint.active)return [];
+    if(checkpoint.ownerKey!==ownerKey || checkpoint.multiway?.handId!==workspace.handId ||
+      !(checkpoint.revisionKey===revisionKey || checkpoint.ancestorRevisionKeys?.includes(revisionKey) && extendsLedger(workspace,checkpoint.multiway)))
+      throw failure('A different saved hand branch replaced this draft. Saved copies were preserved.','CHECKPOINT_BRANCH');
+    const chain=[],seen=new Set([workspace.handId]);let prior=checkpoint;
+    while(!prior.active){
+      const next=lookup(prior.supersededBy);
+      if(!next || seen.has(next.multiway?.handId) || next.version!=='THEIBS_ACTIVE_LEDGER_V1' || next.ownerKey!==ownerKey ||
+        next.previousHandId!==prior.multiway.handId || next.previousRevisionKey!==prior.revisionKey || next.sourceRevisionKey!==next.revisionKey)
+        throw failure('The saved hand continuation could not be verified. Both hand copies were preserved.','CHECKPOINT_BRANCH');
+      seen.add(next.multiway.handId);chain.push(next);prior=next;
+    }
+    return chain;
+  }
   function create(options={}){
     const WorkerCtor=options.Worker||root.Worker, fetcher=options.fetch||root.fetch?.bind(root);
     const now=options.now||(()=>root.performance.now()), clock=options.clock||Date.now;
@@ -79,6 +113,15 @@
           if(message.type!=='done')return;
           const result=message.result;
           if(!result||typeof result!=='object'||result.engineBuild!==build.engineBuild){settle(failure('Invalid browser calculation result.','BUILD_MISMATCH'));retire();return;}
+          if(job.kind==='ledger'){
+            const observations=result.playerObservations || (job.operation==='observations'?result:null);
+            if(message.requestFingerprint!==job.requestFingerprint || result.multiway &&
+                (!result.state?.revisionKey || result.state.handId!==result.multiway.handId || !observations || observations.handId!==result.multiway.handId || observations.sourceRevisionKey!==result.state.revisionKey)){
+              settle(failure('The captured hand identity changed.','STALE_RESULT'));retire();return;
+            }
+            result.captureTiming={elapsedMs:now()-job.started,startupMs:job.startupMs,runtime:'BROWSER_LEDGER_WORKER'};
+            workerUses++;metrics.completedJobs++;settle(null,result);return;
+          }
           if(message.requestFingerprint!==job.requestFingerprint||result.observedState?.handId!==job.handId||
               !result.observedState?.revisionKey||
               (job.revisionKey&&result.observedState.revisionKey!==job.revisionKey)||
@@ -104,6 +147,47 @@
         currentWorker.onerror=()=>{root.clearTimeout(timer);readyCancel=null;settle(failure('Browser calculation failed.','WORKER_FAILED'));retire();if(!ready)reject(failure('The browser calculation runtime failed.','BROWSER_RUNTIME_UNAVAILABLE'));};
       });
       return readyPromise;
+    }
+    async function operate(operation,payload,{signal,owner:requestOwner}={}){
+      if(closed)throw failure('The browser ledger client is closed.','CLIENT_CLOSED');
+      if(!supported)throw failure('Browser workers are unavailable.','BROWSER_RUNTIME_UNAVAILABLE');
+      if(signal?.aborted)throw abortError();
+      if(typeof requestOwner!=='string'||!requestOwner||requestOwner.length>256)throw failure('Choose the signed-in workspace owner.','OWNER_REQUIRED');
+      const allowed=['start','state','step','undo','review-action','correct-action','adjust-stack','correct-button','restart-hand','next-hand','preview-sequence','batch','observations'];
+      if(!allowed.includes(operation))throw failure('Invalid ledger operation.','INVALID_INPUT');
+      if(active||starting)throw failure('Wait for the current captured action.','LEDGER_BUSY');
+      if(owner!==requestOwner){cancel();clearCache();owner=requestOwner;}
+      const input=clone(pick(payload,['multiway','previousMultiway','config','event','expectedRevision','expectedRevisionKey','selection','change','options','commands','originEventId','expectedPreviewKey']));
+      for(const key of ['multiway','previousMultiway'])if(input[key])input[key]=publicRecord(input[key]);
+      if(input.config)input.config=publicRecord({config:input.config}).config;
+      if(input.event)input.event=publicRecord({events:[input.event]}).events[0];
+      if(input.change)input.change=pick(input.change,['eventId','eventIndex','actor','action','to','stack','buttonId','expectedRevisionKey']);
+      if(input.selection)input.selection=pick(input.selection,['eventId','eventIndex']);
+      if(input.options){input.options=pick(input.options,['config','stacks','originEventId']);if(input.options.config)input.options.config=publicRecord({config:input.options.config}).config;}
+      const serialized=JSON.stringify({operation,payload:input});
+      if(new root.TextEncoder().encode(serialized).length>LIMITS.maxInputBytes)throw failure('Captured hand input is too large.','INVALID_INPUT');
+      const started=now(),startGeneration=generation;let cancelledStart;
+      const cancelled=new Promise((_,reject)=>{cancelledStart={reject};});starting=cancelledStart;
+      const onAbort=()=>{if(starting===cancelledStart)cancel();};signal?.addEventListener('abort',onAbort,{once:true});
+      let requestFingerprint;
+      try{
+        await Promise.race([(async()=>{
+          await loadManifest();
+          if(signal?.aborted||owner!==requestOwner||generation!==startGeneration||closed)throw abortError();
+          const digest=await root.crypto.subtle.digest('SHA-256',new root.TextEncoder().encode(serialized));
+          requestFingerprint=Array.from(new Uint8Array(digest),value=>value.toString(16).padStart(2,'0')).join('');
+          if(signal?.aborted||owner!==requestOwner||generation!==startGeneration||closed)throw abortError();
+          await ensureWorker();
+        })(),cancelled]);
+      }finally{signal?.removeEventListener('abort',onAbort);if(starting===cancelledStart)starting=null;}
+      if(signal?.aborted||owner!==requestOwner||generation!==startGeneration||closed)throw abortError();
+      return new Promise((resolve,reject)=>{
+        const job={kind:'ledger',operation,id:'ledger-'+(++sequence),generation,started,startupMs:now()-started,requestFingerprint,signal,resolve,reject};
+        job.onAbort=()=>{if(active===job)cancel();};active=job;signal?.addEventListener('abort',job.onAbort,{once:true});
+        job.timer=root.setTimeout(()=>{if(active===job){settle(failure('The captured action reached its device time budget.','WORKER_TIMEOUT'));retire();}},LIMITS.watchdogMs);
+        try{worker.postMessage({type:'ledger',operation,jobId:job.id,generation:job.generation,payload:input,expectedBuildFingerprint:manifest.buildFingerprint});}
+        catch{settle(failure('Unable to capture the action.','WORKER_FAILED'));retire();}
+      });
     }
     async function analyze(payload,{phase='FINAL',signal,owner:requestOwner}={}){
       if(closed)throw failure('The browser calculation client is closed.','CLIENT_CLOSED');
@@ -161,7 +245,7 @@
     }
     function clearOwner(value){if(value===undefined||value===owner){cancel();clearCache();owner=null;}}
     function close(){clearOwner();closed=true;}
-    return Object.freeze({supported,analyze,clearOwner,close,metrics:()=>({...metrics,cacheBytes,cacheEntries:cache.size}),limits:LIMITS});
+    return Object.freeze({supported,analyze,operate,clearOwner,close,metrics:()=>({...metrics,cacheBytes,cacheEntries:cache.size}),limits:LIMITS});
   }
-  root.TheibsBrowserMultiwayClient=Object.freeze({create,limits:LIMITS});
+  root.TheibsBrowserMultiwayClient=Object.freeze({create,limits:LIMITS,extendsLedger,recoverLedger,successorCheckpoints});
 })(typeof window==='object'?window:globalThis);

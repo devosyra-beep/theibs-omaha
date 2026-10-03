@@ -10,6 +10,7 @@
   let rank = '', ten = false, cursor = 0, generation = 0;
   let observations = [], opponentCards = new Map(), stagedBoard = Array(5).fill(null), amountDraft = null;
   let actionPending=false, followedTurn=null, keyboardOwnsEnter=false, reviewingPrevious=false;
+  let queuedActions=0,actionEpoch=0,simReviewIndex=null,followedSimulation=null,simContinuePending=false;
   let selectedActionId=null,reviewSnapshot=null,reviewRequest=0,selectionStamp='',enterIntent='';
   let boardHandId=mw().state?.handId??null;
   let boardCorrections=new Set(), wasEnabled=mw().enabled;
@@ -49,7 +50,7 @@
   }
   const heroId=()=>players().find(p=>p.hero)?.id;
   const currentPlayer=()=>players().find(p=>p.id===selectedPlayer)||players().find(p=>p.hero);
-  const playerName=p=>p?.hero?text('Você','You'):p?.name||text('Adversário','Opponent');
+  const playerName=p=>p?.hero?text('Você','You'):p?.seatName||p?.name||text('Adversário','Opponent');
   function clearRank() {rank='';ten=false;}
   function setContext(value) {context=value;document.body.dataset.keyboardContext=value;}
   const sequential=()=>app()?.getState().activeView==='analyze'&&mw().enabled;
@@ -92,6 +93,14 @@
       const next=Math.max(0,Math.min(trail.length,(index<0?trail.length:index)+delta));
       if(!trail.length){followTurn();setContext('players');paint();return;}
       chooseAction(trail[next]||null);return;
+    }
+    if(app().getState().activeView==='simulation'){
+      const state=sim();if(!state.session||state.busy||queuedActions)return;
+      const trail=currentStreetActions(state.session.multiway),index=simReviewIndex??trail.length;
+      const next=Math.max(0,Math.min(trail.length,index+delta));
+      simReviewIndex=next<trail.length?next:null;
+      selectedPlayer=trail[next]?.actor??state.session.state.actor??state.session.state.heroId;
+      setContext('players');paint();return;
     }
     const list=players(), from=list.findIndex(p=>p.id===currentPlayer()?.id);
     for(let n=1;n<=list.length;n++) {
@@ -352,9 +361,10 @@
       await new Promise(resolve=>setTimeout(resolve,16));
     }
   }
-  function actionReady() {
+  function actionReady(queueable=false) {
     if(!mw().enabled){feedback(text('Inicie Multiway nas configurações para registrar ações. Enter calcula a equity.','Start Multiway in Settings to record actions. Enter calculates equity.'),true);return false;}
-    if(actionPending||resetting||mw().busy){feedback(text('Aguarde a confirmação desta ação.','Wait for this action to be confirmed.'),true);return false;}
+    if(resetting||(actionPending||mw().busy)&&!(queueable&&queuedActions>0&&!selectedActionId)) {feedback(text('Aguarde a confirmação desta ação.','Wait for this action to be confirmed.'),true);return false;}
+    if(queuedActions>=16){feedback('Finish this sequence before adding more actions.',true);return false;}
     if(!selectedActionId&&mw().state?.phase!=='BETTING'){feedback(text('Preencha o board ou inicie a próxima mão.','Enter the board or start the next hand.'),true);return false;}
     return true;
   }
@@ -373,23 +383,49 @@
     paint();
   }
   function makeObservation(kind,to) {
-    if(!actionReady())return;
+    if(!actionReady(kind!=='AGGRESSIVE'))return;
     const eventId=selectedActionId,token=generation,revision=mw().state.revisionKey;
-    actionPending=true;if(!rank&&!ten)setContext('players');paint();
+    const hand=mw().state.handId,street=mw().state.street,epoch=actionEpoch;
+    queuedActions++;actionPending=true;if(!rank&&!ten)setContext('players');paint();
     queue.push(async()=>{
       try {
-        if(token!==generation||mw().state?.revisionKey!==revision)return;
-        const state=await selectedDecision();
-        if(!state||eventId!==selectedActionId||token!==generation||mw().state?.revisionKey!==revision)return;
+        if(token!==generation||epoch!==actionEpoch||app().getState().activeView!=='analyze')return;
+        if(mw().state?.handId!==hand||mw().state?.street!==street||(!eventId&&mw().state?.phase!=='BETTING'))return;
+        if(eventId&&(mw().state?.revisionKey!==revision||eventId!==selectedActionId))return;
+        const state=eventId?await selectedDecision():mw().state;
+        if(!state||token!==generation||epoch!==actionEpoch)return;
         const actor=state.actor,action=kind==='FOLD'?'FOLD':kind==='MATCH'?(state.legal.actions.includes('CHECK')?'CHECK':'CALL'):(state.currentBet?'RAISE':'BET');
-        if(!state.legal.actions.includes(action)){feedback('Action unavailable for this decision.',true);return;}
+        if(!state.legal.actions.includes(action)){actionEpoch++;feedback('Action unavailable for this decision.',true);return;}
         const payload={actor,action,...(to==null?{}:{to})};
         const ok=eventId?await app().keyboard.correctAction({...payload,eventId,expectedRevisionKey:revision}):await window.theibsMultiwayUI.keyboardAction(payload);
         if(token!==generation)return;
         if(ok){followTurn();feedback(eventId?'Correction recorded.':'Action confirmed.');}
-        else feedback(mw().error||text('Ação não confirmada. Tente novamente.','Action was not confirmed. Try again.'),true);
-      } finally {actionPending=false;paint();app().keyboard.changed();document.dispatchEvent(new CustomEvent('theibs:keyboard-settled'));}
+        else {actionEpoch++;feedback(mw().error||text('Ação não confirmada. Tente novamente.','Action was not confirmed. Try again.'),true);}
+      } catch(error){actionEpoch++;throw error;}
+      finally {queuedActions--;actionPending=queuedActions>0;paint();app().keyboard.changed();document.dispatchEvent(new CustomEvent('theibs:keyboard-settled'));}
     });
+  }
+  function simulationAction(kind,to){
+    const value=sim(),session=value.session;
+    if(!session||session.state.phase!=='BETTING'||value.restoringSession||value.pendingIntent&&!queuedActions||value.connection!=='CONNECTED')return;
+    if(simReviewIndex!==null){feedback('Press Enter to return to the current turn.');return;}
+    if(value.busy&&!queuedActions||queuedActions>=16)return;
+    const expected={id:session.id,street:session.state.street},token=generation,epoch=actionEpoch;
+    queuedActions++;
+    queue.push(async()=>{
+      try{
+        if(token!==generation||epoch!==actionEpoch||app().getState().activeView!=='simulation')return;
+        const now=sim().session;
+        if(now?.id!==expected.id||now?.state.street!==expected.street||now?.state.phase!=='BETTING')return;
+        if(!await window.TheibsSimulationUI.keyboardAction(kind,to,expected))actionEpoch++;
+      }catch(error){actionEpoch++;throw error;}
+      finally{queuedActions--;paint();}
+    });
+  }
+  function previousSelection(){
+    if(rank||ten){clearRank();paint();return;}
+    if(context==='players'||app().getState().activeView==='simulation')nextPlayer(-1);
+    else moveCard(-1);
   }
   function scheduleFlush() {
     if(flushScheduled){flushAgain=true;return;}flushScheduled=true;
@@ -417,10 +453,13 @@
   async function openAmount() {
     const state=app().getState();let p=currentPlayer();if(state.activeView!=='analyze')clearRank();
     if(state.activeView==='simulation'){
-      if(!sim().session||sim().session.finished||p?.folded||p?.allIn)return;
-      amountDraft={mode:'simulation',generation,actor:p.id,session:sim().session.id};
-      $('#keyboard-amount').min=.01;$('#keyboard-amount').removeAttribute('max');
-      $('#keyboard-amount-help').textContent=text('Total nesta street. Ação pendente até o jogador entrar no fluxo.','Total this street. Pending until this player enters the flow.');
+      const value=sim(),session=value.session;
+      if(!session||session.finished||value.busy||queuedActions||simReviewIndex!==null||session.state.phase!=='BETTING')return;
+      p=session.state.players.find(player=>player.id===session.state.actor);
+      const legal=session.state.legal;if(!legal.actions.some(action=>['BET','RAISE'].includes(action)))return;
+      amountDraft={mode:'simulation',generation,actor:p.id,session:session.id,revision:session.revision};
+      $('#keyboard-amount').min=legal.minTo;$('#keyboard-amount').max=legal.maxTo;
+      $('#keyboard-amount-help').textContent=`Total this street: ${legal.minTo} to ${legal.maxTo}.`;
     }else if(state.activeView==='train'){
       const session=state.trainingSession;
       if(!session||session.finished){feedback(text('Inicie a simulação com apóstrofo.','Start the simulation with apostrophe.'),true);return;}
@@ -454,7 +493,7 @@
     if(draft.mode==='analyze'&&mw().state?.revisionKey!==draft.revision){feedback(text('A vez mudou. Abra a aposta novamente.','The turn changed. Open the bet again.'),true);amount.close();return;}
     amount.close();
     if(draft.generation!==generation)return;
-    if(draft.mode==='simulation'){if(sim().session?.id===draft.session&&window.TheibsSimulationUI.keyboardCapture('AGGRESSIVE',draft.actor,to))nextPlayer(1,true);paint();}
+    if(draft.mode==='simulation'){if(sim().session?.id===draft.session&&sim().session.revision===draft.revision)simulationAction('AGGRESSIVE',to);else feedback('The turn changed. Open the bet again.',true);paint();}
     else if(draft.mode==='train')queue.push(async()=>{
       await waitReady();const session=app().getState().trainingSession;
       if(draft.generation!==generation||session?.id!==draft.session||(!draft.afterPending&&session.revision!==draft.revision))throw Error(text('A simulação mudou. Repita a ação.','Simulation changed. Repeat the action.'));
@@ -506,9 +545,32 @@
     if(app().getState().activeView==='simulation'){
       if(command.type==='PREVIOUS_PLAYER')nextPlayer(-1);
       else if(command.type==='NEXT_PLAYER')nextPlayer(1);
-      else if(['FOLD','MATCH'].includes(command.type)){if(window.TheibsSimulationUI.keyboardCapture(command.type,currentPlayer()?.id))nextPlayer(1,true);}
+      else if(['FOLD','MATCH'].includes(command.type))simulationAction(command.type);
       else if(command.type==='AGGRESSIVE')openAmount();
-      else if(['CONFIRM','RESET_HAND','NEW_GAME','BACKSPACE'].includes(command.type))queue.push(()=>window.TheibsSimulationUI.keyboardCommand(command.type));
+      else if(command.type==='BACKSPACE')previousSelection();
+      else if(command.type==='CONFIRM'&&simReviewIndex!==null){simReviewIndex=null;selectedPlayer=sim().session?.state.actor;setContext('players');}
+      else if(['CONFIRM','RESET_HAND','NEW_GAME'].includes(command.type)){
+        if(command.type==='CONFIRM'&&queuedActions&&!simContinuePending){
+          const id=sim().session?.id,token=generation,epoch=actionEpoch;simContinuePending=true;
+          queue.push(async()=>{
+            try{
+              const session=sim().session;
+              if(token!==generation||epoch!==actionEpoch||app().getState().activeView!=='simulation'||session?.id!==id)return;
+              // A deliberate Enter may follow the last action before its ACK.
+              // Continue once, in that hand only, after every earlier key settles.
+              await window.TheibsSimulationUI.keyboardCommand('CONFIRM',{id,revision:session.revision});
+            }finally{simContinuePending=false;}
+          });
+          return;
+        }
+        if(queuedActions||sim().busy)return;
+        const expected={id:sim().session?.id,revision:sim().session?.revision};
+        const token=generation,epoch=actionEpoch;
+        queue.push(()=>{
+          if(token!==generation||epoch!==actionEpoch||app().getState().activeView!=='simulation')return;
+          return window.TheibsSimulationUI.keyboardCommand(command.type,expected);
+        });
+      }
       else if(command.type==='HELP'){if(!$('#help-dialog').open)$('#help-dialog').showModal();}
       paint();return;
     }
@@ -535,7 +597,7 @@
         else if(app().getState().analysisBusy)feedback('The current calculation is already running.');
         else queue.push(async()=>{await waitReady();await app().keyboard.analyze();paint();});
         break;
-      case 'BACKSPACE':correct();break;
+      case 'BACKSPACE':previousSelection();break;
       case 'REMOVE_CARD':correct(true);break;
       case 'UNDO_CARDS':if(context==='players'||scope!=='hero')correct();else {cards.undo();paint();}break;
       case 'COPY_CARDS':void cards.copy();break;
@@ -563,7 +625,9 @@
     shiftCandidate=false;held.add(code);
     if(!canHandleKey(event,{enabled:available,hidden:document.hidden}))return;
     if(event.key==='Tab'){typingUntil=0;keyboardOwnsEnter=false;}
-    // Enter on a real control belongs to that control, even after a card/action key.
+    // Gameplay Enter advances the stage; Space still activates a focused action.
+    if(event.key==='Enter'&&event.target?.closest?.('[data-sim-op="ACT"],[data-sim-op="SIZE"],[data-mw-command]')){event.preventDefault();event.stopImmediatePropagation();dispatch({type:'CONFIRM'});return;}
+    // Native editors and non-action controls retain their normal activation.
     if(event.key==='Enter'&&event.target?.closest?.('button,summary,a[href],input,select,textarea,[role="button"]'))return;
     if(event.key==='Enter'&&keyboardOwnsEnter){event.preventDefault();event.stopImmediatePropagation();dispatch({type:'CONFIRM'});return;}
     if(event.key===' ' && performance.now()<typingUntil){event.preventDefault();event.stopImmediatePropagation();return;}
@@ -622,10 +686,13 @@
   document.addEventListener('theibs:cards-changed',event=>{if(['voice','manual','paste'].includes(event.detail?.source))clearRank();if(event.detail?.source==='variant'){observations=[];opponentCards.clear();stagedBoard=Array(5).fill(null);selectedPlayer=null;scope='hero';clearRank();}if(!rank)paint();});
   document.addEventListener('theibs:hand-started',event=>{if(!event.detail?.keyboard){if(!resetting)generation++;followedTurn=null;clearReview();observations=[];opponentCards.clear();stagedBoard=Array(5).fill(null);boardCorrections.clear();selectedPlayer=null;scope='hero';clearRank();if(sequential())followTurn();}});
   document.addEventListener('theibs:simulation-render',()=>{
-    if(app().getState().activeView!=='simulation')return;paint();const state=sim();
+    if(app().getState().activeView!=='simulation')return;const state=sim();
+    const turn=state.session?JSON.stringify([state.session.id,state.session.revision,state.session.state.actor]):null;
+    if(turn!==followedSimulation&&!state.busy){followedSimulation=turn;simReviewIndex=null;selectedPlayer=state.session?.state.actor??state.session?.state.heroId;setContext('players');}
+    paint();
     if(!simFlushScheduled&&!state.busy&&!state.restoringSession&&state.observations.some(item=>!item.error&&item.actor===state.session?.state.actor)){simFlushScheduled=true;queue.push(async()=>{try{await window.TheibsSimulationUI.keyboardFlush();}finally{simFlushScheduled=false;}});}
   });
-  document.addEventListener('theibs:view-changed',()=>{clearRank();paint();if(app().getState().activeView==='analyze')scheduleFlush();});
+  document.addEventListener('theibs:view-changed',()=>{actionEpoch++;clearRank();paint();if(app().getState().activeView==='analyze')scheduleFlush();});
   new MutationObserver(paint).observe($('#training-action-buttons'),{childList:true});
   window.theibsKeyboard={dispatch,queue,selectPlayer,selectAction(id){chooseAction(actionTrail().find(item=>item.id===id));},cancelPending(){clearRank();paint();},isResetting:()=>resetting,enterCard(card){rank=card[0];assign(card[1]);},getLocale:()=>language,
     getState:()=>({selectedPlayer,selectedPlayerId:selectedPlayer,actorId:mw().state?.actor??null,selectedActionId,cardTarget:scope==='board'?'board':'hero',inputContext:inputContext(),enterIntent,context,scope,cursor,rank,ten,actionPending,reviewingPrevious,boardReady:boardReady(),observations:observations.map(item=>({...item})),stagedBoard:[...stagedBoard]}),

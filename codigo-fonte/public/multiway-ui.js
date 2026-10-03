@@ -522,11 +522,14 @@
     $('#mw-reveal-cards').value = (item.shownCards || []).map(window.TheibsCards.fromCanonical).join(' ');
     setError('');
   }
+  function rememberResultDraft(){
+    const form=$('#mw-result-form');
+    if(form)resultDraft={handId:view.state.handId,rake:$('#mw-result-rake').value,winners:(view.state.pots||[]).map((_,index)=>[...form.querySelectorAll(`[data-mw-pot="${index}"]:checked`)].map(node=>Number(node.value)))};
+  }
   function openReveal(id) {
     if (!initialized || !completed() || busy()) return false;
     if(completionDialog?.open){
-      const form=$('#mw-result-form');
-      if(form)resultDraft={handId:view.state.handId,rake:$('#mw-result-rake').value,winners:(view.state.pots||[]).map((_,index)=>[...form.querySelectorAll(`[data-mw-pot="${index}"]:checked`)].map(node=>Number(node.value)))};
+      rememberResultDraft();
     }
     for (const node of [seatDialog, completionDialog]) if (node?.open) node.close();
     $('#mw-reveal-player').innerHTML = view.state.players.map(item => `<option value="${item.id}">${esc(playerName(item))} · ${esc(item.position)}</option>`).join('');
@@ -839,7 +842,7 @@
     $('#mw-history').open = document.body.dataset.analysisSecondary === 'expanded';
     $('#mw-action-stage').insertAdjacentHTML('afterend', '<div id="mw-completion-actions" class="mw-result-actions" hidden><button id="mw-next-direct" type="button" class="primary-button">Next hand</button><button id="mw-completion-open" type="button" class="ghost-button">Result · optional</button><button id="mw-shown-open" type="button" class="ghost-button">Shown cards</button></div>');
     completionDialog = dialog('mw-completion-dialog', 'Hand result', '<div id="mw-completion-content" class="mw-completion-content"></div>');
-    window.TheibsMultiwayResultKeys.bind({dialog:completionDialog,getState:()=>view.state,isBusy:()=>busy()||completionTransition,onError:setError});
+    window.TheibsMultiwayResultKeys.bind({dialog:completionDialog,getState:()=>view.state,isBusy:()=>busy()||completionTransition,onError:setError,onBack:()=>{rememberResultDraft();completionDialog.close();}});
     revealDialog = dialog('mw-reveal-dialog', 'Shown cards', '<form id="mw-reveal-form"><label>Player<select id="mw-reveal-player"></select></label><label>Cards shown<input id="mw-reveal-cards" type="text" autocomplete="off" spellcheck="false" placeholder="AE KC · partial hands are welcome"></label><p class="mw-card-legend">Only cards you saw. Rank + suit: ♠ E · ♥ C · ♦ O · ♣ P.</p><div class="mw-result-actions"><button id="mw-reveal-voice" type="button" class="ghost-button" aria-pressed="false">Voice off</button><button id="mw-reveal-save" type="submit" class="primary-button">Save shown cards</button></div></form>');
     boardDialog = dialog('multiway-board-dialog', '<span id="mw-board-title">Next street</span>', '<form id="mw-board-form"><p id="mw-board-existing"></p><label><span id="mw-board-label">New cards</span><input id="mw-board-new" autocomplete="off" spellcheck="false" required></label><p class="mw-card-legend">Rank + suit: ♠ E · ♥ C · ♦ O · ♣ P. Ten = D, T or 10.</p><button id="mw-board-confirm" type="submit" class="primary-button">Deal street · Enter</button></form>');
     seatDialog = dialog('multiway-seat-dialog', '<span id="mw-seat-title">Player</span>', '<p id="mw-seat-info"></p><div class="seat-popover-actions"><button id="mw-seat-fold" type="button" class="ghost-button">Record fold</button><button id="mw-seat-undo" type="button" class="text-button" hidden>Undo latest fold</button></div><p id="mw-seat-note"></p><details id="mw-seat-edit-details"><summary>Opponent assumptions</summary><p id="mw-seat-edit-note" class="micro"></p><fieldset id="mw-seat-editor"><label>Known hand<input id="mw-seat-hand" autocomplete="off" placeholder="AE KC QO JP TE"></label><label>Range<textarea id="mw-seat-range" rows="2" placeholder="One hand per line"></textarea></label><label>Call chance (%)<input id="mw-seat-rate" type="number" min="0" max="100" step="0.1" placeholder="Unknown"></label><div class="seat-popover-actions"><button id="mw-seat-apply" type="button" class="primary-button">Apply to seat</button><button id="mw-seat-remove" type="button" class="text-button">Remove assumption</button></div></fieldset><p id="mw-seat-edit-error" class="multiway-error" role="alert" hidden></p></details>');
@@ -883,7 +886,7 @@
         if(fields.length){event.preventDefault();const index=fields.indexOf(target),step=['ArrowUp','ArrowLeft'].includes(event.key)?-1:1;fields[Math.max(0,Math.min(fields.length-1,index+step))].focus();}return;
       }
       if(!textField && event.key.toLowerCase()==='v'){event.preventDefault();openReveal(target.matches('[data-mw-pot]')?Number(target.value):undefined);return;}
-      if(event.key==='Enter' && !target.matches('button,summary')){event.preventDefault();event.stopPropagation();void finishCompletion();}
+      if(event.key==='Enter'){event.preventDefault();event.stopPropagation();void finishCompletion();}
     });
     initialized = true; fillSetup(true);
     $('#mw-completion-open').onclick = () => openCompletion();
@@ -893,6 +896,10 @@
     $('#mw-reveal-voice').onclick = () => { window.theibsCardVoice?.toggle?.(); refreshCompletion(); };
     let revealVoiceTimer = null;
     revealDialog.addEventListener('close', () => { clearInterval(revealVoiceTimer); revealVoiceTimer = null; revealDraft = null; });
+    revealDialog.addEventListener('keydown',event=>{
+      if(event.key!=='Backspace'||event.repeat||event.isComposing||event.ctrlKey||event.metaKey||event.altKey||busy()||event.target.closest('input,textarea,select,[contenteditable]'))return;
+      event.preventDefault();event.stopPropagation();revealDialog.close();openCompletion();
+    });
     new MutationObserver(() => {
       if (revealDialog.open && !revealVoiceTimer) revealVoiceTimer = setInterval(() => refreshCompletion(), 250);
       else if (!revealDialog.open && revealVoiceTimer) { clearInterval(revealVoiceTimer); revealVoiceTimer = null; }
@@ -902,6 +909,7 @@
       try {
         if (!revealDraft || revealDraft.stateToken !== activeToken()) throw Error('The hand changed. Open shown cards again.');
         const draft = revealDraft, cards = validateShown(parsedShown(), player(draft.actor));
+        if(!cards.length&&!player(draft.actor)?.shownCards?.length){revealDialog.close();openCompletion();return;}
         if (await invoke('reveal', { actor: draft.actor, cards })) { revealDialog.close(); openCompletion(); }
       } catch (error) { setError(error.message); }
     };

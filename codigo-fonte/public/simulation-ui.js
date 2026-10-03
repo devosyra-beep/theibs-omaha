@@ -12,13 +12,12 @@
     if(!active||!session||busy||restoringSession||pendingIntent||connection!=='CONNECTED')return;
     keyboardObservations=keyboardObservations.filter(item=>item.id===session.id);
     if(!keyboardObservations.length)return;
-    if(!session.manualOpponents){await perform('PACE',{paused:true,manualOpponents:true});}
     for(let n=0;n<100&&!busy&&session&&!session.finished;n++){
       const item=keyboardObservations.find(item=>!item.error&&item.actor===session.state.actor&&item.street===session.state.street);
       if(!item||session.state.phase!=='BETTING')break;
       const before=session.revision,actions=session.state.legal.actions;
       const action=item.kind==='FOLD'?'FOLD':item.kind==='MATCH'?(actions.includes('CHECK')?'CHECK':'CALL'):(actions.includes('BET')?'BET':'RAISE');
-      await perform('ACT',{actor:item.actor,action,...(item.to==null?{}:{to:item.to})});
+      await perform('ACT',{actor:item.actor,action,...(item.actor!==session.state.heroId?{manualOpponents:true}:{}),...(item.to==null?{}:{to:item.to})});
       if(session?.revision!==before)keyboardObservations=keyboardObservations.filter(entry=>entry!==item);
       else {item.error=error||'Review this action.';break;}
     }
@@ -26,26 +25,33 @@
   }
   function keyboardCapture(kind,actor,to){
     const player=session?.state.players.find(player=>player.id===actor);
-    if(!player||session.finished||player.folded||player.allIn)return false;
+    if(!player||session.finished||player.folded||player.allIn||actor!==session.state.actor||session.state.phase!=='BETTING'||busy||pendingIntent)return false;
     const item={id:session.id,actor,kind,to,street:session.state.phase==='WAIT_BOARD'?session.state.nextStreet:session.state.street};
     keyboardObservations=keyboardObservations.filter(entry=>entry.actor!==actor||entry.street!==item.street);keyboardObservations.push(item);
     save();window.theibsKeyboard.queue.push(keyboardFlush);return true;
   }
-  async function keyboardCommand(type){
+  async function keyboardAction(kind,to,expected={}){
+    if(!active||!session||busy||restoringSession||pendingIntent||connection!=='CONNECTED')return false;
+    if(expected.id&&expected.id!==session.id||expected.street&&expected.street!==session.state.street||session.state.phase!=='BETTING')return false;
+    const before=session.revision,id=session.id,actor=session.state.actor,actions=session.state.legal.actions;
+    const action=kind==='FOLD'?'FOLD':kind==='MATCH'?(actions.includes('CHECK')?'CHECK':'CALL'):(actions.includes('BET')?'BET':'RAISE');
+    if(!actions.includes(action)){shortcutMessage='Action unavailable for this turn.';render();return false;}
+    await perform('ACT',{actor,action,...(actor!==session.state.heroId?{manualOpponents:true}:{}),...(to==null?{}:{to})});
+    return session?.id===id&&session.revision!==before;
+  }
+  async function keyboardCommand(type,expected=null){
     if(type==='CONFIRM'&&(!active||busy||restoringSession||pendingIntent||connection!=='CONNECTED'))return;
     for(let n=0;(busy||restoringSession)&&n<1200;n++)await new Promise(resolve=>setTimeout(resolve,16));
     if(!active)return;
+    if(expected&&(session?.id!==expected.id||session?.revision!==expected.revision))return;
     if(type==='NEW_GAME'){configure();return;}
     if(type==='RESET_HAND'){if(session)await perform('RESTART');else configure();keyboardObservations=[];return;}
-    if(type==='BACKSPACE'){
-      const actor=window.theibsKeyboard.getState().selectedPlayer;
-      keyboardObservations=keyboardObservations.filter(item=>item.actor!==actor);render();return;
-    }
+    if(type==='BACKSPACE')return;
     if(type==='CONFIRM'){
       const next=enterAction();
       if(next)await perform(next.operation,next.extra||{});
-      else {shortcutMessage='No EV leader is available. Choose an action with F, G or H.';render();}
-      await keyboardFlush();
+      else {shortcutMessage='Choose F, G or H for this turn.';render();}
+      focusPlayArea();
     }
   }
   const key=()=>`theibs.simulation.v1.${owner}`;
@@ -65,10 +71,7 @@
   }
   function enterAction(){
     if(!session)return null;
-    if(heroTurn()){
-      const row=guidance()?.row;if(!row)return null;
-      return {operation:'ACT',extra:{action:row.action,...(['BET','RAISE'].includes(row.action)?{to:row.size}:{})}};
-    }
+    if(heroTurn())return null;
     if(session.finished)return {operation:!session.abandoned&&canContinue()?'NEXT':'RESTART'};
     if(session.state.phase==='WAIT_BOARD')return {operation:'DEAL'};
     if(session.state.phase==='SHOWDOWN')return {operation:'SETTLE'};
@@ -112,7 +115,7 @@
   }
   function bankroll(){
     const result=T.progressSummary(progress);
-    return `<section class="sim-bankroll" aria-label="Simulated bankroll"><div class="sim-bankroll-heading"><h2>Practice bankroll <span>Simulated money</span></h2>${button('Bankroll settings','BANKROLL')}</div><dl class="sim-bankroll-metrics"><div><dt>Settled balance</dt><dd>${esc(cash(result.balanceChips))}<small>${money(result.balanceChips)} chips</small></dd></div><div><dt>Profit / loss</dt><dd class="${result.netChips<0?'sim-loss':'sim-gain'}">${signed(result.netChips)} chips<small>${esc(cash(result.netChips))}</small></dd></div><div><dt>Settled hands</dt><dd>${result.hands}<small>${result.lastNetChips===null?'No results yet':`Last hand ${signed(result.lastNetChips)} chips`}</small></dd></div></dl><details class="sim-progress-details"><summary>Progress & accounting</summary>${progressChart(result)}<details class="sim-progress-accounting"><summary>Accounting details</summary><p>Starting funds ${money(progress.settings.initialChips)} chips · 1 chip = ${esc(cash(1))}. Only settled hand profit changes this balance. Chips committed during a hand remain on the table; refilling stacks is not profit.</p><p>${result.replays} replays and ${result.unsettled} hands without a payout excluded. This device stores up to 2,000 progress records separately from detailed history. No real money or player statistics are updated.</p></details></details>${result.full?'<p class="sim-error" role="status">Progress storage is full. Download your report, then reset progress in Bankroll settings to track a new period.</p>':''}</section>`;
+    return `<details class="sim-bankroll" aria-label="Simulated bankroll"><summary><span>Practice bankroll</span><strong class="${result.full||result.netChips<0?'sim-loss':'sim-gain'}">${result.full?'Storage full':`${signed(result.netChips)} chips`}</strong></summary><div class="sim-bankroll-content"><div class="sim-bankroll-heading"><h2>Practice bankroll <span>Simulated money</span></h2>${button('Bankroll settings','BANKROLL')}</div><dl class="sim-bankroll-metrics"><div><dt>Settled balance</dt><dd>${esc(cash(result.balanceChips))}<small>${money(result.balanceChips)} chips</small></dd></div><div><dt>Profit / loss</dt><dd class="${result.netChips<0?'sim-loss':'sim-gain'}">${signed(result.netChips)} chips<small>${esc(cash(result.netChips))}</small></dd></div><div><dt>Settled hands</dt><dd>${result.hands}<small>${result.lastNetChips===null?'No results yet':`Last hand ${signed(result.lastNetChips)} chips`}</small></dd></div></dl><details class="sim-progress-details"><summary>Progress & accounting</summary>${progressChart(result)}<details class="sim-progress-accounting"><summary>Accounting details</summary><p>Starting funds ${money(progress.settings.initialChips)} chips · 1 chip = ${esc(cash(1))}. Only settled hand profit changes this balance. Chips committed during a hand remain on the table; refilling stacks is not profit.</p><p>${result.replays} replays and ${result.unsettled} hands without a payout excluded. This device stores up to 2,000 progress records separately from detailed history. No real money or player statistics are updated.</p></details></details>${result.full?'<p class="sim-error" role="status">Progress storage is full. Download your report, then reset progress in Bankroll settings to track a new period.</p>':''}</div></details>`;
   }
   function guidance(decision=null){
     if(!heroTurn()||analysis?.status!=='OK'||analysis.observedState?.revisionKey!==session.state.revisionKey||
@@ -122,24 +125,23 @@
     return guide;
   }
   function decisionPanel(){
-    if(!heroTurn())return `<section class="sim-result"><h2>Decision EV</h2><p>${session?.finished?'Review your decision snapshots below.':'Available when it is your turn.'}</p></section>`;
+    if(!heroTurn())return `<section class="sim-result sim-result-waiting"><div class="sim-result-heading"><h2>Decision EV</h2><span class="status-chip">${session?.finished?'Hand complete':'On your turn'}</span></div><p class="sim-result-message">${session?.finished?'Review your saved decisions in Simulation history.':'Your action estimates appear here when the turn returns to you.'}</p></section>`;
     const decision=window.theibsMultiwayUI.describeDecisionEV(session.state,analysis,{analysisBusy:!!controller,heroDraftReady:true});
     const rows=decision?.rows||[];
     const guide=guidance(decision),leader=guide?.row;
     const eq=analysis?.equity?.equity;
     const precision=decision?.precision;
-    return `<section class="sim-result" aria-label="Current decision evaluation"><div class="sim-result-heading"><h2>Decision EV</h2><span class="status-chip">${analysis?.status==='OK'?'HEURISTIC':controller?'Calculating':'Unavailable'}</span></div>
-      <p class="sim-context">Pot ${money(session.state.pot)} · Call ${money(session.state.legal.toCall)} · 1 bb = ${money(session.state.bigBlind)} chips</p>
+    const confidence=guide?.conclusive?'CONCLUSIVE IN MODEL':'INCONCLUSIVE';
+    const cards=rows.map(row=>`<div class="sim-ev-option${leader?.optionId===row.optionId?' sim-leader-row':''}" role="listitem"><strong title="${esc(label(row))}">${esc(label(row))}</strong><b>${signed(row.evBB)} <small>bb</small></b><span>${row.status==='MODELED'?decision.stage==='PROVISIONAL'?'Provisional':'':row.status==='PENDING'?'Calculating':'Unavailable'}</span></div>`).join('');
+    return `<section class="sim-result" aria-label="Current decision evaluation"><div class="sim-result-heading"><h2>Decision EV</h2><span class="status-chip">${analysis?.status==='OK'?`HEURISTIC · ${confidence}`:controller?'Calculating':'Unavailable'}</span>${analysis?.status==='UNAVAILABLE'||analysis?.refinement?.status==='FAILED'?button('Retry EV','EVALUATE'):''}</div><div class="sim-ev-options" role="list" aria-label="Estimated action EV in big blinds">${cards}</div><div class="sim-equity"><span>Showdown equity</span><strong>${Number.isFinite(eq)?`${money(100*eq)}%`:'—'}</strong></div>${!rows.length?`<p class="sim-result-message" role="status">${esc(controller?'Comparing actions… You can act without waiting.':analysis?.reason || 'No estimate is available for this decision.')}</p>`:''}<details class="sim-methods"><summary>Methods & limits</summary><div class="sim-methods-content"><p class="sim-context">Pot ${money(session.state.pot)} · Call ${money(session.state.legal.toCall)} · 1 bb = ${money(session.state.bigBlind)} chips</p>
       ${guide?`<div class="sim-guidance" role="status"><span>${esc(guide.heading)}</span><strong>${esc(label(leader))}</strong><div>Expected value <b>${signed(leader.evBB)} bb</b></div><p>${guide.conclusive?'CONCLUSIVE within this model and sizing grid.':`INCONCLUSIVE · ${esc(guide.reason)}`}${Number.isFinite(decision.gapBestSecondBB)?`<br>ΔEV · top two ${money(decision.gapBestSecondBB)} bb`:''}</p></div>`:controller?'<p class="sim-limits" role="status">Comparing actions… You can act without waiting.</p>':'<p class="sim-limits">No comparable action leader is available. Choose any legal action below the table.</p>'}
       <table class="sim-ev-table"><thead><tr><th>Action</th><th>EV · bb</th><th>EV shortfall · bb</th></tr></thead><tbody>${rows.map(row=>`<tr${leader?.optionId===row.optionId?' class="sim-leader-row"':''}><th scope="row">${esc(label(row))}<small>${row.status==='MODELED'?decision.stage==='PROVISIONAL'?'Provisional':'Modeled':row.status==='PENDING'?'Calculating':'Unavailable'}</small></th><td>${signed(row.evBB)}</td><td>${signed(row.differenceBB)}</td></tr>`).join('')}</tbody></table>
       ${pendingIntent&&!busy&&connection==='OFFLINE'?'<p class="sim-limits">Last confirmed decision · waiting for request acknowledgement.</p>':''}
       ${!guide&&precision?.status==='INCONCLUSIVE'?`<p class="sim-limits">INCONCLUSIVE · ${esc(precision.reason || String(precision.reasonCode||'Defensible error bounds unavailable.').replaceAll('_',' ').toLowerCase())}</p>`:''}
       ${analysis?.status && analysis.status!=='OK'?`<p role="status">${esc(analysis.reason || 'No estimate is available for this decision.')}</p>`:''}
-      ${analysis?.status==='UNAVAILABLE'||analysis?.refinement?.status==='FAILED'?button('Retry EV','EVALUATE'):''}
       ${analysis?.refinement?.status==='TIME_BUDGET'?'<p class="sim-limits">Refinement reached its budget. The available estimate is retained.</p>':''}
       ${session.manualOpponentActions?'<p class="sim-limits">Scenario EV: entered opponent actions are interpreted under the reference policy. Manual choices are not calibrated observations.</p>':''}
-      <div class="sim-equity"><span>Showdown equity</span><strong>${Number.isFinite(eq)?`${money(100*eq)}%`:'—'}</strong></div>
-      <details><summary>Methods & limits</summary><p>EV estimates average additional chips from this decision, expressed in big blinds. A positive EV can still trail another action. EV shortfall is how far an alternative trails the current leader; zero identifies the leader. It is not a second profit estimate. ΔEV compares the top two estimates. None of these values is your actual hand profit.</p><p>Contextual continuation policy, not GTO. Uniform card priors are conditioned on public actions. Actual hidden cards and future board cards are excluded. Random full ranges do not become explicit solver ranges.</p><p>Zero rake · finite legal sizing grid · ${esc(session.policy.version)}. Sampling bounds measure numerical uncertainty within this fixed policy, not uncertainty about human opponents.</p>${timing?`<p>First estimate: ${money(timing.firstMs)} ms · final attempt: ${money(timing.totalMs)} ms · ${esc(timing.runtime)} · cache ${esc(timing.cache || 'not reported')}.</p>`:''}${decision?.assumptions?.map(text=>`<p>${esc(text)}</p>`).join('')||''}</details></section>`;
+      <p>EV estimates average additional chips from this decision, expressed in big blinds. A positive EV can still trail another action. EV shortfall is how far an alternative trails the current leader; zero identifies the leader. It is not a second profit estimate. ΔEV compares the top two estimates. None of these values is your actual hand profit.</p><p>Contextual continuation policy, not GTO. Uniform card priors are conditioned on public actions. Actual hidden cards and future board cards are excluded. Random full ranges do not become explicit solver ranges.</p><p>Zero rake · finite legal sizing grid · ${esc(session.policy.version)}. Sampling bounds measure numerical uncertainty within this fixed policy, not uncertainty about human opponents.</p>${timing?`<p>First estimate: ${money(timing.firstMs)} ms · final attempt: ${money(timing.totalMs)} ms · ${esc(timing.runtime)} · cache ${esc(timing.cache || 'not reported')}.</p>`:''}${decision?.assumptions?.map(text=>`<p>${esc(text)}</p>`).join('')||''}</div></details></section>`;
   }
   function table(){
     const state=session.state,hero=state.players[state.heroId],count=session.multiway.config.heroCards.length;
@@ -147,7 +149,7 @@
     const seats=E.multiwaySeats(state,count).replaceAll('data-multiway-player','data-sim-seat');
     return `<div class="sim-table-wrap"><div class="mesa-stage"><div class="poker-table"><div class="table-felt"><div class="analysis-seats">${seats}</div>
       <div class="table-center"><div class="table-pot-summary"><span class="eyebrow">${state.phase==='FINISHED'?'SETTLED':'TOTAL'} POT · CHIPS</span><strong class="pot-value">${money(pot)}</strong></div><div class="board-cards" aria-label="Community cards">${Array.from({length:5},(_,index)=>E.canonicalCard(state.board[index],{label:`Board ${index+1}`,emptyLabel:state.board[index]?'':['F','F','F','T','R'][index]})).join('')}</div></div>
-      <div class="hero-position"><div class="hero-cards" aria-label="Your cards">${session.multiway.config.heroCards.map(card=>E.canonicalCard(card)).join('')}</div><button type="button" class="seat hero-seat${heroTurn()?' acting':''}" data-sim-seat="${hero.id}" aria-haspopup="dialog"><span>YOU · ${esc(hero.position)}</span><span>Stack <b>${money(hero.stack)}</b></span><small>In ${money(hero.streetPaid)} this street</small></button></div>
+      <div class="hero-position"><div class="hero-cards" aria-label="Your cards">${session.multiway.config.heroCards.map(card=>E.canonicalCard(card)).join('')}</div><button type="button" class="seat hero-seat${heroTurn()?' acting':''}" data-sim-seat="${hero.id}" aria-haspopup="dialog"><span>YOU · ${esc(hero.position)}</span><span class="sim-hero-balance"><span><small>Stack</small><b>${money(hero.stack)}</b></span><span><small>In</small><b>${money(hero.streetPaid)}</b></span></span></button></div>
       </div></div></div><div class="sim-street">${esc(state.street.toLowerCase())} · ${esc(session.multiway.config.variant.replace('_HIGH',''))} · ${state.players.length} players</div></div>`;
   }
   function controls(){
@@ -158,16 +160,17 @@
     else if(userTurn()){
       const guide=guidance();
       actions=state.legal.actions.filter(action=>action!=='FOLD'||state.legal.toCall>0).map(action=>{
-        const selected=guide?.row.action===action,tag=selected?`<small>${guide.conclusive?'Best modeled':'EV leader'} · Enter</small>`:'';
-        return ['BET','RAISE'].includes(action)?button(selected?esc(label(guide.row))+tag:action==='BET'?'Bet':'Raise','SIZE',selected,`data-action="${action}"${selected?` data-to="${guide.row.size}" data-sim-enter`:''}`):button((action==='CALL'?`Call ${money(state.legal.toCall)}`:action==='CHECK'?'Check':'Fold')+tag,'ACT',selected,`data-action="${action}"${selected?' data-sim-enter':''}`);
+        const selected=guide?.row.action===action,key=action==='FOLD'?'F':['BET','RAISE'].includes(action)?'H':'G';
+        const name=action==='CALL'?`Call ${money(state.legal.toCall)}`:action==='CHECK'?'Check':action==='BET'?'Bet':action==='RAISE'?'Raise':'Fold';
+        return button(`<kbd>${key}</kbd><span>${name}</span>`,['BET','RAISE'].includes(action)?'SIZE':'ACT',false,`data-action="${action}" data-estimate-leader="${selected}"`);
       }).join('');
     } else if(state.phase==='WAIT_BOARD')actions=contextual(`Deal ${state.nextStreet.toLowerCase()}`,'DEAL');
     else if(state.phase==='SHOWDOWN')actions=contextual('Showdown','SETTLE');
     else if(state.phase==='BETTING')actions=contextual(session.paused?'Next opponent action':'Play opponents','ADVANCE');
-    const status=session.abandoned?'Hand ended · no payout recorded':session.finished?`Hand complete · ${signed(session.outcome.heroNet)} chips`:heroTurn()?'Your turn':state.phase==='BETTING'?`${state.players[state.actor].name} · ${state.players[state.actor].position} to act`:state.phase==='WAIT_BOARD'?'Betting round complete':'Ready for showdown';
+    const status=busy&&['NEXT','RESTART'].includes(pendingIntent?.operation)?'Starting next hand\u2026':busy&&pendingIntent?.operation==='ACT'?'Recording action\u2026':session.abandoned?'Hand ended · no payout recorded':session.finished?`Hand complete · ${signed(session.outcome.heroNet)} chips`:heroTurn()?'Your turn':state.phase==='BETTING'?`${state.players[state.actor].seatName||state.players[state.actor].name} · ${state.players[state.actor].position} to act`:state.phase==='WAIT_BOARD'?'Betting round complete':'Ready for showdown';
     const mode=session.manualOpponents?'MANUAL':session.paused?'STEP':'AUTO';
-    const shortcut=enterAction(),hint=heroTurn()?shortcut?'Enter applies the highlighted EV leader.':shortcutMessage||'Enter needs an EV leader; you can choose an action.':shortcut?.operation==='RESTART'?'Enter deals fresh cards with refilled table stacks.':shortcut?'Enter advances the highlighted step.':'Choose an opponent action manually.';
-    return `<section class="sim-actions" aria-label="Simulation actions" tabindex="-1"><div class="sim-turn" role="status">${esc(status)}</div><div class="sim-action-buttons sim-primary-actions">${actions}</div><div class="sim-shortcut-hint" role="status">${esc(hint)} · F Fold · G Check / Call · H Bet / Raise · ↑ ↓ Players · Shift Reset · ' New table</div><p id="simulation-keyboard-target" class="sim-shortcut-hint" aria-live="polite">Selected player</p>${keyboardObservations.length?`<p class="sim-shortcut-hint">${keyboardObservations.map(item=>`${esc(session.state.players.find(player=>player.id===item.actor)?.name)} · ${esc(item.kind)}${item.to==null?'':' '+item.to} · ${esc(item.error||'pending flow')}`).join(' · ')}</p>`:''}${!session.finished?`<div class="sim-pace"><label>Opponents<select id="sim-control"${busy||pendingIntent?' disabled':''}><option value="AUTO"${mode==='AUTO'?' selected':''}>Automatic</option><option value="STEP"${mode==='STEP'?' selected':''}>One action at a time</option><option value="MANUAL"${mode==='MANUAL'?' selected':''}>Choose every action</option></select></label>${button('New deal','RESTART')}</div><details class="sim-hand-tools"><summary>Hand options</summary><div class="sim-action-buttons">${button('Finish with reference policy','FINISH')}${button('End without payout','END')}</div></details>`:!canContinue()&&!session.abandoned?'<p class="sim-limits">Start a new deal to refill stacks.</p>':''}</section>`;
+    const shortcut=enterAction(),hint=heroTurn()?shortcutMessage||'Choose F, G or H. Enter returns to your decision.':shortcut?.operation==='RESTART'?'Enter deals fresh cards with refilled table stacks.':shortcut?'Enter advances the next step.':'Choose an opponent action with F, G or H.';
+    return `<section class="sim-actions" aria-label="Simulation actions" tabindex="-1"><div class="sim-turn" role="status">${esc(status)}</div><div class="sim-action-buttons sim-primary-actions">${actions}</div><div class="sim-shortcut-hint sim-enter-hint" role="status">${esc(hint)}</div><p id="simulation-keyboard-target" class="sim-shortcut-hint" aria-live="polite">Selected player</p>${keyboardObservations.length?`<p class="sim-shortcut-hint sim-pending-observations">${keyboardObservations.map(item=>`${esc(session.state.players.find(player=>player.id===item.actor)?.name)} · ${esc(item.kind)}${item.to==null?'':' '+item.to} · ${esc(item.error||'pending flow')}`).join(' · ')}</p>`:''}${!session.finished?`<details class="sim-control-options"><summary>Table options</summary><div class="sim-control-options-content"><div class="sim-pace"><label>Opponents<select id="sim-control"${busy||pendingIntent?' disabled':''}><option value="AUTO"${mode==='AUTO'?' selected':''}>Automatic</option><option value="STEP"${mode==='STEP'?' selected':''}>One action at a time</option><option value="MANUAL"${mode==='MANUAL'?' selected':''}>Choose every action</option></select></label>${button('New deal','RESTART')}</div><details class="sim-hand-tools"><summary>Hand options</summary><div class="sim-action-buttons">${button('Finish with reference policy','FINISH')}${button('End without payout','END')}</div></details></div></details>`:!canContinue()&&!session.abandoned?'<p class="sim-limits">Start a new deal to refill stacks.</p>':''}</section>`;
   }
   function history(){
     const check=T.summary(reports);
@@ -244,9 +247,10 @@
     if(!host)return;
     validation?.setAvailable(validationIdle());
     const sameHand=layoutHand===session?.id;
+    const compactDesktop=typeof window.matchMedia==='function'&&window.matchMedia('(min-width: 900px)').matches;
     const before=host.querySelector('.sim-evaluation');
     const footprint=node=>node.getBoundingClientRect().height-[...node.querySelectorAll('details[open]')].reduce((sum,details)=>sum+details.getBoundingClientRect().height-details.querySelector('summary').getBoundingClientRect().height,0);
-    if(sameHand&&before)evaluationFootprint=Math.max(evaluationFootprint,footprint(before));
+    if(!compactDesktop&&sameHand&&before)evaluationFootprint=Math.max(evaluationFootprint,footprint(before));
     else {evaluationFootprint=0;layoutHand=session?.id;}
     const scroll={x:window.scrollX,y:window.scrollY};
     const focused=document.activeElement;
@@ -258,12 +262,13 @@
     }else host.innerHTML=markup;
     const autoSetting=host.querySelector('#sim-validation-auto');if(autoSetting)autoSetting.checked=!!validation.automatic;
     const evaluation=host.querySelector('.sim-evaluation');
-    if(evaluation){
+    if(evaluation&&!compactDesktop){
       evaluationFootprint=Math.max(evaluationFootprint,footprint(evaluation));
       // Hold the measured footprint through transient states of the same hand.
       // Content remains unconstrained: errors and expanded details are not clipped.
       evaluation.style.minHeight=`${evaluationFootprint}px`;
     }
+    else if(evaluation) evaluation.style.removeProperty('min-height');
     if(retainedFocus?.isConnected&&!retainedFocus.disabled&&document.activeElement===document.body)retainedFocus.focus({preventScroll:true});
     if(window.theibsKeyboard)document.dispatchEvent(new CustomEvent('theibs:simulation-render'));
     if(sameHand&&Number.isFinite(scroll.y)&&window.scrollTo)window.scrollTo({left:scroll.x,top:scroll.y,behavior:'instant'});
@@ -425,7 +430,7 @@
     if(!restored){restored=true;const restoring=generation,own=owner;try{const saved=JSON.parse(localStorage.getItem(key())||'null');reports=Array.isArray(saved?.reports)?T.boundedHistory(saved.reports.filter(item=>item?.publicRecord?.config?.variant&&Array.isArray(item.decisions))):[];decisions=Array.isArray(saved?.decisions)?saved.decisions:[];
       progress=T.practiceProgress(saved?.progress);if(saved?.progress?.schema!=='SIMULATION_PROGRESS_V1')for(const report of reports)T.recordProgress(progress,report);
       recoveryId=saved?.sessionId||null;if(saved?.session?.id===saved?.sessionId)session=saved.session;
-      keyboardObservations=Array.isArray(saved?.keyboardObservations)?saved.keyboardObservations.filter(item=>item.id===saved.sessionId&&Number.isInteger(item.actor)&&['FOLD','MATCH','AGGRESSIVE'].includes(item.kind)&&['PREFLOP','FLOP','TURN','RIVER'].includes(item.street)):[];
+      keyboardObservations=Array.isArray(saved?.keyboardObservations)?saved.keyboardObservations.filter(item=>item.id===saved.sessionId&&Number.isInteger(item.actor)&&['FOLD','MATCH','AGGRESSIVE'].includes(item.kind)&&['PREFLOP','FLOP','TURN','RIVER'].includes(item.street)).map(item=>({...item,error:'Older entry retained for review. Use F / G / H on the current turn.'})):[];
       pendingIntent=saved?.pendingIntent||null;
       if(pendingIntent){if(pendingIntent.operation==='START')await startTable(pendingIntent.body.config,pendingIntent);else if(session)await perform(pendingIntent.operation,{},pendingIntent);}
       else if(saved?.sessionId){const data=await request('/api/simulation/state',{method:'POST',body:JSON.stringify({id:saved.sessionId})});if(own===owner&&generation===restoring){session=data.session;recoveryId=null;if(session.finished)archive();}}
@@ -462,5 +467,5 @@
     host.addEventListener('change',event=>{if(event.target.id==='sim-control')perform('PACE',{paused:event.target.value==='STEP',manualOpponents:event.target.value==='MANUAL'});else if(event.target.id==='sim-validation-auto')validation?.setAutomatic(event.target.checked);else if(event.target.id==='sim-batch-scope')batchScope=event.target.value;else if(event.target.id==='sim-batch-worlds')batchWorlds=Number(event.target.value);});
     render();
   }
-  window.TheibsSimulationUI={init,enter,leave,clearOwner,configure,keyboardCommand,keyboardCapture,keyboardFlush,getKeyboardState:()=>({session,active,busy,restoringSession,pendingIntent,connection,observations:keyboardObservations.map(item=>({...item}))})};
+  window.TheibsSimulationUI={init,enter,leave,clearOwner,configure,keyboardCommand,keyboardAction,keyboardCapture,keyboardFlush,getKeyboardState:()=>({session,active,busy,restoringSession,pendingIntent,connection,observations:keyboardObservations.map(item=>({...item}))})};
 })();

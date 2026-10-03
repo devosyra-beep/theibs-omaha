@@ -141,6 +141,36 @@ test('manual control permits any legal current-player action, preserves accounti
   assert.equal(s.outcome.stacks.reduce((sum,p)=>sum+p.stack,0),30);
 });
 
+test('one opponent ACT enables manual capture atomically, retries once and rejected input leaves the original mode intact',()=>{
+  const service=createService(),s=seeded(service,{heroPosition:'BB'}),actor=s.state.actor;
+  assert.notEqual(actor,s.state.heroId);assert.equal(s.manualOpponents,false);
+  const payload={id:s.id,revision:s.revision,requestId:'atomic-manual-opponent',operation:'ACT',actor,action:'CALL',manualOpponents:true};
+  assert.throws(()=>service.mutate(owner,{...payload,actor:s.state.heroId}),{statusCode:409});assert.deepEqual(service.read(owner,s.id),s);
+  assert.throws(()=>service.mutate(owner,{...payload,action:'RAISE',to:999999}));assert.deepEqual(service.read(owner,s.id),s);
+  const accepted=service.mutate(owner,payload);assert.equal(accepted.manualOpponents,true);assert.equal(accepted.paused,true);
+  assert.equal(accepted.multiway.events.length,s.multiway.events.length+1);assert.equal(accepted.manualOpponentActions,1);
+  assert.equal(accepted.state.players.reduce((sum,p)=>sum+p.stack,0)+accepted.state.pot,20);
+  assert.deepEqual(service.mutate(owner,payload),accepted);
+  assert.throws(()=>service.mutate(owner,{...payload,manualOpponents:false}),{statusCode:409});
+  assert.throws(()=>service.mutate(owner,{...payload,requestId:'stale-manual-opponent'}),{statusCode:409});
+  assert.deepEqual(service.read(owner,s.id),accepted);
+});
+
+test('manual mode is present at registration of a continued, replayed or restarted hand before any opponent advance',()=>{
+  const service=createService();let s=seeded(service,{heroPosition:'BB'});
+  s=step(service,s,'ACT',{actor:s.state.actor,action:'CALL',manualOpponents:true});
+  const restarted=service.restart(owner,{id:s.id,revision:s.revision,requestId:'manual-restart'}).session;
+  assert.equal(restarted.manualOpponents,true);assert.equal(restarted.paused,true);assert.equal(restarted.multiway.events.length,0);
+  const finished=step(service,restarted,'FINISH');
+  const replayed=service.replay(owner,{id:finished.id,revision:finished.revision,requestId:'manual-replay'}).session;
+  assert.equal(replayed.manualOpponents,true);assert.equal(replayed.paused,true);assert.equal(replayed.multiway.events.length,0);
+  const settled=step(service,replayed,'FINISH');
+  if(settled.state.players[settled.state.heroId].stack>0 && settled.state.players.filter(p=>p.stack>0).length>1){
+    const next=service.next(owner,{id:settled.id,revision:settled.revision,requestId:'manual-next'}).session;
+    assert.equal(next.manualOpponents,true);assert.equal(next.paused,true);assert.equal(next.multiway.events.length,0);
+  }
+});
+
 test('reference finish preserves a held-out deal and exact utilities, without exposing future cards to EV',()=>{
   const service=createService();let s=seeded(service);
   const input=service.evaluation(owner,s.id,s.revision),cards=[...s.multiway.config.heroCards];
