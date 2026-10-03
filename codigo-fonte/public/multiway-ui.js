@@ -22,6 +22,8 @@
   let setupHost, setupDialog, controlsHost, boardDialog, seatDialog, setupPurpose = 'activate', nextSetupDraft = null;
   let rakeChoice = { mode: 'GROSS' }, nextRakeChoice = null;
   let completionDialog, revealDialog, rakeDialog, completionToken = null, revealDraft = null;
+  let completionSeenHand = null, completionTransition = false, recoveryDialog = null;
+  let resultDraft = null;
   let sizeEvaluationTimer = null, lastEvaluationSize = null;
   const busy = () => localBusy || view.busy;
   const context = () => options.getContext?.() || {};
@@ -124,10 +126,10 @@
     const host = $('#mw-decision-ev');
     if (!host) return;
     const rail = $('#analyze-workspace .context-rail');
-    if (window.matchMedia?.('(min-width: 1000px)').matches && rail) {
+    if (view.enabled && rail) {
       if (host.parentElement !== rail || host !== rail.firstElementChild) rail.prepend(host);
     } else if (host.parentElement !== controlsHost) {
-      controlsHost.insertBefore(host, $('#mw-decision-feedback'));
+      controlsHost.insertBefore(host, $('#mw-board-prompt'));
     }
   }
   function solverControls() {
@@ -250,19 +252,33 @@
     const host = $('#mw-decision-ev'), decision = !view.enabled ? null : describeDecisionEV(view.state, view.analysis, view);
     const equityOrigin = $('#equity-origin');
     if(equityOrigin){equityOrigin.hidden=!decision || !window.TheibsMultiwaySolverUI?.decisionSnapshot?.();equityOrigin.textContent='Continuation model · separate from river study';}
-    host.hidden = !decision;
-    if (!decision) return;
+    host.hidden = !view.enabled;
+    host.classList.toggle('mw-ev-waiting',!!view.enabled&&!decision);
+    if (!decision) {
+      if(view.enabled){
+        const current=actor(), waitingBoard=view.state?.phase==='WAIT_BOARD';
+        const detail=waitingBoard?'Waiting for board cards':view.state?.phase==='BETTING'?`Waiting for ${playerName(current)} · ${current?.position||''}`:'Waiting for the hand result';
+        host.innerHTML=`<div class="mw-ev-heading"><strong>Decision EV</strong><span class="mw-ev-badge">On your turn</span></div><p>${esc(detail)}</p><small>Automatic with your cards and the current board complete.</small>`;
+      }
+      return;
+    }
     const priorDetails = host.querySelector('details')?.open ?? (document.body.dataset.analysisSecondary === 'expanded');
     if (renderSolverDecision(host, priorDetails)) return;
     const price = decision.toCall === null ? 'Call price unavailable' : decision.toCall === 0 ? 'Check available' : `Call ${money(decision.toCall)}${decision.bigBlind ? ` (${bb(decision.toCall / decision.bigBlind)} bb)` : ''}`;
     const pot = (decision.potBeforeDecision === null ? 'Pot unavailable' : `Pot ${money(decision.potBeforeDecision)}`)+(decision.feeBasis==='BEFORE_FEES'?' · Before fees':'');
     const needsRake = decision.rows.some(row => row.missingInputs.some(text => /rake/i.test(text)));
-    const badge = needsRake ? 'Fee basis required' : decision.stage === 'WAITING_CARDS' ? 'Add your cards' : decision.stage === 'IDLE' ? 'Not calculated' : decision.stage === 'PROVISIONAL' ? decision.estimateCount ? decision.refining ? 'HEURISTIC · refining' : 'HEURISTIC · preliminary' : decision.refining ? 'Calculating action EV' : 'No sampled EV estimate' : decision.stage === 'PENDING' ? 'Calculating' : decision.stage === 'NO_DECISION' ? 'No decision' : decision.stage === 'UNAVAILABLE' ? 'Calculation unavailable' : 'HEURISTIC';
+    const badge = needsRake ? 'Fee basis required' : decision.stage === 'WAITING_CARDS' ? 'Add your cards' : decision.stage === 'IDLE' ? 'Not calculated' : decision.stage === 'PROVISIONAL' ? decision.estimateCount ? decision.refining ? 'HEURISTIC · refining' : 'HEURISTIC · preliminary' : decision.refining ? 'Calculating action EV' : 'No sampled EV estimate' : decision.stage === 'PENDING' ? 'Calculating' : decision.stage === 'NO_DECISION' ? 'No decision' : decision.stage === 'UNAVAILABLE' ? 'Calculation unavailable' : decision.leaderConclusive ? 'HEURISTIC · separated estimates' : decision.stage==='PARTIAL'?'HEURISTIC · partial':'HEURISTIC · inconclusive';
     const rows = decision.rows.map(row => {
       const status = ['WAITING_CARDS','IDLE','NO_DECISION','UNAVAILABLE'].includes(decision.stage) ? 'Unavailable' : row.status === 'PENDING' ? 'Calculating' : row.status === 'MODELED' ? row.method==='DECISION_REFERENCE'?'Decision reference':'Modeled' : 'Not modeled';
       const size = row.size === null ? '' : ` <small>to ${esc(money(row.size))}</small>`;
       const difference = row.differenceBB === null ? '—' : bb(Math.abs(row.differenceBB)).replace(/^\+/, '');
       return `<tr><th scope="row"><span>${esc(ACTIONS[row.action]?.label || row.action)}${size}</span><small>${status}</small></th><td>${row.evBB === null ? '—' : bb(row.evBB)}</td><td>${difference}</td></tr>`;
+    }).join('');
+    const optionsHtml=decision.rows.map(row=>{
+      const highest=decision.modeledCount>1 && row.action===decision.bestModeledAction && (row.size===null||row.size===decision.bestModeledSize);
+      const label=(ACTIONS[row.action]?.label||row.action)+(row.size===null?'':' to '+money(row.size));
+      const status=row.status==='PENDING'?'Calculating':row.status!=='MODELED'?'Unavailable':'';
+      return `<div class="mw-ev-option" role="listitem" data-estimate-leader="${highest}"><strong>${esc(label)}</strong><b>${row.evBB===null?'—':bb(row.evBB)}${row.evBB===null?'':' <small>bb</small>'}</b>${status?`<small>${status}</small>`:''}</div>`;
     }).join('');
     const bestLabel = `${ACTIONS[decision.bestModeledAction]?.label || decision.bestModeledAction}${decision.bestModeledSize === null ? '' : ` to ${money(decision.bestModeledSize)}`}`;
     const leader = needsRake ? 'Declare rake or choose No rake to evaluate the other actions.' : decision.bestModeledAction
@@ -292,7 +308,7 @@
     const refinementStatus = decision.refinement ? `<p class="mw-ev-limit" role="status">${decision.estimateCount?'Latest estimate retained.':'No sampled action EV estimate was completed.'} ${decision.refinement.status === 'TIME_BUDGET' ? 'Refinement reached its time budget.' : 'Refinement unavailable.'} Analyze hand to retry.</p>` : '';
     const runtimeNotice=view.analysis?.performance?.runtimeReason ? `<p class="mw-ev-limit" role="status">${esc(view.analysis.performance.runtimeReason)}</p>` : '';
     const solverPending = ['QUEUED','BUILDING','REFINING'].includes(solverJob?.phase) ? '<p class="mw-ev-limit" role="status">River study refining · current table uses heuristic EV.</p>' : '';
-    host.innerHTML = `<div class="mw-ev-heading"><strong>Decision EV</strong><span class="mw-ev-badge" data-status="${decision.stage.toLowerCase()}">${badge}</span></div><p class="mw-ev-context">${pot} · ${price} · ${decision.bigBlind ? `1 bb = ${money(decision.bigBlind)} chips` : 'Big blind unavailable'}</p><table class="mw-ev-table"><thead><tr><th scope="col">Action</th><th scope="col">EV · bb</th><th scope="col">Below leader · bb</th></tr></thead><tbody>${rows}</tbody></table><div class="mw-ev-conclusion">${leader}${gap}</div>${runtimeNotice}${refinementStatus}${solverPending}${needsRake ? '<button type="button" class="ghost-button" data-mw-rake>Set fee basis</button>' : ''}${decision.missingLegalActions.length && decision.modeledCount > 1 ? '<p class="mw-ev-limit">Some legal actions are not modeled; no overall best action.</p>' : ''}<details class="mw-ev-details"${priorDetails ? ' open' : ''}><summary>Methods & limits</summary><button type="button" class="text-button" data-mw-rake>Room fees · optional</button>${solverControls()}<ul>${details}</ul></details>`;
+    host.innerHTML = `<div class="mw-ev-heading"><strong>Decision EV</strong><span class="mw-ev-badge" data-status="${decision.stage.toLowerCase()}">${badge}</span></div><div class="mw-ev-options" role="list" aria-label="Estimated action EV in big blinds">${optionsHtml}</div>${needsRake ? '<button type="button" class="ghost-button" data-mw-rake>Set fee basis</button>' : ''}${decision.missingLegalActions.length && decision.modeledCount > 1 ? '<p class="mw-ev-limit">Some legal actions have no estimate.</p>' : ''}<details class="mw-ev-details"${priorDetails ? ' open' : ''}><summary>Methods & limits${decision.feeBasis==='BEFORE_FEES'?' · before fees':''}${decision.refinement?' · refinement paused':''}</summary><p class="mw-ev-context">${pot} · ${price} · ${decision.bigBlind ? `1 bb = ${money(decision.bigBlind)} chips` : 'Big blind unavailable'}</p><table class="mw-ev-table"><thead><tr><th scope="col">Action</th><th scope="col">EV · bb</th><th scope="col">Below leader · bb</th></tr></thead><tbody>${rows}</tbody></table><div class="mw-ev-conclusion">${leader}${gap}</div>${runtimeNotice}${refinementStatus}${solverPending}<button type="button" class="text-button" data-mw-rake>Room fees · optional</button>${solverControls()}<ul>${details}</ul></details>`;
     if (typeof options.handlers?.profileComparison === 'function') {
       const comparison = view.profileComparison || {}, report = comparison.report;
       const ready = !view.analysisBusy && !busy() && decision.estimateCount > 0 && comparison.phase !== 'RUNNING';
@@ -434,29 +450,44 @@
   function completionContents() {
     const state = view.state, pending = pendingResult();
     const rows = state.players.map(item => `<label class="mw-stack-row"><span>${esc(playerName(item))} <small>${esc(item.position)}</small></span><input data-mw-ending-stack="${item.id}" type="text" inputmode="decimal" autocomplete="off" aria-label="${esc(playerName(item))} ending stack" value="${pending ? '' : esc(item.stack)}" placeholder="Confirm stack"></label>`).join('');
-    const pots = (state.pots || []).map((pot, index) => `<fieldset class="mw-result-pot"><legend>${index ? `Side pot ${index}` : 'Main pot'} · ${money(pot.amount)} chips</legend>${pot.eligible.map(id => `<label><input type="checkbox" data-mw-pot="${index}" value="${id}"><span>${esc(playerName(player(id)))} · ${esc(player(id)?.position)}</span></label>`).join('')}</fieldset>`).join('');
+    const pots = (state.pots || []).map((pot, index) => `<fieldset class="mw-result-pot"><legend>${index ? `Side pot ${index}` : 'Main pot'} · ${money(pot.amount)} chips</legend>${pot.eligible.map(id => `<label><input type="checkbox" data-mw-pot="${index}" value="${id}"><kbd>${esc(window.TheibsMultiwayResultKeys.keyForPlayer(player(id),state))}</kbd><span>${esc(playerName(player(id)))} · ${esc(player(id)?.position)}</span></label>`).join('')}</fieldset>`).join('');
     const awards = (state.result?.awards || []).map(item => `${playerName(player(item.player))} +${money(item.amount)}`).join(' · ');
-    const note = pending ? 'Payouts are optional. Continue with estimated stacks, or record the result.' : state.result?.reason === 'ALL_FOLDED' ? `Pot awarded · ${awards}. Rake was not recorded; review ending stacks if needed.` : awards ? `Pot awarded · ${awards}. Rake ${money(state.rake)} chips.` : 'Result recorded.';
-    $('#mw-completion-content').innerHTML = `<p class="mw-result-summary">${esc(note)}</p>${pending ? `<details id="mw-result-details"><summary>Record pot winners · optional</summary><form id="mw-result-form">${pots}<label>Actual rake · chips<input id="mw-result-rake" type="text" inputmode="decimal" autocomplete="off" placeholder="Enter 0 for no rake" required></label><button type="submit" class="primary-button">Record result</button></form></details>` : ''}<div class="mw-result-actions"><button id="mw-result-shown" type="button" class="ghost-button">Shown cards</button></div><details id="mw-ending-stacks"><summary>Update ending stacks · optional</summary><div class="mw-ending-stack-grid">${rows}</div></details><button id="mw-next-hand" type="button" class="primary-button">Next hand</button>`;
+    const note = pending ? '1–9: A1–A9 · 0: You · Enter: next hand. Leave unselected to continue incomplete.' : awards ? `Awarded · ${awards}` : 'Result recorded.';
+    $('#mw-completion-content').innerHTML = `<p class="mw-result-summary">${esc(note)}</p>${pending ? `<form id="mw-result-form">${pots}<details><summary>Rake · optional</summary><label>Actual rake · chips<input id="mw-result-rake" type="text" inputmode="decimal" autocomplete="off" value="0"></label></details></form>` : ''}<div class="mw-result-actions"><button id="mw-result-shown" type="button" class="ghost-button">Shown cards · V</button><button id="mw-result-undo" type="button" class="text-button">Undo last action</button></div><details id="mw-ending-stacks"><summary>Update ending stacks · optional</summary><div class="mw-ending-stack-grid">${rows}</div></details><button id="mw-next-hand" type="button" class="primary-button">${pending ? 'Continue incomplete' : 'Save & next hand'} · Enter</button>`;
     $('#mw-result-shown').onclick = () => openReveal();
     const resultForm = $('#mw-result-form');
-    if (resultForm) resultForm.onsubmit = async event => {
-      event.preventDefault();
-      if (completionToken !== activeToken()) { setError('The hand changed. Open its result again.'); return; }
-      const winners = (view.state.pots || []).map((pot, index) => [...resultForm.querySelectorAll(`[data-mw-pot="${index}"]:checked`)].map(node => Number(node.value)));
-      const rake = parseAmount($('#mw-result-rake').value);
-      if (winners.some(ids => !ids.length)) { setError('Select every winner for each pot. Select multiple players for a tie.'); return; }
-      if (rake === null || rake > view.state.pot) { setError('Enter the actual rake from zero up to the total pot.'); return; }
-      if (await invoke('settle', { winners, rake })) openCompletion();
-    };
+    if (resultForm) {
+      if(resultDraft?.handId===state.handId){
+        for(const node of resultForm.querySelectorAll('[data-mw-pot]'))node.checked=!!resultDraft.winners[Number(node.dataset.mwPot)]?.includes(Number(node.value));
+        $('#mw-result-rake').value=resultDraft.rake;
+      }
+      resultForm.onsubmit = event => { event.preventDefault(); void finishCompletion(); };
+      resultForm.onchange = () => { $('#mw-next-hand').textContent = resultForm.querySelector(':checked') ? 'Save & next hand · Enter' : 'Continue incomplete · Enter'; };
+      resultForm.onchange();
+    }
+    $('#mw-result-undo').onclick = async () => { completionTransition=true; try { if(await invoke('undo')) {completionDialog.close(); completionSeenHand=null;} } finally {completionTransition=false;} };
     const next = $('#mw-next-hand');
-    if (next) next.onclick = async () => {
-      try {
-        if (completionToken !== activeToken()) throw Error('The hand changed. Open its result again.');
-        const stacks = getEndingStacks();
-        if (await invoke('nextHand', { ...(stacks ? { stacks } : {}) })) completionDialog.close();
-      } catch (error) { setError(error.message); }
-    };
+    if (next) next.onclick = () => void finishCompletion();
+  }
+  async function finishCompletion() {
+    if (busy() || completionTransition) return false;
+    completionTransition=true;
+    try {
+      if (completionToken !== activeToken()) throw Error('The hand changed. Open its result again.');
+      const stacks=getEndingStacks();
+      const form=$('#mw-result-form');
+      if (pendingResult() && form?.querySelector(':checked')) {
+        const winners=(view.state.pots||[]).map((_,index)=>[...form.querySelectorAll(`[data-mw-pot="${index}"]:checked`)].map(node=>Number(node.value)));
+        if(winners.some(ids=>!ids.length)) throw Error('Select the winners of each pot, or clear the selection to continue incomplete.');
+        const rake=parseAmount($('#mw-result-rake').value);
+        if(rake===null || rake>view.state.pot) throw Error('Rake must be between zero and the pot.');
+        if(!await invoke('settle',{winners,rake}))return false;
+        completionToken=activeToken();
+      }
+      if(await invoke('nextHand',stacks?{stacks}:{})){completionDialog.close();return true;}
+      return false;
+    } catch(error) {setError(error.message);return false;}
+    finally {completionTransition=false;}
   }
   function getEndingStacks() {
     if (!completionDialog?.open || completionToken !== activeToken()) throw Error('Open the current result before confirming stacks.');
@@ -469,8 +500,9 @@
   function openCompletion() {
     if (!initialized || !completed() || busy()) return false;
     for (const node of [seatDialog, revealDialog]) if (node?.open) node.close();
-    completionToken = activeToken(); setError(''); completionContents();
+    completionToken = activeToken(); completionSeenHand=view.state.handId; setError(''); completionContents();
     if (!completionDialog.open) completionDialog.showModal();
+    (completionDialog.querySelector('[data-mw-pot]') || $('#mw-next-hand')).focus({preventScroll:true});
     return true;
   }
   function parsedShown() { return window.TheibsCards.parsePortugueseCards($('#mw-reveal-cards').value).map(window.TheibsCards.toCanonical); }
@@ -492,6 +524,10 @@
   }
   function openReveal(id) {
     if (!initialized || !completed() || busy()) return false;
+    if(completionDialog?.open){
+      const form=$('#mw-result-form');
+      if(form)resultDraft={handId:view.state.handId,rake:$('#mw-result-rake').value,winners:(view.state.pots||[]).map((_,index)=>[...form.querySelectorAll(`[data-mw-pot="${index}"]:checked`)].map(node=>Number(node.value)))};
+    }
     for (const node of [seatDialog, completionDialog]) if (node?.open) node.close();
     $('#mw-reveal-player').innerHTML = view.state.players.map(item => `<option value="${item.id}">${esc(playerName(item))} · ${esc(item.position)}</option>`).join('');
     selectShownPlayer(id ?? view.state.players.find(item => !item.hero)?.id ?? view.state.heroId);
@@ -503,7 +539,7 @@
     $('#mw-completion-actions').hidden = !ready;
     $('#mw-completion-open').textContent = 'Result · optional';
     for (const button of document.querySelectorAll('#mw-completion-actions button')) button.disabled = busy();
-    if (completionDialog?.open && completionToken !== activeToken()) completionDialog.close();
+    if (completionDialog?.open && completionToken !== activeToken() && !completionTransition) completionDialog.close();
     if (completionDialog?.open) for (const field of completionDialog.querySelectorAll('#mw-completion-content button,input')) field.disabled = busy();
     if (revealDialog?.open && revealDraft?.stateToken !== activeToken()) revealDialog.close();
     if (revealDialog?.open) {
@@ -513,7 +549,32 @@
       $('#mw-reveal-voice').textContent = voice?.enabled ? voice.audioReady ? 'Voice · listening' : 'Voice on · waiting' : 'Voice off';
       $('#mw-reveal-voice').setAttribute('aria-pressed', String(Boolean(voice?.enabled)));
     }
+    if(ready && inAnalysis() && !busy() && !completionTransition && completionSeenHand!==view.state.handId && !document.querySelector('dialog[open]')) {
+      const handId=view.state.handId;
+      queueMicrotask(()=>{if(completed() && view.state.handId===handId && !busy() && !document.querySelector('dialog[open]'))openCompletion();});
+    }
   }
+  function openRecoveryEditor(kind, id) {
+    if(!view.enabled || busy())return false;
+    const item=player(Number(id ?? window.theibsKeyboard?.getState().selectedPlayerId ?? view.state.actor ?? view.state.heroId));
+    if(!item)return false;
+    if(recoveryDialog?.open)recoveryDialog.close();
+    recoveryDialog?.remove();
+    const isStack=kind==='stack', token=activeToken();
+    recoveryDialog=dialog('mw-recovery-dialog',isStack?`${playerName(item)} · current stack`:'Correct button',
+      `<form id="mw-recovery-form">${isStack?`<label>Available chips<input id="mw-recovery-value" inputmode="decimal" value="${esc(item.stack)}" required></label>`:`<label>Button<select id="mw-recovery-value">${view.state.players.map(p=>`<option value="${p.id}"${p.position==='BTN'||view.state.players.length===2&&p.position==='SB'?' selected':''}>${esc(playerName(p))} · ${esc(p.position)}</option>`).join('')}</select></label>`}<p class="micro">${isStack?'Recorded contributions stay in the hand history.':'Positions and recorded actions will be checked. The previous version is kept.'}</p><button class="primary-button" type="submit">Save correction</button></form>`);
+    recoveryDialog.dataset.keyboardContext=kind;
+    $('#mw-recovery-form').onsubmit=async event=>{
+      event.preventDefault();if(busy())return;
+      if(token!==activeToken()){setError('The hand changed. Reopen the correction.');return;}
+      const value=parseAmount($('#mw-recovery-value').value);
+      if(value===null){setError('Enter a valid non-negative amount.');return;}
+      if(await invoke(isStack?'adjustStack':'correctButton',isStack?{actor:item.id,stack:value}:{buttonId:value}))recoveryDialog.close();
+    };
+    recoveryDialog.showModal();const field=$('#mw-recovery-value');field.focus({preventScroll:true});if(isStack)field.select();return true;
+  }
+  const openStackEditor=id=>openRecoveryEditor('stack',id);
+  const openButtonCorrection=()=>openRecoveryEditor('button');
   function refreshControls() {
     controlsHost.hidden = !view.enabled;
     controlsHost.dataset.phase = view.state?.phase || '';
@@ -778,6 +839,7 @@
     $('#mw-history').open = document.body.dataset.analysisSecondary === 'expanded';
     $('#mw-action-stage').insertAdjacentHTML('afterend', '<div id="mw-completion-actions" class="mw-result-actions" hidden><button id="mw-next-direct" type="button" class="primary-button">Next hand</button><button id="mw-completion-open" type="button" class="ghost-button">Result · optional</button><button id="mw-shown-open" type="button" class="ghost-button">Shown cards</button></div>');
     completionDialog = dialog('mw-completion-dialog', 'Hand result', '<div id="mw-completion-content" class="mw-completion-content"></div>');
+    window.TheibsMultiwayResultKeys.bind({dialog:completionDialog,getState:()=>view.state,isBusy:()=>busy()||completionTransition,onError:setError});
     revealDialog = dialog('mw-reveal-dialog', 'Shown cards', '<form id="mw-reveal-form"><label>Player<select id="mw-reveal-player"></select></label><label>Cards shown<input id="mw-reveal-cards" type="text" autocomplete="off" spellcheck="false" placeholder="AE KC · partial hands are welcome"></label><p class="mw-card-legend">Only cards you saw. Rank + suit: ♠ E · ♥ C · ♦ O · ♣ P.</p><div class="mw-result-actions"><button id="mw-reveal-voice" type="button" class="ghost-button" aria-pressed="false">Voice off</button><button id="mw-reveal-save" type="submit" class="primary-button">Save shown cards</button></div></form>');
     boardDialog = dialog('multiway-board-dialog', '<span id="mw-board-title">Next street</span>', '<form id="mw-board-form"><p id="mw-board-existing"></p><label><span id="mw-board-label">New cards</span><input id="mw-board-new" autocomplete="off" spellcheck="false" required></label><p class="mw-card-legend">Rank + suit: ♠ E · ♥ C · ♦ O · ♣ P. Ten = D, T or 10.</p><button id="mw-board-confirm" type="submit" class="primary-button">Deal street · Enter</button></form>');
     seatDialog = dialog('multiway-seat-dialog', '<span id="mw-seat-title">Player</span>', '<p id="mw-seat-info"></p><div class="seat-popover-actions"><button id="mw-seat-fold" type="button" class="ghost-button">Record fold</button><button id="mw-seat-undo" type="button" class="text-button" hidden>Undo latest fold</button></div><p id="mw-seat-note"></p><details id="mw-seat-edit-details"><summary>Opponent assumptions</summary><p id="mw-seat-edit-note" class="micro"></p><fieldset id="mw-seat-editor"><label>Known hand<input id="mw-seat-hand" autocomplete="off" placeholder="AE KC QO JP TE"></label><label>Range<textarea id="mw-seat-range" rows="2" placeholder="One hand per line"></textarea></label><label>Call chance (%)<input id="mw-seat-rate" type="number" min="0" max="100" step="0.1" placeholder="Unknown"></label><div class="seat-popover-actions"><button id="mw-seat-apply" type="button" class="primary-button">Apply to seat</button><button id="mw-seat-remove" type="button" class="text-button">Remove assumption</button></div></fieldset><p id="mw-seat-edit-error" class="multiway-error" role="alert" hidden></p></details>');
@@ -809,9 +871,23 @@
         rakeDialog.close(); options.handlers?.evaluationChanged?.(); refresh();
       } catch(error) { $('#mw-current-rake-error').textContent=error.message;$('#mw-current-rake-error').hidden=false; }
     };
+    controlsHost.querySelector('.mw-control-heading').insertAdjacentHTML('beforeend','<button type="button" class="text-button" id="mw-correct-button" title="Correct button · B">B · Button</button><button type="button" class="text-button" id="mw-correct-stack" title="Selected player stack · N">N · Stack</button>');
+    $('#mw-correct-button').onclick=openButtonCorrection;
+    $('#mw-correct-stack').onclick=()=>openStackEditor();
+    completionDialog.addEventListener('keydown',event=>{
+      if(event.isComposing || event.ctrlKey || event.metaKey || event.altKey)return;
+      if(event.repeat && ['Enter',' ','v','V'].includes(event.key)){event.preventDefault();return;}
+      const target=event.target, textField=target.matches('input:not([type=checkbox]),select,textarea');
+      if(!textField && ['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(event.key)){
+        const fields=[...completionDialog.querySelectorAll('[data-mw-pot]')];
+        if(fields.length){event.preventDefault();const index=fields.indexOf(target),step=['ArrowUp','ArrowLeft'].includes(event.key)?-1:1;fields[Math.max(0,Math.min(fields.length-1,index+step))].focus();}return;
+      }
+      if(!textField && event.key.toLowerCase()==='v'){event.preventDefault();openReveal(target.matches('[data-mw-pot]')?Number(target.value):undefined);return;}
+      if(event.key==='Enter' && !target.matches('button,summary')){event.preventDefault();event.stopPropagation();void finishCompletion();}
+    });
     initialized = true; fillSetup(true);
     $('#mw-completion-open').onclick = () => openCompletion();
-    $('#mw-next-direct').onclick = () => { if (completed() && !busy()) void invoke('nextHand'); };
+    $('#mw-next-direct').onclick = () => openCompletion();
     $('#mw-shown-open').onclick = () => openReveal();
     $('#mw-reveal-player').onchange = event => selectShownPlayer(event.target.value);
     $('#mw-reveal-voice').onclick = () => { window.theibsCardVoice?.toggle?.(); refreshCompletion(); };
@@ -826,7 +902,7 @@
       try {
         if (!revealDraft || revealDraft.stateToken !== activeToken()) throw Error('The hand changed. Open shown cards again.');
         const draft = revealDraft, cards = validateShown(parsedShown(), player(draft.actor));
-        if (await invoke('reveal', { actor: draft.actor, cards })) { revealDialog.close(); }
+        if (await invoke('reveal', { actor: draft.actor, cards })) { revealDialog.close(); openCompletion(); }
       } catch (error) { setError(error.message); }
     };
     setupDialog.addEventListener('input', () => { setupDirty = true; });
@@ -855,7 +931,7 @@
       if(busy())return;
       if(view.enabled)void invoke('exit');else openSetup({ forNextHand: false });
     };
-    controlsHost.addEventListener('click', event => { const button = event.target.closest('[data-mw-command]'); if (!button || button.disabled) return; if(window.theibsKeyboard) { window.theibsKeyboard.selectPlayer(view.state.actor,false); window.theibsKeyboard.dispatch({type:button.dataset.keyboardCommand}); } else if(button.dataset.mwAction) void action(button.dataset.mwAction); });
+    controlsHost.addEventListener('click', event => { const button = event.target.closest('[data-mw-command]'); if (!button || button.disabled) return; if(window.theibsKeyboard) { window.theibsKeyboard.dispatch({type:button.dataset.keyboardCommand}); } else if(button.dataset.mwAction) void action(button.dataset.mwAction); });
     $('#mw-size').addEventListener('input', sizeHelp);
     $('#mw-size-confirm').onclick = () => { void submitPendingAmount(); };
     $('#mw-size').addEventListener('keydown', event => { if (event.key === 'Enter' && !event.isComposing) { event.preventDefault(); event.stopPropagation(); void submitPendingAmount(); } });
@@ -1008,6 +1084,7 @@
     refresh();
   }
   window.theibsMultiwayUI = { init, render, setBusy, setError, openSetup, requestHeroPosition, openPlayer, openBoard, openCompletion, openReveal, getEndingStacks, getEvaluationSize, getDraft, voiceContext, commitVoiceBoard, commitKeyboardBoard, undoVoiceBoard, commitVoiceAction, commitVoiceSequence, commitVoiceShownCards, undoVoiceAction, undoAction, cancelPendingAmount, openPendingAmount, submitPendingAmount, describeDecisionEV,
+    openStackEditor, openButtonCorrection, finishCompletion,
     getRakeChoice, getPlannedRakeChoice, getPlannedSetup, acceptNextSetup, restorePreferences,
     _testing:{studyComparisonDetails},
     getPreferences: () => ({ rakeChoice: { ...rakeChoice }, nextRakeChoice: nextRakeChoice && { ...nextRakeChoice }, nextSetupDraft: getPlannedSetup() }),

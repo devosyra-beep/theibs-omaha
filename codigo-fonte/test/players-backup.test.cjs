@@ -71,6 +71,67 @@ test('mid-hand archives and estimated continuation balances survive backup witho
   assert.equal(parsed.library.archive[next.multiway.handId].reconciliation.source,'NEW_GAME');
 });
 
+function continuousHand() {
+  return session.start({variant:'PLO5_HIGH',playerCount:3,heroPosition:'BTN',startingStack:100,smallBlind:.5,bigBlind:1,heroCards:[],
+    players:[{playerId:'one',name:'One'},{playerId:'two',name:'Two'},{playerId:'hero',name:'You'}]});
+}
+function archivedLibrary(hand, archivedHand) {
+  const value=empty();profiles.beginHand(value.store,hand.multiway);profiles.syncHand(value.store,hand.multiway);
+  value.archive[hand.multiway.handId]={...archivedHand,decisions:[]};return value;
+}
+
+test('continuous session backup preserves interrupted attempts without invented balances',async()=>{
+  let hand=continuousHand();hand=session.step(hand.multiway,{type:'ACT',actor:hand.state.actor,action:'RAISE',to:3.5});
+  const restarted=session.restartHand(hand.multiway,{originEventId:'restart:keyboard:1'},hand.state.revisionKey);
+  const value=archivedLibrary(hand,restarted.archivedHand),before=clone(value),handId=hand.multiway.handId;
+  const parsed=await backup.parse((await exported(value)).text,{ownerKey});
+  assert.deepEqual(parsed.library,value);assert.deepEqual(value,before);
+  const archive=parsed.library.archive[handId];
+  assert.equal(archive.reconciliation.status,'INTERRUPTED');assert.equal(archive.reconciliation.resultPending,true);
+  assert.equal(archive.reconciliation.stacks,undefined);assert.equal(archive.state.result,null);
+  assert.equal(archive.multiway.sessionId,restarted.multiway.sessionId);
+  assert.equal(restarted.multiway.attemptNumber,archive.multiway.attemptNumber+1);
+  for(const edit of [row=>{row.reconciliation.status='SETTLED';},row=>{row.reconciliation.resultPending=false;},
+    row=>{delete row.reconciliation.originEventId;},row=>{row.reconciliation.rakeObserved=true;},
+    row=>{row.reconciliation.stacks=row.state.players.map(player=>({playerId:player.playerId,stack:player.stack}));},
+    row=>{row.state.result={reason:'FOLD',awards:[{playerId:'hero',amount:4}]};}]) {
+    const changed=clone(value);edit(changed.archive[handId]);await assert.rejects(exported(changed),code('BACKUP_INVALID_DATA'));
+  }
+});
+
+test('continuous session backup retains legacy hashes and verifies optional session metadata',async()=>{
+  const current=continuousHand(),raw=clone(current.multiway);
+  for(const key of ['sessionId','handNumber','attemptNumber','startedAt'])delete raw[key];
+  const legacy=session.envelope(raw),legacyValue=archivedLibrary(legacy,session.nextHand(legacy.multiway).archivedHand);
+  assert.deepEqual((await backup.parse((await exported(legacyValue)).text,{ownerKey})).library,legacyValue);
+  const value=archivedLibrary(current,session.nextHand(current.multiway).archivedHand),handId=current.multiway.handId;
+  assert.deepEqual((await backup.parse((await exported(value)).text,{ownerKey})).library,value);
+  for(const edit of [row=>{row.multiway.sessionId='invalid';},row=>{row.multiway.attemptNumber=1.5;},
+    row=>{row.state.handNumber++;},row=>{row.multiway.handNumber++;row.state.handNumber++;}]) {
+    const changed=clone(value);edit(changed.archive[handId]);await assert.rejects(exported(changed),code('BACKUP_INVALID_DATA'));
+  }
+});
+
+test('continuous session backup preserves partial shown cards within the variant limit',async()=>{
+  let hand=continuousHand();
+  hand=session.step(hand.multiway,{type:'ACT',actor:hand.state.actor,action:'FOLD'});
+  hand=session.step(hand.multiway,{type:'ACT',actor:hand.state.actor,action:'FOLD'});
+  assert.equal(hand.state.phase,'FINISHED');
+  for(const shown of [[],['As']]) {
+    const revealed=session.step(hand.multiway,{type:'REVEAL',actor:1,cards:shown});
+    const value=archivedLibrary(revealed,session.nextHand(revealed.multiway).archivedHand),handId=revealed.multiway.handId;
+    const parsed=await backup.parse((await exported(value)).text,{ownerKey});
+    assert.deepEqual(parsed.library,value);assert.deepEqual(parsed.library.archive[handId].state.players[1].shownCards,shown);
+    for(const invalid of [['As','As'],['As','Kh','Qd','Jc','Ts','9h']]) {
+      for(const location of ['ledger','state']) {
+        const changed=clone(value),row=changed.archive[handId];
+        if(location==='ledger')row.multiway.events.at(-1).cards=invalid;else row.state.players[1].shownCards=invalid;
+        await assert.rejects(exported(changed),code('BACKUP_INVALID_DATA'));
+      }
+    }
+  }
+});
+
 test('roundtrip preserves real archived decisions, numeric solver values, HEURISTIC null/zero, notes and frozen origins exactly',async()=>{
   const value=library(), before=clone(value), created=await exported(value), parsed=await backup.parse(created.text,{ownerKey});
   assert.deepEqual(parsed.library,value);assert.deepEqual(value,before);

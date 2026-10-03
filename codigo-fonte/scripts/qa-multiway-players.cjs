@@ -15,13 +15,17 @@ let browser;
   page.on('pageerror',error=>report.errors.push(error.message));
   await page.goto(origin);await page.setContent('<!doctype html><html lang="en"><head><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href="/multiway.css"><link rel="stylesheet" href="/players.css"></head><body data-felt="roxo" data-deck="cores"><main id="players-workspace" class="players-workspace"></main></body></html>');
   for(const name of ['card-model.js','player-profile-model.js','players-storage.js','players-ui.js'])await page.addScriptTag({url:`${origin}/${name}`});
-  await page.evaluate(()=>{
+  await page.evaluate(async()=>{
     window.theibsPlayersUI.configure({request:async(url,opts)=>{const response=await fetch(url,opts),data=await response.json();if(!response.ok)throw Error(data.reason);return data;}});
-    theibsPlayersUI.init('a'.repeat(64));
+    await theibsPlayersUI.init('a'.repeat(64));
   });
-  for(let i=0;i<2;i++){await page.locator('#players-new-name').fill('Same name');await page.locator('#players-create button').click();}
+  for(let i=0;i<2;i++){
+    await page.locator('#players-new-name').fill('Same name');await page.locator('#players-create button').click();
+    await page.waitForFunction(count=>theibsPlayersUI.list().length===count,i+1);
+  }
   const saved=await page.evaluate(()=>theibsPlayersUI.list());assert.equal(saved.length,2);assert.notEqual(saved[0].playerId,saved[1].playerId);
   await page.locator('#players-note-text').fill('Pays small raises — a manual hypothesis only.');await page.locator('#players-add-note button').click();
+  await page.waitForFunction(()=>theibsPlayersUI.list().some(player=>player.notes.some(note=>note.text==='Pays small raises — a manual hypothesis only.')));
   assert.equal((await page.evaluate(()=>theibsPlayersUI.list())).reduce((sum,p)=>sum+p.observations,0),0);
   let hand=mw.start({variant:'PLO4_HIGH',playerCount:2,heroPosition:'BB',startingStack:10,smallBlind:.5,bigBlind:1,heroCards:['As','Kh','Qd','Jc'],players:[{playerId:saved[0].playerId,name:'Same name'},{playerId:saved[1].playerId,name:'Same name'}]});
   const initial=hand.multiway;
@@ -32,26 +36,32 @@ let browser;
   const decision={handId:before.handId,revisionKey:hand.state.revisionKey,action:'CHECK',feedback:{bigBlind:1},recordBefore:{config:before.config,events:before.events},analysis:{analysisId:'qa-original-estimate',ev:{bigBlind:1,leaderConclusive:false,candidates:[{action:'CHECK',status:'MODELED',ev:1.2,evBB:1.2,differenceToBestModeledBB:0,confidenceInterval95:[-2,4]}],assumptions:['Synthetic known decision snapshot for storage QA.']}}};
   hand=mw.step(hand.multiway,{type:'ACT',actor:1,action:'CHECK',eventId:'qa-check'});
   decision.committedEventId='qa-check';
-  await page.evaluate(snapshot=>{
-    theibsPlayersUI.recordDecision(snapshot.handId,snapshot);theibsPlayersUI.recordDecision(snapshot.handId,snapshot);
+  await page.evaluate(async snapshot=>{
+    const writes=[theibsPlayersUI.recordDecision(snapshot.handId,snapshot),theibsPlayersUI.recordDecision(snapshot.handId,snapshot)];
     // A caller may later reuse/mutate its result object. The saved decision
     // must own an independent copy before the hand is eventually archived.
     snapshot.analysis.ev.candidates[0].ev=999;
     snapshot.recordBefore.config.heroCards=[];
     const exposed=theibsPlayersUI.getStore();exposed.revision=999999;
+    await Promise.all(writes);
   },decision);
   const board=['2s','3h','4d','8c','9s'];
   while(hand.state.phase!=='SHOWDOWN')hand=mw.step(hand.multiway,hand.state.phase==='WAIT_BOARD'?{type:'BOARD',cards:board.slice(0,{FLOP:3,TURN:4,RIVER:5}[hand.state.nextStreet])}:{type:'ACT',actor:hand.state.actor,action:'CHECK'});
   hand=mw.step(hand.multiway,{type:'SETTLE',winners:[[1]],rake:0});
   const observations=profiles.deriveObservations(hand.multiway);
-  await page.evaluate(payload=>{theibsPlayersUI.syncObservations(payload);theibsPlayersUI.syncObservations(payload);},observations);
+  await page.evaluate(async payload=>{await Promise.all([theibsPlayersUI.syncObservations(payload),theibsPlayersUI.syncObservations(payload)]);},observations);
   assert.deepEqual(await page.evaluate(record=>theibsPlayersUI.profileSnapshot(record),hand.multiway),frozen);
   assert.equal((await page.evaluate(()=>theibsPlayersUI.list())).reduce((sum,p)=>sum+p.observations,0),8);
   const next=mw.nextHand(hand.multiway,{},hand.state.revisionKey);
-  await page.evaluate(payload=>{theibsPlayersUI.archiveHand(payload.archive);theibsPlayersUI.select(payload.id);},{archive:next.archivedHand,id:saved[0].playerId});
+  await page.evaluate(async payload=>{
+    const write=theibsPlayersUI.archiveHand(payload.archive);
+    payload.archive.multiway.config.heroCards=[];
+    await write;theibsPlayersUI.select(payload.id);
+  },{archive:next.archivedHand,id:saved[0].playerId});
   const archived=await page.evaluate(id=>theibsPlayersUI.getArchivedHand(id),hand.multiway.handId);assert.equal(archived.decisions.length,1);
   assert.equal(archived.decisions[0].analysis.ev.candidates[0].ev,1.2);
   assert.deepEqual(archived.decisions[0].recordBefore.config.heroCards,initial.config.heroCards);
+  assert.deepEqual(archived.multiway.config.heroCards,initial.config.heroCards,'caller mutation cannot change a queued archive');
   assert.notEqual(await page.evaluate(()=>theibsPlayersUI.getStore().revision),999999);
   await page.locator('.players-detail > details > summary').filter({hasText:'Observed actions'}).click();await page.locator('.players-contexts summary').first().click();
   assert.match(await page.locator('.players-observations-table').first().innerText(),/95% interval/);
@@ -78,10 +88,20 @@ let browser;
   assert.equal(await page.evaluate(()=>theibsPlayersUI.voiceRevealContext()),null);
   await page.evaluate(()=>theibsPlayersUI.init('a'.repeat(64)));assert.equal((await page.evaluate(()=>theibsPlayersUI.list())).length,2);
   const revision=await page.evaluate(()=>theibsPlayersUI.getStore().revision);
-  await page.evaluate(()=>{window.__originalStorageWrite=Storage.prototype.setItem;Storage.prototype.setItem=function(){throw Error('Storage quota test');};});
+  await page.evaluate(()=>{
+    window.__originalIDBPut=IDBObjectStore.prototype.put;
+    IDBObjectStore.prototype.put=function(...args){
+      if(this.name==='heads'){this.transaction.abort();throw new DOMException('Storage quota test','QuotaExceededError');}
+      return window.__originalIDBPut.apply(this,args);
+    };
+  });
   await page.locator('#players-new-name').fill('Must not be silently saved');await page.locator('#players-create button').click();
-  assert.equal(await page.evaluate(()=>theibsPlayersUI.getStore().revision),revision);assert.match(await page.locator('#players-message').innerText(),/Storage quota/);
-  await page.evaluate(()=>{Storage.prototype.setItem=window.__originalStorageWrite;});
+  await page.waitForFunction(()=>document.querySelector('#players-message')?.textContent.includes('Durable player storage is full'));
+  assert.equal(await page.evaluate(()=>theibsPlayersUI.getStore().revision),revision);assert.equal((await page.evaluate(()=>theibsPlayersUI.list())).length,2);
+  assert.match(await page.locator('#players-message').innerText(),/Durable player storage is full/);
+  await page.evaluate(()=>{IDBObjectStore.prototype.put=window.__originalIDBPut;});
+  await page.evaluate(()=>theibsPlayersUI.init('a'.repeat(64),true));
+  assert.equal(await page.evaluate(()=>theibsPlayersUI.getStore().revision),revision,'an aborted save is absent after durable reload');
   // Undo and an identical new action are distinct confirmed events. The old
   // analysis must not attach to the replacement action simply by matching text.
   let repeated=mw.start({...initial.config,heroPosition:'SB'});
@@ -94,10 +114,10 @@ let browser;
   repeated=mw.step(repeated.multiway,{type:'ACT',actor:0,action:'CALL',eventId:'qa-new-call'});
   repeated=mw.step(repeated.multiway,{type:'ACT',actor:1,action:'FOLD',eventId:'qa-terminal-fold'});
   const repeatedArchive=mw.nextHand(repeated.multiway).archivedHand;
-  const reviewIds=await page.evaluate(({originalDecision,replacementDecision,repeatedArchive})=>{
-    theibsPlayersUI.beginHand(originalDecision.recordBefore);
-    for(const decision of [originalDecision,replacementDecision])theibsPlayersUI.recordDecision(decision.handId,decision);
-    theibsPlayersUI.archiveHand(repeatedArchive);
+  const reviewIds=await page.evaluate(async({originalDecision,replacementDecision,repeatedArchive})=>{
+    await theibsPlayersUI.beginHand(originalDecision.recordBefore);
+    for(const decision of [originalDecision,replacementDecision])await theibsPlayersUI.recordDecision(decision.handId,decision);
+    await theibsPlayersUI.archiveHand(repeatedArchive);
     return theibsPlayersUI.getArchivedHand(originalDecision.handId).decisions.map(item=>item.analysis.analysisId);
   },{originalDecision,replacementDecision,repeatedArchive});
   assert.deepEqual(reviewIds,['replacement']);
@@ -109,7 +129,7 @@ let browser;
   await page.screenshot({path:path.join(out,'all-hands-mobile.png'),fullPage:true});
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
   await page.setViewportSize({width:1366,height:900});
-  // Two browser tabs share localStorage but have independent in-memory stores.
+  // Two browser tabs share IndexedDB but have independent in-memory stores.
   // A stale write must reload/report the conflict and preserve the first write.
   await page.evaluate(()=>theibsPlayersUI.init('c'.repeat(64)));
   const second=await page.context().newPage();second.on('pageerror',error=>report.errors.push(error.message));
@@ -117,15 +137,18 @@ let browser;
   for(const name of ['card-model.js','player-profile-model.js','players-storage.js','players-ui.js'])await second.addScriptTag({url:`${origin}/${name}`});
   await second.evaluate(()=>theibsPlayersUI.init('c'.repeat(64)));
   await page.locator('#players-new-name').fill('First tab');await page.locator('#players-create button').click();
+  await page.waitForFunction(()=>theibsPlayersUI.list().length===1);
   await second.locator('#players-new-name').fill('Second tab');await second.locator('#players-create button').click();
+  await second.waitForFunction(()=>document.querySelector('#players-message')?.textContent.includes('another tab'));
   assert.match(await second.locator('#players-message').innerText(),/another tab/);
   assert.deepEqual(await second.evaluate(()=>theibsPlayersUI.list().map(player=>player.nickname)),['First tab']);
   await second.locator('#players-new-name').fill('Second tab');await second.locator('#players-create button').click();
+  await second.waitForFunction(()=>theibsPlayersUI.list().length===2);
   assert.deepEqual((await second.evaluate(()=>theibsPlayersUI.list().map(player=>player.nickname))).sort(),['First tab','Second tab']);
   await second.close();
   assert.deepEqual(report.errors,[]);
-  report.checks=['Duplicate nicknames retain separate IDs','Notes do not produce observations','Repeated updates do not double count','Original profile snapshot remains frozen','Decision storage is idempotent','Posterior intervals visible','Full ledger archived','Duplicate shown cards rejected','Later shown cards preserve original EV snapshot','Voice writes only a reviewable draft','Owner namespaces isolated','Quota failure leaves data and revisions unchanged'];
-  report.checks.push('Caller mutations cannot alter an original decision snapshot','Owner switch clears the previous account editor',
+  report.checks=['Duplicate nicknames retain separate IDs','Notes do not produce observations','Repeated updates do not double count','Original profile snapshot remains frozen','Decision storage is idempotent','Posterior intervals visible','Full ledger archived','Duplicate shown cards rejected','Later shown cards preserve original EV snapshot','Voice writes only a reviewable draft','Owner namespaces isolated','Aborted durable transaction leaves data and revisions unchanged after reload'];
+  report.checks.push('Caller mutations cannot alter an original decision snapshot or queued archive','Owner switch clears the previous account editor',
     'Undo and identical replacement retain only the new confirmed decision','Stale second-tab writes preserve existing data and require review');
   report.checks.push('Global recorded hands expose each player card editor without horizontal overflow');
   report.status='PASS';

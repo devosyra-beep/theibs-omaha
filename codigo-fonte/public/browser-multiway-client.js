@@ -5,7 +5,7 @@
   const abortError=()=>Object.assign(new Error('The calculation was cancelled.'),{name:'AbortError',code:'ABORTED'});
   const pick=(value,keys)=>!value||typeof value!=='object'||Array.isArray(value)?value:Object.fromEntries(keys.filter(key=>Object.hasOwn(value,key)).map(key=>[key,value[key]]));
   function publicRecord(raw){
-    const record=pick(raw,['schemaVersion','enabled','config','events','handId','editEpoch']);
+    const record=pick(raw,['schemaVersion','enabled','config','events','handId','editEpoch','sessionId','handNumber','attemptNumber','startedAt']);
     if(!record||typeof record!=='object'||Array.isArray(record))return record;
     record.config=pick(record.config,['variant','playerCount','heroPosition','startingStack','smallBlind','bigBlind','heroCards','stacks','players','stackEstimates']);
     if(Array.isArray(record.config?.players))record.config.players=record.config.players.map(player=>pick(player,['playerId','name']));

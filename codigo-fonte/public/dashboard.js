@@ -163,13 +163,28 @@
   const clear=$('#clear'); clear.textContent='Clear cards'; clear.className='ghost-button';
   $('.keyboard-heading').append(clear);
   const keyboard=$('.card-keyboard'), keyboardHeading=$('.keyboard-heading');
-  const picker=document.createElement('details');picker.id='card-picker';picker.className='card-picker';
+  const picker=document.createElement('details');picker.id='card-picker';picker.className='card-picker mw-compact-picker';
   picker.innerHTML='<summary>Card deck</summary><p class="micro picker-help">Type rank + suit. Ten = D, T or 10.</p>';
   keyboardHeading.after(picker);
   keyboardHeading.querySelector('div:first-child').remove();
   picker.append($('.suit-legend'),$('#card-grid'));
+  const pickerRanks=document.createElement('div');pickerRanks.className='mw-picker-ranks';pickerRanks.setAttribute('role','group');pickerRanks.setAttribute('aria-label','Choose card rank');
+  pickerRanks.innerHTML=[...window.TheibsCards.CARD_RANKS].map(rank=>`<button type="button" data-picker-rank="${rank}" aria-pressed="false" aria-label="Rank ${rank==='T'?'10':rank}">${rank==='T'?'10':rank}</button>`).join('');
+  const pickerSuits=document.createElement('div');pickerSuits.className='mw-picker-suits';pickerSuits.setAttribute('role','group');pickerSuits.setAttribute('aria-label','Choose card suit');
+  pickerSuits.innerHTML=window.TheibsCards.CARD_SUITS.map(suit=>`<button type="button" data-picker-suit="${suit.code}" data-suit="${suit.code}" aria-pressed="false" aria-label="${suit.name}" disabled>${suit.symbol} <span>${suit.name}</span> <kbd>${suit.code}</kbd></button>`).join('');
+  const pickerLayout=document.createElement('div');pickerLayout.className='mw-picker-layout';picker.append(pickerLayout);
+  pickerLayout.append(pickerRanks,pickerSuits);
+  const syncCompact=(pending=window.theibsKeyboard?.getState().rank || '')=>{
+    for(const button of pickerRanks.children)button.setAttribute('aria-pressed',String(button.dataset.pickerRank===pending));
+    for(const button of pickerSuits.children){
+      button.disabled=!pending || Boolean(picker.querySelector(`[data-card="${pending}${button.dataset.pickerSuit}"]`)?.disabled);
+      button.title=pending?`${pending==='T'?'10':pending} · ${button.getAttribute('aria-label')}`:'Choose a rank first';
+    }
+  };
+  pickerRanks.addEventListener('click',event=>{const button=event.target.closest('[data-picker-rank]');if(button)window.theibsKeyboard?.dispatch({type:'CARD_RANK',rank:button.dataset.pickerRank});});
+  pickerSuits.addEventListener('click',event=>{const button=event.target.closest('[data-picker-suit]');if(button&&!button.disabled)window.theibsKeyboard?.dispatch({type:'CARD_SUIT',suit:button.dataset.pickerSuit});});
   const pickerTools=document.createElement('div');pickerTools.className='picker-tools';
-  pickerTools.append(textButton,$('#copy-cards'),$('#export-cards'));picker.append(pickerTools);
+  pickerTools.append(textButton,$('#copy-cards'),$('#export-cards'));pickerLayout.append(pickerTools);
   const pickerButton=document.createElement('button');pickerButton.id='open-card-picker';pickerButton.type='button';pickerButton.className='ghost-button';
   pickerButton.textContent='Cards';pickerButton.setAttribute('aria-controls','card-picker');pickerButton.setAttribute('aria-expanded','false');
   keyboardHeading.prepend(pickerButton);
@@ -177,8 +192,10 @@
   $('.keyboard-actions').remove();
   const setPickerOpen=open=>{
     picker.open=open;pickerButton.setAttribute('aria-expanded',String(open));keyboard.classList.toggle('picker-open',open);
-    const boardEntry=document.body.dataset.multiway==='on'&&document.body.dataset.multiwayPhase==='WAIT_BOARD';
-    if(boardEntry)return;
+    syncCompact();
+    // Multiway owns a stationary input dock. Opening the picker must never
+    // reorder the table, action controls or decision panels.
+    if(document.body.dataset.multiway==='on')return;
     const controls=$('#multiway-controls');
     if(open&&document.body.dataset.view==='analyze'&&controls){
       controls.before(keyboard);keyboard.classList.add('contextual-card-entry');
@@ -192,7 +209,7 @@
     if(document.body.dataset.view==='analyze' && event.target.closest('[data-slot]:not(:disabled)'))setPickerOpen(true);
   });
   $('#analyze-workspace .table-column').append(keyboard);
-  window.theibsCardPicker={open:()=>setPickerOpen(true),close:()=>setPickerOpen(false)};
+  window.theibsCardPicker={open:()=>setPickerOpen(true),close:()=>setPickerOpen(false),syncCompact};
   const trainingSettings=dialog('training-settings-dialog','Configure exercise');
   document.body.append(trainingSettings);
   const trainingSetup=$('.training-setup'),trainingStart=$('#training-start');

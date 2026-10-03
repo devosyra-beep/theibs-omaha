@@ -5,7 +5,7 @@
   "methodology": "Current Node adaptive pipeline, unchanged mathematical core, fixed maximum 512 work iterations and 5000 ms. Cases must stop before a time ceiling. Browser comparison requires identical game/context hashes, comparison policy, action identities, stopped work count, and numeric values within 1e-10. The richer 4x4 input is checked against the stored LP game key before extracting containment values; LP residual tolerance never declares dominance. Timed benchmarks do not require identical point values across different stopping work.",
   "independentReference": "Terminal values use exact ledger/showdown arithmetic; four-world commitment values independently verified by sequence-form LP. Tolerance1e-7 is for comparing the numeric reference, never for declaring dominance.",
   "sourceJobWorkerSha256": "4f20f0b0f2a3924a48aed8475419f5ecfb39c9dabf689e7cc363a8811c58096e",
-  "sourceBuildFingerprint": "945e2b3b29da0720de83e4d7d6a43e0b5d65f6ccc8dc648d96e17ef55750c8a2",
+  "sourceBuildFingerprint": "95e1c4362d93c26c18bf747dd25ea5a29bf951d3ddb005e5efc1f7ea3c591112",
   "referenceContinuity": [
     {
       "file": "job-worker.js",

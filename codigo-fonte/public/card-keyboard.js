@@ -123,8 +123,9 @@
       element.classList.toggle('selected', selected);
       if (element.getAttribute('aria-pressed') !== String(selected)) element.setAttribute('aria-pressed', String(selected));
       const editableBoardSlot = Boolean(boardRange && !tableContext.busy && index >= boardRange.start && index < boardRange.end);
-      setDisabled(element, multiway && index >= state.count && !editableBoardSlot);
-      if (multiway && index >= state.count && !editableBoardSlot) element.title = 'Board cards are available here when the betting round is complete.';
+      setDisabled(element, multiway && !window.theibsKeyboard && index >= state.count && !editableBoardSlot);
+      if (multiway && window.theibsKeyboard && index >= state.count) element.title = 'Enter or correct this board card at any time. Future streets stay in draft until their betting round opens.';
+      else if (multiway && index >= state.count && !editableBoardSlot) element.title = 'Board cards are available here when the betting round is complete.';
       else if (multiway && editableBoardSlot) element.title = `Enter ${boardRange.street === 'FLOP' ? 'flop' : boardRange.street.toLowerCase()} card ${index - boardRange.start + 1} of ${boardRange.needed}.`;
       else if (element.title === 'Board cards are available here when the betting round is complete.' || element.title.startsWith('Enter ') && index >= state.count) {
         cardTemplate.innerHTML = slot(index);
@@ -186,7 +187,7 @@
     render(); changed('manual');
   }
   function select(index) {
-    if (document.body.dataset.multiway === 'on') {
+    if (document.body.dataset.multiway === 'on' && !window.theibsKeyboard) {
       const range = multiwayBoardRange();
       if (range && index >= state.count) index = Math.max(range.start, Math.min(range.end - 1, index));
       else if (index >= state.count) index = state.count - 1;

@@ -13,6 +13,24 @@ const object = value => value && typeof value === 'object' && !Array.isArray(val
 const MAX_PLAYERS = { PLO4_HIGH: 10, PLO5_HIGH: 6, PLO6_HIGH: 5 };
 const identity = value => typeof value === 'string' && value.length > 0 && value.length <= 128 && /^[\w.:-]+$/.test(value);
 const playerIdentity = value => typeof value === 'string' && /^[a-zA-Z0-9_-]{1,100}$/.test(value) && !['__proto__','constructor','prototype'].includes(value);
+const uuid = value => typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+
+function recordMetadata(raw) {
+  const result = {};
+  if (raw.sessionId !== undefined) {
+    if (!uuid(raw.sessionId)) throw Error('Invalid Multiway session identity.');
+    result.sessionId = raw.sessionId;
+  }
+  for (const key of ['handNumber','attemptNumber']) if (raw[key] !== undefined) {
+    if (!Number.isSafeInteger(raw[key]) || raw[key] < 1) throw Error('Invalid Multiway hand or attempt number.');
+    result[key] = raw[key];
+  }
+  if (raw.startedAt !== undefined) {
+    if (typeof raw.startedAt !== 'string' || !Number.isFinite(Date.parse(raw.startedAt))) throw Error('Invalid Multiway start time.');
+    result.startedAt = raw.startedAt;
+  }
+  return result;
+}
 
 function canonicalConfig(raw) {
   if (!object(raw)) throw Error('Enter the Multiway table configuration.');
@@ -78,7 +96,7 @@ function validateRecord(raw) {
   if (raw.handId !== undefined && (typeof raw.handId !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(raw.handId))) throw Error('Invalid Multiway hand identity.');
   if (raw.editEpoch !== undefined && (!Number.isSafeInteger(raw.editEpoch) || raw.editEpoch < 0)) throw Error('Invalid Multiway edit epoch.');
   const record = { schemaVersion: 1, enabled: raw.enabled, config: canonicalConfig(raw.config), events: raw.events.map(canonicalEvent),
-    ...(raw.handId ? { handId: raw.handId } : {}), ...(raw.editEpoch !== undefined ? { editEpoch: raw.editEpoch } : {}) };
+    ...(raw.handId ? { handId: raw.handId } : {}), ...(raw.editEpoch !== undefined ? { editEpoch: raw.editEpoch } : {}), ...recordMetadata(raw) };
   for (const key of ['eventId','originEventId']) {
     const ids=record.events.map(event=>event[key]).filter(Boolean);
     if (new Set(ids).size !== ids.length) throw Error('A confirmed event identity cannot be recorded twice.');
@@ -89,7 +107,10 @@ function validateRecord(raw) {
 
 function revisionKey(record) {
   return createHash('sha256').update(JSON.stringify({ handId: record.handId || null, editEpoch: record.editEpoch || 0,
-    enabled: record.enabled, config: record.config, events: record.events })).digest('hex');
+    enabled: record.enabled, config: record.config, events: record.events,
+    ...(record.sessionId ? {sessionId:record.sessionId} : {}),
+    ...(record.handNumber !== undefined ? {handNumber:record.handNumber} : {}),
+    ...(record.attemptNumber !== undefined ? {attemptNumber:record.attemptNumber} : {}) })).digest('hex');
 }
 
 function requireRevision(record, expectedRevision, expectedRevisionKey) {
@@ -128,6 +149,7 @@ function envelope(raw) {
   const continuationReasons = reasons.filter(item=>!['SIDE_POTS_UNSUPPORTED','ALL_IN_UNSUPPORTED','CALL_REACHES_ALL_IN'].includes(item.code));
   return { status: 'OK', multiway, state: { ...state, revision: multiway.events.length,
     revisionKey: revisionKey(multiway), handId: multiway.handId || null, source: SOURCE,
+    ...recordMetadata(multiway),
     ...(multiway.config.stackEstimates ? {players:state.players.map(player=>({...player,stackEstimated:multiway.config.stackEstimates[player.id]}))} : {}) },
     analysis: { available: reasons.length === 0, reasons, input, source: SOURCE,
       activeOpponentIds: opponents.map(player => player.id), warnings },
@@ -141,7 +163,8 @@ function identifyPlayers(config) {
   return {...config, players:state.players.map(player=>({playerId:randomUUID(),name:player.name}))};
 }
 function start(config, previousRaw, expectedRevisionKey) {
-  const result = envelope({ schemaVersion: 1, enabled: true, config:identifyPlayers(canonicalConfig(config)), events: [], handId: randomUUID(), editEpoch: 0 });
+  const result = envelope({ schemaVersion: 1, enabled: true, config:identifyPlayers(canonicalConfig(config)), events: [], handId: randomUUID(), editEpoch: 0,
+    sessionId:randomUUID(),handNumber:1,attemptNumber:1,startedAt:new Date().toISOString() });
   if (previousRaw !== undefined) {
     const previous = envelope(previousRaw);
     requireRevision(previous.multiway, undefined, expectedRevisionKey);
@@ -152,7 +175,8 @@ function start(config, previousRaw, expectedRevisionKey) {
 const hasKnownResult = state => state.phase === 'FINISHED' && state.result?.reason !== 'UNKNOWN';
 function archiveForContinuation(previous, reconciliation) {
   return {multiway:previous.multiway,state:previous.state,reconciliation:{
-    rakeObserved:previous.multiway.events.some(event=>event.type==='SETTLE'),...reconciliation}};
+    rakeObserved:previous.multiway.events.some(event=>event.type==='SETTLE'),
+    status:hasKnownResult(previous.state)?'SETTLED':'INCOMPLETE',...reconciliation}};
 }
 function eventContent(event) {
   const {eventId,originEventId,...content}=event;
@@ -261,6 +285,143 @@ function undo(raw, expectedRevisionKey) {
   if (!record.events.length) throw Error('There is no confirmed event to undo.');
   return envelope({ ...record, handId: record.handId || randomUUID(), editEpoch: (record.editEpoch || 0) + 1,
     events: record.events.slice(0, -1) });
+}
+
+function actionIndex(record, selection = {}) {
+  if (!object(selection)) throw Error('Select a confirmed action to review.');
+  let index = selection.eventIndex;
+  if (selection.eventId !== undefined) {
+    if (typeof selection.eventId !== 'string') throw Error('Invalid selected action identity.');
+    const found = record.events.findIndex(event => event.eventId === selection.eventId);
+    const fallback = record.events.findIndex((event, i) => `event:${i}` === selection.eventId || `${record.handId}:${i}` === selection.eventId);
+    const identified = found >= 0 ? found : fallback;
+    if (identified < 0 || index !== undefined && index !== identified) throw Error('The selected action changed. Review it again.');
+    index = identified;
+  }
+  if (!Number.isInteger(index) || index < 0 || index >= record.events.length || record.events[index].type !== 'ACT') {
+    throw Error('Select a confirmed betting action.');
+  }
+  return index;
+}
+
+function reviewAction(raw, selection, expectedRevisionKey) {
+  const record = validateRecord(raw);
+  requireRevision(record, undefined, expectedRevisionKey);
+  const index = actionIndex(record, selection), reviewed = envelope({...record, events:record.events.slice(0,index)});
+  return {status:'OK',state:reviewed.state,event:{...record.events[index]},eventIndex:index,
+    eventId:record.events[index].eventId || `event:${index}`,multiwayRevisionKey:revisionKey(record)};
+}
+
+function recoveryVersion(previous, reason, detail) {
+  return {recoveryId:`recovery:${sequenceDigest([previous.state.revisionKey,reason,detail])}`,reason,
+    multiway:previous.multiway,state:previous.state};
+}
+
+// A correction replays exactly the supplied observations. Once an observation
+// becomes illegal, it and the remaining suffix are parked for explicit review.
+function compatiblePrefix(record, config, events, fromIndex = 0) {
+  const kept = events.slice(0,fromIndex);
+  replay(config, kept);
+  let stoppedAt = null;
+  for (let index = fromIndex; index < events.length; index++) {
+    try { replay(config, [...kept,events[index]]); kept.push(events[index]); }
+    catch (error) { stoppedAt={eventIndex:index,eventId:events[index].eventId || `event:${index}`,reason:error.message};break; }
+  }
+  return {events:kept,stoppedAt,parkedEvents:stoppedAt?events.slice(stoppedAt.eventIndex).map(event=>({...event})):[]};
+}
+
+function correctAction(raw, change = {}, expectedRevisionKey) {
+  const previous = envelope(raw), record = previous.multiway;
+  requireRevision(record, undefined, expectedRevisionKey);
+  const index = actionIndex(record, change), selected = record.events[index];
+  if (change.actor !== selected.actor) throw Error('Correct the player belonging to the selected action.');
+  const replacement = canonicalEvent({...selected,action:change.action,to:change.to});
+  const prefix = [...record.events.slice(0,index),replacement];
+  // The replacement itself must pass. A failed edit never truncates the hand.
+  replay(record.config,prefix);
+  if (eventContent(replacement) === eventContent(selected)) {
+    return {...previous,correction:{eventIndex:index,eventId:selected.eventId || `event:${index}`,unchanged:true,
+      preservedSuffixCount:record.events.length-index-1,stoppedAt:null,parkedEvents:[]}};
+  }
+  const correctedEvents = [...prefix,...record.events.slice(index+1)];
+  const reconstructed = compatiblePrefix(record,record.config,correctedEvents,index+1);
+  const result = envelope({...record,handId:record.handId || sequenceUuid(['legacy-correction',previous.state.revisionKey]),
+    editEpoch:(record.editEpoch || 0)+1,events:reconstructed.events});
+  result.previousVersion = recoveryVersion(previous,'ACTION_CORRECTION',{eventIndex:index,replacement});
+  result.correction = {eventIndex:index,eventId:selected.eventId || `event:${index}`,unchanged:false,
+    preservedSuffixCount:reconstructed.events.length-index-1,stoppedAt:reconstructed.stoppedAt,parkedEvents:reconstructed.parkedEvents};
+  return result;
+}
+
+function amountCents(value, label) {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0 || value > 10000000 || Math.abs(value*100-Math.round(value*100))>0.00001) {
+    throw Error(`${label}: use a non-negative value with up to two decimal places.`);
+  }
+  return Math.round(value*100);
+}
+
+function adjustStack(raw, change = {}, expectedRevisionKey) {
+  const previous = envelope(raw), record = previous.multiway, state = previous.state;
+  requireRevision(record, undefined, expectedRevisionKey);
+  const player = Number.isInteger(change.actor) ? state.players[change.actor] : null;
+  if (!player) throw Error('Select a player to correct the stack.');
+  const requested = amountCents(change.stack,'Stack'), current = Math.round(player.stack*100), delta = requested-current;
+  const adjustment = {actor:player.id,playerId:player.playerId,oldStack:player.stack,newStack:requested/100,delta:delta/100,
+    source:'USER_STACK_CORRECTION',pokerResult:false};
+  if (!delta && !player.stackEstimated) return {...previous,adjustment:{...adjustment,unchanged:true}};
+  const initial = Math.round(player.startingStack*100)+delta;
+  if (initial <= 0 || initial > 1000000000) throw Error('This stack correction conflicts with the recorded starting balance.');
+  const stacks = state.players.map(item=>item.startingStack);stacks[player.id]=initial/100;
+  const estimates = [...(record.config.stackEstimates || state.players.map(()=>false))];estimates[player.id]=false;
+  const config = {...record.config,stacks,...(estimates.some(Boolean)?{stackEstimates:estimates}:{stackEstimates:undefined})};
+  const result = envelope({...record,config,editEpoch:(record.editEpoch || 0)+1});
+  const contributions = log => log.filter(item=>['SB','BB','CALL','BET','RAISE','RETURN'].includes(item.action))
+    .map(item=>({street:item.street,actor:item.actor,action:item.action,amount:item.amount,to:item.to}));
+  if (Math.round(result.state.players[player.id].stack*100)!==requested ||
+      JSON.stringify(contributions(result.state.log))!==JSON.stringify(contributions(state.log))) {
+    throw Error('This stack correction changes recorded contributions. Correct the affected action first.');
+  }
+  result.previousVersion = recoveryVersion(previous,'STACK_CORRECTION',adjustment);
+  result.adjustment = {...adjustment,unchanged:false};
+  return result;
+}
+
+function correctButton(raw, change = {}, expectedRevisionKey) {
+  const previous = envelope(raw), record = previous.multiway, state = previous.state;
+  requireRevision(record, undefined, expectedRevisionKey);
+  const chosen = Number.isInteger(change.buttonId) ? state.players[change.buttonId] : null;
+  if (!chosen) throw Error('Select the player holding the button.');
+  if (chosen.id === state.buttonId) return {...previous,buttonCorrection:{unchanged:true,buttonPlayerId:chosen.playerId,stoppedAt:null,parkedEvents:[]}};
+  const count = state.players.length;
+  const order = count === 2 ? [chosen.id,1-chosen.id] : Array.from({length:count},(_,i)=>(chosen.id+i+1)%count);
+  const seatMap = Object.fromEntries(order.map((oldId,newId)=>[oldId,newId])), config = identifyPlayers(record.config);
+  const correctedConfig = {...config,heroPosition:POSITIONS[count][seatMap[state.heroId]],
+    players:order.map(id=>({...config.players[id]})),stacks:order.map(id=>state.players[id].startingStack),
+    ...(config.stackEstimates ? {stackEstimates:order.map(id=>config.stackEstimates[id])} : {})};
+  const events = record.events.map(event=>({...event,
+    ...(event.actor !== undefined ? {actor:seatMap[event.actor]} : {}),
+    ...(event.winners ? {winners:event.winners.map(ids=>ids.map(id=>seatMap[id]))} : {})}));
+  const reconstructed = compatiblePrefix(record,correctedConfig,events);
+  const result = envelope({...record,config:correctedConfig,editEpoch:(record.editEpoch || 0)+1,events:reconstructed.events});
+  result.previousVersion = recoveryVersion(previous,'BUTTON_CORRECTION',{buttonPlayerId:chosen.playerId});
+  result.buttonCorrection = {unchanged:false,buttonPlayerId:chosen.playerId,seatMap,
+    preservedEventCount:reconstructed.events.length,stoppedAt:reconstructed.stoppedAt,parkedEvents:reconstructed.parkedEvents};
+  return result;
+}
+
+function sessionIdentity(record) { return record.sessionId || sequenceUuid(['session',record.handId || revisionKey(record)]); }
+
+function restartHand(raw, options = {}, expectedRevisionKey) {
+  const previous = envelope(raw), record = previous.multiway;
+  requireRevision(record, undefined, expectedRevisionKey);
+  if (!['BETTING','WAIT_BOARD'].includes(previous.state.phase)) throw Error('Restart is available only while capturing a hand.');
+  if (!object(options) || !identity(options.originEventId)) throw Error('A restart command identity is required.');
+  const result = envelope({...record,config:{...record.config,heroCards:[]},events:[],editEpoch:0,
+    handId:sequenceUuid(['restart',previous.state.revisionKey,options.originEventId]),sessionId:sessionIdentity(record),
+    handNumber:record.handNumber || 1,attemptNumber:(record.attemptNumber || 1)+1,startedAt:new Date().toISOString()});
+  result.archivedHand = archiveForContinuation(previous,{source:'MANUAL_RESTART',status:'INTERRUPTED',resultPending:true,
+    originEventId:options.originEventId});
+  return result;
 }
 
 function sameSeats(ids, expected) {
@@ -385,7 +546,12 @@ function nextHand(raw, options = {}, expectedRevisionKey) {
     smallBlind:overrides.smallBlind ?? cfg.smallBlind,bigBlind:overrides.bigBlind ?? cfg.bigBlind,
     players:order.map(id=>({...cfg.players[id]})),stacks:order.map(id=>stacks[id]),
     ...(estimates.some(Boolean) ? {stackEstimates:order.map(id=>estimates[id])} : {stackEstimates:undefined})};
-  const result = start(nextConfig);
+  const canonicalNext = canonicalConfig(nextConfig);
+  // The same confirmed hand/config transition has one identity even when a
+  // response is retried. A new request cannot pay the old pot a second time.
+  const result = envelope({schemaVersion:1,enabled:true,config:canonicalNext,events:[],editEpoch:0,
+    handId:sequenceUuid(['next-hand',previous.state.revisionKey,canonicalNext]),sessionId:sessionIdentity(previous.multiway),
+    handNumber:(previous.multiway.handNumber || 1)+1,attemptNumber:1,startedAt:new Date().toISOString()});
   const archived = envelope({...previous.multiway,config:cfg});
   result.archivedHand = archiveForContinuation(archived,
     {source:options.stacks ? 'USER_CONFIRMED_STACKS' : unresolved ? 'PREVIOUS_STARTING_STACK_ESTIMATE' : state.result?.reason === 'ALL_FOLDED'
@@ -456,4 +622,5 @@ function guardResult(result, prepared) {
   return result;
 }
 
-module.exports = { SOURCE, validateRecord, envelope, start, step, undo, nextHand, previewSequence, batch, applySequence:batch, prepareAnalysis, blockedResult, guardResult };
+module.exports = { SOURCE, validateRecord, envelope, start, step, undo, nextHand, reviewAction, correctAction, adjustStack, correctButton, restartHand,
+  previewSequence, batch, applySequence:batch, prepareAnalysis, blockedResult, guardResult };

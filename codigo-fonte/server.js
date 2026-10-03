@@ -452,6 +452,11 @@ const server = http.createServer(async (request, response) => {
       if (route === '/api/multiway/preview-sequence') return json(response, 200, await priorityCalculation(()=>multiway.previewSequence(payload.multiway,payload.commands,{expectedRevisionKey:payload.expectedRevisionKey,originEventId:payload.originEventId})));
       if (route === '/api/multiway/batch') return json(response, 200, await priorityCalculation(()=>multiway.batch(payload.multiway,payload.commands,{expectedRevisionKey:payload.expectedRevisionKey,originEventId:payload.originEventId,expectedPreviewKey:payload.expectedPreviewKey})));
       if (route === '/api/multiway/undo') return json(response, 200, await priorityCalculation(()=>multiway.undo(payload.multiway, payload.expectedRevisionKey)));
+      if (route === '/api/multiway/review-action') return json(response,200,await priorityCalculation(()=>multiway.reviewAction(payload.multiway,payload.selection || {eventId:payload.eventId,eventIndex:payload.eventIndex},payload.expectedRevisionKey)));
+      if (route === '/api/multiway/correct-action') return json(response,200,await priorityCalculation(()=>multiway.correctAction(payload.multiway,payload.change || payload,payload.expectedRevisionKey)));
+      if (route === '/api/multiway/adjust-stack') return json(response,200,await priorityCalculation(()=>multiway.adjustStack(payload.multiway,payload.change || payload,payload.expectedRevisionKey)));
+      if (route === '/api/multiway/correct-button') return json(response,200,await priorityCalculation(()=>multiway.correctButton(payload.multiway,payload.change || payload,payload.expectedRevisionKey)));
+      if (route === '/api/multiway/restart-hand') return json(response,200,await priorityCalculation(()=>multiway.restartHand(payload.multiway,payload.options || {originEventId:payload.originEventId},payload.expectedRevisionKey)));
       if (route === '/api/multiway/next-hand') return json(response,200,await priorityCalculation(()=>multiway.nextHand(payload.multiway,payload.options||{},payload.expectedRevisionKey)));
       if (route === '/api/multiway/observations') {
         const observed=multiway.envelope(payload.multiway);

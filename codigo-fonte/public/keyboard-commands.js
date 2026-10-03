@@ -8,8 +8,31 @@
   const common = Object.freeze({
     ArrowLeft: 'PREVIOUS_CARD', ArrowRight: 'NEXT_CARD', ArrowUp: 'PREVIOUS_PLAYER', ArrowDown: 'NEXT_PLAYER',
     Enter: 'CONFIRM', Backspace: 'BACKSPACE', Delete: 'REMOVE_CARD', Escape: 'CANCEL', "'": 'NEW_GAME', F1: 'HELP',
-    F: 'FOLD', G: 'MATCH', H: 'AGGRESSIVE'
+    F: 'FOLD', G: 'MATCH', H: 'AGGRESSIVE', M: 'SELECT_HERO', B: 'EDIT_BUTTON', N: 'EDIT_STACK', V: 'REVEAL_CARDS', F2: 'SETUP'
   });
+  // The visible help and the router share these semantic commands.
+  const COMMAND_HELP = Object.freeze([
+    {keys:'F',type:'FOLD',label:'Fold'}, {keys:'G',type:'MATCH',label:'Check / Call'},
+    {keys:'H',type:'AGGRESSIVE',label:'Bet / Raise'},
+    {keys:'↑ / ↓',type:'ACTION_HISTORY',label:'Previous / next action in this street'},
+    {keys:'Enter',type:'CONFIRM',label:'Current intent; never auto-bets'},
+    {keys:'M',type:'SELECT_HERO',label:'My cards'}, {keys:'← / →',type:'CARD_CURSOR',label:'Card position'},
+    {keys:'B',type:'EDIT_BUTTON',label:'Correct button / positions'},
+    {keys:'N',type:'EDIT_STACK',label:'Edit selected player’s stack'},
+    {keys:'V',type:'REVEAL_CARDS',label:'Optional shown cards at closing'},
+    {keys:'Backspace / Delete',type:'CORRECT',label:'Undo / remove in the active context'},
+    {keys:'Shift alone / apostrophe',type:'RESET_HAND',label:'Restart current hand; preserve previous attempt'},
+    {keys:'F1 / F2',type:'PANELS',label:'Help / table setup'},
+    {keys:'Tab / Shift+Tab',type:'FOCUS',label:'Next / previous control'},
+    {keys:'Escape',type:'CANCEL',label:'Cancel pending edit'}
+  ]);
+  function currentStreetActions(record) {
+    const events=record?.events||[];
+    let first=0;
+    events.forEach((event,index)=>{if(event.type==='BOARD')first=index+1;});
+    return events.flatMap((event,eventIndex)=>eventIndex>=first&&event.type==='ACT'
+      ? [{id:event.eventId||`event:${eventIndex}`,eventIndex,actor:event.actor,event}] : []);
+  }
   // E/C/O/P remain stable in both languages: H is reserved for Bet/Raise,
   // and C never silently changes from hearts to clubs in existing drafts.
   const suits = Object.freeze({ E: 'E', C: 'C', O: 'O', P: 'P' });
@@ -30,7 +53,7 @@
     return true;
   }
   function resolveKey(event, language, pending = {}) {
-    if (event.isComposing || event.altKey) return null;
+    if (event.isComposing || event.altKey || event.getModifierState?.('AltGraph') || ['Dead','Process','Unidentified'].includes(event.key)) return null;
     const key = event.key.length === 1 ? event.key.toUpperCase() : event.key;
     if (event.ctrlKey || event.metaKey) {
       return ({ Z: { type: 'UNDO_CARDS' }, C: { type: 'COPY_CARDS' }, S: { type: 'EXPORT_CARDS' },
@@ -55,5 +78,5 @@
     }
     idle() { return this.tail; }
   }
-  return { BINDINGS, locale, resolveKey, canHandleKey, CommandQueue };
+  return { BINDINGS, COMMAND_HELP, currentStreetActions, locale, resolveKey, canHandleKey, CommandQueue };
 });

@@ -94,8 +94,22 @@ function snapshot(value, hand) {
   integer(value.libraryRevision); if (value.frozenAt !== undefined) time(value.frozenAt);
   for (const [key, item] of Object.entries(value.players)) { id(key); requireThat(hand.playerIds.includes(key), 'A frozen profile is outside its original roster.'); profile(item, key); }
 }
+function revisionMetadata(value) {
+  const result = {};
+  if (value.sessionId !== undefined) {
+    requireThat(typeof value.sessionId === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value.sessionId), 'Invalid saved session identity.');
+    result.sessionId = value.sessionId;
+  }
+  for (const key of ['handNumber','attemptNumber']) if (value[key] !== undefined) {
+    requireThat(Number.isSafeInteger(value[key]) && value[key] >= 1, 'Invalid saved hand or attempt number.');
+    result[key] = value[key];
+  }
+  if (value.startedAt !== undefined) time(value.startedAt);
+  return result;
+}
 function record(value, hand) {
   requireThat(object(value) && value.schemaVersion === 1 && typeof value.enabled === 'boolean' && value.handId === hand.handId && object(value.config) && Array.isArray(value.events) && value.events.length <= 500, 'Invalid saved hand ledger.');
+  revisionMetadata(value);
   if (value.editEpoch !== undefined) integer(value.editEpoch);
   const cfg = value.config, max = {PLO4_HIGH:10,PLO5_HIGH:6,PLO6_HIGH:5}[cfg.variant], count = Number(cfg.playerCount), hole = Number(cfg.variant?.[3]);
   requireThat(max && Number.isInteger(count) && count >= 2 && count <= max && count === hand.playerIds.length && typeof cfg.heroPosition === 'string', 'Invalid saved table configuration.');
@@ -113,7 +127,7 @@ function record(value, hand) {
     if (['ACT','REVEAL','MARK_FOLD'].includes(event.type)) { integer(event.actor, count - 1); }
     if (event.type === 'ACT') { requireThat(ACTIONS.includes(event.action), 'Invalid saved action.'); if (['BET','RAISE'].includes(event.action)) numeric(event.to); }
     if (event.type === 'BOARD') cards(event.cards, [3,4,5]);
-    if (event.type === 'REVEAL') cards(event.cards, [hole]);
+    if (event.type === 'REVEAL') cards(event.cards, Array.from({length:hole+1},(_,index)=>index));
     if (event.type === 'SETTLE') { requireThat(Array.isArray(event.winners) && event.winners.length > 0, 'Invalid saved pot winners.'); event.winners.forEach(winners => { requireThat(Array.isArray(winners) && winners.length > 0 && new Set(winners).size === winners.length, 'Invalid saved winning seats.'); winners.forEach(seat => integer(seat, count - 1)); }); numeric(event.rake ?? 0); }
   }
 }
@@ -170,18 +184,28 @@ function archived(value, hand, decisions) {
   if (state.handId !== undefined) requireThat(state.handId === hand.handId, 'The saved archive has a different hand identity.');
   if (state.revisionKey !== undefined) hash(state.revisionKey);
   if (state.revision !== undefined) requireThat(state.revision === value.multiway.events.length, 'The saved archive event count does not match.');
+  for (const key of ['sessionId','handNumber','attemptNumber','startedAt']) if (state[key] !== undefined)
+    requireThat(state[key] === value.multiway[key], 'The saved archive session metadata does not match its ledger.');
   cards(state.board,[0,3,4,5]);
   for (const [index, player] of state.players.entries()) {
     requireThat(object(player) && player.id === index && player.playerId === hand.playerIds[index], 'The saved archive seat identities do not match.');
     for (const key of ['stack','startingStack','streetPaid','totalPaid']) { requireThat(finite(player[key]) && player[key] >= 0, 'Invalid saved player balances.'); }
-    cards(player.shownCards,[0,Number(state.variant[3])]);
+    cards(player.shownCards,Array.from({length:Number(state.variant[3])+1},(_,index)=>index));
   }
   for (const field of ['pot','bigBlind','rake','totalChips']) requireThat(finite(state[field]) && state[field] >= 0, 'Invalid saved pot or balances.');
   requireThat(Array.isArray(state.log) && (object(state.result) || state.result === null && state.phase !== 'FINISHED'), 'The saved archive has no event log or result.');
   if (value.reconciliation !== undefined) {
     const item = value.reconciliation;
-    requireThat(object(item) && ['USER_CONFIRMED_STACKS','UNCONTESTED_POT_BEFORE_UNRECORDED_RAKE','CONFIRMED_POT_RESULT','PREVIOUS_STARTING_STACK_ESTIMATE','NEW_GAME'].includes(item.source) && typeof item.rakeObserved === 'boolean' && typeof item.resultPending === 'boolean' && (item.source === 'NEW_GAME' && item.stacks === undefined || Array.isArray(item.stacks) && item.stacks.length === hand.playerIds.length), 'Invalid saved balance reconciliation.');
-    item.stacks?.forEach((row,index)=>requireThat(row.playerId === hand.playerIds[index] && finite(row.stack) && row.stack >= 0, 'Invalid saved reconciled seat balance.'));
+    requireThat(object(item) && ['USER_CONFIRMED_STACKS','UNCONTESTED_POT_BEFORE_UNRECORDED_RAKE','CONFIRMED_POT_RESULT','PREVIOUS_STARTING_STACK_ESTIMATE','NEW_GAME','MANUAL_RESTART'].includes(item.source) && typeof item.rakeObserved === 'boolean' && typeof item.resultPending === 'boolean', 'Invalid saved balance reconciliation.');
+    const knownResult = state.phase === 'FINISHED' && state.result?.reason !== 'UNKNOWN';
+    if (item.source === 'MANUAL_RESTART') {
+      requireThat(item.status === 'INTERRUPTED' && item.resultPending === true && item.rakeObserved === false && item.stacks === undefined && ['BETTING','WAIT_BOARD'].includes(state.phase) && state.result === null && !value.multiway.events.some(event=>event.type==='SETTLE'), 'Invalid interrupted hand reconciliation.');
+      eventId(item.originEventId);
+    } else {
+      requireThat(item.resultPending === !knownResult && (item.status === undefined || item.status === (knownResult?'SETTLED':'INCOMPLETE')) && (item.source === 'NEW_GAME' && item.stacks === undefined || Array.isArray(item.stacks) && item.stacks.length === hand.playerIds.length), 'Invalid saved balance reconciliation.');
+      if (item.originEventId !== undefined) eventId(item.originEventId);
+    }
+    item.stacks?.forEach((row,index)=>requireThat(object(row) && row.playerId === hand.playerIds[index] && finite(row.stack) && row.stack >= 0, 'Invalid saved reconciled seat balance.'));
   }
   if (value.decisions !== undefined) {
     requireThat(Array.isArray(value.decisions), 'Invalid archived decision histories.'); const seen = new Set();
@@ -271,7 +295,7 @@ async function verifyRevisions(library) {
       if(event.type==='SETTLE')return {type:'SETTLE',winners:event.winners,rake:event.rake??0,...metadata};
       return {type:event.type,actor:event.actor,...(event.type==='ACT'?{action:event.action,...(['BET','RAISE'].includes(event.action)?{to:event.to}:{})}:{}),...metadata};
     });
-    const observed = await sha256(JSON.stringify({handId:record.handId || null,editEpoch:record.editEpoch || 0,enabled:record.enabled,config:canonical,events}));
+    const observed = await sha256(JSON.stringify({handId:record.handId || null,editEpoch:record.editEpoch || 0,enabled:record.enabled,config:canonical,events,...revisionMetadata(record)}));
     requireThat(observed === expected,'A saved revision does not match its original decision ledger.');
   }
   for (const rows of Object.values(library.decisions || {})) for (const row of rows) await check(row.recordBefore,row.revisionKey);

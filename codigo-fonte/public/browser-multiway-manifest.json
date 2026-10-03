@@ -107,8 +107,8 @@
     },
     {
       "id": "src/multiway-session.js",
-      "sha256": "d8a52f5cf7f300d93ed1f79281847b6c3d827e9081bd5bd294cf0e4341549663",
-      "bytes": 33257
+      "sha256": "0609b2237a362ffda4dfcd519fc222f2888080e4b9de893c3fbd26a03a1380c4",
+      "bytes": 44342
     },
     {
       "id": "src/opponent-overrides.js",
@@ -162,5 +162,5 @@
   "cancellation": "HOST_WORKER_TERMINATE",
   "cache": "OWNER_BUILD_FULL_INPUT_COMPLETE_ONLY",
   "sourceNormalization": "LF",
-  "buildFingerprint": "6eff1353e8cd7c8fa78d2b05ee0ff3423afe557d75fefd779e585dda1b3c1ecb"
+  "buildFingerprint": "c2a1c9a9b97c527160c4b75d1e5922be9af841c17534becc451b06fa535f750f"
 }

@@ -20,7 +20,7 @@ class Node {
   setAttribute(){} focus(){} close(){this.open=false;} replaceChildren(){this.innerHTML='';} matches(){return false;}
   querySelector(selector){this.nodes ||= new Map();if(!this.nodes.has(selector))this.nodes.set(selector,new Node());return this.nodes.get(selector);}
 }
-function harness({initial=library(),visible=true}={}){
+async function harness({initial=library(),visible=true}={}){
   const host=new Node(),dialog=new Node(),pending=[];host.hidden=!visible;
   let html='',insights=null,content=null;const message=new Node();
   Object.defineProperty(host,'innerHTML',{get:()=>html,set:value=>{
@@ -30,9 +30,15 @@ function harness({initial=library(),visible=true}={}){
   }});
   host.querySelector=selector=>selector==='[data-player-insights]'?insights:selector==='[data-player-insight-content]'?content:selector==='#players-message'?message:new Node();
   host.querySelectorAll=selector=>insights && (selector==='details[data-player-detail]' || selector==='details[open][data-player-detail]'&&insights.open)?[insights]:[];
-  const accounts=new Map([[owner,copy(initial)],[otherOwner,library()]]);let currentOwner,revision=0,failed=false;
-  const storage={open:key=>{currentOwner=key;return {library:copy(accounts.get(key)),revision:'r'+revision};},
-    commit:value=>{if(failed)throw Error('Storage quota exceeded');accounts.set(currentOwner,copy(value));return {revision:'r'+(++revision)};}};
+  const accounts=new Map([[owner,copy(initial)],[otherOwner,library()]]);let currentOwner,revision=0,failed=false,commitGate=null;
+  const storage={openAsync:async key=>{currentOwner=key;return {library:copy(accounts.get(key)),revision:'r'+revision,backend:'indexeddb'};},
+    commitAsync:async value=>{
+      const capturedOwner=currentOwner,gate=commitGate;commitGate=null;
+      if(failed)throw Error('Storage quota exceeded');
+      if(gate){gate.started();await gate.wait;}
+      accounts.set(capturedOwner,copy(value));return {revision:'r'+(++revision),backend:'indexeddb'};
+    }};
+  const holdCommit=()=>{let release,started;const wait=new Promise(resolve=>{release=resolve;});const entered=new Promise(resolve=>{started=resolve;});commitGate={wait,started};return {release,entered};};
   const calls={reports:[],diagnostics:[],removed:[]};
   const localStorage={};
   let backupOptions=null,backupClosed=0,session={epoch:1,required:true,expired:false};const events=[];
@@ -47,16 +53,16 @@ function harness({initial=library(),visible=true}={}){
     'window.__insightsTest={insightBundle,evaluateInsightDiagnostics,renderInsightReport};window.theibsPlayersUI =');
   vm.runInNewContext(source,{window,document,structuredClone,CustomEvent:class{constructor(type){this.type=type;}},crypto:require('node:crypto').webcrypto,
     confirm:()=>true,setInterval:()=>1,clearInterval(){}});
-  window.theibsPlayersUI.init(owner);
+  await window.theibsPlayersUI.init(owner);
   const flush=()=>{while(pending.length)host.listeners.toggle?.({target:pending.shift()});};
   const click=selector=>host.listeners.click({target:{closest:value=>value===selector?{}:null}});
   return {api:window.theibsPlayersUI,testing:window.__insightsTest,window,host,calls,accounts,localStorage,message,
     get backup(){return backupOptions;},get backupClosed(){return backupClosed;},events,setSession:value=>{session=copy(value);},
-    get details(){return insights;},get content(){return content;},flush,click,failCommit:()=>{failed=true;}};
+    get details(){return insights;},get content(){return content;},flush,click,holdCommit,failCommit:()=>{failed=true;}};
 }
 
-test('Insights is collapsed, reports at most three exact contexts and renders broad posterior intervals without card inference',()=>{
-  const h=harness();assert.equal(h.details.open,false);assert.equal(h.calls.diagnostics.length,0);assert.equal(h.calls.reports.length,0);
+test('Insights is collapsed, reports at most three exact contexts and renders broad posterior intervals without card inference',async()=>{
+  const h=await harness();assert.equal(h.details.open,false);assert.equal(h.calls.diagnostics.length,0);assert.equal(h.calls.reports.length,0);
   h.details.open=true;h.flush();const html=h.content.innerHTML;
   assert.equal(h.calls.reports.length,3);assert.deepEqual(h.calls.reports.map(row=>row.context.street),['RIVER','TURN','FLOP']);
   assert.match(html,/Current library · confirmed recorded decisions/);assert.match(html,/95% posterior interval/);
@@ -65,56 +71,76 @@ test('Insights is collapsed, reports at most three exact contexts and renders br
   assert.equal(h.calls.reports.every(row=>row.context.position==='SB'),true);
 });
 
-test('backup integration binds owner, revision and session before synchronous publication and does not execute imported decisions',()=>{
-  const h=harness(),captured=h.backup.getContext(),next=copy(captured.library);next.store.revision++;next.store.players.opponent.nickname='Restored';
-  let plans=0;h.window.TheibsPlayersBackup={planImport:()=>{plans++;return {library:next,dirty:{players:['opponent']},summary:{recordsChanged:1}};}};
-  const request={plan:{library:next},capturedOwner:captured.ownerKey,capturedRevision:captured.revision,capturedSession:captured.session};
+test('backup integration binds owner, revision and session before durable publication and does not execute imported decisions',async()=>{
+  const h=await harness(),captured=h.backup.getContext(),next=copy(captured.library);next.store.revision++;next.store.players.opponent.nickname='Restored';
+  const incoming={library:next};
+  let plans=0;h.window.TheibsPlayersBackup={planImport:options=>{plans++;assert.equal(options.incoming,incoming);assert.deepEqual(options.current,captured.library);return {library:next,dirty:{players:['opponent']},summary:{recordsChanged:1}};}};
+  const request={incoming,capturedOwner:captured.ownerKey,capturedRevision:captured.revision,capturedSession:captured.session};
   h.setSession({epoch:2,required:true,expired:false});
-  assert.throws(()=>h.backup.onImport(request),/changed/);assert.equal(plans,0);assert.equal(h.api.byId('opponent').nickname,'<Opponent>');
-  h.setSession(captured.session);h.backup.onImport(request);assert.equal(plans,1);assert.equal(h.api.byId('opponent').nickname,'Restored');
+  await assert.rejects(h.backup.onImport(request),/changed/);assert.equal(plans,0);assert.equal(h.api.byId('opponent').nickname,'<Opponent>');
+  h.setSession(captured.session);await h.backup.onImport(request);assert.equal(plans,1);assert.equal(h.api.byId('opponent').nickname,'Restored');
   assert.deepEqual(h.events,['theibs:players-changed','theibs:players-backup-restored']);
-  assert.throws(()=>h.backup.onImport(request),/changed/);assert.equal(plans,1);
+  await assert.rejects(h.backup.onImport(request),/changed/);assert.equal(plans,1);
   h.api.clearOwner();assert.ok(h.backupClosed>=2);assert.throws(()=>h.backup.getContext(),/not available/);
 });
 
-test('failed restore publication does not invalidate a live decision or replace the library',()=>{
-  const h=harness(),captured=h.backup.getContext(),next=copy(captured.library);next.store.players.opponent.nickname='Not saved';
+test('failed restore publication does not invalidate a live decision or replace the library',async()=>{
+  const h=await harness(),captured=h.backup.getContext(),next=copy(captured.library);next.store.players.opponent.nickname='Not saved';
   h.window.TheibsPlayersBackup={planImport:()=>({library:next,dirty:{players:['opponent']},summary:{recordsChanged:1}})};
-  h.failCommit();assert.throws(()=>h.backup.onImport({plan:{library:next},capturedOwner:captured.ownerKey,capturedRevision:captured.revision,capturedSession:captured.session}),/quota/);
+  h.failCommit();await assert.rejects(h.backup.onImport({incoming:{library:next},capturedOwner:captured.ownerKey,capturedRevision:captured.revision,capturedSession:captured.session}),/quota/);
   assert.equal(h.api.byId('opponent').nickname,'<Opponent>');assert.deepEqual(h.events,[]);
   h.setSession({epoch:1,required:true,expired:true});assert.throws(()=>h.backup.getContext(),/Sign in/);
 });
 
-test('file-restored hands preserve original snapshots but cannot certify forecast origin or enter forecast scoring',()=>{
+test('delayed saves publish only after commit and cannot publish across an owner change',async()=>{
+  const h=await harness(),before=copy(h.api.getStore()),gate=h.holdCommit();
+  const saving=h.api.beginHand(record());await gate.entered;
+  assert.deepEqual(h.api.getStore(),before);assert.deepEqual(h.accounts.get(owner).store,before);assert.deepEqual(h.events,[]);
+  assert.equal(h.api.profileSnapshot(record()),null);
+  assert.throws(()=>h.backup.getContext(),/current save/);
+  gate.release();await saving;
+  assert.ok(h.api.profileSnapshot(record()));assert.deepEqual(h.events,['theibs:players-changed']);
+  assert.deepEqual(h.accounts.get(owner).store,h.api.getStore());
+
+  const staleGate=h.holdCommit(),stale=h.api.beginHand(record('late-owner-save'));await staleGate.entered;
+  const otherBefore=copy(h.accounts.get(otherOwner));await h.api.init(otherOwner);
+  assert.deepEqual(h.api.getStore(),otherBefore.store);
+  const rejected=assert.rejects(stale,/account changed during the save/i);staleGate.release();await rejected;
+  assert.deepEqual(h.api.getStore(),otherBefore.store);assert.deepEqual(h.accounts.get(otherOwner),otherBefore);
+  assert.deepEqual(h.events,['theibs:players-changed']);
+  assert.ok(h.accounts.get(owner).store.hands['late-owner-save'],'a completed old-account transaction stays with its original owner');
+});
+
+test('file-restored hands preserve original snapshots but cannot certify forecast origin or enter forecast scoring',async()=>{
   const initial=library(),snapshot=model.beginHand(initial.store,record()).profileSnapshot;
   initial.store.hands['hand-one'].forecastOrigin={version:'THEIBS_FORECAST_ORIGIN_V1',status:'FROZEN_BEFORE_FIRST_ACTION',createdAt:snapshot.frozenAt};
-  initial.backupOrigins={schemaVersion:1,handIds:['hand-one']};const h=harness({initial});
+  initial.backupOrigins={schemaVersion:1,handIds:['hand-one']};const h=await harness({initial});
   h.api.openInsights('opponent',{profileSnapshot:snapshot,handId:'hand-one',revisionKey:'root'});h.flush();
   assert.match(h.content.innerHTML,/Restored backup · file origin not authenticated/);
   assert.match(h.content.innerHTML,/original forecast timing unverified/);assert.doesNotMatch(h.content.innerHTML,/evidence frozen before the first action/);
-  h.click('[data-insights-evaluate]');assert.equal(h.calls.diagnostics[0].hands[0].forecastOrigin,null);
+  await h.click('[data-insights-evaluate]');assert.equal(h.calls.diagnostics[0].hands[0].forecastOrigin,null);
   assert.deepEqual(h.api.getStore().hands['hand-one'],initial.store.hands['hand-one']);
 });
 
-test('history diagnostics run only on demand and are cached until the saved revision changes',()=>{
-  const h=harness();h.api.beginHand(record());assert.equal(h.calls.diagnostics.length,0);
+test('history diagnostics run only on demand and are cached until the saved revision changes',async()=>{
+  const h=await harness();await h.api.beginHand(record());assert.equal(h.calls.diagnostics.length,0);
   h.details.open=true;h.flush();assert.equal(h.calls.diagnostics.length,0,'opening reports does not scan archived histories');
-  h.click('[data-insights-evaluate]');assert.equal(h.calls.diagnostics.length,1);
+  await h.click('[data-insights-evaluate]');assert.equal(h.calls.diagnostics.length,1);
   h.api.render();h.flush();assert.equal(h.calls.diagnostics.length,1);
   const observation={id:'hand-one:action-1',playerId:'opponent',source:'CONFIRMED_EVENT',seatId:0,action:'CALL',context:context('RIVER')};
-  h.api.syncObservations({...record(),revisionKey:'next',observations:[observation]});h.flush();
+  await h.api.syncObservations({...record(),revisionKey:'next',observations:[observation]});h.flush();
   assert.equal(h.calls.diagnostics.length,1,'a recorded action does not rescan history');
   assert.match(h.content.innerHTML,/Evaluate recorded forecasts/);
-  h.click('[data-insights-evaluate]');h.click('[data-insights-evaluate]');assert.equal(h.calls.diagnostics.length,2);
+  await h.click('[data-insights-evaluate]');await h.click('[data-insights-evaluate]');assert.equal(h.calls.diagnostics.length,2);
   assert.match(h.content.innerHTML,/Not evaluated: no eligible, measured forecasts/);assert.doesNotMatch(h.content.innerHTML,/>0<\/td>/);
 });
 
-test('seat entry uses the exact frozen stored profile and rejects mismatched data before changing the valid scope',()=>{
-  const h=harness(),snapshot=h.api.beginHand(record());
-  h.api.syncObservations({...record(),revisionKey:'observed',observations:[{id:'hand-one:action-1',playerId:'opponent',source:'CONFIRMED_EVENT',seatId:0,action:'CALL',context:context('RIVER')}]});
+test('seat entry uses the exact frozen stored profile and rejects mismatched data before changing the valid scope',async()=>{
+  const h=await harness(),snapshot=await h.api.beginHand(record());
+  await h.api.syncObservations({...record(),revisionKey:'observed',observations:[{id:'hand-one:action-1',playerId:'opponent',source:'CONFIRMED_EVENT',seatId:0,action:'CALL',context:context('RIVER')}]});
   h.api.openInsights('opponent',{profileSnapshot:snapshot,handId:'hand-one',revisionKey:'decision'});h.flush();
   const frozen=h.testing.insightBundle();assert.equal(frozen.binding.scope,'FROZEN_PRE_HAND');assert.equal(frozen.reports[0].opportunities,4);
-  assert.equal(h.calls.diagnostics.length,0);h.click('[data-insights-evaluate]');
+  assert.equal(h.calls.diagnostics.length,0);await h.click('[data-insights-evaluate]');
   assert.equal(h.calls.diagnostics.at(-1).currentHandId,'hand-one');assert.equal(h.calls.diagnostics.at(-1).currentFrozenAt,snapshot.frozenAt);
   assert.match(h.content.innerHTML,/Captured hand hand-one · evidence frozen before the first action/);
   const malformed=copy(snapshot);malformed.players.opponent.observations++;
@@ -124,48 +150,48 @@ test('seat entry uses the exact frozen stored profile and rejects mismatched dat
   h.api.select('second');h.flush();assert.equal(h.testing.insightBundle().binding.scope,'CURRENT_LIBRARY');assert.match(h.content.innerHTML,/Unknown · no confirmed context evidence/);
 });
 
-test('logout and owner rebind clear frozen evidence and diagnostic cache, including hidden seat entry',()=>{
-  const h=harness({visible:false}),snapshot=h.api.beginHand(record());
+test('logout and owner rebind clear frozen evidence and diagnostic cache, including hidden seat entry',async()=>{
+  const h=await harness({visible:false}),snapshot=await h.api.beginHand(record());
   h.api.openInsights('opponent',{profileSnapshot:snapshot,handId:'hand-one',revisionKey:'decision'});
   assert.equal(h.calls.diagnostics.length,0);h.host.hidden=false;h.api.render();h.flush();assert.equal(h.calls.diagnostics.length,0);
-  h.click('[data-insights-evaluate]');assert.equal(h.calls.diagnostics.length,1);
+  await h.click('[data-insights-evaluate]');assert.equal(h.calls.diagnostics.length,1);
   h.api.clearOwner();assert.equal(h.testing.insightBundle(),null);assert.throws(()=>h.api.openInsights('opponent'),/not available/);
-  h.api.init(otherOwner);h.api.openInsights('opponent');h.flush();h.click('[data-insights-evaluate]');assert.equal(h.calls.diagnostics.length,2);
+  await h.api.init(otherOwner);h.api.openInsights('opponent');h.flush();await h.click('[data-insights-evaluate]');assert.equal(h.calls.diagnostics.length,2);
   assert.equal(h.testing.insightBundle().binding.scope,'CURRENT_LIBRARY');assert.equal(h.calls.diagnostics.at(-1).currentHandId,null);
-  h.api.clearOwner();h.api.init(owner);h.api.openInsights('opponent');h.flush();h.click('[data-insights-evaluate]');assert.equal(h.calls.diagnostics.length,3);
+  h.api.clearOwner();await h.api.init(owner);h.api.openInsights('opponent');h.flush();await h.click('[data-insights-evaluate]');assert.equal(h.calls.diagnostics.length,3);
 });
 
-test('forecast origin is auxiliary, immutable after first creation and conservative for late/reconstructed or legacy hands',()=>{
-  const h=harness(),snapshot=h.api.beginHand(record());const before=copy(snapshot);
+test('forecast origin is auxiliary, immutable after first creation and conservative for late/reconstructed or legacy hands',async()=>{
+  const h=await harness(),snapshot=await h.api.beginHand(record());const before=copy(snapshot);
   const observed={...record(),revisionKey:'observed',observations:[{id:'hand-one:a',playerId:'opponent',source:'CONFIRMED_EVENT',seatId:0,action:'CALL',context:context('RIVER')}]};
-  h.api.syncObservations(observed);const hand=h.api.getStore().hands['hand-one'];
+  await h.api.syncObservations(observed);const hand=h.api.getStore().hands['hand-one'];
   assert.equal(hand.forecastOrigin.status,'FROZEN_BEFORE_FIRST_ACTION');assert.equal(hand.forecastOrigin.createdAt,before.frozenAt);
-  assert.deepEqual(h.api.beginHand(record('hand-one',[{type:'ACT'}])),before);assert.equal('forecastOrigin' in before,false);
-  h.api.beginHand(record('late',[{type:'ACT',action:'CALL'}]));assert.equal(h.api.getStore().hands.late.forecastOrigin.status,'RECONSTRUCTED_AFTER_ACTION');
-  const unknown=record('unknown');delete unknown.events;h.api.beginHand(unknown);
+  assert.deepEqual(await h.api.beginHand(record('hand-one',[{type:'ACT'}])),before);assert.equal('forecastOrigin' in before,false);
+  await h.api.beginHand(record('late',[{type:'ACT',action:'CALL'}]));assert.equal(h.api.getStore().hands.late.forecastOrigin.status,'RECONSTRUCTED_AFTER_ACTION');
+  const unknown=record('unknown');delete unknown.events;await h.api.beginHand(unknown);
   assert.equal(h.api.getStore().hands.unknown.forecastOrigin.status,'RECONSTRUCTED_AFTER_ACTION');
-  h.api.syncObservations({...record('sync-first'),revisionKey:'first',observations:[]});assert.equal(h.api.getStore().hands['sync-first'].forecastOrigin.status,'RECONSTRUCTED_AFTER_ACTION');
-  const legacy=library();model.beginHand(legacy.store,record('legacy'));const l=harness({initial:legacy});
-  l.api.beginHand(record('legacy'));assert.equal(l.api.getStore().hands.legacy.forecastOrigin,undefined);
+  await h.api.syncObservations({...record('sync-first'),revisionKey:'first',observations:[]});assert.equal(h.api.getStore().hands['sync-first'].forecastOrigin.status,'RECONSTRUCTED_AFTER_ACTION');
+  const legacy=library();model.beginHand(legacy.store,record('legacy'));const l=await harness({initial:legacy});
+  await l.api.beginHand(record('legacy'));assert.equal(l.api.getStore().hands.legacy.forecastOrigin,undefined);
   l.api.openInsights('opponent',{profileSnapshot:l.api.getStore().hands.legacy.profileSnapshot,handId:'legacy',revisionKey:'legacy-r'});l.flush();
   assert.match(l.content.innerHTML,/original forecast timing unverified/);assert.doesNotMatch(l.content.innerHTML,/evidence frozen before the first action/);
 });
 
-test('range template cleanup runs with native storage only after player deletion is saved',()=>{
-  const h=harness();h.click('#players-delete');assert.equal(h.api.byId('opponent'),null);
+test('range template cleanup runs with native storage only after player deletion is saved',async()=>{
+  const h=await harness();await h.click('#players-delete');assert.equal(h.api.byId('opponent'),null);
   assert.equal(h.calls.removed.length,1);assert.equal(h.calls.removed[0][0],h.localStorage);assert.deepEqual(h.calls.removed[0].slice(1),[owner,'opponent']);
-  const failed=harness();failed.failCommit();failed.click('#players-delete');assert.ok(failed.api.byId('opponent'));assert.equal(failed.calls.removed.length,0);
+  const failed=await harness();failed.failCommit();await failed.click('#players-delete');assert.ok(failed.api.byId('opponent'));assert.equal(failed.calls.removed.length,0);
 });
 
-test('renderer keeps zero eligible diagnostics unknown, escapes receipts and caps their reported omissions',()=>{
-  const h=harness(),bundle={binding:{scope:'CURRENT_LIBRARY'},origin:{libraryRevision:0},reports:[],diagnosticsEvaluated:true,
+test('renderer keeps zero eligible diagnostics unknown, escapes receipts and caps their reported omissions',async()=>{
+  const h=await harness(),bundle={binding:{scope:'CURRENT_LIBRARY'},origin:{libraryRevision:0},reports:[],diagnosticsEvaluated:true,
     diagnostics:{version:'v',counts:{forecasts:0},metrics:null,forecasts:[],exclusions:Array.from({length:25},()=>({reasonCode:'<script>bad</script>'}))}};
   const html=h.testing.renderInsightReport(bundle);assert.match(html,/Not evaluated/);assert.match(html,/&lt;script&gt;/);assert.doesNotMatch(html,/<script>/);
   assert.match(html,/&quot;exclusionsShown&quot;: 20/);assert.match(html,/&quot;totalExclusions&quot;: 25/);assert.doesNotMatch(html,/Profile model<\/th>/);
 });
 
 test('app captures canonical chronology before observations, then ACT and archive preserve forecast eligibility',async()=>{
-  const h=harness({visible:false}),app=fs.readFileSync(require.resolve('../public/app'),'utf8');
+  const h=await harness({visible:false}),app=fs.readFileSync(require.resolve('../public/app'),'utf8');
   const source=app.slice(app.indexOf('  async function syncPlayerObservations(record)'),app.indexOf('  async function startMultiway(config'));
   assert.ok(source.indexOf('.beginHand(record)')<source.indexOf("postJson('/api/multiway/observations'"));
   const hand=record(),state={revisionKey:'first'},contextVM={window:h.window,multiway:hand,multiwayState:state,JSON,
@@ -178,7 +204,7 @@ test('app captures canonical chronology before observations, then ACT and archiv
   vm.createContext(contextVM);vm.runInContext(source+';globalThis.sync=syncPlayerObservations;',contextVM);
   await contextVM.sync(hand);hand.events.push({type:'ACT',action:'CALL'});state.revisionKey='acted';await contextVM.sync(hand);
   const snapshot=h.api.getStore().hands['hand-one'].profileSnapshot;
-  h.api.archiveHand({multiway:hand,state:{phase:'FINISHED'}});h.api.openInsights('opponent');
+  await h.api.archiveHand({multiway:hand,state:{phase:'FINISHED'}});h.api.openInsights('opponent');
   const bundle=h.testing.insightBundle();h.testing.evaluateInsightDiagnostics(bundle);
   assert.equal(bundle.diagnostics.counts.forecasts,1);assert.equal('forecasts' in bundle.diagnostics,false);
   assert.equal('byHand' in bundle.diagnostics,false);assert.equal('byPlayer' in bundle.diagnostics,false);assert.equal('byContext' in bundle.diagnostics,false);
@@ -188,10 +214,10 @@ test('app captures canonical chronology before observations, then ACT and archiv
   await contextVM.sync(restored);assert.equal(h.api.getStore().hands.restored.forecastOrigin.status,'RECONSTRUCTED_AFTER_ACTION');
 });
 
-test('on-demand cache retains aggregates and a bounded exclusion receipt, not duplicated histories',()=>{
-  const h=harness();h.window.TheibsPlayerProfileInsights.evaluatePrequential=()=>({version:'v',status:'UNKNOWN',counts:{forecasts:0},metrics:null,
+test('on-demand cache retains aggregates and a bounded exclusion receipt, not duplicated histories',async()=>{
+  const h=await harness();h.window.TheibsPlayerProfileInsights.evaluatePrequential=()=>({version:'v',status:'UNKNOWN',counts:{forecasts:0},metrics:null,
     forecasts:Array.from({length:1000},()=>({private:'discarded'})),byHand:[{}],byPlayer:[{}],byContext:[{}],exclusions:Array.from({length:1000},(_,i)=>({reasonCode:'SKIPPED',handId:'h'+i}))});
-  h.api.openInsights('opponent');const bundle=h.testing.insightBundle();h.click('[data-insights-evaluate]');
+  h.api.openInsights('opponent');const bundle=h.testing.insightBundle();await h.click('[data-insights-evaluate]');
   assert.equal(bundle.diagnostics.exclusions.length,20);assert.equal(bundle.diagnostics.totalExclusions,1000);
   assert.deepEqual(Object.keys(bundle.diagnostics).filter(key=>['forecasts','byHand','byPlayer','byContext'].includes(key)),[]);
   assert.match(h.content.innerHTML,/&quot;totalExclusions&quot;: 1000/);

@@ -5,6 +5,7 @@
   const host = document.querySelector('#players-workspace');
   const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   let ownerKey = null, library = null, savedRevision = null, selectedId = null, error = '', request = null;
+  let ownerGeneration=0, writeTail=Promise.resolve(), pendingWrites=0, opening=null;
   let revealDraft = null, revealBusy = false, historyView = false;
   let insightRequest = null, openInsightRequested = false;
   const insightCache = new Map(), restoredInsightToggles = new WeakSet();
@@ -18,27 +19,46 @@
     const session=window.theibsVoiceSessionContext?.() || null;
     if(session?.expired)throw Error('Sign in again before using Backup.');
     if(revealBusy)throw Error('Wait for the shown-card update before using Backup.');
+    if(pendingWrites)throw Error('Wait for the current save before using Backup.');
     return {ownerKey,revision:savedRevision,session,library:structuredClone(library)};
   }
   function restoreBackup({incoming,capturedOwner,capturedRevision,capturedSession}) {
-    const current=backupContext();
-    if(current.ownerKey!==capturedOwner || current.revision!==capturedRevision || JSON.stringify(current.session)!==JSON.stringify(capturedSession))
-      throw Object.assign(Error('The account or player library changed. Close and reopen Backup. Saved data was left untouched.'),{code:'BACKUP_STALE_CONTEXT'});
-    // Revalidate against the live library immediately before the synchronous
-    // storage publication. Imported snapshots never become a live decision.
-    const checked=window.TheibsPlayersBackup.planImport({current:library,incoming});
-    commit(checked.library,checked.dirty);
-    clearInsights();selectedId=null;render();
-    if(checked.summary.recordsChanged>0)document.dispatchEvent(new CustomEvent('theibs:players-backup-restored'));
-    return checked.summary;
+    backupContext();
+    return enqueueWrite(async()=>{
+      if(ownerKey!==capturedOwner || savedRevision!==capturedRevision || JSON.stringify(window.theibsVoiceSessionContext?.() || null)!==JSON.stringify(capturedSession))
+        throw Object.assign(Error('The account or player library changed. Close and reopen Backup. Saved data was left untouched.'),{code:'BACKUP_STALE_CONTEXT'});
+      // Revalidate against the live library immediately before the durable
+      // storage publication. Imported snapshots never become a live decision.
+      const checked=window.TheibsPlayersBackup.planImport({current:library,incoming});
+      await commit(checked.library,checked.dirty);
+      clearInsights();selectedId=null;render();
+      if(checked.summary.recordsChanged>0)document.dispatchEvent(new CustomEvent('theibs:players-backup-restored'));
+      return checked.summary;
+    });
   }
-  function commit(next, dirty) {
+  function enqueueWrite(operation) {
     requireReady();
+    const generation=ownerGeneration;
+    pendingWrites++;
+    const task=writeTail.then(()=>{
+      if(generation!==ownerGeneration)throw Error('The account changed before the player data could be saved.');
+      requireReady();return operation();
+    });
+    writeTail=task.catch(()=>{});
+    return task.finally(()=>{if(generation===ownerGeneration)pendingWrites--;});
+  }
+  async function commit(next, dirty) {
+    requireReady();
+    const generation=ownerGeneration;
     model.validateStore(next.store);
-    try { savedRevision = storage.commit(next,{expectedRevision:savedRevision,dirty}).revision; }
+    try {
+      const saved=await storage.commitAsync(next,{expectedRevision:savedRevision,dirty});
+      if(generation!==ownerGeneration)throw Error('The account changed during the save. Reopen this account to view its saved data.');
+      savedRevision=saved.revision;
+    }
     catch(cause) {
-      if(cause.code==='STORAGE_CONFLICT') {
-        const key=ownerKey;library=null;init(key);
+      if(cause.code==='STORAGE_CONFLICT' && generation===ownerGeneration) {
+        const key=ownerKey;await init(key,true);
         throw Error('Player data changed in another tab. The latest data was loaded; review and try again.');
       }
       throw cause;
@@ -55,37 +75,48 @@
     return next;
   }
   function update(change, dirty) {
-    requireReady();
-    const next = cloneChanged(dirty);
-    const result = change(next);
-    commit(next,dirty);
-    return result;
+    return enqueueWrite(async()=>{
+      const next = cloneChanged(dirty);
+      const result = change(next);
+      await commit(next,dirty);
+      return result;
+    });
   }
-  function init(key) {
+  async function init(key, force=false) {
     if (!/^[a-f0-9]{64}$/i.test(String(key))) throw Error('A verified account key is required for local player storage.');
-    if (ownerKey === key && ready()) return;
+    if (!force && ownerKey === key) {if(opening)return opening;if(ready())return;}
+    const generation=++ownerGeneration;
+    writeTail=Promise.resolve();pendingWrites=0;
     window.TheibsPlayersBackupUI?.close();
     clearRevealEditor();
     clearInsights();
-    ownerKey = key; selectedId = null;historyView=false;
-    try {
-      const opened = storage.open(key);
+    ownerKey = key; library=null;savedRevision=null;selectedId = null;historyView=false;
+    error='';render();
+    opening=(async()=>{try {
+      const opened = await storage.openAsync(key);
+      if(generation!==ownerGeneration)return;
       const parsed = opened.library || empty();
       if (parsed.schemaVersion !== 1 || !parsed.store || !parsed.archive || Array.isArray(parsed.archive)) throw Error('Invalid local player library.');
       model.validateStore(parsed.store);
       parsed.decisions ||= {};
-      savedRevision = opened.revision;
-      if (!opened.library) savedRevision=storage.commit(parsed,{expectedRevision:savedRevision}).revision;
+      let nextRevision=opened.revision;
+      if (!opened.library) nextRevision=(await storage.commitAsync(parsed,{expectedRevision:nextRevision})).revision;
+      if(generation!==ownerGeneration)return;
+      savedRevision=nextRevision;
       library = parsed; error = opened.recovered ? 'Recovered the previous saved library because the latest copy was incomplete. Review your most recent changes.' : ''; 
     } catch (cause) {
+      if(generation!==ownerGeneration)return;
       library = null; error = 'The local player library could not be opened. Your saved data was left untouched.';
+      console.warn('Player library could not be opened.',cause);
     }
     render();
+    })();
+    try{await opening;}finally{if(generation===ownerGeneration)opening=null;}
   }
   function clearOwner() {
     window.TheibsPlayersBackupUI?.close();
     clearInsights();
-    clearRevealEditor();ownerKey=null;library=null;savedRevision=null;selectedId=null;historyView=false;error='';
+    clearRevealEditor();ownerGeneration++;opening=null;pendingWrites=0;writeTail=Promise.resolve();ownerKey=null;library=null;savedRevision=null;selectedId=null;historyView=false;error='';
     if(host)host.replaceChildren();render();
   }
   const list = () => ready() ? model.listPlayers(library.store).filter(item => !item.playerId.startsWith('hero_')) : [];
@@ -94,19 +125,21 @@
   const heroId = () => { requireReady(); return 'hero_' + ownerKey.slice(0, 32); };
   const freshId = () => crypto.randomUUID();
   function beginHand(record) {
-    requireReady();
-    const dirty={hands:[record.handId],players:record.config.players.map(player=>player.playerId)};
-    const next = cloneChanged(dirty), before = next.store.revision, existed=Boolean(next.store.hands[record.handId]);
-    const result = model.beginHand(next.store, record);
-    if(!existed)next.store.hands[record.handId].forecastOrigin={version:'THEIBS_FORECAST_ORIGIN_V1',
-      status:Array.isArray(record.events) && !record.events.some(event=>event.type==='ACT')?'FROZEN_BEFORE_FIRST_ACTION':'RECONSTRUCTED_AFTER_ACTION',createdAt:result.profileSnapshot.frozenAt};
-    if (next.store.revision !== before) commit(next,dirty);
-    return result.profileSnapshot;
+    record=structuredClone(record);
+    return enqueueWrite(async()=>{
+      const dirty={hands:[record.handId],players:record.config.players.map(player=>player.playerId)};
+      const next = cloneChanged(dirty), before = next.store.revision, existed=Boolean(next.store.hands[record.handId]);
+      const result = model.beginHand(next.store, record);
+      if(!existed)next.store.hands[record.handId].forecastOrigin={version:'THEIBS_FORECAST_ORIGIN_V1',
+        status:Array.isArray(record.events) && !record.events.some(event=>event.type==='ACT')?'FROZEN_BEFORE_FIRST_ACTION':'RECONSTRUCTED_AFTER_ACTION',createdAt:result.profileSnapshot.frozenAt};
+      if (next.store.revision !== before) await commit(next,dirty);
+      return result.profileSnapshot;
+    });
   }
-  function syncObservations(payload) {
+  async function syncObservations(payload) {
     requireReady();
     const confirmed=structuredClone(payload);
-    const result=update(next => {
+    const result=await update(next => {
       const existed=Boolean(next.store.hands[confirmed.handId]),applied=model.applyObservations(next.store, confirmed);
       if(!existed)next.store.hands[confirmed.handId].forecastOrigin={version:'THEIBS_FORECAST_ORIGIN_V1',status:'RECONSTRUCTED_AFTER_ACTION',createdAt:applied.profileSnapshot.frozenAt};
       return applied;
@@ -115,13 +148,16 @@
   }
   function profileSnapshot(record) {
     if (!ready() || !record?.handId) return null;
-    return beginHand(record);
+    // Analysis reads only a durably recorded snapshot. Saving a new hand is
+    // awaited by the observed-action flow before it schedules any analysis.
+    return structuredClone(library.store.hands[record.handId]?.profileSnapshot || null);
   }
   function archiveHand(archivedHand) {
     requireReady();
+    archivedHand=structuredClone(archivedHand);
     const handId = archivedHand?.multiway?.handId;
     if (!handId) throw Error('The completed hand has no history identity.');
-    update(next => {
+    return update(next => {
       const decisions = (next.decisions?.[handId] || []).filter(item => matchesDecision(item, archivedHand.multiway));
       next.archive[handId] = {...structuredClone(archivedHand),archivedAt:next.archive[handId]?.archivedAt || new Date().toISOString(),decisions};
     },{archive:[handId]});
@@ -139,6 +175,7 @@
   }
   function recordDecision(handId, snapshot) {
     requireReady();
+    snapshot=structuredClone(snapshot);
     if (snapshot?.handId !== handId || !snapshot.revisionKey || !Array.isArray(snapshot.recordBefore?.events)) throw Error('The decision snapshot is incomplete.');
     const key = JSON.stringify([snapshot.revisionKey,snapshot.action,snapshot.to ?? null]);
     if ((library.decisions?.[handId] || []).some(item => item.key === key)) return;
@@ -153,8 +190,9 @@
         comparisonComplete:ev.comparisonComplete,globalBestSupported:ev.globalBestSupported,
         leaderConclusive:ev.leaderConclusive,decisionPrecision:ev.decisionPrecision,assumptions:ev.assumptions,bigBlind:ev.bigBlind,feeBasis:ev.feeBasis},
       equity:source.equity,provenance:source.provenance,strategyMetadata:source.strategyMetadata};
-    update(next => {
+    return update(next => {
       next.decisions ||= {}; next.decisions[handId] ||= [];
+      if(next.decisions[handId].some(item=>item.key===key))return;
       next.decisions[handId].push(structuredClone({...snapshot,analysis,key,recordedAt:new Date().toISOString()}));
     },{decisions:[handId]});
   }
@@ -437,12 +475,12 @@
       revealDialog.querySelector('[type="submit"]').disabled=true;
       const data=await request('/api/multiway/step',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({multiway:hand.multiway,expectedRevisionKey:captured.revisionKey,event:{type:'REVEAL',actor:captured.actor,cards,eventId:crypto.randomUUID()}})});
       if(ownerKey!==captured.ownerKey||getArchivedHand(captured.handId)?.state?.revisionKey!==captured.revisionKey)throw Error('The account or hand changed. No local record was overwritten.');
-      update(next=>{next.archive[captured.handId]={...next.archive[captured.handId],multiway:data.multiway,state:data.state};},{archive:[captured.handId]});
+      await update(next=>{next.archive[captured.handId]={...next.archive[captured.handId],multiway:data.multiway,state:data.state};},{archive:[captured.handId]});
       revealDialog.close();message('Shown cards saved. Original decision estimates are unchanged.');
     } catch(cause) {if(ownerKey===captured.ownerKey&&revealDraft?.token===captured.token)revealError(cause.message);}
     finally {revealBusy=false;revealDialog.querySelector('[type="submit"]').disabled=false;}
   });
-  host?.addEventListener('click', event => {
+  host?.addEventListener('click', async event => {
     if(event.target.closest('#players-backup-open')){try{window.TheibsPlayersBackupUI.open();}catch(cause){message(cause.message);}return;}
     if(event.target.closest('[data-insights-evaluate]')){refreshInsights(true);return;}
     if(event.target.closest('#players-all-hands')){historyView=!historyView;render();return;}
@@ -451,16 +489,17 @@
     const reveal = event.target.closest('[data-archive-reveal]');
     if (reveal) { try {openArchivedReveal(reveal.dataset.archiveReveal,Number(reveal.dataset.archiveSeat));} catch(cause){message(cause.message);} return; }
     if (!selectedId || !ready()) return;
+    const playerId=selectedId;
     try {
       const remove = event.target.closest('[data-note-remove]');
-      if (remove) { update(next => model.removeNote(next.store, selectedId, remove.dataset.noteRemove),{players:[selectedId]}); return; }
+      if (remove) { await update(next => model.removeNote(next.store, playerId, remove.dataset.noteRemove),{players:[playerId]}); return; }
       if (event.target.closest('#players-reset')) {
-        if (confirm('Reset confirmed observations for this player? Notes and recorded hands remain.')) update(next => model.resetPlayer(next.store, selectedId),{players:[selectedId],hands:Object.keys(library.store.hands)});
+        if (confirm('Reset confirmed observations for this player? Notes and recorded hands remain.')) await update(next => model.resetPlayer(next.store, playerId),{players:[playerId],hands:Object.keys(library.store.hands)});
       }
       if (event.target.closest('#players-delete')) {
         if (confirm('Remove this player and their notes from the current library? Recorded hands and one local recovery snapshot remain.')) {
           const deletedId=selectedId,deletedOwner=ownerKey;
-          update(next => model.deletePlayer(next.store, deletedId),{players:[deletedId],hands:Object.keys(library.store.hands)});
+          await update(next => model.deletePlayer(next.store, deletedId),{players:[deletedId],hands:Object.keys(library.store.hands)});
           selectedId=null;clearInsights();render();
           try{window.TheibsRangeTemplates?.removePlayer?.(window.localStorage,deletedOwner,deletedId);}
           catch{message('Player deleted. Saved range templates could not be removed; review local storage before reusing that player identity.');}
@@ -474,17 +513,19 @@
     if(restoredInsightToggles.has(node)){restoredInsightToggles.delete(node);return;}
     refreshInsights();
   },true);
-  host?.addEventListener('submit', event => {
+  host?.addEventListener('submit', async event => {
     event.preventDefault();
     try {
       if (event.target.id === 'players-create') {
-        const playerId=freshId();
-        selectedId = update(next => model.createPlayer(next.store, {playerId,nickname:host.querySelector('#players-new-name').value}),{players:[playerId]}).playerId;
+        const playerId=freshId(),nickname=host.querySelector('#players-new-name').value;
+        selectedId = (await update(next => model.createPlayer(next.store, {playerId,nickname}),{players:[playerId]})).playerId;
         render();
       } else if (event.target.id === 'players-rename') {
-        update(next => model.renamePlayer(next.store, selectedId, host.querySelector('#players-rename-name').value),{players:[selectedId]});
+        const playerId=selectedId,nickname=host.querySelector('#players-rename-name').value;
+        await update(next => model.renamePlayer(next.store, playerId, nickname),{players:[playerId]});
       } else if (event.target.id === 'players-add-note') {
-        update(next => model.addNote(next.store, selectedId, host.querySelector('#players-note-text').value),{players:[selectedId]});
+        const playerId=selectedId,note=host.querySelector('#players-note-text').value;
+        await update(next => model.addNote(next.store, playerId, note),{players:[playerId]});
       }
     } catch (cause) { message(cause.message); }
   });

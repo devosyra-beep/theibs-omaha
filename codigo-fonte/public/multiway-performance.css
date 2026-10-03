@@ -1,0 +1,51 @@
+.mw-performance { border:1px solid var(--border); border-radius:10px; background:var(--surface-low,#101217); margin:10px 0; min-width:0; }
+.mw-performance>summary { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:11px 12px; cursor:pointer; font-size:13px; }
+.mw-performance>summary::before { content:'▸'; color:var(--primary); }
+.mw-performance[open]>summary::before { content:'▾'; }
+.mw-performance>summary>span { flex:1; }
+.mw-performance>summary small { color:var(--muted); font:11px var(--font-mono); text-align:right; }
+.mw-performance-content { border-top:1px solid var(--border); padding:12px; min-width:0; }
+.mw-performance-filters { display:flex; flex-wrap:wrap; align-items:end; gap:10px; }
+.mw-performance-filters label { display:grid; gap:4px; color:var(--muted); font-size:11px; }
+.mw-performance-filters select,.mw-performance-filters input { min-height:34px; padding:5px 8px; font-size:12px; max-width:160px; }
+.mw-performance-filters [data-performance-custom] { display:flex; gap:8px; }
+.mw-performance [hidden] { display:none!important; }
+.mw-performance-counts { display:flex; flex-wrap:wrap; gap:6px 16px; padding:12px 0 4px; color:var(--muted); font-size:11px; }
+.mw-performance-counts b { font:600 14px var(--font-mono); color:var(--foreground); }
+.mw-performance-status { margin:7px 0 12px; color:var(--muted); font-size:11px; line-height:1.4; }
+.mw-performance-status.is-error { color:var(--bad,#ff8995); }
+.mw-performance-axis { font-size:11px; color:var(--muted); }
+.mw-performance-chart { min-height:90px; }
+.mw-performance-chart svg { display:block; width:100%; height:auto; max-height:220px; overflow:visible; }
+.mw-performance-grid { stroke:var(--border); stroke-width:1; }
+.mw-performance-grid text { fill:var(--muted); stroke:none; font:11px var(--font-mono); }
+.mw-performance-zero { stroke:#ffffff35; stroke-width:1; stroke-dasharray:3 4; }
+.mw-performance-line { fill:none; stroke:var(--primary); stroke-width:2; stroke-linejoin:round; }
+.mw-performance-chart circle { fill:var(--primary); stroke:var(--surface-low); stroke-width:1; }
+.mw-performance-chart circle:focus { outline:none; stroke:var(--foreground); stroke-width:4; }
+.mw-performance-empty { padding:15px 0; font-size:12px; color:var(--muted); }
+.mw-performance-list { list-style:none; margin:8px 0 0; padding:0; max-height:290px; overflow:auto; }
+.mw-performance-list>li { border-top:1px solid var(--border); }
+.mw-performance-list summary { display:grid; grid-template-columns:minmax(130px,1fr) 94px 85px; gap:12px; align-items:center; min-height:45px; padding:7px 3px; cursor:pointer; font-size:12px; }
+.mw-performance-hand { display:grid; gap:3px; }
+.mw-performance-hand small { color:var(--muted); font-size:10px; }
+.mw-performance-list summary>b { text-align:right; font:600 13px var(--font-mono); }
+.mw-performance-list details>p,.mw-performance-list details>ul { color:var(--muted); font-size:11px; line-height:1.5; margin:6px 3px; }
+.mw-performance-list .text-button { margin:4px 0 8px; font-size:11px; }
+.mw-performance-actions>summary { display:block; min-height:0; font-size:11px; color:var(--muted); padding:7px 3px; }
+.mw-performance-actions>ul { margin:3px 0 10px; padding-left:20px; font-size:11px; color:var(--muted); }
+.mw-performance-outcome { color:var(--muted); font-size:11px; }
+.mw-performance-outcome[data-outcome=win] { color:var(--good,#88d7b0); }
+.mw-performance-outcome[data-outcome=loss] { color:var(--bad,#ff8995); }
+.mw-performance-outcome[data-outcome=tie] { color:var(--primary); }
+#multiway-performance-table { display:none; }
+body[data-view=analyze][data-multiway=on] #multiway-performance-table { display:block; margin:0; position:relative; }
+#multiway-performance-table>summary { flex-wrap:wrap; gap:4px 8px; padding:10px; }
+#multiway-performance-table>summary small { flex-basis:100%; padding-left:15px; text-align:left; }
+@media(min-width:1000px) {
+ #multiway-performance-table[open]>.mw-performance-content { position:absolute; z-index:20; right:0; top:100%; width:min(670px,calc(100vw - 220px)); max-height:calc(100dvh - 130px); overflow:auto; background:var(--surface-low,#101217); border:1px solid var(--border); border-radius:10px; box-shadow:0 18px 40px #000b; }
+}
+@media(max-width:700px) {
+ .mw-performance-list summary { grid-template-columns:minmax(100px,1fr) 74px 65px; gap:5px; }
+ .mw-performance-filters input { max-width:130px; }
+}
